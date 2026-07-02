@@ -1,0 +1,298 @@
+# PRD.md - Parallax MVP
+
+> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
+
+---
+
+## 1. Vision
+
+Parallax turns a multi-week manual research task, "how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?", into a same-day operator pipeline: structured intake, capped prompt matrix, sampled provider runs, structured extraction, metrics with confidence intervals, findings, and an editable report. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations.
+
+## 2. How Parallax works
+
+1. The operator creates a project and enters the client brand, aliases, competitors, fact sheet, desired attributes, personas, and target markets.
+2. The app generates a prompt matrix across five intent types, defaulting to 40 prompt cells and never exceeding 50.
+3. The operator edits prompts and approves a matrix version. Approval freezes the resolved prompt text and competitor ordering.
+4. The worker runs the approved cells against selected engine-modes. Audit-grade runs use k=5 repetitions. Validation mini-runs may use k=2 and are labeled validation-only.
+5. Every raw response is stored immutably with provider, model version, tokens, cost, latency, mode, citations, and errors where applicable.
+6. Extraction turns raw answers into structured records: brands, ranks, recommendations, sentiment, attributes, citations, and factual claims.
+7. Claims about the client brand are matched to the fact sheet and reviewed in a misinformation register.
+8. Deterministic code computes metrics, confidence intervals, stability, and findings.
+9. The dashboard exposes six views, with <=2-click drill-down from any figure to raw answers.
+10. The report builder generates editable sections and exports Markdown, print-PDF, and raw CSV/JSON evidence.
+
+## 3. Target user
+
+The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month and need evidence that survives client scrutiny.
+
+The end client is not an app user.
+
+## 4. Core use cases
+
+1. Full baseline audit: 40-50 cells, audit-grade repetitions, target provider set.
+2. Rapid snapshot: 15-20 cells, one or two providers, lower-cost package.
+3. Misinformation register: factual-risk deliverable for regulated or trust-sensitive clients.
+4. Competitive displacement diagnosis: lost-shortlist cells plus sources driving competitor wins.
+5. Evidence pack: raw answers, extractions, and metrics backing strategy work.
+
+## 5. MVP scope
+
+- Seven-step intake wizard with autosave and review.
+- Budget-aware prompt matrix, operator-edited, versioned, and capped per C-1.
+- Jobs table plus polling worker; resumable, idempotent, cost-capped.
+- MockProvider as provider #0.
+- DeepSeek as the first live dry-run provider for validation mini-audits.
+- MiniMax as the second candidate live provider after API-key/account details are confirmed.
+- Provider interface designed for later OpenAI, Anthropic, Gemini, and Perplexity adapters.
+- Extraction with strict schema, retry-once, dead-lettering, alias normalization, claim verification, and QA sampling.
+- Metrics with Wilson confidence intervals, stability, small-n guards, and idempotent recompute.
+- Dashboard with scorecard, funnel heatmap, share of voice, attribute radar, cited sources, and misinformation register.
+- Findings engine, report builder, Markdown export, print-PDF export, and raw CSV/JSON export.
+- Settings, Debug views, shared-password auth, and Render deployment skeleton.
+
+## 6. Explicitly out of MVP scope
+
+Scheduled runs, run-over-run trends, AI Overviews via SERP API, `.docx` export, white-label theming, multi-user auth/roles, client portals, Slack/CRM/email integrations, automated content generation, billing, mobile optimization, geo-proxy sophistication, Copilot/Meta/Grok, and consumer-UI scraping.
+
+## 7. User journey
+
+`/projects` -> New project -> wizard -> review projected footprint -> generate matrix -> edit within budget -> approve -> start mock or live validation run -> watch progress -> extraction QA and claim review -> dashboard -> report builder -> export.
+
+Routes:
+
+- `/projects`
+- `/projects/new`
+- `/projects/[id]/matrix`
+- `/projects/[id]/runs/[runId]`
+- `/projects/[id]/dashboard`
+- `/projects/[id]/report`
+- `/settings`
+- `/debug`
+
+## 8. Feature requirements
+
+### 8.1 Wizard shell
+
+PS-1: Seven steps plus review, progress rail, free back/forward.
+PS-2: Server-side autosave per step; drafts resumable.
+PS-3: Zod validation server-side with field-level errors.
+PS-4: Review screen deep-links to steps and returns to review.
+
+### 8.2 Brand and competitors
+
+BC-1: Client brand fields: `name`, `aliases[]`, `domain`, `description`.
+BC-2: Competitors: 3-8 brands, each with `name`, `aliases[]`, optional `domain`.
+BC-3: Overlapping aliases across brands are flagged before matrix generation.
+
+### 8.3 Context inputs
+
+CM-1: Fact sheet rows: `type` in `pricing | feature | company_fact | security | availability`, `statement`, optional `source_note`, optional `source_url`.
+CM-2: Desired attributes: 6-12 normalized phrases, for example `easy implementation`, `enterprise-ready`, `low cost`.
+CM-3: Personas: 2-5 cards with `title`, `company_context`, `pain_points[]`, and `buying_criteria[]`.
+CM-4: Markets: ordered list; order controls allocation priority.
+CM-5: Project context includes `category` and `job_to_be_done`; prompt templates may not reference fields outside the intake schema.
+
+### 8.4 Prompt matrix
+
+PM-1: Templates render across intent, persona, market, and variant.
+PM-2: Default 40-cell allocation: comparison 12, consideration 10, validation 8, objection 6, discovery 4.
+PM-3: The allocator never exceeds `MAX_CELLS_PER_RUN = 50`.
+PM-4: Priority is primary persona x primary market x two variants first, then broader coverage.
+PM-5: UI shows a live cell counter; add-cell is disabled at 50.
+PM-6: Server rejects approval above 50 cells.
+PM-7: Inline text edit and per-cell variant regeneration are supported.
+PM-8: Comparison cells store randomized competitor order.
+PM-9: Unbranded discovery and consideration cells must contain no tracked brand names or aliases at approval.
+PM-10: Approval creates an immutable version; later edits create a new version.
+
+Seed prompt templates must exist as database seed data, not hard-coded UI strings:
+
+- discovery: "What tools should a {persona} in {market} consider for {job_to_be_done}?"
+- consideration: "What are the best options for {persona} teams evaluating {category} in {market}?"
+- comparison: "Compare {client_brand} against {competitor_list} for a {persona} buyer in {market}."
+- validation: "Is {client_brand} a good fit for {persona} teams that care about {attribute_list}?"
+- objection: "What concerns should a {persona} have before choosing {client_brand}?"
+
+### 8.5 Mock mode
+
+MK-1: MockProvider is selectable at run creation.
+MK-2: MOCK badge appears on every derived view.
+MK-3: 30-50 fixtures cover ranked lists, prose comparisons, hedges, zero-brand answers, cited answers, wrong facts, refusals, truncated output, and malformed output.
+MK-4: Fixture selection is seeded by a stable hash of `(resolved_text, provider_id, rep_index)`, never by row UUIDs, so selection is reproducible across re-seeds and fresh clones (D-016).
+MK-5: Failure-injection toggles live in Debug.
+MK-6: Default mock run completes in under 2 minutes.
+
+### 8.6 Providers and live validation
+
+PV-1: Provider adapters implement the same interface and declare grounding capability.
+PV-2: DeepSeek is the first live dry-run provider. It is used for ungrounded live pipeline validation unless a verified grounded API path is added.
+PV-3: MiniMax is a second candidate provider, not required for the first live mini-audit.
+PV-4: OpenAI, Anthropic, Gemini, and Perplexity are later adapters and must not require changes to the runner schema.
+PV-5: A provider that cannot return normalized citations cannot be selected for grounded runs.
+PV-6: Provider-specific model names and prices live in provider config and `.env.example`, not in UI components.
+PV-7: Provider capability details are specified in `ENGINEERING_SPEC.md` and must be verified against official docs before implementation.
+
+### 8.7 Runner
+
+RN-1: Run creation computes planned calls: cells x selected engine-modes x repetitions.
+RN-2: Run creation shows projected cost and blocks if above the run dollar cap.
+RN-3: Jobs are idempotent with unique `(run_id, cell_id, provider_id, generation_mode, rep_index)`.
+RN-4: Worker restart resumes without duplicate raw responses.
+RN-5: Per-provider concurrency and exponential backoff are enforced.
+RN-6: Typed errors are stored: `rate_limit`, `timeout`, `server_error`, `auth_error`, `malformed_output`, `unsupported_mode`. `malformed_output` is transport-level only — no usable text received, no response stored; content-level problems belong to extraction (D-011).
+RN-7: Circuit breaker pauses the run at cost cap or >20% failed jobs.
+RN-8: Pause/cancel is supported. "Partial" is derived, not stored: a run that reaches a terminal state with any dead-lettered or cancelled jobs is displayed with a partial badge.
+
+### 8.8 Extraction schema
+
+SM-1: Extraction output must validate against the canonical schema before persistence.
+SM-2: Validation failure retries once with the validation error appended to the extraction prompt.
+SM-3: Second failure creates an extraction dead-letter; no raw response is dropped.
+
+Canonical extraction shape:
+
+```ts
+type ExtractedResponse = {
+  schema_version: 1;
+  answer_summary: string;
+  brands: Array<{
+    canonical_brand_id: string | null;
+    observed_name: string;
+    aliases_matched: string[];
+    mentioned: boolean;
+    position: number | null;
+    recommended: boolean;
+    recommendation_strength: "strong" | "soft" | "neutral" | "discouraged";
+    sentiment: "positive" | "neutral" | "mixed" | "negative";
+    attributes: string[];
+    evidence_quote: string;
+  }>;
+  citations: Array<{
+    url: string;
+    domain: string;
+    title: string | null;
+    cited_for_brand_ids: string[];
+  }>;
+  claims: Array<{
+    brand_id: string | null;
+    claim_text: string;
+    claim_type: "pricing" | "feature" | "company_fact" | "security" | "availability" | "other";
+    matched_fact_claim_id: string | null;
+    verdict: "supported" | "contradicted" | "outdated" | "unsupported" | "ambiguous" | "not_checked";
+    severity: "none" | "low" | "medium" | "high";
+    evidence_quote: string;
+  }>;
+  refusal: boolean;
+  malformed: boolean;
+};
+```
+
+SM-4: Alias normalization maps observed names to canonical brands before metric computation.
+SM-5: Operator claim review can override verdict and severity while preserving the original extracted values.
+SM-6: Aggregate claims and findings render only where n >= 30 eligible samples unless explicitly labeled validation-only. Cell-level findings are exempt but always labeled directional only (D-015).
+SM-7: Golden dataset fixtures reproduce exact expected extractions and metrics in CI.
+
+### 8.9 Metrics
+
+"Eligible samples" and scope are defined once in `DEVELOPMENT_GUIDELINES.md` E2 (D-014); every denominator below uses that definition.
+
+MT-1: Mention Rate = samples where client brand is mentioned / eligible samples.
+MT-2: Recommendation Rate = samples where client brand is recommended / eligible samples.
+MT-3: Share of Voice = client brand mentions / all tracked brand mentions in scope.
+MT-4: Avg First Position excludes samples where the brand is absent.
+MT-5: Citation Share = citations associated with client brand / citations associated with all tracked brands.
+MT-6: Accuracy Rate = supported client claims / checked client claims.
+MT-7: Stability Index = mean pairwise Jaccard of top-5 tracked-brand sets across reps in the same cell and engine-mode.
+MT-8: Metrics are computed at overall, provider, mode, intent, market, persona, and cell-cluster scopes where sample size allows.
+
+### 8.10 Dashboard
+
+DB-1: Six views: scorecard, funnel heatmap, share of voice, attribute radar, cited sources, misinformation register.
+DB-2: Every figure drills down to underlying raw responses in <=2 clicks.
+DB-3: Small-n guards render "insufficient data" below n=30 for audit claims.
+DB-4: Mock, validation-only, ungrounded, partial, and low-stability badges are visible wherever relevant.
+
+### 8.11 Report
+
+RB-1: Findings rules cover lost-shortlist cells, positioning gaps, misinformation, grounded-vs-ungrounded mechanism split, source concentration, and low-stability flags.
+RB-2: Report sections store `generated_md` and `edited_md`; edited content always wins.
+RB-3: Regenerating one section never touches other sections.
+RB-4: Structure: executive summary, method and confidence note, visibility, perception, competitive dynamics, sources, misinformation register, recommendations, raw-answer appendix.
+RB-5: Report tone is client-facing, cautious, and evidence-led. It never promises rankings or guaranteed remediation.
+
+### 8.12 Export
+
+EX-1: Markdown download.
+EX-2: Print-styled HTML to PDF with section page breaks.
+EX-3: Raw responses, extractions, metrics, and citations export as CSV/JSON.
+EX-4: Exports are synchronous downloads; there is no export table, queue, or state machine in MVP (D-013).
+
+### 8.13 Settings
+
+ST-1: Provider key presence check; secret values are never shown.
+ST-2: Defaults: repetitions, selected engines, diagnostic engine, run dollar cap, provider daily budgets.
+ST-3: Default validation mini-run cap is $2. Default audit run cap is $25 until changed by operator.
+
+### 8.14 Debug
+
+AD-1: Jobs table with requeue.
+AD-2: Dead-letters with re-extract.
+AD-3: `run_events` tail.
+AD-4: Fixture reload, failure injection, recompute, seed demo project.
+
+### 8.15 Foundation readiness
+
+FR-1: M0 is not complete until `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, Next config, Vitest config, Drizzle config, CI workflow, Render skeleton, and `/health` exist.
+FR-2: Fresh-clone setup is documented in `README.md`.
+FR-3: M0 verification commands are `pnpm install`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and a local `/health` smoke check.
+FR-4: M1 may not start until the table-by-table schema spec, lifecycle states, provider capability matrix, demo project, and fixture manifests exist.
+
+## 9. Data model summary
+
+`projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `metrics`, `findings`, `report_sections`, `run_events`.
+
+Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require migrations.
+
+## 10. Acceptance criteria
+
+1. Golden dataset test passes in CI.
+2. Full mock audit E2E script passes with asserted row counts and <=50 cap enforcement.
+3. Failure-injection suite passes; worker kill/restart resumes without duplicates.
+4. Cap enforcement is verified at matrix approval, run creation, and worker planning.
+5. DeepSeek live validation mini-audit completes under a $2 cap with stored raw responses, versions, costs, and ungrounded/validation labels.
+6. First grounded provider mini-audit completes only after a provider path can return normalized citations.
+7. Extraction spot-check is >=90% accurate on 20 responses; dead-letter rate <5%.
+8. Every dashboard figure traces to raw text; report numbers match dashboard.
+9. One pilot audit is delivered after target provider coverage is available; retro is logged in `MASTER_CONTEXT.md`.
+10. Manual checklists in `DEVELOPMENT_GUIDELINES.md` are executed on the release commit.
+
+## 11. Milestones and progress tracker
+
+| M | Goal | Merge when | Status |
+|---|---|---|---|
+| M0 | Foundation: runnable stack skeleton, CI/deploy skeleton, docs wired | `pnpm install`, lint, typecheck, test, `/health`, CI, and Render skeleton all work | In progress |
+| M0.5 | Execution readiness: schema, states, provider matrix, fixtures | Engineers can start M1 without unresolved product/schema/provider questions | Done |
+| M1 | Full schema + idempotent seed + constants | Migrations apply clean; seed twice creates no dupes | Not started |
+| M2 | Intake wizard | Draft -> quit -> resume intact; validation blocks bad input | Not started |
+| M3 | Budget-aware matrix | Default <=50 always; 51st blocked UI+server; approval freezes version | Not started |
+| M4 | Mock run pipeline | 1,000-call mock run <2 min; kill-resume clean; injection retries logged | Not started |
+| M5 | Extraction + metrics + golden dataset | Goldens exact; recompute idempotent; dead-letters visible | Not started |
+| M6 | Dashboard | Figures match SQL spot-checks; drill-down <=2 clicks | Not started |
+| M7 | Report + export | Full report from golden run; edits survive other-section regeneration | Not started |
+| M8 | Live validation: DeepSeek + extraction mini-audit | 5 cells x k=2 under $2 cap; validation labels visible; breaker fires | Not started |
+| M9 | Provider expansion and hardening | Target grounded providers added through same interface; provider-down degrades gracefully | Not started |
+| M10 | Pilot audit | Full live audit delivered; retro logged; release checklist complete | Not started |
+
+Progress notes:
+
+- 2026-07-02 done: canonical docs moved into repo, ambiguity reduced, structured repo folders initialized, and M0.5 execution-readiness specs added.
+- 2026-07-02 remaining: initialize package dependencies, health route, CI workflow, Render skeleton, and first migration.
+- 2026-07-02 known issues: no dependencies installed yet; live provider keys and MiniMax account details still need operator confirmation.
+- 2026-07-02 doc audit: resolved contradictions D-011 through D-016 (malformed-output layering, per-provider budgets, no exports table, eligible-sample definition, cell-level finding exemption, deterministic mock seeding); baseline commit created.
+- 2026-07-02 structure: removed speculative M9 provider directories and the dangerous `drizzle` gitignore line; status now has one home (this tracker).
+
+## 12. Roadmap after MVP
+
+v1.1: AI Overviews through SERP/API vendor, `.docx` export, snapshot preset.
+
+Later, demand-driven: run-over-run comparison, extraction-accuracy trends, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.

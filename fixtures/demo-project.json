@@ -1,0 +1,85 @@
+{
+  "project": {
+    "name": "LedgerFox AI Visibility Demo",
+    "category": "B2B spend management and accounting automation",
+    "job_to_be_done": "choose a finance operations platform that reduces manual reconciliation and improves spend visibility"
+  },
+  "client_brand": {
+    "name": "LedgerFox",
+    "aliases": ["Ledger Fox", "ledgerfox.io"],
+    "domain": "ledgerfox.io",
+    "description": "LedgerFox is a fictional finance operations platform for mid-market teams."
+  },
+  "competitors": [
+    {
+      "name": "SpendPilot",
+      "aliases": ["Spend Pilot"],
+      "domain": "spendpilot.example"
+    },
+    {
+      "name": "Northstar AP",
+      "aliases": ["Northstar Accounts Payable", "Northstar"],
+      "domain": "northstar-ap.example"
+    },
+    {
+      "name": "CloseBooks AI",
+      "aliases": ["CloseBooks"],
+      "domain": "closebooks-ai.example"
+    }
+  ],
+  "fact_claims": [
+    {
+      "type": "pricing",
+      "statement": "LedgerFox starts at $499 per month for the Team plan.",
+      "source_note": "Demo pricing sheet",
+      "source_url": "https://ledgerfox.io/pricing"
+    },
+    {
+      "type": "feature",
+      "statement": "LedgerFox supports automated receipt matching and card transaction reconciliation.",
+      "source_note": "Demo product page",
+      "source_url": "https://ledgerfox.io/features"
+    },
+    {
+      "type": "security",
+      "statement": "LedgerFox offers SSO on the Business plan.",
+      "source_note": "Demo security page",
+      "source_url": "https://ledgerfox.io/security"
+    },
+    {
+      "type": "availability",
+      "statement": "LedgerFox is available in the United States and Canada.",
+      "source_note": "Demo availability note",
+      "source_url": "https://ledgerfox.io/availability"
+    },
+    {
+      "type": "company_fact",
+      "statement": "LedgerFox is designed for companies with 50 to 500 employees.",
+      "source_note": "Demo positioning brief",
+      "source_url": "https://ledgerfox.io/customers"
+    }
+  ],
+  "attributes": [
+    "easy implementation",
+    "mid-market fit",
+    "transparent pricing",
+    "strong reconciliation",
+    "finance team friendly",
+    "secure access controls"
+  ],
+  "personas": [
+    {
+      "title": "VP Finance",
+      "company_context": "A 180-person software company replacing spreadsheets and manual card reconciliation.",
+      "pain_points": ["month-end delays", "limited spend visibility", "manual receipt chasing"],
+      "buying_criteria": ["fast rollout", "audit trail", "pricing clarity"]
+    },
+    {
+      "title": "Controller",
+      "company_context": "A 300-person services company with distributed card spend.",
+      "pain_points": ["uncoded transactions", "late receipts", "approval bottlenecks"],
+      "buying_criteria": ["reconciliation depth", "ERP export", "policy controls"]
+    }
+  ],
+  "markets": ["United States"]
+}
