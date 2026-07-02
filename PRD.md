@@ -281,7 +281,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 
 | M | Goal | Merge when | Status |
 |---|---|---|---|
-| M0 | Foundation: runnable stack skeleton, CI/deploy skeleton, docs wired | `pnpm install`, lint, typecheck, test, `/health`, CI, and Render skeleton all work | In progress |
+| M0 | Foundation: runnable stack skeleton, CI/deploy skeleton, docs wired | `pnpm install`, lint, typecheck, test, `/health`, CI, and Render skeleton all work | Code complete; CI verified on first remote push |
 | M0.5 | Execution readiness: schema, states, provider matrix, fixtures | Engineers can start M1 without unresolved product/schema/provider questions | Done |
 | M1 | Full schema + idempotent seed + constants | Migrations apply clean; seed twice creates no dupes | Not started |
 | M2 | Intake wizard | Draft -> quit -> resume intact; validation blocks bad input | Not started |
@@ -305,6 +305,8 @@ Progress notes:
 - 2026-07-02 design: added `DESIGN_GUIDELINES.md` codifying the machine-age evidence-dossier visual language (D-019) — ink/paper surfaces, signal-orange accent, mono-first type, motion budgets, guardrails V-1 to V-12; wired into docs index and stack table.
 - 2026-07-02 pre-production review: resolved D-020 through D-024 — config precedence and single-active credentials, KEK lifecycle and pinned crypto, extraction engine named and brought under all cost guards, per-metric CI methods, production hardening (login, heartbeat, evidence archive, additive-first migrations); seed contract now requires 3 variants per intent and a 2-persona/2-market demo.
 - 2026-07-02 process: added `BUILD_NOTES.md` session working-memory convention (D-025); boot and handoff rituals updated; S-001 entry points the next session at the M0 scaffold.
+- 2026-07-02 M0 build: Next 15 + TS scaffold with standalone output, `/health` route + test, worker heartbeat entrypoint, ESLint/Vitest/Drizzle configs (migrations `out` pinned), CI workflow, Node/pnpm pins. All FR-3 commands pass locally; `/health` smoke-tested through the standalone server (the Render start path).
+- 2026-07-02 M0 remaining: CI has not executed (no GitHub remote configured); `db:migrate` unverified against a live Postgres — both close out with the first remote push and M1's first migration.
 
 ## 12. Roadmap after MVP
 
