@@ -1,0 +1,1 @@
+ALTER TABLE "audit_runs" ADD COLUMN "debug_failure_injection_json" jsonb;
