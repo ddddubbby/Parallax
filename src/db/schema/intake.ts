@@ -24,6 +24,9 @@ export const projects = pgTable("projects", {
   jobToBeDone: text("job_to_be_done"),
   status: projectStatus("status").notNull().default("draft"),
   intakeStep: integer("intake_step").notNull().default(1),
+  // Wizard working memory (D-026): step-keyed raw form values. Normalized
+  // into the intake tables in one transaction when intake completes.
+  intakeDraftJson: jsonb("intake_draft_json").notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
