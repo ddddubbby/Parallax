@@ -10,7 +10,7 @@ Start here:
 4. Read `ENGINEERING_SPEC.md` before schema, provider, worker, seed, or fixture work.
 5. Read `RENDER_DEPLOYMENT.md` before touching deploy configuration.
 
-Current state: M0 foundation in progress. The repo has canonical docs and folder structure, but package dependencies have not been installed yet.
+Current state: M0 scaffold is runnable — `pnpm install`, `lint`, `typecheck`, `test`, `build`, `/health`, and the worker entrypoint all pass locally. CI runs on the first push to a GitHub remote. Node version is pinned in `.node-version`; pnpm via `packageManager`.
 
 ## Execution Readiness
 
@@ -36,7 +36,7 @@ pnpm dev
 
 The canonical per-milestone acceptance command list lives in `DEVELOPMENT_GUIDELINES.md` section F.
 
-The app is not expected to run until `package.json`, Next.js config, Vitest config, Drizzle config, CI, Render skeleton, and `/health` are added.
+`pnpm db:migrate` needs a running Postgres reachable at `DATABASE_URL` and has nothing to apply until the first migration lands in M1.
 
 ## Secrets
 
