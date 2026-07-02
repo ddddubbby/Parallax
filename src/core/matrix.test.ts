@@ -1,0 +1,212 @@
+import { describe, expect, it } from "vitest";
+import {
+  allocateMatrix,
+  type BrandTerms,
+  type CellPlan,
+  findBrandTerms,
+  intentQuotas,
+  type MatrixContext,
+  renderTemplate,
+  shuffle,
+  type TemplateInput,
+} from "./matrix";
+
+// Deterministic RNG for PM-8 tests.
+function seededRng(seed = 42): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+const TEMPLATES: TemplateInput[] = (
+  [
+    ["discovery", "What tools should a {persona} in {market} consider for {job_to_be_done}?"],
+    ["consideration", "Best options for {persona} teams evaluating {category} in {market}?"],
+    ["comparison", "Compare {client_brand} against {competitor_list} for {persona} in {market}."],
+    ["validation", "Is {client_brand} good for {persona} teams that care about {attribute_list}?"],
+    ["objection", "What concerns should a {persona} have before choosing {client_brand}?"],
+  ] as const
+).flatMap(([intent, text]) =>
+  ["v1", "v2", "v3"].map((variantKey) => ({
+    intent,
+    variantKey,
+    templateText: `${text} (${variantKey})`,
+  })),
+);
+
+const CTX: MatrixContext = {
+  category: "spend management",
+  jobToBeDone: "reduce manual reconciliation",
+  clientBrand: { name: "LedgerFox", aliases: ["Ledger Fox"] },
+  competitors: [
+    { name: "SpendPilot", aliases: [] },
+    { name: "Northstar AP", aliases: ["Northstar"] },
+    { name: "CloseBooks AI", aliases: [] },
+  ],
+  attributes: ["easy implementation", "mid-market fit"],
+};
+
+const personas = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({ id: `p${i}`, title: `Persona ${i}` }));
+const markets = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({ id: `m${i}`, name: `Market ${i}` }));
+
+function alloc(p: number, m: number, opts: { target?: number } = {}): CellPlan[] {
+  return allocateMatrix(TEMPLATES, personas(p), markets(m), CTX, {
+    ...opts,
+    rng: seededRng(),
+  });
+}
+
+describe("intentQuotas (PM-2)", () => {
+  it("returns the PM-2 table exactly at the 40-cell default", () => {
+    expect(intentQuotas(40)).toEqual({
+      comparison: 12,
+      consideration: 10,
+      validation: 8,
+      objection: 6,
+      discovery: 4,
+    });
+  });
+
+  it("sums to the target for other sizes and never exceeds 50", () => {
+    for (const target of [15, 20, 37, 50, 60]) {
+      const q = intentQuotas(target);
+      const sum = Object.values(q).reduce((a, b) => a + b, 0);
+      expect(sum).toBe(Math.min(target, 50));
+    }
+  });
+});
+
+describe("allocateMatrix", () => {
+  it("hits the 40-cell default with the demo-sizing contract (2p x 2m x 3v)", () => {
+    const cells = alloc(2, 2);
+    expect(cells).toHaveLength(40);
+    const byIntent = Object.groupBy(cells, (c) => c.intent);
+    expect(byIntent.comparison).toHaveLength(12);
+    expect(byIntent.consideration).toHaveLength(10);
+    expect(byIntent.validation).toHaveLength(8);
+    expect(byIntent.objection).toHaveLength(6);
+    expect(byIntent.discovery).toHaveLength(4);
+  });
+
+  it("never duplicates a combo (PM-11)", () => {
+    const cells = alloc(2, 2, { target: 50 });
+    const keys = cells.map(
+      (c) => `${c.intent}|${c.personaId}|${c.marketId}|${c.variantKey}`,
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("redistributes quota when an intent lacks combos (PM-11)", () => {
+    // 1 persona x 1 market x 3 variants = 3 combos/intent, 15 total.
+    const cells = alloc(1, 1);
+    expect(cells).toHaveLength(15);
+  });
+
+  it("never exceeds 50 even when asked to (PM-3)", () => {
+    const cells = allocateMatrix(TEMPLATES, personas(4), markets(4), CTX, {
+      target: 200,
+      rng: seededRng(),
+    });
+    expect(cells.length).toBeLessThanOrEqual(50);
+    expect(cells).toHaveLength(50);
+  });
+
+  it("leads with primary persona x primary market x two variants (PM-4)", () => {
+    const cells = alloc(2, 2);
+    const comparison = cells.filter((c) => c.intent === "comparison");
+    expect(comparison[0]).toMatchObject({ personaId: "p0", marketId: "m0", variantKey: "v1" });
+    expect(comparison[1]).toMatchObject({ personaId: "p0", marketId: "m0", variantKey: "v2" });
+    // Broader coverage precedes the primary pair's third variant.
+    const v3Idx = comparison.findIndex(
+      (c) => c.personaId === "p0" && c.marketId === "m0" && c.variantKey === "v3",
+    );
+    const broaderIdx = comparison.findIndex((c) => c.personaId === "p1");
+    expect(broaderIdx).toBeLessThan(v3Idx === -1 ? Infinity : v3Idx);
+  });
+
+  it("stores randomized competitor order on comparison cells only (PM-8)", () => {
+    const cells = alloc(2, 2);
+    for (const cell of cells) {
+      if (cell.intent === "comparison") {
+        expect([...cell.competitorOrder].sort()).toEqual(
+          ["CloseBooks AI", "Northstar AP", "SpendPilot"].sort(),
+        );
+        expect(cell.resolvedText).toContain(cell.competitorOrder.join(", "));
+      } else {
+        expect(cell.competitorOrder).toEqual([]);
+      }
+    }
+    const orders = new Set(
+      cells.filter((c) => c.intent === "comparison").map((c) => c.competitorOrder.join("|")),
+    );
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
+  it("returns nothing without personas or markets", () => {
+    expect(allocateMatrix(TEMPLATES, [], markets(1), CTX)).toEqual([]);
+    expect(allocateMatrix(TEMPLATES, personas(1), [], CTX)).toEqual([]);
+  });
+});
+
+describe("renderTemplate (PM-1)", () => {
+  it("resolves every placeholder", () => {
+    const text = renderTemplate(
+      "{persona} / {market} / {category} / {job_to_be_done} / {client_brand} / {competitor_list} / {attribute_list}",
+      {
+        persona: { id: "p", title: "VP Finance" },
+        market: { id: "m", name: "US" },
+        ctx: CTX,
+        competitorOrder: ["A", "B"],
+      },
+    );
+    expect(text).toBe(
+      "VP Finance / US / spend management / reduce manual reconciliation / LedgerFox / A, B / easy implementation, mid-market fit",
+    );
+  });
+
+  it("leaves unknown placeholders untouched for operator visibility", () => {
+    const text = renderTemplate("{persona} wants {unknown_thing}", {
+      persona: { id: "p", title: "VP" },
+      market: { id: "m", name: "US" },
+      ctx: CTX,
+      competitorOrder: [],
+    });
+    expect(text).toBe("VP wants {unknown_thing}");
+  });
+});
+
+describe("findBrandTerms (PM-9)", () => {
+  const brands: BrandTerms[] = [
+    { name: "LedgerFox", aliases: ["Ledger Fox"] },
+    { name: "SpendPilot", aliases: [] },
+  ];
+
+  it("finds names and aliases case-insensitively on word boundaries", () => {
+    expect(findBrandTerms("Why choose ledgerfox?", brands)).toEqual(["LedgerFox"]);
+    expect(findBrandTerms("Compare ledger  fox and spendpilot", brands)).toEqual(
+      expect.arrayContaining(["Ledger Fox", "SpendPilot"]),
+    );
+  });
+
+  it("does not match substrings inside larger words", () => {
+    expect(findBrandTerms("spendpiloting is not a brand", brands)).toEqual([]);
+  });
+
+  it("returns empty for clean unbranded text", () => {
+    expect(findBrandTerms("What tools should a VP consider?", brands)).toEqual([]);
+  });
+});
+
+describe("shuffle", () => {
+  it("is deterministic under a seeded rng and preserves members", () => {
+    const rng1 = seededRng(7);
+    const rng2 = seededRng(7);
+    const items = ["a", "b", "c", "d"];
+    expect(shuffle(items, rng1)).toEqual(shuffle(items, rng2));
+    expect([...shuffle(items, seededRng(9))].sort()).toEqual(items);
+  });
+});

@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "parallax-web",
-      "runtimeExecutable": "/Users/tapp/.local/share/node-v22/bin/node",
-      "runtimeArgs": ["node_modules/next/dist/bin/next", "dev"],
-      "port": 3000
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["/Users/tapp/Documents/Parallax/scripts/dev-server.sh"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }
