@@ -96,6 +96,7 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 | `DESIGN_GUIDELINES.md` | Visual language: tokens, typography, surfaces, motion, component rules, visual guardrails |
 | `ENGINEERING_SPEC.md` | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
 | `RENDER_DEPLOYMENT.md` | Render Blueprint assumptions, secret model, first-deploy checklist |
+| `BUILD_NOTES.md` | Disposable per-session working memory for agent handoff; truncated at milestone merge |
 | `README.md` | Quick orientation and local setup pointer |
 | `fixtures/` | Demo project, mock response manifest, golden expectation manifest |
 
@@ -105,11 +106,11 @@ Split a section into a separate file only when it exceeds roughly 300 lines or c
 
 Boot ritual for implementation sessions:
 
-> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then `DEVELOPMENT_GUIDELINES.md` section A. For UI-facing milestones (M2, M3, M6, M7), also read `DESIGN_GUIDELINES.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then `DEVELOPMENT_GUIDELINES.md` section A, then the active milestone's entries in `BUILD_NOTES.md`. For UI-facing milestones (M2, M3, M6, M7), also read `DESIGN_GUIDELINES.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 
-> Append decisions made this session to `MASTER_CONTEXT.md` section 9. Append a 3-line progress note to the current milestone in `PRD.md`. Give the commit message.
+> Append a session entry to `BUILD_NOTES.md` (template inside that file). Append decisions made this session to `MASTER_CONTEXT.md` section 9. Append a 3-line progress note to the current milestone in `PRD.md`. Give the commit message. If stopping mid-task or blocked, write the `BUILD_NOTES.md` entry immediately, even without the rest of the ritual.
 
 Session rules: one active session at a time, one branch per milestone, plan before any multi-file edit, and any schema-change plan must say the word migration.
 
@@ -141,6 +142,7 @@ Session rules: one active session at a time, one branch per milestone, plan befo
 | D-022 | 2026-07-02 | The "diagnostic engine" term is retired; the extraction engine is a Settings-configured provider+model resolved through the same provider registry and credential service as generation. Extraction calls are counted in projected run cost, the per-run cap, and daily budgets. Mock runs and CI use fixture-backed extraction, never a live extraction engine | Extraction is a second layer of paid LLM calls that was invisible to every cost guard, and golden tests require deterministic extraction | Uncapped extraction spend; live extraction calls in CI; leaving "diagnostic engine" undefined |
 | D-023 | 2026-07-02 | Confidence-interval methods are per metric: Wilson only for per-sample proportions (Mention Rate, Recommendation Rate, Accuracy Rate). Share of Voice, Citation Share, Avg First Position, and Stability Index ship in MVP as point estimates explicitly labeled as having no interval; bootstrap intervals are post-MVP | Wilson is statistically invalid for count ratios and means; shipping wrong intervals contradicts the statistical-honesty differentiator | Wilson everywhere; blocking MVP on bootstrap implementation |
 | D-024 | 2026-07-02 | MVP production-hardening set: rate-limited login with constant-time password comparison and session expiry; worker heartbeat with staleness surfaced in Debug; post-audit evidence archive (EX-3 export plus database dump stored off-Render); additive-first migration discipline; `claims_found.reviewed_at` for the evidence chain | The shared password now guards spendable API credentials; Render workers have no health checks; managed-Postgres backup retention is thinner than the C-3 evidence promise | Deferring all hardening past the pilot; retrofitting review timestamps after M1 |
+| D-025 | 2026-07-02 | Add `BUILD_NOTES.md`: append-only per-session working memory (goal, verified/unverified work, rejected approaches, exact next action, gotchas), written as step one of the handoff ritual and read in the boot ritual. Entries are disposable — deleted at milestone merge after anything durable graduates to a canonical doc | Commits and the PRD tracker capture milestone-level state but not mid-milestone dead ends, unverified work, or the next action — the expensive things for a fresh agent to re-discover | A broad ways-of-working/SOP handbook; putting session state in the PRD tracker; relying on git history alone |
 
 ## 10. Current state
 

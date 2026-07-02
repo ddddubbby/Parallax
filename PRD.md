@@ -304,6 +304,7 @@ Progress notes:
 - 2026-07-02 structure: removed speculative M9 provider directories and the dangerous `drizzle` gitignore line; status now has one home (this tracker).
 - 2026-07-02 design: added `DESIGN_GUIDELINES.md` codifying the machine-age evidence-dossier visual language (D-019) — ink/paper surfaces, signal-orange accent, mono-first type, motion budgets, guardrails V-1 to V-12; wired into docs index and stack table.
 - 2026-07-02 pre-production review: resolved D-020 through D-024 — config precedence and single-active credentials, KEK lifecycle and pinned crypto, extraction engine named and brought under all cost guards, per-metric CI methods, production hardening (login, heartbeat, evidence archive, additive-first migrations); seed contract now requires 3 variants per intent and a 2-persona/2-market demo.
+- 2026-07-02 process: added `BUILD_NOTES.md` session working-memory convention (D-025); boot and handoff rituals updated; S-001 entry points the next session at the M0 scaffold.
 
 ## 12. Roadmap after MVP
 
