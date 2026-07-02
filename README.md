@@ -25,8 +25,9 @@ M0 runnable scaffold is still pending. After package setup, the fresh-clone path
 
 ```sh
 pnpm install
-cp .env.example .env.local   # then set DATABASE_URL to a running Postgres
-pnpm db:migrate
+cp .env.example .env.local   # defaults match the local dev database below
+pnpm db:dev                  # embedded Postgres 17 on :5432, foreground; Ctrl+C stops
+pnpm db:migrate              # in a second terminal
 pnpm db:seed
 pnpm lint
 pnpm typecheck

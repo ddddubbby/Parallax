@@ -283,7 +283,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 |---|---|---|---|
 | M0 | Foundation: runnable stack skeleton, CI/deploy skeleton, docs wired | `pnpm install`, lint, typecheck, test, `/health`, CI, and Render skeleton all work | Code complete; CI verified on first remote push |
 | M0.5 | Execution readiness: schema, states, provider matrix, fixtures | Engineers can start M1 without unresolved product/schema/provider questions | Done |
-| M1 | Full schema + idempotent seed + constants | Migrations apply clean; seed twice creates no dupes | Not started |
+| M1 | Full schema + idempotent seed + constants | Migrations apply clean; seed twice creates no dupes | Done |
 | M2 | Intake wizard | Draft -> quit -> resume intact; validation blocks bad input | Not started |
 | M3 | Budget-aware matrix | Default <=50 always; 51st blocked UI+server; approval freezes version | Not started |
 | M4 | Mock run pipeline | 1,000-call mock run <2 min; kill-resume clean; injection retries logged | Not started |
@@ -307,6 +307,8 @@ Progress notes:
 - 2026-07-02 process: added `BUILD_NOTES.md` session working-memory convention (D-025); boot and handoff rituals updated; S-001 entry points the next session at the M0 scaffold.
 - 2026-07-02 M0 build: Next 15 + TS scaffold with standalone output, `/health` route + test, worker heartbeat entrypoint, ESLint/Vitest/Drizzle configs (migrations `out` pinned), CI workflow, Node/pnpm pins. All FR-3 commands pass locally; `/health` smoke-tested through the standalone server (the Render start path).
 - 2026-07-02 M0 remaining: CI has not executed (no GitHub remote configured); `db:migrate` unverified against a live Postgres — both close out with the first remote push and M1's first migration.
+- 2026-07-02 M1 done: migration 0000 (20 tables per ENGINEERING_SPEC §2, C-1 cap and k=5 checks, partial unique indexes for one-client/one-active-credential/active-template), core constants, idempotent seed (15 templates = 5 intents x 3 variants, LedgerFox demo). Seed-twice acceptance and constraint rejections verified against embedded Postgres 17.
+- 2026-07-02 M1 note: local dev DB is `pnpm db:dev` (embedded PG 17, foreground, data in .pgdata); `db:migrate` now verified against a live database. CI verification still awaits a GitHub remote.
 
 ## 12. Roadmap after MVP
 
