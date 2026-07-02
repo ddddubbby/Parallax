@@ -54,12 +54,19 @@ export default async function ProjectsPage() {
                   {p.updatedAt.toISOString().slice(0, 10).replaceAll("-", ".")}
                 </td>
                 <td className="py-2.5 text-right">
-                  {p.status === "draft" && (
+                  {p.status === "draft" ? (
                     <Link
                       href={`/projects/new?id=${p.id}`}
                       className="label-mono text-xs text-accent-ink hover:text-accent"
                     >
                       Resume →
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/projects/${p.id}/matrix`}
+                      className="label-mono text-xs text-accent-ink hover:text-accent"
+                    >
+                      Matrix →
                     </Link>
                   )}
                 </td>

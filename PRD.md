@@ -285,7 +285,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M0.5 | Execution readiness: schema, states, provider matrix, fixtures | Engineers can start M1 without unresolved product/schema/provider questions | Done |
 | M1 | Full schema + idempotent seed + constants | Migrations apply clean; seed twice creates no dupes | Done |
 | M2 | Intake wizard | Draft -> quit -> resume intact; validation blocks bad input | Done |
-| M3 | Budget-aware matrix | Default <=50 always; 51st blocked UI+server; approval freezes version | Not started |
+| M3 | Budget-aware matrix | Default <=50 always; 51st blocked UI+server; approval freezes version | Done |
 | M4 | Mock run pipeline | 1,000-call mock run <2 min; kill-resume clean; injection retries logged | Not started |
 | M5 | Extraction + metrics + golden dataset | Goldens exact; recompute idempotent; dead-letters visible | Not started |
 | M6 | Dashboard | Figures match SQL spot-checks; drill-down <=2 clicks | Not started |
@@ -311,6 +311,10 @@ Progress notes:
 - 2026-07-02 M1 note: local dev DB is `pnpm db:dev` (embedded PG 17, foreground, data in .pgdata); `db:migrate` now verified against a live database. CI verification still awaits a GitHub remote.
 - 2026-07-02 M2 done: intake wizard — 7 steps + review, Tailwind v4 design tokens per DESIGN_GUIDELINES, debounced server autosave into `intake_draft_json` (migration 0001, D-026), strict Zod step validation with field-level errors, alias-overlap flags on review, transactional normalization at completion. Acceptance verified live in the browser: empty submit blocked with field errors; draft → quit → resume restored all fields; step advance persists high-water.
 - 2026-07-02 M2 note: GitHub remote now exists (pushed by operator); this merge's push is the first CI execution — verify the Actions run. Repo pushed as ddddubbby/Parallax.
+- 2026-07-03 pre-M3 audit: full 7-step wizard now verified live through review and completion; alias-overlap warning rendered; completed intake appears as an active project. Static chain, production build, migrations, seed, and standalone `/health` smoke pass locally on the pinned toolchain.
+- 2026-07-03 pre-M3 note: local `main` remains ahead of `origin/main`; push and verify GitHub Actions plus Render deployment before treating M3 as remotely cleared.
+- 2026-07-03 M3 done: pure allocator (PM-2 quotas, PM-4 priority waves, PM-11 redistribution, PM-3 hard cap), template rendering with PM-8 randomized competitor order, PM-9 brand-term scanner; matrix board with live counter, inline edit, variant regeneration, versioned approval with supersede. 15 allocator unit tests plus a DB-backed acceptance test: demo generates exactly 40, filled to 50 via real actions, 51st rejected server-side on every intent, approved cells immutable (tamper attempt verified unchanged), new-draft copy editable.
+- 2026-07-03 M3 note: interactive browser verification still blocked by the macOS Documents permission for the preview harness (page render verified via curl; all mutating paths covered by the actions integration test). Push pending operator credentials.
 
 ## 12. Roadmap after MVP
 
