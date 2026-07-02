@@ -22,6 +22,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:dev": "tsx scripts/dev-db.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -38,6 +40,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "drizzle-kit": "^0.31.0",
+    "embedded-postgres": "17.10.0-beta.17",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.5.0",
     "tsx": "^4.19.0",
