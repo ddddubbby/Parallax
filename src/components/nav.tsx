@@ -17,13 +17,16 @@ export function Nav() {
         >
           Projects
         </Link>
-        {/* Settings and Debug ship in later milestones (PRD §7). */}
+        {/* Settings ships once provider credentials land (PRD §7). */}
         <span className="label-mono cursor-not-allowed rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/40">
           Settings
         </span>
-        <span className="label-mono cursor-not-allowed rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/40">
+        <Link
+          href="/debug"
+          className="label-mono rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/70 transition-micro hover:border-paper hover:text-paper"
+        >
           Debug
-        </span>
+        </Link>
       </nav>
     </header>
   );

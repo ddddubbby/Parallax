@@ -286,7 +286,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M1 | Full schema + idempotent seed + constants | Migrations apply clean; seed twice creates no dupes | Done |
 | M2 | Intake wizard | Draft -> quit -> resume intact; validation blocks bad input | Done |
 | M3 | Budget-aware matrix | Default <=50 always; 51st blocked UI+server; approval freezes version | Done |
-| M4 | Mock run pipeline | 1,000-call mock run <2 min; kill-resume clean; injection retries logged | Not started |
+| M4 | Mock run pipeline | 1,000-call mock run <2 min; kill-resume clean; injection retries logged | Done |
 | M5 | Extraction + metrics + golden dataset | Goldens exact; recompute idempotent; dead-letters visible | Not started |
 | M6 | Dashboard | Figures match SQL spot-checks; drill-down <=2 clicks | Not started |
 | M7 | Report + export | Full report from golden run; edits survive other-section regeneration | Not started |
@@ -315,6 +315,8 @@ Progress notes:
 - 2026-07-03 pre-M3 note: local `main` remains ahead of `origin/main`; push and verify GitHub Actions plus Render deployment before treating M3 as remotely cleared.
 - 2026-07-03 M3 done: pure allocator (PM-2 quotas, PM-4 priority waves, PM-11 redistribution, PM-3 hard cap), template rendering with PM-8 randomized competitor order, PM-9 brand-term scanner; matrix board with live counter, inline edit, variant regeneration, versioned approval with supersede. 15 allocator unit tests plus a DB-backed acceptance test: demo generates exactly 40, filled to 50 via real actions, 51st rejected server-side on every intent, approved cells immutable (tamper attempt verified unchanged), new-draft copy editable.
 - 2026-07-03 M3 note: interactive browser verification still blocked by the macOS Documents permission for the preview harness (page render verified via curl; all mutating paths covered by the actions integration test). Push pending operator credentials.
+- 2026-07-03 M4 done: LLMProvider interface + MockProvider (38 fixtures, all 13 MK-3 archetypes, D-016 stable-hash selection now including rep_index per D-028); job planning under RN-1/RN-2 cost guards; polling worker with FOR UPDATE SKIP LOCKED claiming, per-provider concurrency, exponential backoff, MAX_JOB_ATTEMPTS dead-lettering, RN-7 circuit breaker, RN-9 heartbeat run_events; run creation/progress UI with live polling; Debug console (jobs+requeue, run_events tail, heartbeat staleness). `pnpm test:mock-e2e` (500-job run, kill mid-flight, restart, resume) passed all 6 checks: terminal state reached, zero duplicate responses, retries logged (failure injection worked), stale-lock reclaim logged (kill/resume worked), 17s elapsed against the 120s MK-6 budget. 49 unit tests total.
+- 2026-07-03 M4 note: two schema/interface decisions logged as D-027/D-028 — test-only failure injection lives on `audit_runs`, not the provider interface; `GenerationRequest` gained an optional `repIndex` so mock fixture selection varies across a cell's k repetitions. Interactive browser verification still blocked by the same macOS Documents permission; pages verified via curl with real content assertions instead.
 
 ## 12. Roadmap after MVP
 

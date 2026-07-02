@@ -24,7 +24,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/seed.ts",
     "db:dev": "tsx scripts/dev-db.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:mock-e2e": "tsx scripts/test-mock-e2e.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",

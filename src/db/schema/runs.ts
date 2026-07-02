@@ -44,6 +44,10 @@ export const auditRuns = pgTable(
       .notNull()
       .default("0"),
     failureRate: real("failure_rate").notNull().default(0),
+    // Test-only chaos injection (M4): { rate: 0-1, errorType: ProviderErrorType }.
+    // Applied by the worker before calling the provider — never part of the
+    // frozen LLMProvider/GenerationRequest contract (D-027).
+    debugFailureInjectionJson: jsonb("debug_failure_injection_json"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })

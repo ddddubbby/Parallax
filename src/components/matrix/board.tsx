@@ -169,6 +169,13 @@ export function MatrixBoard({
                 <Button
                   variant="secondary"
                   disabled={pending}
+                  onClick={() => router.push(`/projects/${projectId}/runs/new`)}
+                >
+                  Start run
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={pending}
                   onClick={() => run(() => newDraftFromVersion(projectId, focus.id))}
                 >
                   New draft from V{focus.version}

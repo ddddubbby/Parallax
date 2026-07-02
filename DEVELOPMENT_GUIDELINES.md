@@ -102,6 +102,7 @@ interface GenerationRequest {
   mode: GenerationMode;
   maxOutputTokens?: number;
   temperature?: number;
+  repIndex?: number; // D-028: read only by MockProvider for D-016 fixture selection; real adapters ignore it
 }
 
 interface Citation {
