@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "intake_draft_json" jsonb DEFAULT '{}'::jsonb NOT NULL;

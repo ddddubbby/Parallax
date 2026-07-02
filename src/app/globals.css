@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/*
+ * Parallax design tokens — DESIGN_GUIDELINES.md sections 3, 5, 7.
+ * Every color, radius, and motion value lives here (V-10). Components use
+ * Tailwind utilities backed by these tokens; raw hex in a component is a
+ * review-blocking defect.
+ *
+ * Radius mapping (section 5): stamp = rounded-xs (2px), input = rounded-lg
+ * (8px), card = rounded-xl (12px), pill = rounded-full.
+ */
+@theme {
+  --color-ink: #0e0e0c;
+  --color-ink-2: #1c1c18;
+  --color-paper: #f0eee4;
+  --color-paper-2: #e6e3d6;
+  --color-accent: #f15a24;
+  --color-accent-ink: #7a2a0e;
+  --color-ok: #1e7a4f;
+  --color-danger: #b3261e;
+  --color-warn: #8a6400;
+
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, serif;
+
+  /* Motion (section 7): one easing, three budgets. */
+  --ease-silk: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-micro: 140ms;
+  --duration-standard: 220ms;
+  --duration-large: 320ms;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  /* Uppercase mono label voice — short strings only (V-11). */
+  .label-mono {
+    @apply font-mono uppercase tracking-[0.08em];
+  }
+  .transition-micro {
+    transition-duration: var(--duration-micro);
+    transition-timing-function: var(--ease-silk);
+  }
+  .transition-standard {
+    transition-duration: var(--duration-standard);
+    transition-timing-function: var(--ease-silk);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 100ms !important;
+    animation: none !important;
+  }
+}
