@@ -48,7 +48,7 @@ The end client is not an app user.
 - Metrics with Wilson confidence intervals, stability, small-n guards, and idempotent recompute.
 - Dashboard with scorecard, funnel heatmap, share of voice, attribute radar, cited sources, and misinformation register.
 - Findings engine, report builder, Markdown export, print-PDF export, and raw CSV/JSON export.
-- Settings, Debug views, shared-password auth, and Render deployment skeleton.
+- Settings, Debug views, shared-password auth, website-entered provider credentials, and Render deployment skeleton.
 
 ## 6. Explicitly out of MVP scope
 
@@ -104,6 +104,7 @@ PM-7: Inline text edit and per-cell variant regeneration are supported.
 PM-8: Comparison cells store randomized competitor order.
 PM-9: Unbranded discovery and consideration cells must contain no tracked brand names or aliases at approval.
 PM-10: Approval creates an immutable version; later edits create a new version.
+PM-11: If an intent's allocation quota exceeds the available persona x market x variant combinations, the allocator fills what exists and redistributes the remainder to other intents; it never duplicates identical cells.
 
 Seed prompt templates must exist as database seed data, not hard-coded UI strings:
 
@@ -112,6 +113,8 @@ Seed prompt templates must exist as database seed data, not hard-coded UI string
 - comparison: "Compare {client_brand} against {competitor_list} for a {persona} buyer in {market}."
 - validation: "Is {client_brand} a good fit for {persona} teams that care about {attribute_list}?"
 - objection: "What concerns should a {persona} have before choosing {client_brand}?"
+
+Each intent seeds at least three variant phrasings (`v1`, `v2`, `v3`); the list above is `v1`. Variant depth is what lets the allocator reach its per-intent quotas (see the demo-sizing contract in `ENGINEERING_SPEC.md` section 4). Additional variants follow the same placeholder constraints as CM-5.
 
 ### 8.5 Mock mode
 
@@ -129,19 +132,20 @@ PV-2: DeepSeek is the first live dry-run provider. It is used for ungrounded liv
 PV-3: MiniMax is a second candidate provider, not required for the first live mini-audit.
 PV-4: OpenAI, Anthropic, Gemini, and Perplexity are later adapters and must not require changes to the runner schema.
 PV-5: A provider that cannot return normalized citations cannot be selected for grounded runs.
-PV-6: Provider-specific model names and prices live in provider config and `.env.example`, not in UI components.
+PV-6: Provider-specific model names and prices live in provider config and `.env.example` as defaults, never in UI components. A non-null `base_url`/`default_model` on the provider's `provider_credentials` row overrides the env default (D-020).
 PV-7: Provider capability details are specified in `ENGINEERING_SPEC.md` and must be verified against official docs before implementation.
 
 ### 8.7 Runner
 
-RN-1: Run creation computes planned calls: cells x selected engine-modes x repetitions.
-RN-2: Run creation shows projected cost and blocks if above the run dollar cap.
+RN-1: Run creation computes planned calls: cells x selected engine-modes x repetitions, plus one planned extraction call per generation call (D-022).
+RN-2: Run creation shows projected cost — generation plus extraction estimates — and blocks if above the run dollar cap.
 RN-3: Jobs are idempotent with unique `(run_id, cell_id, provider_id, generation_mode, rep_index)`.
 RN-4: Worker restart resumes without duplicate raw responses.
 RN-5: Per-provider concurrency and exponential backoff are enforced.
 RN-6: Typed errors are stored: `rate_limit`, `timeout`, `server_error`, `auth_error`, `malformed_output`, `unsupported_mode`. `malformed_output` is transport-level only — no usable text received, no response stored; content-level problems belong to extraction (D-011).
-RN-7: Circuit breaker pauses the run at cost cap or >20% failed jobs.
+RN-7: Circuit breaker pauses the run at cost cap or when failure rate exceeds 20%, where failure rate = dead-lettered jobs / finished jobs (succeeded + dead-lettered), evaluated as jobs finish.
 RN-8: Pause/cancel is supported. "Partial" is derived, not stored: a run that reaches a terminal state with any dead-lettered or cancelled jobs is displayed with a partial badge.
+RN-9: The worker records a heartbeat `run_events` row at least every 60 seconds while any run is active; Debug surfaces heartbeat staleness; worker crashes report to Sentry (D-024).
 
 ### 8.8 Extraction schema
 
@@ -204,6 +208,9 @@ MT-5: Citation Share = citations associated with client brand / citations associ
 MT-6: Accuracy Rate = supported client claims / checked client claims.
 MT-7: Stability Index = mean pairwise Jaccard of top-5 tracked-brand sets across reps in the same cell and engine-mode.
 MT-8: Metrics are computed at overall, provider, mode, intent, market, persona, and cell-cluster scopes where sample size allows.
+MT-9: Sentiment reports as a distribution per brand per scope — the share of eligible samples mentioning the brand that carry each sentiment label. It is never averaged into a single score.
+MT-10: The attribute-association matrix cell (brand x attribute) = share of eligible samples mentioning the brand where the extraction associates that attribute with it, computed over the project's desired-attributes list.
+MT-11: Interval methods are per metric per D-023: Wilson for MT-1, MT-2, and MT-6; MT-3, MT-4, MT-5, and MT-7 render as point estimates labeled without intervals in MVP.
 
 ### 8.10 Dashboard
 
@@ -229,9 +236,12 @@ EX-4: Exports are synchronous downloads; there is no export table, queue, or sta
 
 ### 8.13 Settings
 
-ST-1: Provider key presence check; secret values are never shown.
-ST-2: Defaults: repetitions, selected engines, diagnostic engine, run dollar cap, provider daily budgets.
-ST-3: Default validation mini-run cap is $2. Default audit run cap is $25 until changed by operator.
+ST-1: Provider credentials are entered only through the authenticated Settings UI, never through committed files or Render provider-key env vars.
+ST-2: Secret values are encrypted server-side at rest, never returned to the browser, never logged, and displayed only as provider, status, last four characters, and last verified timestamp.
+ST-3: Settings supports add/update, verify, disable, delete, and rotate for each provider credential.
+ST-4: Defaults: repetitions, selected engines, extraction engine (the provider+model used for structured extraction, D-022), run dollar cap, and provider daily budgets.
+ST-5: Default validation mini-run cap is $2. Default audit run cap is $25 until changed by operator.
+ST-6: Login is rate-limited with lockout/backoff; password comparison is constant-time; sessions are httpOnly/secure cookies with expiry <=7 days; session tokens never appear in URLs (D-024).
 
 ### 8.14 Debug
 
@@ -249,7 +259,7 @@ FR-4: M1 may not start until the table-by-table schema spec, lifecycle states, p
 
 ## 9. Data model summary
 
-`projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `metrics`, `findings`, `report_sections`, `run_events`.
+`projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`.
 
 Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require migrations.
 
@@ -265,6 +275,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 8. Every dashboard figure traces to raw text; report numbers match dashboard.
 9. One pilot audit is delivered after target provider coverage is available; retro is logged in `MASTER_CONTEXT.md`.
 10. Manual checklists in `DEVELOPMENT_GUIDELINES.md` are executed on the release commit.
+11. Every delivered audit has an archived evidence pack: the EX-3 export plus a database dump stored off-Render, recorded in the release checklist (D-024).
 
 ## 11. Milestones and progress tracker
 
@@ -287,9 +298,12 @@ Progress notes:
 
 - 2026-07-02 done: canonical docs moved into repo, ambiguity reduced, structured repo folders initialized, and M0.5 execution-readiness specs added.
 - 2026-07-02 remaining: initialize package dependencies, health route, CI workflow, Render skeleton, and first migration.
-- 2026-07-02 known issues: no dependencies installed yet; live provider keys and MiniMax account details still need operator confirmation.
+- 2026-07-02 known issues: no dependencies installed yet; provider credentials UI/storage is required before live DeepSeek validation; MiniMax account details still need operator confirmation.
+- 2026-07-02 security/deploy: provider API keys moved out of env assumptions and into authenticated Settings UI with encrypted-at-rest storage; Render Blueprint skeleton added with no LLM provider API keys.
 - 2026-07-02 doc audit: resolved contradictions D-011 through D-016 (malformed-output layering, per-provider budgets, no exports table, eligible-sample definition, cell-level finding exemption, deterministic mock seeding); baseline commit created.
 - 2026-07-02 structure: removed speculative M9 provider directories and the dangerous `drizzle` gitignore line; status now has one home (this tracker).
+- 2026-07-02 design: added `DESIGN_GUIDELINES.md` codifying the machine-age evidence-dossier visual language (D-019) — ink/paper surfaces, signal-orange accent, mono-first type, motion budgets, guardrails V-1 to V-12; wired into docs index and stack table.
+- 2026-07-02 pre-production review: resolved D-020 through D-024 — config precedence and single-active credentials, KEK lifecycle and pinned crypto, extraction engine named and brought under all cost guards, per-metric CI methods, production hardening (login, heartbeat, evidence archive, additive-first migrations); seed contract now requires 3 variants per intent and a 2-persona/2-market demo.
 
 ## 12. Roadmap after MVP
 

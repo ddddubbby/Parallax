@@ -40,7 +40,7 @@ AI assistants have become decision intermediaries between brands and buyers. Con
 | ID | Constraint |
 |---|---|
 | C-1 | A run processes at most 50 prompt cells. Enforced at matrix approval, run creation, and in the worker. Default audit matrix: 40 cells, bottom-funnel weighted. k=5 is protected for audit-grade runs; cut coverage before repetitions. |
-| C-2 | Three nested cost guards: C-1 structural cap, per-run dollar cap, and per-provider daily budget env var. |
+| C-2 | Three nested cost guards: C-1 structural cap, per-run dollar cap, and per-provider daily budgets. The guards cover all paid LLM calls — generation and extraction alike (D-022). |
 | C-3 | Raw responses are immutable. Re-extraction creates new versioned extraction rows. Every reported number traces to stored raw text. |
 | C-4 | Approved matrices are frozen. Edits create a new matrix version. Runs reference exactly what was sent. |
 | C-5 | Metrics are disposable: pure functions over extractions, recomputable idempotently. |
@@ -49,6 +49,7 @@ AI assistants have become decision intermediaries between brands and buyers. Con
 | C-8 | Never scrape consumer chat UIs. Official APIs and SERP/API vendors only. Permanent rule, not a deferral. |
 | C-9 | Mock runs are first-class but always flagged (`run_mode: mock`, MOCK badge) and never mixed into live aggregates. |
 | C-10 | Provider grounding capability is explicit. Grounded runs are blocked for providers that cannot return citations through an approved API path. |
+| C-11 | LLM provider API keys are never stored in source files, `.env.example`, `render.yaml`, fixtures, logs, or client-visible payloads. The operator enters them in the authenticated Settings UI; the server encrypts them at rest and only the server/worker can decrypt them. |
 
 ## 5. Stack snapshot
 
@@ -92,7 +93,9 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 | `MASTER_CONTEXT.md` | Identity, constraints, decisions, rituals |
 | `PRD.md` | Product scope, user journey, requirements, milestones |
 | `DEVELOPMENT_GUIDELINES.md` | Architecture, provider contracts, schemas, tests, workflow |
+| `DESIGN_GUIDELINES.md` | Visual language: tokens, typography, surfaces, motion, component rules, visual guardrails |
 | `ENGINEERING_SPEC.md` | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
+| `RENDER_DEPLOYMENT.md` | Render Blueprint assumptions, secret model, first-deploy checklist |
 | `README.md` | Quick orientation and local setup pointer |
 | `fixtures/` | Demo project, mock response manifest, golden expectation manifest |
 
@@ -102,7 +105,7 @@ Split a section into a separate file only when it exceeds roughly 300 lines or c
 
 Boot ritual for implementation sessions:
 
-> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then `DEVELOPMENT_GUIDELINES.md` section A. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then `DEVELOPMENT_GUIDELINES.md` section A. For UI-facing milestones (M2, M3, M6, M7), also read `DESIGN_GUIDELINES.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 
@@ -130,6 +133,14 @@ Session rules: one active session at a time, one branch per milestone, plan befo
 | D-014 | 2026-07-02 | Eligible sample = stored response whose latest extraction is valid (or QA-reviewed) with `refusal: false`; refusals and dead-letters are excluded from all metric denominators and reported separately | "Eligible samples" appeared in every rate metric but was never defined; metrics are pure functions so the definition is the implementation | Counting refusals in denominators; per-metric ad-hoc eligibility |
 | D-015 | 2026-07-02 | The n >= 30 threshold applies to aggregate claims only; cell-level findings (lost-shortlist) render at any n with a mandatory directional-only label | A cell yields only k x engine-modes samples, so required cell-level findings were mathematically unreachable under a blanket n >= 30 rule | Blanket threshold; raising k |
 | D-016 | 2026-07-02 | Mock fixture selection is keyed by a stable hash of `(resolved_text, provider_id, rep_index)`, never row UUIDs | UUID-keyed selection is not reproducible across re-seeds or fresh clones, undermining golden dataset guarantees in CI | Seeding by `cell_id` UUID; fixed hard-coded UUIDs in seeds |
+| D-017 | 2026-07-02 | Provider credentials are website-entered settings encrypted in Postgres, not provider API-key environment variables | The operator does not want DeepSeek or other LLM API keys exposed through the codebase or deploy config; Settings UI is the intended control point | Provider API keys in `.env.example`, Render env, or hard-coded config |
+| D-018 | 2026-07-02 | Add a Render Blueprint skeleton with web, worker, and Postgres but no LLM API keys | First deploy should be reproducible from the repo while keeping provider credentials operator-entered after login | Manual Render setup only; putting provider keys in Render env |
+| D-019 | 2026-07-02 | Adopt the "machine-age evidence dossier" visual language in `DESIGN_GUIDELINES.md`: ink/paper dual surface, one signal-orange accent, mono-first typography, dossier metadata framing, silk-smooth motion budgets, and visual guardrails V-1 to V-12 | Operator taste (cyberpunk-refined, Bitcoin-native, visually smooth) codified once so UI sessions do not drift; badge and CI visibility rules get design-level enforcement | Ad-hoc styling per session; neon cyberpunk theme; global dark-only theme |
+| D-020 | 2026-07-02 | Provider service config precedence: env vars (`<PROVIDER>_BASE_URL`, `<PROVIDER>_DEFAULT_MODEL`) are defaults; a non-null `base_url`/`default_model` on the provider's `provider_credentials` row overrides them. At most one `active` credential per provider, enforced by a partial unique index | The same fact lived in two homes with no precedence, and `(provider_id, label)` uniqueness allowed several active keys with no selection rule for the runner | DB-only config; multiple active credentials with precedence logic |
+| D-021 | 2026-07-02 | Credential crypto and KEK lifecycle: AES-256-GCM with per-row nonce; fingerprint is SHA-256 of the raw key; rows carry `key_version` for future KEK rotation; decrypt failure marks the row `invalid` and prompts re-entry in Settings, never crashes the worker; the Render env group holding `CREDENTIALS_ENCRYPTION_KEY` must never be deleted/recreated — recovery from KEK loss is re-entering keys | Unpinned crypto invites per-session improvisation; a regenerated KEK silently orphans every stored credential | Unversioned ciphertext; crashing on decrypt failure; external KMS in MVP |
+| D-022 | 2026-07-02 | The "diagnostic engine" term is retired; the extraction engine is a Settings-configured provider+model resolved through the same provider registry and credential service as generation. Extraction calls are counted in projected run cost, the per-run cap, and daily budgets. Mock runs and CI use fixture-backed extraction, never a live extraction engine | Extraction is a second layer of paid LLM calls that was invisible to every cost guard, and golden tests require deterministic extraction | Uncapped extraction spend; live extraction calls in CI; leaving "diagnostic engine" undefined |
+| D-023 | 2026-07-02 | Confidence-interval methods are per metric: Wilson only for per-sample proportions (Mention Rate, Recommendation Rate, Accuracy Rate). Share of Voice, Citation Share, Avg First Position, and Stability Index ship in MVP as point estimates explicitly labeled as having no interval; bootstrap intervals are post-MVP | Wilson is statistically invalid for count ratios and means; shipping wrong intervals contradicts the statistical-honesty differentiator | Wilson everywhere; blocking MVP on bootstrap implementation |
+| D-024 | 2026-07-02 | MVP production-hardening set: rate-limited login with constant-time password comparison and session expiry; worker heartbeat with staleness surfaced in Debug; post-audit evidence archive (EX-3 export plus database dump stored off-Render); additive-first migration discipline; `claims_found.reviewed_at` for the evidence chain | The shared password now guards spendable API credentials; Render workers have no health checks; managed-Postgres backup retention is thinner than the C-3 evidence promise | Deferring all hardening past the pilot; retrofitting review timestamps after M1 |
 
 ## 10. Current state
 

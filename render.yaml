@@ -1,0 +1,71 @@
+envVarGroups:
+  - name: parallax-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CREDENTIALS_ENCRYPTION_KEY
+        generateValue: true
+      - key: DEFAULT_VALIDATION_RUN_CAP_USD
+        value: "2"
+      - key: DEFAULT_AUDIT_RUN_CAP_USD
+        value: "25"
+      - key: PROVIDER_DAILY_BUDGET_USD
+        value: "25"
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_DEFAULT_MODEL
+        value: deepseek-v4-flash
+      - key: MINIMAX_BASE_URL
+        value: https://api.minimaxi.com
+      - key: MINIMAX_DEFAULT_MODEL
+        value: MiniMax-M3
+
+databases:
+  - name: parallax-db
+    databaseName: parallax
+    user: parallax
+    plan: basic-256mb
+    ipAllowList: []
+
+services:
+  - type: web
+    name: parallax-web
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --frozen-lockfile && pnpm build
+    preDeployCommand: pnpm db:migrate
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: parallax-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: parallax-db
+          property: connectionString
+      - key: APP_URL
+        fromService:
+          name: parallax-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: APP_PASSWORD
+        sync: false
+
+  - type: worker
+    name: parallax-worker
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm worker
+    envVars:
+      - fromGroup: parallax-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: parallax-db
+          property: connectionString
+      - key: APP_URL
+        fromService:
+          name: parallax-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL

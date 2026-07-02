@@ -56,7 +56,7 @@ Definition of done: relevant test or acceptance criterion passes, diff is surgic
 | Layer | Choice | Notes |
 |---|---|---|
 | App | Next.js 15 App Router + TypeScript | Node runtime, `output: "standalone"` for Render |
-| UI | Tailwind + shadcn/ui + Recharts wrappers | Chrome desktop first |
+| UI | Tailwind + shadcn/ui + Recharts wrappers | Chrome desktop first; visual language, tokens, and guardrails live in `DESIGN_GUIDELINES.md` |
 | DB | Postgres + Drizzle | Schema and migrations in git |
 | Worker | Plain Node polling loop | Same repo and types as app |
 | Validation | Zod everywhere | env, DTOs, provider results, extraction schema |
@@ -69,6 +69,8 @@ Env rules:
 - Secrets live only in environment settings, never in git.
 - `.env.example` must stay current.
 - Processes fail fast on missing required env vars for the active mode.
+- LLM provider API keys are not environment variables in this project. They are operator-entered through Settings, encrypted at rest, and read server-side only.
+- No secret may use a `NEXT_PUBLIC_` prefix or cross a DTO boundary.
 
 ## C. Modularity setup
 
@@ -136,9 +138,10 @@ Provider rules:
 - DeepSeek is the first live validation provider. Initial capability: ungrounded generation.
 - MiniMax is a candidate second live provider. Do not implement until API-key mode and selected API format are confirmed.
 - OpenAI, Anthropic, Gemini, and Perplexity are later adapters.
-- Adding a provider means one adapter file, one registry entry, env keys, typed errors, cost estimate, test fixture coverage, and a passing mini-audit.
+- Adding a provider means one adapter file, one registry entry, Settings credential metadata, typed errors, cost estimate, test fixture coverage, and a passing mini-audit.
 - If `supportsGrounded` is false, run creation must block grounded jobs for that provider.
 - Citation normalization happens inside provider adapters.
+- Provider adapters receive decrypted credentials from a server-only credential service. They never read provider API keys directly from environment variables.
 
 ### C3. Data invariants
 
@@ -217,31 +220,38 @@ Defaults:
 Budgeting:
 
 - Structural cap limits calls before provider selection.
-- Run cap gates the start button and powers the live meter.
-- Provider daily budget env vars backstop usage.
+- Run cap gates the start button and powers the live meter. Projected and actual run cost include extraction calls, not just generation (D-022).
+- Provider daily budget env vars backstop usage. Daily budgets reset at 00:00 UTC; a provider's daily spend is the sum of generation and extraction costs attributed to it on that UTC day.
 - DeepSeek and MiniMax prices must be treated as config, not constants hidden in UI.
 - Any current provider model/pricing assumptions must be verified against official docs before live implementation.
 
 Provider env variables:
 
-- `DEEPSEEK_API_KEY`
+- `CREDENTIALS_ENCRYPTION_KEY` — 32-byte secret used by the server and worker to encrypt/decrypt website-entered provider credentials
 - `DEEPSEEK_BASE_URL`
 - `DEEPSEEK_DEFAULT_MODEL`
-- `MINIMAX_API_KEY`
 - `MINIMAX_BASE_URL`
 - `MINIMAX_DEFAULT_MODEL`
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `GOOGLE_API_KEY`
-- `PERPLEXITY_API_KEY`
 - `PROVIDER_DAILY_BUDGET_USD` — global default daily budget applied to any provider without an override
 - `<PROVIDER>_DAILY_BUDGET_USD` (e.g. `DEEPSEEK_DAILY_BUDGET_USD`) — optional per-provider override; this pair satisfies C-2's per-provider daily budget requirement (D-012)
+
+Provider credential handling:
+
+- The Settings UI posts provider API keys to a server action or route handler over HTTPS.
+- The server encrypts the raw key before database persistence and stores only ciphertext, last four characters, and a non-reversible fingerprint.
+- Crypto is pinned (D-021): AES-256-GCM with a fresh random nonce per row; the fingerprint is SHA-256 of the raw key; every row records `key_version` so a future KEK rotation can re-encrypt incrementally.
+- Decrypt failure marks the credential `invalid` and surfaces re-entry in Settings. It never crashes the worker or the request.
+- The raw key is never logged, returned to the browser, stored in `run_events`, written to fixtures, or placed in Render environment variables.
+- The worker decrypts credentials just in time for a provider call and keeps them in memory only for that request.
+- Credential verification calls must redact keys in thrown errors and logs.
 
 ## E. Extraction and metrics
 
 ### E1. Extraction contract
 
 The PRD owns the canonical extraction shape. Implementation should put the corresponding Zod schema in `/src/core/extraction.ts` and test it against fixtures.
+
+The extraction engine (D-022) is the Settings-configured provider+model that turns raw text into `ExtractedResponse` JSON. It resolves through the same provider registry and credential service as generation — no separate key path. Extraction call costs are recorded against the run's actual cost and count toward the extraction provider's daily budget; run planning includes one estimated extraction call per planned generation call. Mock runs and CI never call a live extraction engine: extraction there is fixture-backed, returning the expected outputs from the golden manifest.
 
 Extraction prompt requirements:
 
@@ -264,7 +274,8 @@ Extraction prompt requirements:
 - All metrics are pure functions over validated extractions.
 - Eligible sample (D-014): a stored response whose latest extraction is `valid` (or `qa_reviewed`) with `refusal: false`. Refusals, dead-lettered extractions, and responses with no valid extraction are excluded from every metric denominator. Refusal count is reported separately as a diagnostic, never inside a rate.
 - All rate metrics (Mention Rate, Recommendation Rate, Share of Voice, Citation Share, Accuracy Rate) use eligible samples in scope as the denominator basis. "In scope" means the eligible samples matching the metric row's scope (overall, provider, mode, intent, market, persona, or cell cluster).
-- Wilson intervals use the same implementation everywhere.
+- Interval methods are per metric (D-023). Wilson intervals apply only to per-sample proportions: Mention Rate, Recommendation Rate, Accuracy Rate. Share of Voice, Citation Share, Avg First Position, and Stability Index are count ratios or means where Wilson is invalid — in MVP they ship as point estimates explicitly labeled as having no interval (`ci_low`/`ci_high` null); bootstrap intervals are a post-MVP addition.
+- The Wilson implementation lives once in `/src/core` and is used by every metric that qualifies for it.
 - Small-n threshold is n >= 30 eligible samples for aggregate client-facing claims. Cell-level findings such as lost-shortlist are exempt (D-015): they may render at any n but always carry a "directional only" label.
 - Validation mini-runs may display values with a validation-only badge and no client-ready claims.
 - Mock and live data never mix.
@@ -295,7 +306,9 @@ Standing rules:
 - Every discovered bug gets a regression test or checklist line.
 - Dead-lettered items are visible and counted.
 - Migrations are applied to a scratch DB in CI before production use.
+- Migrations are additive-first: new columns/tables land before code depends on them; destructive changes ship in a later deploy, because the web service migrates in pre-deploy while the worker may still run older code.
 - Production destructive migrations require `pg_dump` first.
+- After each delivered audit, export the EX-3 evidence pack and take a database dump stored off-Render before closing the engagement (D-024). Managed-Postgres backup retention is not the evidence archive.
 
 Manual checklist seeds:
 

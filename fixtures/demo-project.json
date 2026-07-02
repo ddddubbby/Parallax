@@ -81,5 +81,5 @@
       "buying_criteria": ["reconciliation depth", "ERP export", "policy controls"]
     }
   ],
-  "markets": ["United States"]
+  "markets": ["United States", "Canada"]
 }

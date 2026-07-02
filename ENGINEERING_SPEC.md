@@ -79,8 +79,9 @@ Schema changes require a migration file in `src/db/migrations`; the Drizzle sche
 | `responses` | `id`, `job_id`, `run_id`, `cell_id`, `provider_id`, `generation_mode`, `model_version`, `raw_text`, `citations_json`, `tokens_in`, `tokens_out`, `cost_usd`, `latency_ms`, `created_at` | Immutable; unique `job_id`; a response row is written only when the job succeeds, so retries never collide with it (D-011); every metric trace starts here |
 | `extractions` | `id`, `response_id`, `extraction_version`, `state`, `schema_version`, `extraction_model`, `extracted_json`, `validation_error`, `qa_status`, `qa_notes`, `created_at`, `updated_at` | FK response; unique `(response_id, extraction_version)`; only latest valid version feeds metrics |
 | `brand_mentions` | `id`, `extraction_id`, `brand_id`, `observed_name`, `position`, `recommended`, `recommendation_strength`, `sentiment`, `attributes_json`, `evidence_quote`, `created_at` | Derived from valid extraction; rebuilt on re-extraction; index `(brand_id, recommended)` |
-| `claims_found` | `id`, `extraction_id`, `brand_id`, `fact_claim_id`, `claim_text`, `claim_type`, `extracted_verdict`, `extracted_severity`, `operator_verdict`, `operator_severity`, `review_state`, `evidence_quote`, `created_at`, `updated_at` | FK extraction; operator fields override extracted fields for reporting |
-| `metrics` | `id`, `run_id`, `scope_type`, `scope_key`, `metric_key`, `n`, `value`, `ci_low`, `ci_high`, `metadata_json`, `computed_at` | Disposable; unique `(run_id, scope_type, scope_key, metric_key)`; recompute deletes by `run_id` first |
+| `claims_found` | `id`, `extraction_id`, `brand_id`, `fact_claim_id`, `claim_text`, `claim_type`, `extracted_verdict`, `extracted_severity`, `operator_verdict`, `operator_severity`, `review_state`, `reviewed_at`, `evidence_quote`, `created_at`, `updated_at` | FK extraction; operator fields override extracted fields for reporting; `reviewed_at` is set whenever `review_state` leaves `unreviewed` (D-024) |
+| `provider_credentials` | `id`, `provider_id`, `label`, `encrypted_api_key`, `key_version`, `api_key_last4`, `api_key_fingerprint`, `base_url`, `default_model`, `status`, `last_verified_at`, `last_used_at`, `created_at`, `updated_at` | Server-only table; `provider_id` per guidelines; `status` in `missing`, `active`, `invalid`, `disabled`; unique `(provider_id, label)`; at most one `active` row per provider via partial unique index on `provider_id` where `status = 'active'` (D-020); non-null `base_url`/`default_model` override env defaults (D-020); decrypt failure sets `status = 'invalid'` (D-021); raw keys are never stored |
+| `metrics` | `id`, `run_id`, `scope_type`, `scope_key`, `metric_key`, `n`, `value`, `ci_low`, `ci_high`, `metadata_json`, `computed_at` | Disposable; unique `(run_id, scope_type, scope_key, metric_key)`; recompute deletes by `run_id` first; `ci_low`/`ci_high` are null for metrics without a defined interval method (D-023) |
 | `findings` | `id`, `run_id`, `finding_type`, `severity`, `title`, `body_md`, `evidence_json`, `created_at`, `updated_at` | Derived; rows are regenerate-only in MVP — operators edit narrative in report sections, never finding rows |
 | `report_sections` | `id`, `run_id`, `section_key`, `position`, `generated_md`, `edited_md`, `state`, `created_at`, `updated_at` | Unique `(run_id, section_key)`; `edited_md` always wins |
 | `run_events` | `id`, `run_id`, `job_id`, `level`, `event_type`, `message`, `metadata_json`, `created_at` | Append-only; index `(run_id, created_at)` |
@@ -89,15 +90,15 @@ Schema changes require a migration file in `src/db/migrations`; the Drizzle sche
 
 Provider details are implementation inputs, not marketing claims. Verify model IDs, pricing, and feature support against official docs on the implementation date.
 
-| Provider | MVP role | API format | Default model | Grounded | Citations | JSON output | Env keys | Milestone |
+| Provider | MVP role | API format | Default model | Grounded | Citations | JSON output | Credential source | Service config | Milestone |
 |---|---|---|---|---|---|---|---|---|
-| Mock | Permanent provider #0 | Local fixture adapter | `mock-fixture-v1` | Yes, synthetic | Yes, synthetic | Yes | none | M4 |
-| DeepSeek | First live validation provider | OpenAI-compatible Chat Completions | `deepseek-v4-flash` | No until verified | No until verified | Yes, per official docs | `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_DEFAULT_MODEL` | M8 |
-| MiniMax | Candidate second validation provider | OpenAI-compatible or Anthropic-compatible, choose one before coding | `MiniMax-M3` | No until verified | No until verified | Verify before coding | `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_DEFAULT_MODEL` | M9 candidate |
-| OpenAI | Later audit provider | Official OpenAI API | TBD at implementation | Verify | Verify | Verify | `OPENAI_API_KEY` | M9 |
-| Anthropic | Later audit provider | Official Anthropic API | TBD at implementation | Verify | Verify | Verify | `ANTHROPIC_API_KEY` | M9 |
-| Google | Later audit provider | Official Gemini API | TBD at implementation | Verify | Verify | Verify | `GOOGLE_API_KEY` | M9 |
-| Perplexity | Later audit provider | Official Perplexity API | TBD at implementation | Expected | Expected | Verify | `PERPLEXITY_API_KEY` | M9 |
+| Mock | Permanent provider #0 | Local fixture adapter | `mock-fixture-v1` | Yes, synthetic | Yes, synthetic | Yes | none | none | M4 |
+| DeepSeek | First live validation provider | OpenAI-compatible Chat Completions | `deepseek-v4-flash` | No until verified | No until verified | Yes, per official docs | Settings UI -> encrypted `provider_credentials` row | `DEEPSEEK_BASE_URL`, `DEEPSEEK_DEFAULT_MODEL`, optional `DEEPSEEK_DAILY_BUDGET_USD` | M8 |
+| MiniMax | Candidate second validation provider | OpenAI-compatible or Anthropic-compatible, choose one before coding | `MiniMax-M3` | No until verified | No until verified | Verify before coding | Settings UI -> encrypted `provider_credentials` row | `MINIMAX_BASE_URL`, `MINIMAX_DEFAULT_MODEL`, optional `MINIMAX_DAILY_BUDGET_USD` | M9 candidate |
+| OpenAI | Later audit provider | Official OpenAI API | TBD at implementation | Verify | Verify | Verify | Settings UI -> encrypted `provider_credentials` row | default model/base URL config only | M9 |
+| Anthropic | Later audit provider | Official Anthropic API | TBD at implementation | Verify | Verify | Verify | Settings UI -> encrypted `provider_credentials` row | default model/base URL config only | M9 |
+| Google | Later audit provider | Official Gemini API | TBD at implementation | Verify | Verify | Verify | Settings UI -> encrypted `provider_credentials` row | default model/base URL config only | M9 |
+| Perplexity | Later audit provider | Official Perplexity API | TBD at implementation | Expected | Expected | Verify | Settings UI -> encrypted `provider_credentials` row | default model/base URL config only | M9 |
 
 DeepSeek pricing baseline for M8 is read from official docs at implementation time. As of 2026-07-02, docs list `deepseek-v4-flash` and `deepseek-v4-pro`, OpenAI base URL `https://api.deepseek.com`, Anthropic base URL `https://api.deepseek.com/anthropic`, and pricing per 1M tokens. Do not hard-code those prices outside provider config.
 
@@ -108,6 +109,7 @@ Seed and fixture files are implementation contracts:
 - `fixtures/demo-project.json`: one realistic project used by wizard, matrix, mock E2E, dashboard, and report tests.
 - `fixtures/mock-responses/README.md`: manifest of required mock response archetypes.
 - `fixtures/golden/README.md`: manifest for expected extractions and metric outputs.
-- Prompt templates are seeded into `prompt_templates`; they are not hard-coded in JSX.
+- Prompt templates are seeded into `prompt_templates`; they are not hard-coded in JSX. Seed at least three variant phrasings per intent (`v1`, `v2`, `v3`); cells are intent x persona x market x variant, so variant depth is what lets the allocator reach its per-intent quotas.
+- Demo sizing: the demo project must yield enough candidate cells for the default allocation and the cap boundary tests. With 2 personas x 2 markets x 3 variants x 5 intents = 60 candidates, the 40-cell default allocation (12 per intent maximum = 2 x 2 x 3) is exactly reachable and 51-cell rejection tests have headroom.
 
 The seed script must be idempotent. Running it twice creates no duplicate projects, brands, templates, fixtures, or expectations.
