@@ -8,6 +8,7 @@ import {
   INTAKE_STEPS,
   type IntakeStepKey,
 } from "@/core/intake";
+import { findBrandTerms } from "@/core/matrix";
 
 // PS-4: review deep-links to steps and returns to review.
 
@@ -65,10 +66,19 @@ export function Review({
   const markets = (draft.markets as { markets: string[] }).markets;
 
   // BC-3: overlapping aliases flagged before matrix generation.
-  const overlaps = findAliasOverlaps([
+  const allBrands = [
     { name: client.name, aliases: client.aliases ?? [] },
     ...competitors.map((c) => ({ name: c.name, aliases: c.aliases ?? [] })),
-  ]);
+  ];
+  const overlaps = findAliasOverlaps(allBrands);
+
+  // PM-9 early warning: these fields are interpolated verbatim into unbranded
+  // discovery/consideration prompts, so tracked brand terms in them will
+  // block matrix approval. Warn here — the first moment all brands are known.
+  const contaminatedFields = [
+    { label: "job-to-be-done", terms: findBrandTerms(basics.job_to_be_done ?? "", allBrands) },
+    { label: "category", terms: findBrandTerms(basics.category ?? "", allBrands) },
+  ].filter((f) => f.terms.length > 0);
 
   const errFor = (key: IntakeStepKey) =>
     Boolean(stepErrors[key] && Object.keys(stepErrors[key]).length > 0);
@@ -87,6 +97,25 @@ export function Review({
             {overlaps.map((o) => (
               <li key={`${o.value}-${o.brands.join()}`}>
                 &ldquo;{o.value}&rdquo; — {o.brands[0]} and {o.brands[1]}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {contaminatedFields.length > 0 && (
+        <div className="rounded-xl border border-warn p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Stamp tone="warn">Brand terms in basics</Stamp>
+            <span className="font-mono text-xs text-ink/60">
+              unbranded discovery/consideration prompts interpolate these fields verbatim —
+              PM-9 will block matrix approval (describe the buyer&rsquo;s job, not the audit)
+            </span>
+          </div>
+          <ul className="font-mono text-xs text-warn">
+            {contaminatedFields.map((f) => (
+              <li key={f.label}>
+                {f.label} contains: {f.terms.join(", ")}
               </li>
             ))}
           </ul>

@@ -265,3 +265,28 @@ export function findBrandTerms(text: string, brands: BrandTerms[]): string[] {
   }
   return [...found];
 }
+
+export interface UnbrandedViolation {
+  cellId: string;
+  intent: Intent;
+  terms: string[];
+}
+
+/**
+ * PM-9 over a cell set: tracked brand terms found in unbranded-intent cells.
+ * Shared by the approval gate (hard block) and the matrix board (early
+ * warning at generation time).
+ */
+export function scanUnbrandedCells(
+  cells: Array<{ id: string; intent: Intent; resolvedText: string }>,
+  brands: BrandTerms[],
+): UnbrandedViolation[] {
+  const violations: UnbrandedViolation[] = [];
+  for (const cell of cells) {
+    if (!UNBRANDED_INTENTS.includes(cell.intent)) continue;
+    const terms = findBrandTerms(cell.resolvedText, brands);
+    if (terms.length > 0)
+      violations.push({ cellId: cell.id, intent: cell.intent, terms });
+  }
+  return violations;
+}
