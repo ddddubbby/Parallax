@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { decryptApiKey, encryptApiKey, verifyFingerprint } from "./crypto";
+import { CredentialConfigError, decryptApiKey, encryptApiKey, verifyFingerprint } from "./crypto";
 
 beforeEach(() => {
   process.env.CREDENTIALS_ENCRYPTION_KEY = randomBytes(32).toString("hex");
@@ -37,6 +37,23 @@ describe("encryptApiKey / decryptApiKey (D-021)", () => {
     const enc = encryptApiKey("some-key");
     process.env.CREDENTIALS_ENCRYPTION_KEY = randomBytes(32).toString("hex");
     expect(decryptApiKey(enc.ciphertext)).toBeNull();
+  });
+
+  // A missing/malformed KEK is the environment being wrong, NOT this
+  // credential — it must throw CredentialConfigError so callers leave the
+  // row 'active' instead of marking it invalid. A worker started without
+  // the env var (local `pnpm worker`) used to swallow this into null and
+  // poison a perfectly good credential.
+  it("throws (not null) when the KEK env var is missing", () => {
+    const enc = encryptApiKey("some-key");
+    delete process.env.CREDENTIALS_ENCRYPTION_KEY;
+    expect(() => decryptApiKey(enc.ciphertext)).toThrow(CredentialConfigError);
+  });
+
+  it("throws when the KEK decodes to the wrong length", () => {
+    const enc = encryptApiKey("some-key");
+    process.env.CREDENTIALS_ENCRYPTION_KEY = randomBytes(16).toString("hex");
+    expect(() => decryptApiKey(enc.ciphertext)).toThrow(CredentialConfigError);
   });
 
   it("sets keyVersion for future KEK rotation (D-021)", () => {

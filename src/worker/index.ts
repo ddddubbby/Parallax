@@ -1,6 +1,10 @@
 // Polling worker (RN-4, RN-5, RN-9): claims queued jobs per provider up to
 // its concurrency limit, calls the provider, records results, and enforces
 // the circuit breaker. Restart-safe — see reclaimStaleLocks.
+//
+// Must be the first import: loads .env.local/.env before any module whose
+// top-level body reads process.env (db client, crypto KEK).
+import "@/env-bootstrap";
 import {
   computeFailureRate,
   decideRetry,

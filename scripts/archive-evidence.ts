@@ -11,6 +11,7 @@
 // If pg_dump isn't installed or the DB is unreachable for it, the JSON
 // bundle still writes and the dump is reported as SKIPPED — loudly, so the
 // checklist can't be silently half-done.
+import "../src/env-bootstrap";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";

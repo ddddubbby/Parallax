@@ -7,6 +7,7 @@
 // just mock fixtures. Requires a real DeepSeek credential saved via the
 // Settings UI (C-11 — never pass one on the command line or in env); if
 // none is active, this exits immediately without creating anything.
+import "../src/env-bootstrap";
 import { spawn, type ChildProcess } from "node:child_process";
 import { eq } from "drizzle-orm";
 import { allocateMatrix } from "../src/core/matrix";
