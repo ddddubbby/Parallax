@@ -66,11 +66,16 @@ export function DashboardClient({
   const isLowStability = stabilityRow !== undefined && stabilityRow.value < 0.5;
 
   return (
-    <div>
+    // Dimming while a different run's data loads: for an evidence tool,
+    // numbers that might belong to the PREVIOUS run must be visibly stale,
+    // not just accompanied by a small "Loading…" label. aria-busy + the
+    // disabled select make the state unambiguous.
+    <div className={loading ? "opacity-50 transition-standard" : "transition-standard"} aria-busy={loading}>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <select
-          className="rounded-lg border border-ink/20 bg-paper px-3 py-1.5 font-mono text-xs"
+          className="rounded-lg border border-ink/20 bg-paper px-3 py-1.5 font-mono text-xs disabled:cursor-wait"
           value={runId ?? ""}
+          disabled={loading}
           onChange={(e) => setRunId(e.target.value)}
         >
           {runs.map((r) => (

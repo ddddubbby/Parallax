@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExtractionPanel } from "@/components/analysis/extraction-panel";
 import { RunProgress } from "@/components/runner/run-progress";
-import { getRunDetail } from "@/db/repositories/runner";
+import { getProjectSummary, getRunDetail } from "@/db/repositories/runner";
 
 const TERMINAL_STATES = new Set(["completed", "failed", "cancelled"]);
 
@@ -16,6 +16,7 @@ export default async function RunDetailPage({
   const { id, runId } = await params;
   const detail = await getRunDetail(runId);
   if (!detail || detail.run.projectId !== id) notFound();
+  const project = await getProjectSummary(id);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
@@ -25,8 +26,9 @@ export default async function RunDetailPage({
         </Link>{" "}
         /{" "}
         <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
-          Matrix
-        </Link>
+          {project?.name ?? "Project"}
+        </Link>{" "}
+        / Run {runId.slice(0, 8)}
       </div>
       <RunProgress projectId={id} runId={runId} initial={detail} />
       <ExtractionPanel runId={runId} terminal={TERMINAL_STATES.has(detail.run.state)} />
