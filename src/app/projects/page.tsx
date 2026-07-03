@@ -70,6 +70,12 @@ export default async function ProjectsPage() {
                         Matrix →
                       </Link>
                       <Link
+                        href={`/projects/${p.id}/runs`}
+                        className="label-mono text-xs text-accent-ink hover:text-accent"
+                      >
+                        Runs →
+                      </Link>
+                      <Link
                         href={`/projects/${p.id}/dashboard`}
                         className="label-mono text-xs text-accent-ink hover:text-accent"
                       >

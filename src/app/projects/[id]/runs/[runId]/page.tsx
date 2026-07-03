@@ -28,6 +28,10 @@ export default async function RunDetailPage({
         <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
           {project?.name ?? "Project"}
         </Link>{" "}
+        /{" "}
+        <Link href={`/projects/${id}/runs`} className="hover:text-ink">
+          Runs
+        </Link>{" "}
         / Run {runId.slice(0, 8)}
       </div>
       <RunProgress projectId={id} runId={runId} initial={detail} />

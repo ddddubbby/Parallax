@@ -128,6 +128,28 @@ export async function listRuns(projectId: string) {
     .orderBy(desc(auditRuns.createdAt));
 }
 
+/**
+ * Runs for a project's index page, newest first, each with total and
+ * succeeded job counts (one grouped query, no N+1). Powers the runs list
+ * that is the only navigation path back to an in-progress run's page.
+ */
+export async function listRunsWithProgress(projectId: string) {
+  return db
+    .select({
+      id: auditRuns.id,
+      runMode: auditRuns.runMode,
+      state: auditRuns.state,
+      createdAt: auditRuns.createdAt,
+      total: sql<number>`count(${jobs.id})::int`,
+      succeeded: sql<number>`count(${jobs.id}) filter (where ${jobs.state} = 'succeeded')::int`,
+    })
+    .from(auditRuns)
+    .leftJoin(jobs, eq(jobs.runId, auditRuns.id))
+    .where(eq(auditRuns.projectId, projectId))
+    .groupBy(auditRuns.id)
+    .orderBy(desc(auditRuns.createdAt));
+}
+
 export async function getRunProgress(runId: string) {
   const rows = await db
     .select({ state: jobs.state, n: sql<number>`count(*)::int` })
