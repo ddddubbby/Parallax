@@ -6,6 +6,7 @@ import {
   POSITIONING_GAP_RATE,
   SOURCE_CONCENTRATION_SHARE,
 } from "./constants";
+import { escapeModelText } from "./md";
 
 // Findings engine (RB-1, PRD 8.11). Pure functions over pre-fetched data —
 // the repository layer queries metrics/brand_mentions/claims/citations and
@@ -138,12 +139,15 @@ export function findSourceConcentration(domains: DomainShare[]): Finding[] {
   const top = [...domains].sort((a, b) => b.citationCount - a.citationCount)[0];
   const share = top.citationCount / total;
   if (share < SOURCE_CONCENTRATION_SHARE) return [];
+  // The domain string is model-derived citation data (untrusted in live
+  // mode) and this title/bodyMd flows into rendered report markdown.
+  const safeDomain = escapeModelText(top.domain);
   return [
     {
       findingType: "source_concentration",
       severity: "low",
-      title: `Citations concentrated on ${top.domain}`,
-      bodyMd: `${top.domain} accounts for ${Math.round(share * 100)}% of all citations in this run. Brand visibility in AI answers may be disproportionately dependent on how this one source describes the market.`,
+      title: `Citations concentrated on ${safeDomain}`,
+      bodyMd: `${safeDomain} accounts for ${Math.round(share * 100)}% of all citations in this run. Brand visibility in AI answers may be disproportionately dependent on how this one source describes the market.`,
       evidence: { domain: top.domain, share, citationCount: top.citationCount, totalCitations: total },
       directionalOnly: false,
     },

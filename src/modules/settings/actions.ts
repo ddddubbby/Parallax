@@ -23,6 +23,43 @@ const SETTINGS_PATH = "/settings";
 const LIVE_PROVIDER_IDS: readonly ProviderId[] = ["deepseek"];
 
 /**
+ * C-11 defense-in-depth: every provider call sends `Authorization: Bearer
+ * <key>` to the credential's base URL, so an arbitrary override is a
+ * one-field key-exfiltration path (e.g. via a hijacked session). Overrides
+ * are limited to HTTPS against the provider's official host or the host
+ * already configured at the deploy layer (<PROVIDER>_BASE_URL, D-020) —
+ * pointing at a proxy is a deploy-config decision, not a form field.
+ */
+const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = { deepseek: "api.deepseek.com" };
+
+function validateBaseUrlOverride(providerId: ProviderId, baseUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    return "Base URL override is not a valid URL";
+  }
+  if (parsed.protocol !== "https:") {
+    return "Base URL override must use https";
+  }
+  const allowedHosts = new Set<string>();
+  const official = OFFICIAL_PROVIDER_HOSTS[providerId];
+  if (official) allowedHosts.add(official);
+  const envBase = process.env[`${providerId.toUpperCase()}_BASE_URL`];
+  if (envBase) {
+    try {
+      allowedHosts.add(new URL(envBase).hostname);
+    } catch {
+      // Malformed deploy config never widens the allowlist.
+    }
+  }
+  if (!allowedHosts.has(parsed.hostname)) {
+    return `Base URL host "${parsed.hostname}" is not allowlisted for ${providerId} — provider keys are only sent to ${[...allowedHosts].join(", ")} (C-11)`;
+  }
+  return null;
+}
+
+/**
  * ST-3 add/update and rotate share identical mechanics — saveCredential
  * (D-020) disables any existing active row and inserts a new one, so a
  * fresh key for a provider with no active row ("add") and a fresh key for
@@ -37,6 +74,11 @@ export async function saveCredential(
   if (!trimmed) return { ok: false, error: "API key is required" };
   if (!LIVE_PROVIDER_IDS.includes(providerId)) {
     return { ok: false, error: `No live adapter for provider "${providerId}" yet` };
+  }
+  const baseUrlOverride = options?.baseUrl?.trim();
+  if (baseUrlOverride) {
+    const baseUrlError = validateBaseUrlOverride(providerId, baseUrlOverride);
+    if (baseUrlError) return { ok: false, error: baseUrlError };
   }
 
   const encrypted = encryptApiKey(trimmed);

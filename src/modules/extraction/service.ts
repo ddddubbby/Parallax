@@ -84,17 +84,27 @@ interface PipelineContext {
  * credentials ("no separate key path"). Client brand listed first, since
  * the prompt names it as "the CLIENT brand" by position.
  */
+// Same deadline rationale as the worker's generation timeout — a hung
+// extraction call must fail as a normal retryable attempt, not hang the
+// pipeline (though unlike generation, the job is already succeeded by now,
+// so no stale-lock duplication risk — just liveness).
+const EXTRACTION_CALL_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
+
 async function runLiveExtraction(ctx: PipelineContext) {
   const credentials = await resolveExtractionCredentials(ctx.providerId as ProviderId);
   const orderedNames = [
     ...ctx.trackedBrands.filter((b) => b.id === ctx.clientBrandId).map((b) => b.name),
     ...ctx.trackedBrands.filter((b) => b.id !== ctx.clientBrandId).map((b) => b.name),
   ];
-  return callDeepSeekExtraction(credentials, {
-    rawText: ctx.rawText,
-    trackedBrandNames: orderedNames,
-    factClaims: ctx.factClaimRows.map((f) => ({ type: f.type, statement: f.statement })),
-  });
+  return callDeepSeekExtraction(
+    credentials,
+    {
+      rawText: ctx.rawText,
+      trackedBrandNames: orderedNames,
+      factClaims: ctx.factClaimRows.map((f) => ({ type: f.type, statement: f.statement })),
+    },
+    AbortSignal.timeout(EXTRACTION_CALL_TIMEOUT_MS),
+  );
 }
 
 /** SM-1/SM-2/SM-3: validate, retry once with the error noted, dead-letter on second failure. */

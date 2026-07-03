@@ -93,12 +93,17 @@ function normalizeExtractionPayload(raw: unknown): unknown {
 export async function callDeepSeekExtraction(
   credentials: DeepSeekCallCredentials,
   input: LiveExtractionInput,
+  signal?: AbortSignal,
 ): Promise<LiveExtractionResult> {
-  const result = await callDeepSeekChat(credentials, {
-    messages: [{ role: "user", content: buildExtractionPrompt(input) }],
-    temperature: 0,
-    response_format: { type: "json_object" },
-  });
+  const result = await callDeepSeekChat(
+    credentials,
+    {
+      messages: [{ role: "user", content: buildExtractionPrompt(input) }],
+      temperature: 0,
+      response_format: { type: "json_object" },
+    },
+    signal,
+  );
 
   let parsed: unknown;
   try {

@@ -65,7 +65,9 @@ export async function callDeepSeekChat(
       signal,
     });
   } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
+    // AbortController.abort() rejects with "AbortError"; AbortSignal.timeout()
+    // (what the worker actually passes) rejects with "TimeoutError".
+    if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
       throw new ProviderCallError("timeout", "DeepSeek request timed out or was aborted");
     }
     throw new ProviderCallError("server_error", `DeepSeek request failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -101,6 +103,22 @@ export async function callDeepSeekChat(
   const costUsd = (tokensIn / 1_000_000) * PRICE_PER_1M_INPUT_USD + (tokensOut / 1_000_000) * PRICE_PER_1M_OUTPUT_USD;
 
   return { text, tokensIn, tokensOut, costUsd, latencyMs, model: parsed.model ?? model };
+}
+
+/**
+ * D-022: run planning includes one estimated extraction call per planned
+ * generation call. Conservative sizing for the extraction prompt (schema
+ * instructions + fact sheet + a typical answer, ~2500 tokens in) and its
+ * structured JSON reply (~600 tokens out) — an overestimate is the safe
+ * direction for a pre-run cap check.
+ */
+export function estimateExtractionCostUsd(): number {
+  const EST_INPUT_TOKENS = 2_500;
+  const EST_OUTPUT_TOKENS = 600;
+  return (
+    (EST_INPUT_TOKENS / 1_000_000) * PRICE_PER_1M_INPUT_USD +
+    (EST_OUTPUT_TOKENS / 1_000_000) * PRICE_PER_1M_OUTPUT_USD
+  );
 }
 
 /**

@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, Field, Input, Select, Stamp } from "@/components/ui";
+import type { ProviderId } from "@/core/runner";
 import {
   deleteCredential,
   disableCredential,
   saveCredential,
   verifyCredential,
 } from "@/modules/settings/actions";
-import type { ProviderId } from "@/providers/types";
 
 export interface CredentialRow {
   id: string;

@@ -67,6 +67,45 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     expect(unsupported.ok).toBe(false);
   });
 
+  it("allowlists baseUrl overrides — every provider call sends the bearer key there, so an arbitrary host is a one-field exfiltration path (C-11)", async () => {
+    const { saveCredential } = await import("./actions");
+
+    const attacker = await saveCredential("deepseek", "sk-test-baseurl", {
+      label: "test-m8-baseurl-evil",
+      baseUrl: "https://attacker.example/collect",
+    });
+    expect(attacker.ok).toBe(false);
+    if (!attacker.ok) expect(attacker.error).toContain("not allowlisted");
+
+    const plainHttp = await saveCredential("deepseek", "sk-test-baseurl", {
+      label: "test-m8-baseurl-http",
+      baseUrl: "http://api.deepseek.com",
+    });
+    expect(plainHttp.ok).toBe(false);
+    if (!plainHttp.ok) expect(plainHttp.error).toContain("https");
+
+    const notAUrl = await saveCredential("deepseek", "sk-test-baseurl", {
+      label: "test-m8-baseurl-junk",
+      baseUrl: "not a url at all",
+    });
+    expect(notAUrl.ok).toBe(false);
+
+    const official = await saveCredential("deepseek", "sk-test-baseurl", {
+      label: "test-m8-baseurl-official",
+      baseUrl: "https://api.deepseek.com",
+    });
+    expect(official.ok).toBe(true);
+
+    // A deploy-layer proxy host (env DEEPSEEK_BASE_URL) is allowlisted too (D-020).
+    process.env.DEEPSEEK_BASE_URL = "https://deepseek-proxy.internal.example";
+    const proxied = await saveCredential("deepseek", "sk-test-baseurl", {
+      label: "test-m8-baseurl-proxy",
+      baseUrl: "https://deepseek-proxy.internal.example/v1",
+    });
+    expect(proxied.ok).toBe(true);
+    delete process.env.DEEPSEEK_BASE_URL;
+  });
+
   it("verifyCredential marks verified on success, invalid on auth_error, and leaves it active on a transient error", async () => {
     const { saveCredential, verifyCredential } = await import("./actions");
     const saved = await saveCredential("deepseek", "sk-test-verify", { label: "test-m8-verify" });

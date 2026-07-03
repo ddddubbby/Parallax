@@ -75,3 +75,56 @@ describe("report templates (RB-4)", () => {
     expect(md.toLowerCase()).toContain("no contradicted");
   });
 });
+
+// Model-derived text (claim text, evidence quotes, citation domains) comes
+// from provider output — in live mode, from the open web. The print/PDF
+// view renders generated markdown via marked + dangerouslySetInnerHTML,
+// and marked passes raw HTML through, so unescaped model text would be an
+// XSS path. Escaping happens at the template source (src/core/md.ts).
+describe("model-derived text is escaped in generated markdown", () => {
+  it("neutralizes raw HTML in claim text and evidence quotes", () => {
+    const md = generateSection("misinformation_register", {
+      ...BASE_CTX,
+      misinformation: [
+        {
+          claimText: 'LedgerFox is <script>alert("pwned")</script> insecure',
+          verdict: "contradicted",
+          severity: "high",
+          evidenceQuote: '<img src=x onerror="alert(1)">',
+          factStatement: null,
+        },
+      ],
+    });
+    expect(md).not.toContain("<script>");
+    expect(md).not.toContain("<img");
+    expect(md).toContain("&lt;script&gt;");
+  });
+
+  it("neutralizes HTML and table-breaking pipes in citation domains", () => {
+    const md = generateSection("sources", {
+      ...BASE_CTX,
+      citedSources: [{ domain: 'evil.example<script>x</script> | 999 |', total: 3 }],
+    });
+    expect(md).not.toContain("<script>");
+    // An unescaped pipe would terminate the table cell early and let the
+    // domain fabricate its own citation-count column.
+    expect(md).toContain("\\|");
+  });
+
+  it("collapses newlines so a multi-line quote cannot escape its blockquote and inject block-level markdown", () => {
+    const md = generateSection("misinformation_register", {
+      ...BASE_CTX,
+      misinformation: [
+        {
+          claimText: "line one\n### injected heading\n<div>block</div>",
+          verdict: "unsupported",
+          severity: "low",
+          evidenceQuote: null,
+          factStatement: null,
+        },
+      ],
+    });
+    expect(md).not.toContain("\n### injected heading");
+    expect(md).not.toContain("<div>");
+  });
+});

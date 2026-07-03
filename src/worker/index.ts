@@ -4,6 +4,8 @@
 import {
   computeFailureRate,
   decideRetry,
+  isProviderAllowedForRunMode,
+  type RunMode,
   shouldTripBreaker,
 } from "@/core/runner";
 import {
@@ -42,23 +44,36 @@ const STALE_RECLAIM_INTERVAL_MS = Number(process.env.WORKER_STALE_RECLAIM_INTERV
 // in-flight extraction that's about to commit.
 const EXTRACTION_SWEEP_AGE_MS = Number(process.env.WORKER_EXTRACTION_SWEEP_AGE_MS ?? 60_000);
 const EXTRACTION_SWEEP_BATCH = 25;
+// Hard per-call deadline, passed as AbortSignal.timeout to the provider.
+// Must stay comfortably under STALE_LOCK_MS: a call that outlives the
+// stale-lock window gets its still-running job reclaimed and re-claimed,
+// duplicating a paid call.
+const PROVIDER_CALL_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
 
 interface FailureInjection {
   rate: number;
   errorType: string;
 }
 
-const runInjectionCache = new Map<string, FailureInjection | null>();
+interface RunConfig {
+  runMode: string;
+  injection: FailureInjection | null;
+}
+
+const runConfigCache = new Map<string, RunConfig | null>();
 
 // D-027, nested under `.generation` since D-029 added an independent
 // `.extraction` key on the same debug_failure_injection_json column.
-async function getFailureInjection(runId: string): Promise<FailureInjection | null> {
-  if (runInjectionCache.has(runId)) return runInjectionCache.get(runId) ?? null;
+// runMode rides along in the same per-tick cache for the C-9 job guard.
+async function getRunConfig(runId: string): Promise<RunConfig | null> {
+  if (runConfigCache.has(runId)) return runConfigCache.get(runId) ?? null;
   const run = await getRun(runId);
-  const config = run?.debugFailureInjectionJson as { generation?: FailureInjection } | null;
-  const injection = config?.generation ?? null;
-  runInjectionCache.set(runId, injection);
-  return injection;
+  const injectionConfig = run?.debugFailureInjectionJson as { generation?: FailureInjection } | null;
+  const config: RunConfig | null = run
+    ? { runMode: run.runMode, injection: injectionConfig?.generation ?? null }
+    : null;
+  runConfigCache.set(runId, config);
+  return config;
 }
 
 interface ClaimedJob {
@@ -120,7 +135,31 @@ async function afterJobFinished(runId: string) {
 }
 
 async function processJob(job: ClaimedJob) {
-  const injection = await getFailureInjection(job.runId);
+  const config = await getRunConfig(job.runId);
+
+  // C-9 guard, both directions: never spend real money under a MOCK label,
+  // never mix fixture output into live aggregates. Run creation validates
+  // this too, but scripts/tests insert job rows directly — dead-letter
+  // immediately rather than retrying a combination that can never be valid.
+  if (config && !isProviderAllowedForRunMode(config.runMode as RunMode, job.providerId)) {
+    await recordDeadLetter(
+      job.id,
+      job.attemptCount + 1,
+      "unsupported_mode",
+      `provider ${job.providerId} is not allowed in a ${config.runMode} run (C-9)`,
+    );
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "error",
+      eventType: "job_dead_lettered",
+      message: `Dead-lettered: provider ${job.providerId} is not allowed in a ${config.runMode} run (C-9)`,
+    });
+    await afterJobFinished(job.runId);
+    return;
+  }
+
+  const injection = config?.injection ?? null;
   const injected = injection && Math.random() < injection.rate;
 
   if (injected) {
@@ -131,11 +170,14 @@ async function processJob(job: ClaimedJob) {
   let responseId: string | null = null;
   try {
     const provider = await resolveRuntimeProvider(job.providerId as ProviderId);
-    const result = await provider.generate({
-      promptText: job.resolvedText,
-      mode: job.generationMode as GenerationMode,
-      repIndex: job.repIndex,
-    });
+    const result = await provider.generate(
+      {
+        promptText: job.resolvedText,
+        mode: job.generationMode as GenerationMode,
+        repIndex: job.repIndex,
+      },
+      AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS),
+    );
     responseId = await recordSuccess(job, {
       modelVersion: result.modelVersion,
       rawText: result.text,
@@ -291,7 +333,7 @@ async function main() {
   }
 
   while (!stopped) {
-    runInjectionCache.clear();
+    runConfigCache.clear();
     await tick();
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }

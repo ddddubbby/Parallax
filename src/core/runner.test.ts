@@ -8,6 +8,7 @@ import {
   engineModePairs,
   estimateRunCostUsd,
   isPartial,
+  isProviderAllowedForRunMode,
   shouldTripBreaker,
 } from "./runner";
 
@@ -88,5 +89,19 @@ describe("engineModePairs", () => {
       { providerId: "mock", mode: "grounded" },
       { providerId: "mock", mode: "ungrounded" },
     ]);
+  });
+});
+
+describe("isProviderAllowedForRunMode (C-9, both directions)", () => {
+  it("mock runs allow only the mock provider — a live provider would be real spend under a MOCK label", () => {
+    expect(isProviderAllowedForRunMode("mock", "mock")).toBe(true);
+    expect(isProviderAllowedForRunMode("mock", "deepseek")).toBe(false);
+  });
+
+  it("live runs never allow the mock provider — fixtures must not mix into live aggregates", () => {
+    expect(isProviderAllowedForRunMode("live_validation", "deepseek")).toBe(true);
+    expect(isProviderAllowedForRunMode("live_validation", "mock")).toBe(false);
+    expect(isProviderAllowedForRunMode("live_audit", "deepseek")).toBe(true);
+    expect(isProviderAllowedForRunMode("live_audit", "mock")).toBe(false);
   });
 });
