@@ -15,6 +15,7 @@ import {
   matrixVersions,
   metrics as metricsTable,
   projects,
+  promptCells,
   responses,
   runEvents,
 } from "@/db/schema";
@@ -41,25 +42,34 @@ const createdVersionIds: string[] = [];
 const createdRunIds: string[] = [];
 
 afterAll(async () => {
+  // Per-run try/catch: an ordering miss here once orphaned every run
+  // created by this file, in "running" state, for a real worker to later
+  // pick up — see src/modules/runner/budget.test.ts and
+  // src/modules/extraction/live-pipeline.test.ts for the same guard.
   for (const runId of createdRunIds) {
-    await db.delete(metricsTable).where(eq(metricsTable.runId, runId));
-    const responseRows = await db.select({ id: responses.id }).from(responses).where(eq(responses.runId, runId));
-    const responseIds = responseRows.map((r) => r.id);
-    if (responseIds.length > 0) {
-      const extractionRows = await db.select({ id: extractions.id }).from(extractions).where(inArray(extractions.responseId, responseIds));
-      const extractionIds = extractionRows.map((e) => e.id);
-      if (extractionIds.length > 0) {
-        await db.delete(brandMentions).where(inArray(brandMentions.extractionId, extractionIds));
-        await db.delete(claimsFound).where(inArray(claimsFound.extractionId, extractionIds));
-        await db.delete(extractions).where(inArray(extractions.id, extractionIds));
+    try {
+      await db.delete(metricsTable).where(eq(metricsTable.runId, runId));
+      const responseRows = await db.select({ id: responses.id }).from(responses).where(eq(responses.runId, runId));
+      const responseIds = responseRows.map((r) => r.id);
+      if (responseIds.length > 0) {
+        const extractionRows = await db.select({ id: extractions.id }).from(extractions).where(inArray(extractions.responseId, responseIds));
+        const extractionIds = extractionRows.map((e) => e.id);
+        if (extractionIds.length > 0) {
+          await db.delete(brandMentions).where(inArray(brandMentions.extractionId, extractionIds));
+          await db.delete(claimsFound).where(inArray(claimsFound.extractionId, extractionIds));
+          await db.delete(extractions).where(inArray(extractions.id, extractionIds));
+        }
       }
+      await db.delete(responses).where(eq(responses.runId, runId));
+      await db.delete(jobs).where(eq(jobs.runId, runId));
+      await db.delete(runEvents).where(eq(runEvents.runId, runId));
+      await db.delete(auditRuns).where(eq(auditRuns.id, runId));
+    } catch (err) {
+      console.warn(`[pipeline.test.ts afterAll] failed to clean up run ${runId}:`, err instanceof Error ? err.message : err);
     }
-    await db.delete(responses).where(eq(responses.runId, runId));
-    await db.delete(jobs).where(eq(jobs.runId, runId));
-    await db.delete(runEvents).where(eq(runEvents.runId, runId));
-    await db.delete(auditRuns).where(eq(auditRuns.id, runId));
   }
   for (const versionId of createdVersionIds) {
+    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
     await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
   }
   await pool.end().catch(() => {});

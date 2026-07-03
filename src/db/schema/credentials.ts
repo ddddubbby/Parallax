@@ -35,10 +35,15 @@ export const providerCredentials = pgTable(
       .defaultNow(),
   },
   (t) => [
-    uniqueIndex("provider_credentials_provider_label_uq").on(
-      t.providerId,
-      t.label,
-    ),
+    // Partial, not global: rotate (D-022 saveCredential) disables the prior
+    // active row rather than deleting it, so a global unique index on
+    // (provider_id, label) would collide with its own disabled predecessor
+    // the moment the same label was reused. Scoping to active rows only
+    // still prevents two concurrently-active same-label credentials while
+    // letting history accumulate under one label.
+    uniqueIndex("provider_credentials_provider_label_uq")
+      .on(t.providerId, t.label)
+      .where(sql`${t.status} = 'active'`),
     // At most one active credential per provider (D-020).
     uniqueIndex("provider_credentials_one_active_uq")
       .on(t.providerId)

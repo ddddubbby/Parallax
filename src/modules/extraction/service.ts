@@ -15,10 +15,14 @@ import {
   getResponse,
   markExtractionDeadLettered,
   markExtractionRetrying,
+  recordExtractionAttemptCost,
   requeueExtraction as createRequeuedExtraction,
 } from "@/db/repositories/extraction";
 import { appendRunEvent, getRun } from "@/db/repositories/runner";
+import { resolveExtractionCredentials } from "@/modules/runner/provider-resolver";
+import { callDeepSeekExtraction } from "@/providers/deepseek/extraction";
 import { MOCK_EXTRACTION_MODEL, extractViaMockEngine } from "@/providers/mock/extraction-engine";
+import type { ProviderId } from "@/providers/types";
 
 // D-022: mock runs use fixture-backed extraction exclusively. D-029:
 // test-only extraction-invalid injection lives in the same
@@ -66,11 +70,31 @@ export interface ExtractionRunResult {
 interface PipelineContext {
   responseId: string;
   runId: string;
+  runMode: string;
+  providerId: string;
   rawText: string;
   trackedBrands: TrackedBrand[];
   clientBrandId: string | null;
   factClaimRows: Array<{ id: string; type: string; statement: string }>;
   injection: ExtractionInjection | null;
+}
+
+/**
+ * D-022 live extraction: reuses the response's own generation provider's
+ * credentials ("no separate key path"). Client brand listed first, since
+ * the prompt names it as "the CLIENT brand" by position.
+ */
+async function runLiveExtraction(ctx: PipelineContext) {
+  const credentials = await resolveExtractionCredentials(ctx.providerId as ProviderId);
+  const orderedNames = [
+    ...ctx.trackedBrands.filter((b) => b.id === ctx.clientBrandId).map((b) => b.name),
+    ...ctx.trackedBrands.filter((b) => b.id !== ctx.clientBrandId).map((b) => b.name),
+  ];
+  return callDeepSeekExtraction(credentials, {
+    rawText: ctx.rawText,
+    trackedBrandNames: orderedNames,
+    factClaims: ctx.factClaimRows.map((f) => ({ type: f.type, statement: f.statement })),
+  });
 }
 
 /** SM-1/SM-2/SM-3: validate, retry once with the error noted, dead-letter on second failure. */
@@ -83,7 +107,42 @@ async function runExtractionPipeline(
   while (attempt < EXTRACTION_ATTEMPTS) {
     attempt++;
     const injected = ctx.injection && Math.random() < ctx.injection.invalidRate;
-    const rawPayload = injected ? injectedInvalidPayload() : extractViaMockEngine(ctx.rawText);
+
+    let rawPayload: unknown;
+    let engineModel = MOCK_EXTRACTION_MODEL;
+
+    if (injected) {
+      rawPayload = injectedInvalidPayload();
+    } else if (ctx.runMode === "mock") {
+      rawPayload = extractViaMockEngine(ctx.rawText);
+    } else {
+      try {
+        const live = await runLiveExtraction(ctx);
+        rawPayload = live.payload;
+        engineModel = live.model;
+        // Billed whether or not the JSON below validates against our
+        // schema — recorded now, independent of the retry/dead-letter/valid
+        // outcome decided below.
+        await recordExtractionAttemptCost(ctx.runId, extractionId, {
+          costUsd: live.costUsd,
+          tokensIn: live.tokensIn,
+          tokensOut: live.tokensOut,
+        });
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        if (attempt < EXTRACTION_ATTEMPTS) {
+          await markExtractionRetrying(extractionId, lastError);
+          await appendRunEvent({
+            runId: ctx.runId,
+            level: "warn",
+            eventType: "extraction_retry",
+            message: `Live extraction call failed (attempt ${attempt}): ${lastError}`,
+          });
+        }
+        continue;
+      }
+    }
+
     const validation = validateExtraction(rawPayload);
 
     if (validation.ok) {
@@ -127,7 +186,7 @@ async function runExtractionPipeline(
       await commitValidExtraction(
         extractionId,
         resolvedData,
-        MOCK_EXTRACTION_MODEL,
+        engineModel,
         // brand_mentions has no `mentioned` column (spec §2) — a row's
         // existence is the mention signal, so mentioned: false entries
         // (rare; an engine noting a brand was considered but absent) are
@@ -196,6 +255,8 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
   return {
     responseId,
     runId: response.runId,
+    runMode: run.runMode,
+    providerId: response.providerId,
     rawText: response.rawText,
     trackedBrands,
     clientBrandId: projectBrandRows.find((b) => b.role === "client")?.id ?? null,

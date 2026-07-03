@@ -22,6 +22,9 @@ import {
 } from "@/db/repositories/runner";
 import { listResponsesMissingExtraction } from "@/db/repositories/extraction";
 import { extractResponse } from "@/modules/extraction/service";
+import { findExceededDailyBudget } from "@/modules/runner/budget";
+import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
+import { ProviderCallError } from "@/providers/deepseek";
 import { listRegisteredProviders } from "@/providers/registry";
 import type { GenerationMode, ProviderId } from "@/providers/types";
 
@@ -93,6 +96,18 @@ async function afterJobFinished(runId: string) {
     return;
   }
 
+  const budgetTrip = await findExceededDailyBudget((run.selectedProvidersJson as string[]) ?? []);
+  if (budgetTrip) {
+    await pauseRun(runId);
+    await appendRunEvent({
+      runId,
+      level: "warn",
+      eventType: "circuit_breaker_paused",
+      message: `Run paused by circuit breaker (daily_budget_exceeded): ${budgetTrip.providerId} spent $${budgetTrip.spentUsd.toFixed(2)}/$${budgetTrip.budgetUsd.toFixed(2)} daily budget`,
+    });
+    return;
+  }
+
   if (await isRunFinished(runId)) {
     await completeRun(runId);
     await appendRunEvent({
@@ -113,14 +128,9 @@ async function processJob(job: ClaimedJob) {
     return;
   }
 
-  const provider = listRegisteredProviders().find((p) => p.id === job.providerId);
-  if (!provider) {
-    await handleFailure(job, "unsupported_mode", `no adapter registered for provider ${job.providerId}`);
-    return;
-  }
-
   let responseId: string | null = null;
   try {
+    const provider = await resolveRuntimeProvider(job.providerId as ProviderId);
     const result = await provider.generate({
       promptText: job.resolvedText,
       mode: job.generationMode as GenerationMode,
@@ -136,7 +146,10 @@ async function processJob(job: ClaimedJob) {
       latencyMs: result.latencyMs,
     });
   } catch (err) {
-    await handleFailure(job, "server_error", err instanceof Error ? err.message : String(err));
+    // Real providers fail in distinguishable ways (401/429/5xx/timeout);
+    // mock never did, so this branch only matters from M8 onward.
+    const errorType = err instanceof ProviderCallError ? err.errorType : "server_error";
+    await handleFailure(job, errorType, err instanceof Error ? err.message : String(err));
     await afterJobFinished(job.runId);
     return;
   }

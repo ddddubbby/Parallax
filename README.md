@@ -10,7 +10,7 @@ Start here:
 4. Read `ENGINEERING_SPEC.md` before schema, provider, worker, seed, or fixture work.
 5. Read `RENDER_DEPLOYMENT.md` before touching deploy configuration.
 
-Current state: M7 is complete. The app has the runnable foundation, full schema and seed, intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, structured extraction + metrics, a six-view dashboard with drill-down, and a findings engine + editable report builder with Markdown/print/JSON/CSV export. Next product milestone is M8, live validation against DeepSeek — the first milestone touching real infrastructure (Settings/credentials, budget enforcement, auth) and real money. Node version is pinned in `.node-version`; pnpm is pinned by `packageManager`.
+Current state: M8 is complete. The app has the runnable foundation, full schema and seed, intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, structured extraction + metrics, a six-view dashboard with drill-down, a findings engine + editable report builder with Markdown/print/JSON/CSV export, and live infrastructure against DeepSeek: shared-password auth, an encrypted-credential Settings UI, per-provider daily-budget enforcement, and a live extraction engine alongside mock. `pnpm audit:deepseek-mini` is built and safety-verified but has not yet been run against a real key — that requires the operator to add one via Settings first. Next product milestone is M9, provider expansion and hardening. Node version is pinned in `.node-version`; pnpm is pinned by `packageManager`.
 
 ## Execution Readiness
 

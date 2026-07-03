@@ -1,6 +1,6 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../client";
-import { brandMentions, brands, claimsFound, extractions, factClaims, responses } from "../schema";
+import { auditRuns, brandMentions, brands, claimsFound, extractions, factClaims, responses } from "../schema";
 
 export async function getResponse(responseId: string) {
   const [row] = await db.select().from(responses).where(eq(responses.id, responseId));
@@ -126,6 +126,39 @@ export async function commitValidExtraction(
         evidenceQuote: c.evidenceQuote,
       });
     }
+  });
+}
+
+/**
+ * D-022: a live extraction call is billed whether or not its JSON validates
+ * against our schema, so cost is recorded per attempt (called right after
+ * the live call returns), independent of the retry/dead-letter/valid state
+ * transition. Accumulates on both the extraction row (this version's total
+ * across retries) and the run's actual_cost_usd (the cost-cap/daily-budget
+ * source of truth), atomically.
+ */
+export async function recordExtractionAttemptCost(
+  runId: string,
+  extractionId: string,
+  cost: { costUsd: number; tokensIn: number; tokensOut: number },
+) {
+  await db.transaction(async (tx) => {
+    await tx
+      .update(extractions)
+      .set({
+        costUsd: sql`${extractions.costUsd} + ${cost.costUsd}`,
+        tokensIn: sql`${extractions.tokensIn} + ${cost.tokensIn}`,
+        tokensOut: sql`${extractions.tokensOut} + ${cost.tokensOut}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(extractions.id, extractionId));
+    await tx
+      .update(auditRuns)
+      .set({
+        actualCostUsd: sql`${auditRuns.actualCostUsd} + ${cost.costUsd}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(auditRuns.id, runId));
   });
 }
 
