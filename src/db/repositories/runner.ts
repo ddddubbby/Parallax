@@ -255,6 +255,11 @@ export async function recordSuccess(
   });
 }
 
+// Both failure recorders are guarded to `state = 'running'`: reclaim-based
+// claiming is at-least-once, so a job can be double-processed after an
+// over-eager stale-lock reclaim. The duplicate invocation's recordSuccess
+// hits the unique job_id and throws — the resulting failure handling must
+// never downgrade the job the first invocation already marked succeeded.
 export async function recordRetry(
   jobId: string,
   attemptCount: number,
@@ -273,7 +278,7 @@ export async function recordRetry(
       lockedAt: null,
       updatedAt: new Date(),
     })
-    .where(eq(jobs.id, jobId));
+    .where(and(eq(jobs.id, jobId), eq(jobs.state, "running")));
 }
 
 export async function recordDeadLetter(
@@ -291,7 +296,7 @@ export async function recordDeadLetter(
       lastErrorMessage: errorMessage,
       updatedAt: new Date(),
     })
-    .where(eq(jobs.id, jobId));
+    .where(and(eq(jobs.id, jobId), eq(jobs.state, "running")));
 }
 
 export async function requeueJob(jobId: string) {

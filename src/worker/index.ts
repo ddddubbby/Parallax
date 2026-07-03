@@ -20,6 +20,7 @@ import {
   recordRetry,
   recordSuccess,
 } from "@/db/repositories/runner";
+import { listResponsesMissingExtraction } from "@/db/repositories/extraction";
 import { extractResponse } from "@/modules/extraction/service";
 import { listRegisteredProviders } from "@/providers/registry";
 import type { GenerationMode, ProviderId } from "@/providers/types";
@@ -31,6 +32,13 @@ const HEARTBEAT_MS = 30_000;
 // proven reclaimable. Defaults are conservative for real deploys.
 const STALE_LOCK_MS = Number(process.env.WORKER_STALE_LOCK_MS ?? 60_000);
 const STALE_RECLAIM_INTERVAL_MS = Number(process.env.WORKER_STALE_RECLAIM_INTERVAL_MS ?? 15_000);
+// Extraction reconcile sweep: backfills responses that missed their
+// synchronous extraction (worker crash between response commit and
+// extraction commit, an unexpected extraction throw, or responses that
+// predate the extraction pipeline). Age threshold avoids racing an
+// in-flight extraction that's about to commit.
+const EXTRACTION_SWEEP_AGE_MS = Number(process.env.WORKER_EXTRACTION_SWEEP_AGE_MS ?? 60_000);
+const EXTRACTION_SWEEP_BATCH = 25;
 
 interface FailureInjection {
   rate: number;
@@ -198,6 +206,7 @@ async function tick() {
 async function main() {
   console.log(`[worker] parallax-worker started (pid ${process.pid})`);
 
+  let sweepInFlight = false;
   const reclaimTimer = setInterval(async () => {
     const reclaimed = await reclaimStaleLocks(STALE_LOCK_MS);
     if (reclaimed.length > 0) {
@@ -210,6 +219,34 @@ async function main() {
           message: `Worker reclaimed ${reclaimed.filter((r) => r.runId === runId).length} job(s) after a worker restart`,
         });
       }
+    }
+
+    // Extraction reconcile sweep — see EXTRACTION_SWEEP_AGE_MS above.
+    if (sweepInFlight) return;
+    sweepInFlight = true;
+    try {
+      const missing = await listResponsesMissingExtraction(
+        EXTRACTION_SWEEP_AGE_MS,
+        EXTRACTION_SWEEP_BATCH,
+      );
+      if (missing.length > 0) {
+        console.log(`[worker] extraction sweep: backfilling ${missing.length} response(s)`);
+      }
+      for (const responseId of missing) {
+        try {
+          await extractResponse(responseId);
+        } catch (err) {
+          // Per-response isolation: one bad response must not starve the
+          // rest of the batch. A unique-violation here just means the
+          // synchronous path won the race — harmless.
+          console.error(
+            `[worker] extraction sweep failed for response ${responseId}:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
+    } finally {
+      sweepInFlight = false;
     }
   }, STALE_RECLAIM_INTERVAL_MS);
 

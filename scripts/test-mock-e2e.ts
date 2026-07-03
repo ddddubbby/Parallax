@@ -123,9 +123,14 @@ async function ensureApprovedVersion(projectId: string) {
 
 function spawnWorker(env: Record<string, string | undefined> = {}): ChildProcess {
   const nodeBin = process.execPath;
-  const tsxBin = new URL("../node_modules/tsx/dist/cli.mjs", import.meta.url).pathname;
+  // Single process via node's --import loader, NOT the tsx CLI: the CLI is
+  // a wrapper that spawns the real worker as a child, so SIGKILL only hits
+  // the wrapper and the orphaned worker keeps committing jobs for ~1s
+  // (until its broken stdio kills it) — which silently defeats the
+  // kill/resume test by finishing the "stuck" jobs without any reclaim.
+  const tsxLoader = new URL("../node_modules/tsx/dist/loader.mjs", import.meta.url).href;
   const workerEntry = new URL("../src/worker/index.ts", import.meta.url).pathname;
-  const child = spawn(nodeBin, [tsxBin, workerEntry], {
+  const child = spawn(nodeBin, ["--import", tsxLoader, workerEntry], {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, ...env },
   });
@@ -196,8 +201,12 @@ async function main() {
 
   // Phase 2: restart the worker with a short stale-lock window so any
   // jobs genuinely orphaned by the SIGKILL are provably reclaimed within
-  // this test's runtime, rather than waiting out the 60s production default.
-  worker = spawnWorker({ WORKER_STALE_LOCK_MS: "500", WORKER_STALE_RECLAIM_INTERVAL_MS: "500" });
+  // this test's runtime, rather than waiting out the 60s production
+  // default. Not TOO short though: the window must exceed a busy
+  // processJob's wall time (generation + synchronous extraction under
+  // full concurrency), or reclaim double-processes live jobs — the
+  // recording layer tolerates that now, but the test shouldn't rely on it.
+  worker = spawnWorker({ WORKER_STALE_LOCK_MS: "3000", WORKER_STALE_RECLAIM_INTERVAL_MS: "1000" });
   const finalRun = await waitForTerminal(run.id, TARGET_ELAPSED_MS);
   worker.kill("SIGTERM");
 
