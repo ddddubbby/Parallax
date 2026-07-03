@@ -43,11 +43,16 @@ export default async function ReportPrintPage({
   const byKey = new Map(sections.map((s) => [s.sectionKey, s]));
   const client = brands.find((b) => b.role === "client");
 
+  // Colors reference the design tokens (globals.css @theme, available on
+  // this page via the root layout) rather than raw hex — the "colors live
+  // only in tokens" guardrail (V-10) applies here too. Alpha variants use
+  // color-mix so a token change still propagates. Font/spacing stay inline:
+  // this is a deliberately self-contained print document (V-4).
   return (
     <div
       style={{
-        background: "#f0eee4",
-        color: "#0e0e0c",
+        background: "var(--color-paper)",
+        color: "var(--color-ink)",
         fontFamily: "Georgia, 'Times New Roman', serif",
         maxWidth: "48rem",
         margin: "0 auto",
@@ -61,12 +66,12 @@ export default async function ReportPrintPage({
           .section:last-child { page-break-after: auto; }
         }
         table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-        th, td { border: 1px solid #0e0e0c33; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
-        h2 { font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; border-bottom: 1px solid #0e0e0c33; padding-bottom: 0.4rem; margin-top: 0; }
-        blockquote { border-left: 3px solid #f15a24; margin: 0.75rem 0; padding: 0.25rem 0 0.25rem 0.75rem; color: #0e0e0c99; }
+        th, td { border: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent); padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
+        h2 { font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent); padding-bottom: 0.4rem; margin-top: 0; }
+        blockquote { border-left: 3px solid var(--color-accent); margin: 0.75rem 0; padding: 0.25rem 0 0.25rem 0.75rem; color: color-mix(in srgb, var(--color-ink) 60%, transparent); }
       `}</style>
 
-      <div style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.75rem", color: "#0e0e0c99", marginBottom: "0.5rem" }}>
+      <div style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.75rem", color: "color-mix(in srgb, var(--color-ink) 60%, transparent)", marginBottom: "0.5rem" }}>
         {new Date().toISOString().slice(0, 10).replaceAll("-", ".")} · RUN {runId.slice(0, 8)}
       </div>
       <h1 style={{ fontSize: "2rem", marginBottom: "2rem" }}>

@@ -4,13 +4,13 @@ import { revalidatePath } from "next/cache";
 import {
   checkCostCap,
   computePlannedCalls,
-  estimateRunCostUsd,
   EXTRACTION_ENGINE_MOCK_COST_USD,
   type GenerationMode,
   isProviderAllowedForRunMode,
   type ProviderId,
   type RunMode,
 } from "@/core/runner";
+import { getActiveCredential } from "@/db/repositories/credentials";
 import {
   cancelRun as cancelRunRepo,
   createRun as createRunRepo,
@@ -25,6 +25,7 @@ import {
   requeueJob as requeueJobRepo,
   resumeRun as resumeRunRepo,
 } from "@/db/repositories/runner";
+import { extractionProviderId } from "@/modules/runner/budget";
 import { estimateExtractionCostUsd } from "@/providers/deepseek";
 import { getProvider, listRegisteredProviders } from "@/providers/registry";
 
@@ -85,17 +86,28 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   // string — "" projected near-zero input cost for every live run (RN-2).
   const avgPromptChars = await getAverageCellTextLength(version.id);
   const representativePrompt = "x".repeat(avgPromptChars);
-  const generationCostPerCall =
-    input.providers.reduce(
-      (sum, id) => sum + (getProvider(id)?.estimateCostUsd({ promptText: representativePrompt, mode: "ungrounded" }) ?? 0),
-      0,
-    ) / Math.max(input.providers.length, 1);
-  // D-022: one estimated extraction call per generation call. Mock runs use
-  // fixture-backed extraction at $0; live extraction reuses the generation
-  // provider (D-036), currently always DeepSeek.
+
+  // Cost is summed over the (provider, mode) pairs that actually get
+  // planned, each estimated IN ITS OWN MODE — grounded pairs carry the
+  // provider's web-search/grounding fee, which a blanket `mode:
+  // "ungrounded"` estimate silently dropped (a grounded audit could pass
+  // the cap while real spend was higher). Unsupported pairs (e.g.
+  // deepseek+grounded) are skipped at planning, so they contribute $0.
+  const callsPerPair = cellCount * input.repetitions;
   const extractionCostPerCall =
     input.runMode === "mock" ? EXTRACTION_ENGINE_MOCK_COST_USD : estimateExtractionCostUsd();
-  const projectedCostUsd = estimateRunCostUsd(plannedCalls, generationCostPerCall, extractionCostPerCall);
+  let projectedCostUsd = 0;
+  for (const providerId of input.providers) {
+    const provider = getProvider(providerId);
+    if (!provider) continue;
+    for (const mode of input.modes) {
+      const supported = mode === "grounded" ? provider.supportsGrounded : provider.supportsUngrounded;
+      if (!supported) continue;
+      const generationCostPerCall = provider.estimateCostUsd({ promptText: representativePrompt, mode });
+      // D-022: one estimated extraction call per generation call.
+      projectedCostUsd += callsPerPair * (generationCostPerCall + extractionCostPerCall);
+    }
+  }
   return { ok: true as const, plannedCalls, projectedCostUsd, cellCount, versionId: version.id };
 }
 
@@ -132,6 +144,28 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
       ok: false,
       error: "No selected provider supports any selected generation mode (PV-5) — e.g. DeepSeek has no grounded/citation path",
     };
+  }
+
+  // Preflight active credentials for a LIVE run so it can't burn real
+  // generation money and then be unable to extract (or unable to generate
+  // at all) for a key the operator never entered. Checks each selected
+  // generation provider AND the extraction engine (D-041) — the latter is
+  // the subtle one: without its key, generation succeeds and spends, then
+  // every extraction dead-letters and the run yields no usable metrics.
+  if (input.runMode !== "mock") {
+    const needed = new Set<string>([...input.providers, extractionProviderId()]);
+    const missing: string[] = [];
+    for (const providerId of needed) {
+      if (providerId === "mock") continue;
+      const credential = await getActiveCredential(providerId as ProviderId);
+      if (!credential) missing.push(providerId);
+    }
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        error: `No active credential in Settings for: ${missing.join(", ")} — a live run needs a key for every selected provider and the extraction engine (${extractionProviderId()}) before it can spend.`,
+      };
+    }
   }
 
   const projection = await projectRunCost(projectId, input);

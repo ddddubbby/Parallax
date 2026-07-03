@@ -218,4 +218,51 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
       expect(run.runMode).toBe("mock");
     }
   });
+
+  it("projects grounded cost ABOVE the same-shape ungrounded cost — the search/grounding fee is in the cap check (Fix 1)", async () => {
+    const { projectRunCost } = await import("./actions");
+    const projectId = await ensureProject();
+    await ensureApprovedVersion(projectId);
+
+    // OpenAI supports both modes and charges a web-search fee only when
+    // grounded — the projection must reflect that, not estimate every call
+    // as ungrounded.
+    const ungrounded = await projectRunCost(projectId, {
+      runMode: "live_validation",
+      providers: ["openai"],
+      modes: ["ungrounded"],
+      repetitions: 1,
+      costCapUsd: 25,
+    });
+    const grounded = await projectRunCost(projectId, {
+      runMode: "live_validation",
+      providers: ["openai"],
+      modes: ["grounded"],
+      repetitions: 1,
+      costCapUsd: 25,
+    });
+    expect(ungrounded.ok && grounded.ok).toBe(true);
+    if (ungrounded.ok && grounded.ok) {
+      expect(grounded.projectedCostUsd).toBeGreaterThan(ungrounded.projectedCostUsd);
+    }
+  });
+
+  it("preflights active credentials on a live run — missing keys block before any spend (Fix 5)", async () => {
+    const { createRun } = await import("./actions");
+    const projectId = await ensureProject();
+    await ensureApprovedVersion(projectId);
+
+    // No OpenAI or DeepSeek credential is active in the dev DB, so a live
+    // OpenAI run (which also needs the DeepSeek extraction engine's key)
+    // must be rejected up front rather than half-run.
+    const result = await createRun(projectId, {
+      runMode: "live_validation",
+      providers: ["openai"],
+      modes: ["ungrounded"],
+      repetitions: 2,
+      costCapUsd: 25,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("active credential");
+  });
 });

@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
+import { createPendingExtraction, recordExtractionAttemptCost } from "@/db/repositories/extraction";
 import { claimJobs, createRun, getProviderSpendToday, recordSuccess } from "@/db/repositories/runner";
 import { auditRuns, extractions, jobs, matrixVersions, projects, promptCells, responses, runEvents } from "@/db/schema";
 
@@ -157,6 +158,53 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
 
     // A provider with no responses today reports zero, not an error.
     expect(await getProviderSpendToday("minimax")).toBe(0);
+  });
+
+  it("attributes extraction cost to the configured extraction engine, not the generation provider (D-041/C-2)", async () => {
+    // An OpenAI run whose answers are extracted via DeepSeek: the extraction
+    // $ must land on DeepSeek's budget (the engine), never OpenAI's.
+    const projectId = await ensureProject();
+    const version = await ensureApprovedVersion(projectId);
+    const run = await createRun(
+      { projectId, matrixVersionId: version.id, runMode: "live_validation", repetitions: 1, providers: ["openai"], modes: ["ungrounded"], costCapUsd: 25, debugFailureInjection: null },
+      [{ id: "openai", supportsGrounded: true, supportsUngrounded: true }],
+      version.cellCount,
+    );
+    createdRunIds.push(run.id);
+
+    const openaiBefore = await getProviderSpendToday("openai");
+    const deepseekBefore = await getProviderSpendToday("deepseek");
+
+    // Fabricate one OpenAI response (generation spend) for this run.
+    let job: Awaited<ReturnType<typeof claimJobs>>[number] | undefined;
+    for (let guard = 0; guard < 20 && !job; guard++) {
+      const claimed = await claimJobs("openai", 1);
+      if (claimed.length === 0) break;
+      if (claimed[0].runId === run.id) job = claimed[0];
+    }
+    if (!job) throw new Error("no openai job for this run");
+    const responseId = await recordSuccess(job, {
+      modelVersion: "gpt-5.5",
+      rawText: "openai answer",
+      citations: [],
+      tokensIn: 100,
+      tokensOut: 50,
+      costUsd: 2.0,
+      latencyMs: 10,
+    });
+
+    // Fabricate a DeepSeek extraction cost against that response.
+    const extractionId = await createPendingExtraction(responseId, 1);
+    await recordExtractionAttemptCost(run.id, extractionId, { costUsd: 0.5, tokensIn: 200, tokensOut: 60 });
+
+    const openaiAfter = await getProviderSpendToday("openai");
+    const deepseekAfter = await getProviderSpendToday("deepseek");
+
+    // OpenAI's budget carries ONLY its generation cost — extraction excluded.
+    expect(openaiAfter - openaiBefore).toBeCloseTo(2.0, 6);
+    // DeepSeek's budget carries the extraction cost, though no DeepSeek
+    // generation happened on this run.
+    expect(deepseekAfter - deepseekBefore).toBeCloseTo(0.5, 6);
   });
 
   it("findExceededDailyBudget trips once cumulative spend reaches the budget, skips mock, and reports null under budget", async () => {

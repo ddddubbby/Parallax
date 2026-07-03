@@ -73,6 +73,57 @@ export async function getMisinformationRegister(runId: string) {
   });
 }
 
+type ClaimVerdict = (typeof claimsFound.$inferInsert)["extractedVerdict"];
+type ClaimSeverity = (typeof claimsFound.$inferInsert)["extractedSeverity"];
+
+/**
+ * SM-5 / D-024: record the operator's review of one misinformation claim.
+ * "confirmed" accepts the extracted verdict/severity as-is (overrides
+ * cleared); "corrected" stores operator overrides beside — never over —
+ * the extracted values. reviewed_at is set on any move out of unreviewed,
+ * which is exactly what the release checklist's evidence-chain gate reads.
+ * (claims_found rows are derived and rebuilt on re-extraction — an AD-2
+ * re-extract resets review, which is correct: it produces a new claim.)
+ */
+export async function reviewClaim(
+  claimId: string,
+  input:
+    | { reviewState: "confirmed" }
+    | { reviewState: "corrected"; operatorVerdict: ClaimVerdict; operatorSeverity: ClaimSeverity }
+    | { reviewState: "unreviewed" },
+): Promise<number> {
+  const patch =
+    input.reviewState === "corrected"
+      ? {
+          reviewState: "corrected" as const,
+          operatorVerdict: input.operatorVerdict,
+          operatorSeverity: input.operatorSeverity,
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+        }
+      : input.reviewState === "confirmed"
+        ? {
+            reviewState: "confirmed" as const,
+            operatorVerdict: null,
+            operatorSeverity: null,
+            reviewedAt: new Date(),
+            updatedAt: new Date(),
+          }
+        : {
+            reviewState: "unreviewed" as const,
+            operatorVerdict: null,
+            operatorSeverity: null,
+            reviewedAt: null,
+            updatedAt: new Date(),
+          };
+  const updated = await db
+    .update(claimsFound)
+    .set(patch)
+    .where(eq(claimsFound.id, claimId))
+    .returning({ id: claimsFound.id });
+  return updated.length;
+}
+
 /**
  * DB-1 cited sources: citation domains aggregated by whether they cite the
  * client brand, a competitor, or both — drawn from the RESOLVED extraction

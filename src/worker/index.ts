@@ -25,7 +25,7 @@ import {
 } from "@/db/repositories/runner";
 import { listResponsesMissingExtraction } from "@/db/repositories/extraction";
 import { extractResponse } from "@/modules/extraction/service";
-import { findExceededDailyBudget } from "@/modules/runner/budget";
+import { extractionProviderId, findExceededDailyBudget } from "@/modules/runner/budget";
 import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation";
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
 import { listRegisteredProviders } from "@/providers/registry";
@@ -117,7 +117,13 @@ async function afterJobFinished(runId: string) {
     return;
   }
 
-  const budgetTrip = await findExceededDailyBudget((run.selectedProvidersJson as string[]) ?? []);
+  // Live runs also spend on the extraction engine (D-041), which may not be
+  // a selected generation provider — include it so its budget is guarded
+  // (C-2). Mock runs pass only their mock provider, so no live budget can
+  // pause them.
+  const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
+  if (run.runMode !== "mock") budgetProviders.push(extractionProviderId());
+  const budgetTrip = await findExceededDailyBudget(budgetProviders);
   if (budgetTrip) {
     await pauseRun(runId);
     await appendRunEvent({
@@ -173,6 +179,10 @@ async function processJob(job: ClaimedJob) {
 
   if (injected) {
     await handleFailure(job, injection.errorType, `injected ${injection.errorType} (debug failure injection)`);
+    // Must run the completion check like every other failure path (the C-9
+    // and catch branches do): without it, an injected dead-letter on the
+    // run's final job leaves the run stuck 'running' forever.
+    await afterJobFinished(job.runId);
     return;
   }
 

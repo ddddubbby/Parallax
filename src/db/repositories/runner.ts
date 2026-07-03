@@ -509,28 +509,38 @@ export async function listActiveRunIds() {
 }
 
 /**
- * C-2/D-012 per-provider daily budget: generation cost (responses) plus
- * live extraction cost (extractions, joined for the response's provider —
- * D-022 reuses the response's own provider, so extraction has no provider
- * column of its own), summed since UTC midnight.
+ * C-2/D-012 per-provider daily budget, summed since UTC midnight:
+ *  - generation cost = responses where this provider generated them;
+ *  - extraction cost = attributed to the CONFIGURED EXTRACTION ENGINE
+ *    (D-041), not the generation provider. Under D-041 one engine (default
+ *    DeepSeek) extracts every live run regardless of who generated the
+ *    answer, so its spend belongs to that engine's budget — attributing it
+ *    to the generation provider both under-guarded the extraction engine
+ *    (an OpenAI run's DeepSeek extraction evaded DeepSeek's budget) and
+ *    over-charged the generation provider. Extraction rows carry no
+ *    provider column, so "all of today's extraction cost" is the engine's.
  */
 export async function getProviderSpendToday(providerId: string): Promise<number> {
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const pid = providerId as (typeof responses.$inferInsert)["providerId"];
+  const extractionEngine = process.env.EXTRACTION_PROVIDER || "deepseek";
 
   const [genRow] = await db
     .select({ total: sql<string>`coalesce(sum(${responses.costUsd}), 0)` })
     .from(responses)
     .where(and(eq(responses.providerId, pid), gte(responses.createdAt, todayStart)));
 
-  const [extRow] = await db
-    .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
-    .from(extractions)
-    .innerJoin(responses, eq(extractions.responseId, responses.id))
-    .where(and(eq(responses.providerId, pid), gte(extractions.createdAt, todayStart)));
+  let extractionTotal = 0;
+  if (providerId === extractionEngine) {
+    const [extRow] = await db
+      .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
+      .from(extractions)
+      .where(gte(extractions.createdAt, todayStart));
+    extractionTotal = Number(extRow?.total ?? 0);
+  }
 
-  return Number(genRow?.total ?? 0) + Number(extRow?.total ?? 0);
+  return Number(genRow?.total ?? 0) + extractionTotal;
 }
 
 export async function getProjectStatus(projectId: string) {

@@ -1,6 +1,13 @@
 import { checkCostCap } from "@/core/runner";
 import { getProviderSpendToday } from "@/db/repositories/runner";
 
+// D-041: the one extraction engine for all live runs. Its spend (and thus
+// its daily budget) is a distinct concern from the generation providers'
+// even though it may not appear in a run's selected-providers list.
+export function extractionProviderId(): string {
+  return process.env.EXTRACTION_PROVIDER || "deepseek";
+}
+
 // C-2/D-012: global PROVIDER_DAILY_BUDGET_USD default, optional
 // <PROVIDER>_DAILY_BUDGET_USD override — env-configured, not DB-editable
 // (Settings surfaces the effective value read-only).
@@ -41,7 +48,13 @@ export interface BudgetTrip {
  * than paying a spend query on every claim.
  */
 export async function findExceededDailyBudget(providerIds: string[]): Promise<BudgetTrip | null> {
-  for (const providerId of providerIds) {
+  // Caller-driven: the worker passes the run's generation providers plus,
+  // for LIVE runs, the extraction engine (D-041/C-2) — the extraction
+  // engine spends real money on every live run even when it is not a
+  // selected generation provider (an OpenAI run extracting via DeepSeek),
+  // and getProviderSpendToday attributes all extraction cost to it. A mock
+  // run passes only mock, so no live budget can ever pause it.
+  for (const providerId of new Set(providerIds)) {
     if (providerId === "mock") continue;
     const budgetUsd = readDailyBudgetUsd(providerId);
     if (!Number.isFinite(budgetUsd)) continue;
