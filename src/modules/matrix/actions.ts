@@ -5,12 +5,11 @@ import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import {
   allocateMatrix,
   type BrandTerms,
-  findBrandTerms,
   type Intent,
   type MatrixContext,
   renderTemplate,
+  scanUnbrandedCells,
   shuffle,
-  UNBRANDED_INTENTS,
 } from "@/core/matrix";
 import {
   approveVersion,
@@ -213,15 +212,11 @@ export async function approveMatrix(
     return { ok: false, error: `Cap exceeded: ${existing.cells.length} > ${MAX_CELLS_PER_RUN} (PM-6)` };
 
   const allBrands: BrandTerms[] = [loaded.ctx.clientBrand, ...loaded.ctx.competitors];
-  const violations: string[] = [];
-  for (const cell of existing.cells) {
-    if (!UNBRANDED_INTENTS.includes(cell.intent)) continue;
-    const terms = findBrandTerms(cell.resolvedText, allBrands);
-    if (terms.length > 0)
-      violations.push(`${cell.intent} cell contains tracked brand terms: ${terms.join(", ")}`);
+  const violations = scanUnbrandedCells(existing.cells, allBrands);
+  if (violations.length > 0) {
+    const first = `${violations[0].intent} cell contains tracked brand terms: ${violations[0].terms.join(", ")}`;
+    return { ok: false, error: `PM-9 violation — ${first}${violations.length > 1 ? ` (+${violations.length - 1} more)` : ""}` };
   }
-  if (violations.length > 0)
-    return { ok: false, error: `PM-9 violation — ${violations[0]}${violations.length > 1 ? ` (+${violations.length - 1} more)` : ""}` };
 
   try {
     await approveVersion(projectId, versionId);

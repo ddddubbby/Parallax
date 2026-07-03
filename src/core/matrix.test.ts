@@ -7,6 +7,7 @@ import {
   intentQuotas,
   type MatrixContext,
   renderTemplate,
+  scanUnbrandedCells,
   shuffle,
   type TemplateInput,
 } from "./matrix";
@@ -198,6 +199,38 @@ describe("findBrandTerms (PM-9)", () => {
 
   it("returns empty for clean unbranded text", () => {
     expect(findBrandTerms("What tools should a VP consider?", brands)).toEqual([]);
+  });
+});
+
+describe("scanUnbrandedCells (PM-9)", () => {
+  const brands: BrandTerms[] = [
+    { name: "LedgerFox", aliases: ["Ledger Fox"] },
+    { name: "SpendPilot", aliases: [] },
+  ];
+
+  it("flags only unbranded intents containing tracked terms", () => {
+    const violations = scanUnbrandedCells(
+      [
+        { id: "a", intent: "discovery", resolvedText: "Why is LedgerFox good?" },
+        { id: "b", intent: "comparison", resolvedText: "LedgerFox vs SpendPilot" },
+        { id: "c", intent: "consideration", resolvedText: "Best expense tools?" },
+        { id: "d", intent: "consideration", resolvedText: "Is spendpilot a fit?" },
+      ],
+      brands,
+    );
+    expect(violations).toEqual([
+      { cellId: "a", intent: "discovery", terms: ["LedgerFox"] },
+      { cellId: "d", intent: "consideration", terms: ["SpendPilot"] },
+    ]);
+  });
+
+  it("returns empty when unbranded cells are clean", () => {
+    expect(
+      scanUnbrandedCells(
+        [{ id: "a", intent: "discovery", resolvedText: "Best expense tools?" }],
+        brands,
+      ),
+    ).toEqual([]);
   });
 });
 

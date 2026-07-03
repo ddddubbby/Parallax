@@ -22,6 +22,8 @@ interface CellView {
   marketLabel: string;
   variantKey: string;
   resolvedText: string;
+  /** PM-9: tracked brand terms found in an unbranded-intent cell. */
+  brandTermViolations: string[];
 }
 
 interface VersionView {
@@ -58,6 +60,8 @@ export function MatrixBoard({
   const isDraft = focus?.state === "draft";
   const count = focus?.cells.length ?? 0;
   const atCap = count >= MAX_CELLS_PER_RUN;
+  const violationCount =
+    focus?.cells.filter((c) => c.brandTermViolations.length > 0).length ?? 0;
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
@@ -96,6 +100,18 @@ export function MatrixBoard({
         <p className="mb-4 rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">
           {error}
         </p>
+      )}
+
+      {/* PM-9 early warning: surfaced at render time, not first at approval. */}
+      {isDraft && violationCount > 0 && (
+        <div className="mb-4 rounded-lg border border-warn px-3 py-2">
+          <span className="font-mono text-xs text-warn">
+            PM-9 — {violationCount} unbranded cell{violationCount === 1 ? "" : "s"} contain
+            {violationCount === 1 ? "s" : ""} tracked brand terms; approval will be blocked.
+            Discovery/consideration prompts must be brand-free — check the job-to-be-done and
+            category intake fields, then edit or regenerate the flagged cells below.
+          </span>
+        </div>
       )}
 
       {versions.length > 1 && (
@@ -204,12 +220,21 @@ export function MatrixBoard({
                     {cells.map((cell) => (
                       <div
                         key={cell.id}
-                        className="rounded-xl border border-ink/15 p-3"
+                        className={`rounded-xl border p-3 ${
+                          cell.brandTermViolations.length > 0
+                            ? "border-warn"
+                            : "border-ink/15"
+                        }`}
                       >
                         <div className="mb-1.5 flex items-center justify-between">
-                          <span className="font-mono text-xs text-ink/45">
+                          <span className="flex items-center gap-2 font-mono text-xs text-ink/45">
                             {cell.personaLabel} · {cell.marketLabel} ·{" "}
                             {cell.variantKey}
+                            {cell.brandTermViolations.length > 0 && (
+                              <Stamp tone="warn">
+                                PM-9: {cell.brandTermViolations.join(", ")}
+                              </Stamp>
+                            )}
                           </span>
                           {isDraft && (
                             <span className="flex gap-1">
