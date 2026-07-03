@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { CredentialsPanel } from "@/components/settings/credentials-panel";
 import { listCredentialSummaries } from "@/db/repositories/credentials";
 
@@ -6,14 +7,25 @@ export const dynamic = "force-dynamic";
 // ST-4: defaults are env-configured (D-012), not DB-editable in MVP —
 // Settings surfaces the currently effective values rather than owning a
 // second source of truth for them.
+const PROVIDER_ROWS: Array<{ id: string; label: string; fallbackModel: string }> = [
+  { id: "DEEPSEEK", label: "DeepSeek", fallbackModel: "deepseek-v4-flash" },
+  { id: "OPENAI", label: "OpenAI", fallbackModel: "gpt-5.5" },
+  { id: "ANTHROPIC", label: "Anthropic", fallbackModel: "claude-sonnet-5" },
+  { id: "GOOGLE", label: "Gemini", fallbackModel: "gemini-2.5-flash" },
+  { id: "PERPLEXITY", label: "Perplexity", fallbackModel: "sonar" },
+];
+
 function readDefaults() {
   return {
     validationCapUsd: Number(process.env.DEFAULT_VALIDATION_RUN_CAP_USD ?? 2),
     auditCapUsd: Number(process.env.DEFAULT_AUDIT_RUN_CAP_USD ?? 25),
     globalDailyBudgetUsd: Number(process.env.PROVIDER_DAILY_BUDGET_USD ?? 25),
-    deepseekDailyBudgetUsd: process.env.DEEPSEEK_DAILY_BUDGET_USD || null,
-    deepseekBaseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
-    deepseekModel: process.env.DEEPSEEK_DEFAULT_MODEL || "deepseek-v4-flash",
+    extractionProvider: process.env.EXTRACTION_PROVIDER || "deepseek",
+    providers: PROVIDER_ROWS.map((p) => ({
+      label: p.label,
+      model: process.env[`${p.id}_DEFAULT_MODEL`] || p.fallbackModel,
+      dailyBudgetUsd: process.env[`${p.id}_DAILY_BUDGET_USD`] || null,
+    })),
   };
 }
 
@@ -47,13 +59,24 @@ export default async function SettingsPage() {
           <dd>${defaults.auditCapUsd.toFixed(2)}</dd>
           <dt className="text-ink/60">Global daily budget</dt>
           <dd>${defaults.globalDailyBudgetUsd.toFixed(2)} / provider / day</dd>
-          <dt className="text-ink/60">DeepSeek daily budget</dt>
-          <dd>{defaults.deepseekDailyBudgetUsd ? `$${defaults.deepseekDailyBudgetUsd}` : "uses global default"}</dd>
-          <dt className="text-ink/60">Generation + extraction engine</dt>
+          <dt className="text-ink/60">Extraction engine (D-041)</dt>
           <dd>
-            DeepSeek — {defaults.deepseekModel}
-            <span className="block text-xs text-ink/45">{defaults.deepseekBaseUrl}</span>
+            {defaults.extractionProvider}
+            <span className="block text-xs text-ink/45">
+              one engine for all live runs — its credential must be active
+            </span>
           </dd>
+          {defaults.providers.map((p) => (
+            <Fragment key={p.label}>
+              <dt className="text-ink/60">{p.label} model / daily budget</dt>
+              <dd>
+                {p.model}
+                <span className="block text-xs text-ink/45">
+                  {p.dailyBudgetUsd ? `$${p.dailyBudgetUsd}/day` : "uses global default budget"}
+                </span>
+              </dd>
+            </Fragment>
+          ))}
         </dl>
       </section>
     </main>

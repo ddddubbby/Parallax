@@ -10,27 +10,55 @@ import {
   saveCredential as saveCredentialRow,
 } from "@/db/repositories/credentials";
 import { decryptApiKey, encryptApiKey } from "@/modules/settings/crypto";
-import { callDeepSeekChat, ProviderCallError } from "@/providers/deepseek";
-import type { ProviderId } from "@/providers/types";
+import { createAnthropicProvider } from "@/providers/anthropic";
+import { createDeepSeekProvider } from "@/providers/deepseek";
+import { createGoogleProvider } from "@/providers/google";
+import { createOpenAIProvider } from "@/providers/openai";
+import { createPerplexityProvider } from "@/providers/perplexity";
+import { type LiveCredentials, ProviderCallError } from "@/providers/shared";
+import type { LLMProvider, ProviderId } from "@/providers/types";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const SETTINGS_PATH = "/settings";
 
 // Providers with a live adapter wired up to resolveRuntimeProvider — the
-// only ones Settings can actually accept a key for right now (M9 adds
-// MiniMax/OpenAI/Anthropic/Gemini/Perplexity to this list as they land).
-const LIVE_PROVIDER_IDS: readonly ProviderId[] = ["deepseek"];
+// only ones Settings can actually accept a key for (MiniMax remains a
+// PV-3 candidate, not built).
+const LIVE_PROVIDER_IDS: readonly ProviderId[] = [
+  "deepseek",
+  "openai",
+  "anthropic",
+  "google",
+  "perplexity",
+];
+
+// Duplicated factory map rather than importing the runtime resolver: the
+// resolver reads/mutates credential rows (markUsed/markInvalid) as a side
+// effect, and verify needs to test a credential without those semantics.
+const VERIFY_FACTORIES: Partial<Record<ProviderId, (c: LiveCredentials) => LLMProvider>> = {
+  deepseek: createDeepSeekProvider,
+  openai: createOpenAIProvider,
+  anthropic: createAnthropicProvider,
+  google: createGoogleProvider,
+  perplexity: createPerplexityProvider,
+};
 
 /**
- * C-11 defense-in-depth: every provider call sends `Authorization: Bearer
- * <key>` to the credential's base URL, so an arbitrary override is a
- * one-field key-exfiltration path (e.g. via a hijacked session). Overrides
- * are limited to HTTPS against the provider's official host or the host
+ * C-11 defense-in-depth: every provider call sends the bearer/API key to
+ * the credential's base URL, so an arbitrary override is a one-field
+ * key-exfiltration path (e.g. via a hijacked session). Overrides are
+ * limited to HTTPS against the provider's official host or the host
  * already configured at the deploy layer (<PROVIDER>_BASE_URL, D-020) —
  * pointing at a proxy is a deploy-config decision, not a form field.
  */
-const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = { deepseek: "api.deepseek.com" };
+const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = {
+  deepseek: "api.deepseek.com",
+  openai: "api.openai.com",
+  anthropic: "api.anthropic.com",
+  google: "generativelanguage.googleapis.com",
+  perplexity: "api.perplexity.ai",
+};
 
 function validateBaseUrlOverride(providerId: ProviderId, baseUrl: string): string | null {
   let parsed: URL;
@@ -123,11 +151,20 @@ export async function verifyCredential(
     return { ok: false, error: "Stored key could not be decrypted — re-enter it" };
   }
 
+  const factory = VERIFY_FACTORIES[providerId];
+  if (!factory) {
+    return { ok: false, error: `No live adapter for provider "${providerId}"` };
+  }
+  const provider = factory({ apiKey, baseUrl: credential.baseUrl, defaultModel: credential.defaultModel });
+
   try {
-    await callDeepSeekChat(
-      { apiKey, baseUrl: credential.baseUrl, defaultModel: credential.defaultModel },
-      { messages: [{ role: "user", content: "Reply with the single word OK." }], max_tokens: 5 },
-    );
+    // Grounded-only providers (Perplexity) can't take an ungrounded probe;
+    // everything else verifies with the cheapest possible ungrounded call.
+    await provider.generate({
+      promptText: "Reply with the single word OK.",
+      mode: provider.supportsUngrounded ? "ungrounded" : "grounded",
+      maxOutputTokens: 16,
+    });
   } catch (err) {
     const errorType = err instanceof ProviderCallError ? err.errorType : "server_error";
     const message = err instanceof ProviderCallError ? err.message : "Verification call failed";

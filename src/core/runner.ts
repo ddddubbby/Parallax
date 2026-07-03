@@ -2,6 +2,7 @@ import {
   EXTRACTION_ATTEMPTS,
   FAILURE_CIRCUIT_BREAKER_RATE,
   MAX_JOB_ATTEMPTS,
+  PROVIDER_DOWN_DEAD_LETTERS,
 } from "./constants";
 
 // Runner domain: pure planning, cost, backoff, and circuit-breaker math
@@ -125,6 +126,17 @@ export function shouldTripBreaker(
 /** RN-8: partial is derived, never stored — true if any job didn't cleanly succeed. */
 export function isPartial(deadLettered: number, cancelled: number): boolean {
   return deadLettered > 0 || cancelled > 0;
+}
+
+/**
+ * D-042 provider-down detection: repeated dead-letters with zero successes
+ * in the same run means the provider is down (bad key, outage, revoked
+ * account), not that individual prompts are flaky. A provider that
+ * succeeded earlier in the run and then degrades does NOT match — the
+ * run-wide failure breaker (RN-7) still guards that case.
+ */
+export function isProviderDown(succeeded: number, deadLettered: number): boolean {
+  return succeeded === 0 && deadLettered >= PROVIDER_DOWN_DEAD_LETTERS;
 }
 
 export interface EngineModePair {

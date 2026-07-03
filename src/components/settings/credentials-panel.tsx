@@ -24,9 +24,13 @@ export interface CredentialRow {
   updatedAt: string | Date;
 }
 
-// M9 adds MiniMax/OpenAI/Anthropic/Gemini/Perplexity here as live adapters land.
+// MiniMax remains a PV-3 candidate, not built.
 const LIVE_PROVIDERS: { id: ProviderId; displayName: string }[] = [
   { id: "deepseek", displayName: "DeepSeek" },
+  { id: "openai", displayName: "OpenAI" },
+  { id: "anthropic", displayName: "Anthropic" },
+  { id: "google", displayName: "Gemini" },
+  { id: "perplexity", displayName: "Perplexity" },
 ];
 
 function formatDate(d: string | Date | null): string {
