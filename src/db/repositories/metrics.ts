@@ -79,6 +79,12 @@ export async function recomputeMetrics(runId: string) {
       scopes.push({ scopeType: "intent", scopeKey: cell.intent });
       if (cell.personaId) scopes.push({ scopeType: "persona", scopeKey: cell.personaId });
       if (cell.marketId) scopes.push({ scopeType: "market", scopeKey: cell.marketId });
+      // M6 funnel heatmap: intent x persona, so the dashboard can show
+      // mention/recommendation rate per funnel stage per buyer persona
+      // without querying outside the disposable metrics table (C-5).
+      if (cell.personaId) {
+        scopes.push({ scopeType: "intent_persona", scopeKey: `${cell.intent}|${cell.personaId}` });
+      }
     }
 
     samples.push({

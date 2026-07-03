@@ -1,9 +1,15 @@
+import { SMALL_N_THRESHOLD } from "./constants";
 import { wilsonInterval } from "./wilson";
 
 // Metrics domain (PRD 8.9, DEVELOPMENT_GUIDELINES E2). All functions here
 // are pure over already-eligible-sample data (D-014) — the repository
 // layer is responsible for filtering to eligible samples before calling
 // these. No project-layer imports (C-7).
+
+/** DB-3/D-015: aggregate metric claims render only where n >= 30; individual, cell-level, and evidence listings are exempt. */
+export function isSufficientN(n: number): boolean {
+  return n >= SMALL_N_THRESHOLD;
+}
 
 export interface MetricResult {
   n: number;
