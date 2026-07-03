@@ -60,3 +60,12 @@
     animation: none !important;
   }
 }
+
+/* EX-2 / DESIGN_GUIDELINES V-4: the ink nav is app chrome, never part of a
+   client-facing export. It stays visible on-screen for navigation but is
+   removed from anything actually printed/exported to PDF. */
+@media print {
+  header {
+    display: none;
+  }
+}

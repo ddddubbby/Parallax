@@ -30,7 +30,15 @@ export default async function DashboardPage({
           Matrix
         </Link>
       </div>
-      <h1 className="label-mono mb-6 text-lg font-semibold">Dashboard</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="label-mono text-lg font-semibold">Dashboard</h1>
+        <Link
+          href={`/projects/${id}/report`}
+          className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink"
+        >
+          Report →
+        </Link>
+      </div>
       <DashboardClient initialRuns={runs} initialRunId={initialRunId} initialData={initialData} />
     </main>
   );

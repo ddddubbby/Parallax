@@ -15,6 +15,16 @@ export const FAILURE_CIRCUIT_BREAKER_RATE = 0.2;
 // Small-n guard for aggregate client-facing claims (D-015).
 export const SMALL_N_THRESHOLD = 30;
 
+// Findings engine thresholds (RB-1). Named and documented rather than
+// buried in condition literals, so a future tuning pass has one place to
+// look and every threshold is independently unit-testable.
+export const LOST_SHORTLIST_COMPETITOR_RATE = 0.6;
+export const LOST_SHORTLIST_CLIENT_RATE = 0.2;
+export const POSITIONING_GAP_RATE = 0.3;
+export const GROUNDED_UNGROUNDED_SPLIT_POINTS = 0.15;
+export const SOURCE_CONCENTRATION_SHARE = 0.4;
+export const LOW_STABILITY_INDEX = 0.5;
+
 // PM-2 default 40-cell allocation, bottom-funnel weighted.
 export const DEFAULT_INTENT_ALLOCATION = {
   comparison: 12,
