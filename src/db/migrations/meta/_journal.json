@@ -22,6 +22,13 @@
       "when": 1783011742181,
       "tag": "0002_run_failure_injection",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783057669615,
+      "tag": "0003_m8_credential_rotate_and_extraction_cost",
+      "breakpoints": true
     }
   ]
 }

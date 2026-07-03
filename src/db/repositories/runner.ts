@@ -1,8 +1,9 @@
-import { and, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import type { EngineModePair } from "@/core/runner";
 import { db } from "../client";
 import {
   auditRuns,
+  extractions,
   jobs,
   matrixVersions,
   projects,
@@ -408,6 +409,31 @@ export async function listActiveRunIds() {
     .from(auditRuns)
     .where(inArray(auditRuns.state, ["queued", "running"]));
   return rows.map((r) => r.id);
+}
+
+/**
+ * C-2/D-012 per-provider daily budget: generation cost (responses) plus
+ * live extraction cost (extractions, joined for the response's provider —
+ * D-022 reuses the response's own provider, so extraction has no provider
+ * column of its own), summed since UTC midnight.
+ */
+export async function getProviderSpendToday(providerId: string): Promise<number> {
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const pid = providerId as (typeof responses.$inferInsert)["providerId"];
+
+  const [genRow] = await db
+    .select({ total: sql<string>`coalesce(sum(${responses.costUsd}), 0)` })
+    .from(responses)
+    .where(and(eq(responses.providerId, pid), gte(responses.createdAt, todayStart)));
+
+  const [extRow] = await db
+    .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
+    .from(extractions)
+    .innerJoin(responses, eq(extractions.responseId, responses.id))
+    .where(and(eq(responses.providerId, pid), gte(extractions.createdAt, todayStart)));
+
+  return Number(genRow?.total ?? 0) + Number(extRow?.total ?? 0);
 }
 
 export async function getProjectStatus(projectId: string) {

@@ -26,7 +26,8 @@
     "db:dev": "tsx scripts/dev-db.ts",
     "db:studio": "drizzle-kit studio",
     "test:mock-e2e": "tsx scripts/test-mock-e2e.ts",
-    "test:golden": "vitest run src/modules/extraction/golden.test.ts"
+    "test:golden": "vitest run src/modules/extraction/golden.test.ts",
+    "audit:deepseek-mini": "tsx scripts/audit-deepseek-mini.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",

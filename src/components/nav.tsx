@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { logout } from "@/modules/auth/actions";
 
 // Ink chrome nav: pill chips over either surface (design §6, §8).
 export function Nav() {
@@ -17,16 +18,26 @@ export function Nav() {
         >
           Projects
         </Link>
-        {/* Settings ships once provider credentials land (PRD §7). */}
-        <span className="label-mono cursor-not-allowed rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/40">
+        <Link
+          href="/settings"
+          className="label-mono rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/70 transition-micro hover:border-paper hover:text-paper"
+        >
           Settings
-        </span>
+        </Link>
         <Link
           href="/debug"
           className="label-mono rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/70 transition-micro hover:border-paper hover:text-paper"
         >
           Debug
         </Link>
+        <form action={logout}>
+          <button
+            type="submit"
+            className="label-mono cursor-pointer rounded-full border border-paper/25 px-4 py-1.5 text-xs text-paper/70 transition-micro hover:border-paper hover:text-paper"
+          >
+            Sign out
+          </button>
+        </form>
       </nav>
     </header>
   );

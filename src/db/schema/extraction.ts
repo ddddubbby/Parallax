@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -34,6 +35,13 @@ export const extractions = pgTable(
     extractionModel: text("extraction_model"),
     extractedJson: jsonb("extracted_json"),
     validationError: text("validation_error"),
+    // D-022: live extraction is a second layer of paid LLM calls, counted
+    // toward the run's actual cost and the extraction provider's daily
+    // budget. Mock/fixture-backed extraction (the only path before M8)
+    // leaves these at their zero defaults.
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
+    tokensIn: integer("tokens_in").notNull().default(0),
+    tokensOut: integer("tokens_out").notNull().default(0),
     // QA semantics are formalized in M5; free text until then.
     qaStatus: text("qa_status"),
     qaNotes: text("qa_notes"),
