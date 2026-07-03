@@ -5,6 +5,7 @@ import {
   avgFirstPosition,
   citationShare,
   type EligibleSample,
+  isSufficientN,
   mentionRate,
   meanStabilityIndex,
   recommendationRate,
@@ -137,5 +138,14 @@ describe("attributeAssociationRate (MT-10)", () => {
       "easy implementation",
     );
     expect(result.value).toBeCloseTo(2 / 3, 6);
+  });
+});
+
+describe("isSufficientN (DB-3, D-015)", () => {
+  it("is false below the 30-sample threshold, true at and above it", () => {
+    expect(isSufficientN(29)).toBe(false);
+    expect(isSufficientN(30)).toBe(true);
+    expect(isSufficientN(0)).toBe(false);
+    expect(isSufficientN(500)).toBe(true);
   });
 });

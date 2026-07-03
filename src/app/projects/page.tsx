@@ -62,12 +62,20 @@ export default async function ProjectsPage() {
                       Resume →
                     </Link>
                   ) : (
-                    <Link
-                      href={`/projects/${p.id}/matrix`}
-                      className="label-mono text-xs text-accent-ink hover:text-accent"
-                    >
-                      Matrix →
-                    </Link>
+                    <span className="flex justify-end gap-3">
+                      <Link
+                        href={`/projects/${p.id}/matrix`}
+                        className="label-mono text-xs text-accent-ink hover:text-accent"
+                      >
+                        Matrix →
+                      </Link>
+                      <Link
+                        href={`/projects/${p.id}/dashboard`}
+                        className="label-mono text-xs text-accent-ink hover:text-accent"
+                      >
+                        Dashboard →
+                      </Link>
+                    </span>
                   )}
                 </td>
               </tr>
