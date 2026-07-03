@@ -29,6 +29,10 @@
   --duration-micro: 140ms;
   --duration-standard: 220ms;
   --duration-large: 320ms;
+  /* Loading-skeleton pulse: opacity-only, stops when content arrives —
+     same bounded-loop license as the live-run pulse (§7). Disabled
+     entirely by the prefers-reduced-motion block below. */
+  --duration-pulse: 1600ms;
 }
 
 @layer base {
@@ -49,6 +53,20 @@
   .transition-standard {
     transition-duration: var(--duration-standard);
     transition-timing-function: var(--ease-silk);
+  }
+  /* Route-loading skeleton pulse (opacity only, §7). */
+  .loading-pulse {
+    animation: loading-pulse var(--duration-pulse) var(--ease-silk) infinite;
+  }
+}
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
   }
 }
 

@@ -550,3 +550,12 @@ export async function getProjectStatus(projectId: string) {
     .where(eq(projects.id, projectId));
   return row?.status ?? null;
 }
+
+/** Breadcrumb context: every project sub-page should say which project it belongs to. */
+export async function getProjectSummary(projectId: string) {
+  const [row] = await db
+    .select({ name: projects.name, status: projects.status })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+  return row ?? null;
+}

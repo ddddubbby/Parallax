@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button, Stamp } from "@/components/ui";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
@@ -69,12 +70,20 @@ export function RunProgress({
   const finished = (detail.progress.succeeded ?? 0) + (detail.progress.dead_lettered ?? 0) + (detail.progress.cancelled ?? 0) + (detail.progress.skipped ?? 0);
   const pct = total > 0 ? Math.round((finished / total) * 100) : 0;
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
+  // A bare "paused" stamp with no reason is an anxiety generator — the
+  // breaker's own event message says exactly why (cost cap, failure rate,
+  // daily budget) and is already in the fetched events. Surface it.
+  const pauseReason =
+    detail.run.state === "paused"
+      ? detail.events.find((e) => e.eventType === "circuit_breaker_paused")?.message ?? null
+      : null;
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Run</h1>
         {detail.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+        {detail.run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
         <Stamp
           tone={
             detail.run.state === "completed"
@@ -89,7 +98,21 @@ export function RunProgress({
           {detail.run.state}
         </Stamp>
         {isPartial && <Stamp tone="warn">PARTIAL</Stamp>}
+        {detail.run.state === "completed" && (
+          <Link
+            href={`/projects/${projectId}/dashboard`}
+            className="label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+          >
+            View dashboard →
+          </Link>
+        )}
       </div>
+
+      {pauseReason && (
+        <p className="mb-4 rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
+          {pauseReason}
+        </p>
+      )}
 
       <div className="mb-6 rounded-xl border border-ink/15 p-4">
         <div className="mb-2 flex items-center justify-between font-mono text-sm">

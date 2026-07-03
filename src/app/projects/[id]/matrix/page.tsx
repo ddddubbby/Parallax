@@ -40,7 +40,7 @@ export default async function MatrixPage({
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
-        / {inputs.project.name}
+        / {inputs.project.name} / Matrix
       </div>
       <MatrixBoard
         projectId={id}
