@@ -56,7 +56,9 @@ services:
     name: parallax-worker
     runtime: node
     plan: starter
-    buildCommand: corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --frozen-lockfile && pnpm build
+    # No `pnpm build`: the worker runs from source via tsx and never serves
+    # the Next app, so a full Next build here only burns deploy minutes.
+    buildCommand: corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --frozen-lockfile
     startCommand: pnpm worker
     envVars:
       - fromGroup: parallax-shared

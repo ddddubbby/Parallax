@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../client";
 import { brandMentions, brands, claimsFound, extractions, factClaims, responses } from "../schema";
 
@@ -236,4 +236,27 @@ export async function getClaimsForExtractions(extractionIds: string[]) {
 export async function requeueExtraction(responseId: string) {
   const nextVersion = (await getLatestExtractionVersion(responseId)) + 1;
   return createPendingExtraction(responseId, nextVersion);
+}
+
+/**
+ * Reconcile sweep input: stored responses with no extraction row at all.
+ * These exist when the worker dies between committing a response and
+ * committing its extraction, when extraction throws outside its own
+ * retry contract, or when responses predate the extraction pipeline.
+ * The age threshold keeps the sweep from racing an in-flight synchronous
+ * extraction that's about to commit.
+ */
+export async function listResponsesMissingExtraction(olderThanMs: number, limit: number) {
+  const threshold = new Date(Date.now() - olderThanMs);
+  const rows = await db.execute<{ id: string }>(
+    sql`
+      select r.id
+      from ${responses} r
+      left join ${extractions} e on e.response_id = r.id
+      where e.id is null and r.created_at < ${threshold}
+      order by r.created_at asc
+      limit ${limit}
+    `,
+  );
+  return rows.rows.map((r) => r.id);
 }

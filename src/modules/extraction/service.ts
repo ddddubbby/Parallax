@@ -92,6 +92,16 @@ async function runExtractionPipeline(
         canonical_brand_id: resolveBrandId(b.observed_name, ctx.trackedBrands),
       }));
       const collapsed = collapseDuplicateBrandMentions(resolvedBrands);
+      // SM-4 applies to citations too: the engine emits observed brand
+      // NAMES in cited_for_brand_ids (it cannot know our row ids); we
+      // resolve them here, dropping unrecognized names, so Citation Share
+      // compares real ids against real ids.
+      const resolvedCitations = validation.data.citations.map((c) => ({
+        ...c,
+        cited_for_brand_ids: c.cited_for_brand_ids
+          .map((name) => resolveBrandId(name, ctx.trackedBrands))
+          .filter((id): id is string => id !== null),
+      }));
       // Claims are checkable statements about the client brand against its
       // fact sheet (MASTER_CONTEXT §3 misinformation register) — unlike
       // brands[].observed_name, claims carry no raw name to resolve, so
@@ -105,9 +115,18 @@ async function runExtractionPipeline(
         severity: c.severity,
         evidenceQuote: c.evidence_quote,
       }));
+      // extracted_json stores the RESOLVED extraction — canonical ids on
+      // brands and citations — so metrics and drill-downs read one
+      // consistent record. The unresolved engine output is reproducible
+      // from raw_text + the engine version at any time (C-3, C-5).
+      const resolvedData = {
+        ...validation.data,
+        brands: collapsed,
+        citations: resolvedCitations,
+      };
       await commitValidExtraction(
         extractionId,
-        validation.data,
+        resolvedData,
         MOCK_EXTRACTION_MODEL,
         // brand_mentions has no `mentioned` column (spec §2) — a row's
         // existence is the mention signal, so mentioned: false entries

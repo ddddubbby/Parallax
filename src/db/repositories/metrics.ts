@@ -47,7 +47,10 @@ export async function recomputeMetrics(runId: string) {
   const [allMentions, allClaims, cellRows, projectAttributes] = await Promise.all([
     getBrandMentionsForExtractions(extractionIds),
     getClaimsForExtractions(extractionIds),
-    db.select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId }).from(promptCells),
+    db
+      .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, run.matrixVersionId)),
     db.select({ name: attributesTable.name }).from(attributesTable).where(eq(attributesTable.projectId, run.projectId)),
   ]);
   const mentionsByExtraction = groupBy(allMentions, (m) => m.extractionId);
