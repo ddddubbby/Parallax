@@ -1,0 +1,429 @@
+[
+  {
+    "fixtureId": "rl-client-first-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Ranked list recommending LedgerFox first for reconciliation and pricing, SpendPilot second, Northstar AP third.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "strong", "sentiment": "positive", "attributes": ["strong reconciliation", "transparent pricing"], "evidence_quote": "LedgerFox — strong reconciliation automation and transparent pricing."},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": 2, "recommended": false, "recommendation_strength": "neutral", "sentiment": "mixed", "attributes": [], "evidence_quote": "SpendPilot — solid card controls but weaker ERP export."},
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": 3, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "Northstar AP — good for larger enterprises."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "rl-client-first-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "LedgerFox leads on ease of implementation, CloseBooks AI second, SpendPilot third.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "strong", "sentiment": "positive", "attributes": ["easy implementation"], "evidence_quote": "LedgerFox leads on ease of implementation."},
+        {"canonical_brand_id": null, "observed_name": "CloseBooks AI", "aliases_matched": [], "mentioned": true, "position": 2, "recommended": false, "recommendation_strength": "soft", "sentiment": "positive", "attributes": [], "evidence_quote": "CloseBooks AI is a close second for automation depth."},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": 3, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot rounds out the list."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "rl-client-first-03",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "LedgerFox fastest to roll out, Northstar AP enterprise-grade but slower, SpendPilot for smaller teams.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "strong", "sentiment": "positive", "attributes": [], "evidence_quote": "LedgerFox — fastest rollout reported by mid-market buyers."},
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": 2, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "Northstar AP — enterprise-grade but slower to deploy."},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": 3, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot — good for smaller teams."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "rl-competitor-first-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Ranked list with SpendPilot first, Northstar AP second, LedgerFox third.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "strong", "sentiment": "positive", "attributes": [], "evidence_quote": "SpendPilot — the most polished card-spend experience."},
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": 2, "recommended": false, "recommendation_strength": "soft", "sentiment": "positive", "attributes": [], "evidence_quote": "Northstar AP — reliable for AP-heavy workflows."},
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 3, "recommended": false, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["strong reconciliation"], "evidence_quote": "LedgerFox — newer entrant, promising reconciliation features."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "rl-competitor-first-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "CloseBooks AI ranked first for close automation, SpendPilot second, LedgerFox third for pricing transparency.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "CloseBooks AI", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "strong", "sentiment": "positive", "attributes": [], "evidence_quote": "CloseBooks AI is the strongest overall pick for close automation."},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": 2, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot follows for card spend visibility."},
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 3, "recommended": false, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["transparent pricing"], "evidence_quote": "LedgerFox is worth a look if pricing transparency matters most."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "prose-comparison-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Prose comparison of LedgerFox, SpendPilot, and Northstar AP by focus area, no explicit ranking.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "positive", "attributes": ["finance team friendly"], "evidence_quote": "LedgerFox emphasizes automated receipt matching and transparent monthly pricing"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot leans harder into real-time card controls"},
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "discouraged", "sentiment": "mixed", "attributes": [], "evidence_quote": "it may be overkill for a 150-person company"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "prose-comparison-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "CloseBooks AI vs LedgerFox trade-off: automation depth vs rollout ease and pricing clarity.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "CloseBooks AI", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "positive", "attributes": [], "evidence_quote": "CloseBooks AI is stronger on month-end close automation"},
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["transparent pricing", "easy implementation"], "evidence_quote": "LedgerFox is generally easier to roll out and has clearer pricing tiers"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "hedge-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Hedged: LedgerFox could fit if pricing/setup matter most; SpendPilot also worth a demo.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["transparent pricing"], "evidence_quote": "LedgerFox could be a good fit if transparent pricing and quick setup matter most"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "soft", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot might also be worth a demo"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "hedge-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Hedged endorsement of LedgerFox for mid-market reconciliation, uncertain vs Northstar AP.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["strong reconciliation"], "evidence_quote": "LedgerFox is generally well-regarded for mid-market reconciliation"},
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "It may or may not outperform Northstar AP for your specific approval workflow"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "no-brands-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Generic evaluation guidance with no tracked brands mentioned.",
+      "brands": [],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "no-brands-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Generic platform-evaluation criteria, no tracked brands mentioned.",
+      "brands": [],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "cited-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Cites two outlets: one on LedgerFox pricing transparency, one on SpendPilot card controls.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "positive", "attributes": ["transparent pricing"], "evidence_quote": "LedgerFox has been noted for its pricing transparency"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot has drawn attention for its card-control features"}
+      ],
+      "citations": [
+        {"url": "https://techreview.example/ledgerfox-2026", "domain": "techreview.example", "title": "LedgerFox pricing breakdown", "cited_for_brand_ids": []},
+        {"url": "https://financeops.example/spendpilot-review", "domain": "financeops.example", "title": "SpendPilot card controls reviewed", "cited_for_brand_ids": []}
+      ],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "cited-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Cites sources favoring Northstar AP for larger AP teams, LedgerFox as a faster-deploy alternative.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": [], "evidence_quote": "Northstar AP as a strong fit for larger AP teams"},
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": [], "evidence_quote": "LedgerFox cited as a faster-to-deploy alternative for smaller finance orgs"}
+      ],
+      "citations": [
+        {"url": "https://saasdigest.example/ap-automation-2026", "domain": "saasdigest.example", "title": "AP automation landscape 2026", "cited_for_brand_ids": []},
+        {"url": "https://ledgerfox.io/customers", "domain": "ledgerfox.io", "title": "LedgerFox customer stories", "cited_for_brand_ids": []}
+      ],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "wrong-pricing-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Claims LedgerFox starts around $150/month, cheaper than SpendPilot.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["transparent pricing"], "evidence_quote": "LedgerFox starts at around $150 per month"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "well below SpendPilot's pricing"}
+      ],
+      "citations": [],
+      "claims": [
+        {"brand_id": null, "claim_text": "LedgerFox starts at around $150 per month", "claim_type": "pricing", "matched_fact_claim_id": "fact-pricing", "verdict": "contradicted", "severity": "high", "evidence_quote": "LedgerFox starts at around $150 per month"}
+      ],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "wrong-pricing-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Claims LedgerFox's Team plan runs roughly $2,000/month, enterprise-tier pricing.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "negative", "attributes": [], "evidence_quote": "LedgerFox's Team plan runs roughly $2,000 per month"},
+        {"canonical_brand_id": null, "observed_name": "Northstar AP", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "alongside Northstar AP"}
+      ],
+      "citations": [],
+      "claims": [
+        {"brand_id": null, "claim_text": "LedgerFox's Team plan runs roughly $2,000 per month", "claim_type": "pricing", "matched_fact_claim_id": "fact-pricing", "verdict": "contradicted", "severity": "high", "evidence_quote": "LedgerFox's Team plan runs roughly $2,000 per month"}
+      ],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "wrong-feature-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Incorrectly claims LedgerFox lacks automated receipt matching.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "discouraged", "sentiment": "negative", "attributes": [], "evidence_quote": "LedgerFox does not support automated receipt matching yet"}
+      ],
+      "citations": [],
+      "claims": [
+        {"brand_id": null, "claim_text": "LedgerFox does not support automated receipt matching", "claim_type": "feature", "matched_fact_claim_id": "fact-feature", "verdict": "contradicted", "severity": "medium", "evidence_quote": "LedgerFox does not support automated receipt matching yet"}
+      ],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "wrong-feature-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Incorrectly claims LedgerFox has no card transaction reconciliation.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "discouraged", "sentiment": "negative", "attributes": [], "evidence_quote": "it lacks any card transaction reconciliation"}
+      ],
+      "citations": [],
+      "claims": [
+        {"brand_id": null, "claim_text": "LedgerFox lacks card transaction reconciliation", "claim_type": "feature", "matched_fact_claim_id": "fact-feature", "verdict": "contradicted", "severity": "medium", "evidence_quote": "it lacks any card transaction reconciliation"}
+      ],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "unsupported-security-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Claims LedgerFox has SOC 2 Type II and SSO on all plans including entry-level.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["secure access controls"], "evidence_quote": "LedgerFox offers SOC 2 Type II certification and SSO across all plans"}
+      ],
+      "citations": [],
+      "claims": [
+        {"brand_id": null, "claim_text": "LedgerFox offers SOC 2 Type II certification", "claim_type": "security", "matched_fact_claim_id": null, "verdict": "unsupported", "severity": "medium", "evidence_quote": "LedgerFox offers SOC 2 Type II certification"},
+        {"brand_id": null, "claim_text": "SSO is available across all plans including the entry-level tier", "claim_type": "security", "matched_fact_claim_id": "fact-security", "verdict": "contradicted", "severity": "high", "evidence_quote": "SSO across all plans, including the entry-level tier"}
+      ],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "unsupported-security-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Claims LedgerFox supports SAML SSO and hardware-key 2FA on lower tiers.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["secure access controls"], "evidence_quote": "LedgerFox supports SAML-based SSO and hardware key 2FA enforcement"}
+      ],
+      "citations": [],
+      "claims": [
+        {"brand_id": null, "claim_text": "Hardware key 2FA is enforced organization-wide, even on lower-tier plans", "claim_type": "security", "matched_fact_claim_id": null, "verdict": "unsupported", "severity": "medium", "evidence_quote": "hardware key 2FA enforcement organization-wide, even on lower-tier plans"},
+        {"brand_id": null, "claim_text": "SAML-based SSO is available on lower-tier plans", "claim_type": "security", "matched_fact_claim_id": "fact-security", "verdict": "contradicted", "severity": "high", "evidence_quote": "SAML-based SSO ... even on lower-tier plans"}
+      ],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "refusal-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Model declines to make a specific recommendation without more information.",
+      "brands": [],
+      "citations": [],
+      "claims": [],
+      "refusal": true,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "refusal-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Model declines to compare vendors confidently, suggests checking official sites.",
+      "brands": [],
+      "citations": [],
+      "claims": [],
+      "refusal": true,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "truncated-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Output cuts off mid-sentence after mentioning LedgerFox and SpendPilot.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "positive", "attributes": ["strong reconciliation"], "evidence_quote": "LedgerFox stands out for its reconciliation automation"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot is worth considering for"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "malformed-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Garbled JSON-like output; only brand names are recoverable.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "LedgerFox"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": true
+    }
+  },
+  {
+    "fixtureId": "malformed-02",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Garbled symbol-laden output; only brand names are recoverable.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "LedgerFox"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": true
+    }
+  },
+  {
+    "fixtureId": "low-stability-01a",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Brief positive mention of LedgerFox for reconciliation-heavy teams.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": ["strong reconciliation"], "evidence_quote": "LedgerFox is a reasonable pick for reconciliation-heavy teams."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "low-stability-01b",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Brief mention favoring SpendPilot as the more common recommendation.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "soft", "sentiment": "positive", "attributes": [], "evidence_quote": "SpendPilot tends to be the more commonly recommended option here."}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "validation-strong-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Strong endorsement of LedgerFox as a fit for the stated persona and market.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": 1, "recommended": true, "recommendation_strength": "strong", "sentiment": "positive", "attributes": ["transparent pricing", "mid-market fit"], "evidence_quote": "LedgerFox is a strong fit for finance teams prioritizing transparent pricing and mid-market scale"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  },
+  {
+    "fixtureId": "objection-01",
+    "expected": {
+      "schema_version": 1,
+      "answer_summary": "Raises an objection about LedgerFox's ERP connector maturity versus SpendPilot's.",
+      "brands": [
+        {"canonical_brand_id": null, "observed_name": "LedgerFox", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "mixed", "attributes": [], "evidence_quote": "the connector library is younger than SpendPilot's"},
+        {"canonical_brand_id": null, "observed_name": "SpendPilot", "aliases_matched": [], "mentioned": true, "position": null, "recommended": false, "recommendation_strength": "neutral", "sentiment": "neutral", "attributes": [], "evidence_quote": "SpendPilot's"}
+      ],
+      "citations": [],
+      "claims": [],
+      "refusal": false,
+      "malformed": false
+    }
+  }
+]

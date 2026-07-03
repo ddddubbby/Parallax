@@ -38,6 +38,8 @@ export function RunCreationForm({
   const [injectionEnabled, setInjectionEnabled] = useState(false);
   const [injectionRate, setInjectionRate] = useState(0.15);
   const [injectionErrorType, setInjectionErrorType] = useState("rate_limit");
+  const [extractionInjectionEnabled, setExtractionInjectionEnabled] = useState(false);
+  const [extractionInvalidRate, setExtractionInvalidRate] = useState(0.15);
   const [projection, setProjection] = useState<{ plannedCalls: number; projectedCostUsd: number } | null>(null);
 
   const input: RunCreationInput = {
@@ -45,9 +47,13 @@ export function RunCreationForm({
     modes: selectedModes,
     repetitions,
     costCapUsd,
-    debugFailureInjection: injectionEnabled
-      ? { rate: injectionRate, errorType: injectionErrorType }
-      : null,
+    debugFailureInjection:
+      injectionEnabled || extractionInjectionEnabled
+        ? {
+            ...(injectionEnabled && { generation: { rate: injectionRate, errorType: injectionErrorType } }),
+            ...(extractionInjectionEnabled && { extraction: { invalidRate: extractionInvalidRate } }),
+          }
+        : null,
   };
 
   useEffect(() => {
@@ -178,7 +184,7 @@ export function RunCreationForm({
             checked={injectionEnabled}
             onChange={(e) => setInjectionEnabled(e.target.checked)}
           />
-          Failure injection (testing) <Stamp tone="warn">Debug</Stamp>
+          Generation failure injection (testing) <Stamp tone="warn">Debug</Stamp>
         </label>
         {injectionEnabled && (
           <div className="mt-3 grid grid-cols-2 gap-3">
@@ -204,6 +210,28 @@ export function RunCreationForm({
                   </option>
                 ))}
               </select>
+            </Field>
+          </div>
+        )}
+        <label className="label-mono mt-4 flex items-center gap-2 border-t border-warn/40 pt-4 text-xs text-ink/70">
+          <input
+            type="checkbox"
+            checked={extractionInjectionEnabled}
+            onChange={(e) => setExtractionInjectionEnabled(e.target.checked)}
+          />
+          Extraction failure injection (testing) <Stamp tone="warn">Debug</Stamp>
+        </label>
+        {extractionInjectionEnabled && (
+          <div className="mt-3">
+            <Field label="Invalid rate (0-1)" hint="Forces validation to fail this fraction of extraction attempts (SM-2/SM-3)">
+              <Input
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={extractionInvalidRate}
+                onChange={(e) => setExtractionInvalidRate(Number(e.target.value))}
+              />
             </Field>
           </div>
         )}

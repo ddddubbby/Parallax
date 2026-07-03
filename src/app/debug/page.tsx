@@ -1,4 +1,5 @@
 import { Stamp } from "@/components/ui";
+import { DeadLettersTable } from "@/components/debug/dead-letters-table";
 import { DebugJobsTable } from "@/components/debug/jobs-table";
 import {
   getLastHeartbeat,
@@ -6,6 +7,7 @@ import {
   listRecentJobs,
   listRecentRunEvents,
 } from "@/db/repositories/debug";
+import { listDeadLetteredExtractions } from "@/db/repositories/extraction";
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +15,17 @@ export const dynamic = "force-dynamic";
 // worker process itself is hung or dead (distinct from stale job locks).
 const HEARTBEAT_STALE_MS = 90_000;
 
-// AD-1 (jobs + requeue), AD-3 (run_events tail). AD-2 (dead-letter
-// re-extract) and AD-4's recompute/fixture-reload arrive with M5, once
-// extraction exists to act on.
+// AD-1 (jobs + requeue), AD-2 (extraction dead-letters + re-extract), AD-3
+// (run_events tail). AD-4's recompute/fixture-reload live on the run detail
+// page (recompute) or aren't yet needed (fixture reload — fixtures are
+// read fresh from disk every request already).
 export default async function DebugPage() {
-  const [jobsList, events, lastHeartbeat, activeRun] = await Promise.all([
+  const [jobsList, events, lastHeartbeat, activeRun, deadLetters] = await Promise.all([
     listRecentJobs(),
     listRecentRunEvents(),
     getLastHeartbeat(),
     hasActiveRun(),
+    listDeadLetteredExtractions(),
   ]);
 
   const heartbeatAgeMs = lastHeartbeat ? Date.now() - new Date(lastHeartbeat).getTime() : null;
@@ -40,6 +44,9 @@ export default async function DebugPage() {
         )}
       </div>
       <DebugJobsTable jobs={jobsList} events={events} />
+      <div className="mt-8">
+        <DeadLettersTable rows={deadLetters} />
+      </div>
     </main>
   );
 }

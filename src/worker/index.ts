@@ -20,6 +20,7 @@ import {
   recordRetry,
   recordSuccess,
 } from "@/db/repositories/runner";
+import { extractResponse } from "@/modules/extraction/service";
 import { listRegisteredProviders } from "@/providers/registry";
 import type { GenerationMode, ProviderId } from "@/providers/types";
 
@@ -38,10 +39,13 @@ interface FailureInjection {
 
 const runInjectionCache = new Map<string, FailureInjection | null>();
 
+// D-027, nested under `.generation` since D-029 added an independent
+// `.extraction` key on the same debug_failure_injection_json column.
 async function getFailureInjection(runId: string): Promise<FailureInjection | null> {
   if (runInjectionCache.has(runId)) return runInjectionCache.get(runId) ?? null;
   const run = await getRun(runId);
-  const injection = (run?.debugFailureInjectionJson as FailureInjection | null) ?? null;
+  const config = run?.debugFailureInjectionJson as { generation?: FailureInjection } | null;
+  const injection = config?.generation ?? null;
   runInjectionCache.set(runId, injection);
   return injection;
 }
@@ -107,13 +111,14 @@ async function processJob(job: ClaimedJob) {
     return;
   }
 
+  let responseId: string | null = null;
   try {
     const result = await provider.generate({
       promptText: job.resolvedText,
       mode: job.generationMode as GenerationMode,
       repIndex: job.repIndex,
     });
-    await recordSuccess(job, {
+    responseId = await recordSuccess(job, {
       modelVersion: result.modelVersion,
       rawText: result.text,
       citations: result.citations,
@@ -124,6 +129,26 @@ async function processJob(job: ClaimedJob) {
     });
   } catch (err) {
     await handleFailure(job, "server_error", err instanceof Error ? err.message : String(err));
+    await afterJobFinished(job.runId);
+    return;
+  }
+
+  // Extraction is a separate state machine from the job (SM-1..SM-3): the
+  // job already succeeded once the response was stored, so an extraction
+  // bug must never retroactively fail it. extractResponse owns its own
+  // retry/dead-letter handling; a thrown error here means something
+  // outside that contract broke (e.g. a corrupt fixture lookup) and is
+  // logged, not retried as a job failure.
+  try {
+    await extractResponse(responseId);
+  } catch (err) {
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "error",
+      eventType: "extraction_error",
+      message: `Extraction threw unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+    });
   } finally {
     await afterJobFinished(job.runId);
   }
