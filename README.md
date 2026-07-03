@@ -10,7 +10,7 @@ Start here:
 4. Read `ENGINEERING_SPEC.md` before schema, provider, worker, seed, or fixture work.
 5. Read `RENDER_DEPLOYMENT.md` before touching deploy configuration.
 
-Current state: M5 is complete. The app has the runnable foundation, full schema and seed, intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, and structured extraction + metrics — Zod-validated extraction with alias resolution, a 28-entry golden dataset, all nine metric families with correctly-scoped confidence intervals, and idempotent recompute. Next product milestone is M6, the dashboard. Node version is pinned in `.node-version`; pnpm is pinned by `packageManager`.
+Current state: M7 is complete. The app has the runnable foundation, full schema and seed, intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, structured extraction + metrics, a six-view dashboard with drill-down, and a findings engine + editable report builder with Markdown/print/JSON/CSV export. Next product milestone is M8, live validation against DeepSeek — the first milestone touching real infrastructure (Settings/credentials, budget enforcement, auth) and real money. Node version is pinned in `.node-version`; pnpm is pinned by `packageManager`.
 
 ## Execution Readiness
 
