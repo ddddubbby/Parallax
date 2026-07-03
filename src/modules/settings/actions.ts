@@ -21,6 +21,11 @@ import type { LLMProvider, ProviderId } from "@/providers/types";
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const SETTINGS_PATH = "/settings";
+// Same env var and default as the worker's per-call deadline
+// (WORKER_PROVIDER_TIMEOUT_MS) — a Verify call is a real provider.generate()
+// through this server action, so a hung provider must not tie up the
+// request indefinitely, same as every other call site.
+const VERIFY_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
 
 // Providers with a live adapter wired up to resolveRuntimeProvider — the
 // only ones Settings can actually accept a key for (MiniMax remains a
@@ -160,11 +165,14 @@ export async function verifyCredential(
   try {
     // Grounded-only providers (Perplexity) can't take an ungrounded probe;
     // everything else verifies with the cheapest possible ungrounded call.
-    await provider.generate({
-      promptText: "Reply with the single word OK.",
-      mode: provider.supportsUngrounded ? "ungrounded" : "grounded",
-      maxOutputTokens: 16,
-    });
+    await provider.generate(
+      {
+        promptText: "Reply with the single word OK.",
+        mode: provider.supportsUngrounded ? "ungrounded" : "grounded",
+        maxOutputTokens: 16,
+      },
+      AbortSignal.timeout(VERIFY_TIMEOUT_MS),
+    );
   } catch (err) {
     const errorType = err instanceof ProviderCallError ? err.errorType : "server_error";
     const message = err instanceof ProviderCallError ? err.message : "Verification call failed";

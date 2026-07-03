@@ -159,6 +159,40 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     expect(afterAuthFail.status).toBe("invalid");
   });
 
+  it("verifyCredential passes a real AbortSignal to the provider call — a hung provider must not tie up the request forever (Fix C)", async () => {
+    const { saveCredential, verifyCredential } = await import("./actions");
+    const saved = await saveCredential("deepseek", "sk-test-timeout", { label: "test-m8-timeout" });
+    expect(saved.ok).toBe(true);
+    const [row] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.label, "test-m8-timeout"));
+
+    const fetchSpy = vi.fn(
+      async (...args: [RequestInfo | URL, RequestInit?]) => {
+        void args;
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: "OK" } }],
+            usage: { prompt_tokens: 5, completion_tokens: 1 },
+            model: "deepseek-v4-flash",
+          }),
+          { status: 200 },
+        );
+      },
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await verifyCredential(row.id, "deepseek");
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const requestInit = fetchSpy.mock.calls[0][1] as RequestInit;
+    // Before Fix C this was undefined — a hung provider.generate() call had
+    // no deadline and could tie up the server action indefinitely.
+    expect(requestInit.signal).toBeInstanceOf(AbortSignal);
+    expect(requestInit.signal?.aborted).toBe(false);
+  });
+
   it("disableCredential and deleteCredential", async () => {
     const { saveCredential, disableCredential, deleteCredential } = await import("./actions");
     const saved = await saveCredential("deepseek", "sk-test-lifecycle", { label: "test-m8-lifecycle" });
