@@ -86,6 +86,9 @@ export const providerErrorType = pgEnum("provider_error_type", [
   "auth_error",
   "malformed_output",
   "unsupported_mode",
+  // M9 graceful degradation (D-042): set on jobs skipped because their
+  // provider was detected down mid-run (repeated dead-letters, zero successes).
+  "provider_down",
   "unknown",
 ]);
 

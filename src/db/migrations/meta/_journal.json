@@ -29,6 +29,13 @@
       "when": 1783057669615,
       "tag": "0003_m8_credential_rotate_and_extraction_cost",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783062870749,
+      "tag": "0004_m9_provider_down_error_type",
+      "breakpoints": true
     }
   ]
 }

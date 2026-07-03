@@ -11,6 +11,10 @@ export const DEFAULT_PROVIDER_CONCURRENCY = 3;
 export const MAX_JOB_ATTEMPTS = 3;
 export const EXTRACTION_ATTEMPTS = 2;
 export const FAILURE_CIRCUIT_BREAKER_RATE = 0.2;
+// D-042 provider-down detection: a provider with this many dead-letters
+// and zero successes in one run is treated as down; its remaining queued
+// jobs are skipped so other providers can finish (M9 graceful degradation).
+export const PROVIDER_DOWN_DEAD_LETTERS = 5;
 
 // Small-n guard for aggregate client-facing claims (D-015).
 export const SMALL_N_THRESHOLD = 30;

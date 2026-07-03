@@ -1,3 +1,4 @@
+import { classifyHttpStatus, type LiveCredentials, ProviderCallError } from "../shared";
 import type { GenerationRequest, GenerationResult, LLMProvider } from "../types";
 
 // DeepSeek: first live validation provider (D-007, PV-2). Verified against
@@ -16,28 +17,10 @@ const DEFAULT_MODEL = "deepseek-v4-flash";
 const PRICE_PER_1M_INPUT_USD = 0.14;
 const PRICE_PER_1M_OUTPUT_USD = 0.28;
 
-export class ProviderCallError extends Error {
-  constructor(
-    public readonly errorType: "rate_limit" | "timeout" | "server_error" | "auth_error" | "malformed_output" | "unsupported_mode",
-    message: string,
-  ) {
-    super(message);
-    this.name = "ProviderCallError";
-  }
-}
-
-function classifyHttpStatus(status: number): ProviderCallError["errorType"] {
-  if (status === 401 || status === 403) return "auth_error";
-  if (status === 429) return "rate_limit";
-  if (status >= 500) return "server_error";
-  return "server_error";
-}
-
-export interface DeepSeekCallCredentials {
-  apiKey: string;
-  baseUrl?: string | null;
-  defaultModel?: string | null;
-}
+// ProviderCallError and the credentials shape moved to ../shared in M9 when
+// four more adapters arrived; re-exported so M8-era importers keep working.
+export { ProviderCallError };
+export type DeepSeekCallCredentials = LiveCredentials;
 
 /**
  * Shared by generation and extraction (both are chat completions calls) —

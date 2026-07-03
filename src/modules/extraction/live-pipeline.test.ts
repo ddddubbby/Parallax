@@ -270,4 +270,22 @@ describe.skipIf(!dbUp)("live extraction pipeline against the dev database (D-022
     expect(ext?.state).toBe("dead_lettered");
     expect(ext?.validationError).toContain("401");
   });
+
+  it("a misconfigured EXTRACTION_PROVIDER fails loudly at the first attempt, never silently (D-041)", async () => {
+    await seedActiveCredential();
+    const { responseId } = await startLiveRunAndResponse("Answer needing extraction.");
+
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    process.env.EXTRACTION_PROVIDER = "openai"; // no extraction adapter exists for it in M9
+    try {
+      const result = await extractResponse(responseId);
+      expect(result.outcome).toBe("dead_lettered");
+      const ext = await getExtractionForResponse(responseId);
+      expect(ext?.validationError).toContain("EXTRACTION_PROVIDER");
+      expect(fetchSpy).not.toHaveBeenCalled(); // rejected before any network/spend
+    } finally {
+      delete process.env.EXTRACTION_PROVIDER;
+    }
+  });
 });

@@ -22,7 +22,6 @@ import { appendRunEvent, getRun } from "@/db/repositories/runner";
 import { resolveExtractionCredentials } from "@/modules/runner/provider-resolver";
 import { callDeepSeekExtraction } from "@/providers/deepseek/extraction";
 import { MOCK_EXTRACTION_MODEL, extractViaMockEngine } from "@/providers/mock/extraction-engine";
-import type { ProviderId } from "@/providers/types";
 
 // D-022: mock runs use fixture-backed extraction exclusively. D-029:
 // test-only extraction-invalid injection lives in the same
@@ -71,7 +70,6 @@ interface PipelineContext {
   responseId: string;
   runId: string;
   runMode: string;
-  providerId: string;
   rawText: string;
   trackedBrands: TrackedBrand[];
   clientBrandId: string | null;
@@ -80,9 +78,10 @@ interface PipelineContext {
 }
 
 /**
- * D-022 live extraction: reuses the response's own generation provider's
- * credentials ("no separate key path"). Client brand listed first, since
- * the prompt names it as "the CLIENT brand" by position.
+ * D-022/D-041 live extraction: ONE configured extraction engine for every
+ * live run regardless of which provider generated the response (default
+ * deepseek — see resolveExtractionCredentials). Client brand listed first,
+ * since the prompt names it as "the CLIENT brand" by position.
  */
 // Same deadline rationale as the worker's generation timeout — a hung
 // extraction call must fail as a normal retryable attempt, not hang the
@@ -91,7 +90,7 @@ interface PipelineContext {
 const EXTRACTION_CALL_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
 
 async function runLiveExtraction(ctx: PipelineContext) {
-  const credentials = await resolveExtractionCredentials(ctx.providerId as ProviderId);
+  const credentials = await resolveExtractionCredentials();
   const orderedNames = [
     ...ctx.trackedBrands.filter((b) => b.id === ctx.clientBrandId).map((b) => b.name),
     ...ctx.trackedBrands.filter((b) => b.id !== ctx.clientBrandId).map((b) => b.name),
@@ -266,7 +265,6 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
     responseId,
     runId: response.runId,
     runMode: run.runMode,
-    providerId: response.providerId,
     rawText: response.rawText,
     trackedBrands,
     clientBrandId: projectBrandRows.find((b) => b.role === "client")?.id ?? null,

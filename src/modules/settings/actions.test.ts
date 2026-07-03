@@ -63,7 +63,9 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     const empty = await saveCredential("deepseek", "   ", { label: "test-m8-empty" });
     expect(empty.ok).toBe(false);
 
-    const unsupported = await saveCredential("openai", "sk-whatever", { label: "test-m8-unsupported" });
+    // minimax is the PV-3 candidate with no adapter built — the only
+    // remaining unsupported id now that M9 added the four audit providers.
+    const unsupported = await saveCredential("minimax", "sk-whatever", { label: "test-m8-unsupported" });
     expect(unsupported.ok).toBe(false);
   });
 

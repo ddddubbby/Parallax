@@ -1,0 +1,1 @@
+ALTER TYPE "public"."provider_error_type" ADD VALUE 'provider_down' BEFORE 'unknown';

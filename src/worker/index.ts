@@ -12,6 +12,7 @@ import {
   appendRunEvent,
   claimJobs,
   completeRun,
+  getBreakerCounts,
   getRun,
   getRunFailureCounts,
   isRunFinished,
@@ -25,9 +26,10 @@ import {
 import { listResponsesMissingExtraction } from "@/db/repositories/extraction";
 import { extractResponse } from "@/modules/extraction/service";
 import { findExceededDailyBudget } from "@/modules/runner/budget";
+import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation";
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
-import { ProviderCallError } from "@/providers/deepseek";
 import { listRegisteredProviders } from "@/providers/registry";
+import { ProviderCallError } from "@/providers/shared";
 import type { GenerationMode, ProviderId } from "@/providers/types";
 
 const POLL_INTERVAL_MS = 300;
@@ -91,7 +93,11 @@ async function afterJobFinished(runId: string) {
   const run = await getRun(runId);
   if (!run || run.state !== "running") return;
 
-  const counts = await getRunFailureCounts(runId);
+  // D-042: the failure-rate breaker evaluates only providers not marked
+  // down — a downed provider's damage is already contained by skipping its
+  // jobs, and counting its dead-letters here would pause the run and brick
+  // the providers that still work. Cost caps use the run's real total.
+  const counts = await getBreakerCounts(runId);
   const breaker = shouldTripBreaker(
     Number(run.actualCostUsd),
     Number(run.costCapUsd),
@@ -125,11 +131,14 @@ async function afterJobFinished(runId: string) {
 
   if (await isRunFinished(runId)) {
     await completeRun(runId);
+    // Raw counts here, not breaker counts — the completion record reports
+    // everything that happened, including any downed provider's failures.
+    const rawCounts = await getRunFailureCounts(runId);
     await appendRunEvent({
       runId,
       level: "info",
       eventType: "run_completed",
-      message: `Run completed: ${counts.succeeded} succeeded, ${counts.deadLettered} dead-lettered`,
+      message: `Run completed: ${rawCounts.succeeded} succeeded, ${rawCounts.deadLettered} dead-lettered`,
     });
   }
 }
@@ -238,6 +247,9 @@ async function handleFailure(job: ClaimedJob, errorType: string, message: string
       eventType: "job_dead_lettered",
       message: `Dead-lettered after ${attemptCount} attempts: ${errorType} — ${message}`,
     });
+    // D-042: a provider that keeps dead-lettering with zero successes is
+    // down — skip its remaining jobs so the run's other providers finish.
+    await handleProviderDownAfterDeadLetter(job.runId, job.providerId);
   }
 }
 

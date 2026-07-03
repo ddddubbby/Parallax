@@ -394,6 +394,71 @@ export async function getRunFailureCounts(runId: string) {
   return row ?? { succeeded: 0, deadLettered: 0, cancelled: 0 };
 }
 
+/**
+ * D-042: RN-7's failure-rate breaker evaluated over jobs whose provider has
+ * NOT been marked down in this run. A downed provider's dead-letters are
+ * already contained by skipRemainingJobsForProvider — counting them again
+ * would pause the whole run and brick the providers that still work.
+ * Display/partial derivation keeps using the raw getRunFailureCounts.
+ */
+export async function getBreakerCounts(runId: string) {
+  const [row] = await db
+    .select({
+      succeeded: sql<number>`count(*) filter (where ${jobs.state} = 'succeeded')::int`,
+      deadLettered: sql<number>`count(*) filter (where ${jobs.state} = 'dead_lettered')::int`,
+    })
+    .from(jobs)
+    .where(
+      and(
+        eq(jobs.runId, runId),
+        sql`${jobs.providerId} not in (
+          select distinct provider_id from ${jobs}
+          where run_id = ${runId} and state = 'skipped' and last_error_type = 'provider_down'
+        )`,
+      ),
+    );
+  return row ?? { succeeded: 0, deadLettered: 0 };
+}
+
+/** D-042: per-provider outcomes within one run, the isProviderDown input. */
+export async function getProviderOutcomeCounts(runId: string, providerId: string) {
+  const [row] = await db
+    .select({
+      succeeded: sql<number>`count(*) filter (where ${jobs.state} = 'succeeded')::int`,
+      deadLettered: sql<number>`count(*) filter (where ${jobs.state} = 'dead_lettered')::int`,
+    })
+    .from(jobs)
+    .where(and(eq(jobs.runId, runId), eq(jobs.providerId, providerId as (typeof jobs.$inferInsert)["providerId"])));
+  return row ?? { succeeded: 0, deadLettered: 0 };
+}
+
+/**
+ * D-042: a down provider's remaining queued jobs are skipped so the run's
+ * other providers can finish and the run can complete (PARTIAL). In-flight
+ * 'running' jobs are left to finish their own retry/dead-letter cycle —
+ * requeued retries land back in 'queued' and are caught by the next
+ * invocation (this function is idempotent).
+ */
+export async function skipRemainingJobsForProvider(runId: string, providerId: string): Promise<number> {
+  const skipped = await db
+    .update(jobs)
+    .set({
+      state: "skipped",
+      lastErrorType: "provider_down",
+      lastErrorMessage: `provider ${providerId} detected down in this run — remaining jobs skipped (D-042)`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(jobs.runId, runId),
+        eq(jobs.providerId, providerId as (typeof jobs.$inferInsert)["providerId"]),
+        eq(jobs.state, "queued"),
+      ),
+    )
+    .returning({ id: jobs.id });
+  return skipped.length;
+}
+
 export async function getApprovedMatrixCellCount(matrixVersionId: string) {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
