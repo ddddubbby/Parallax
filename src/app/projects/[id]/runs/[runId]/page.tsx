@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ExtractionPanel } from "@/components/analysis/extraction-panel";
 import { RunProgress } from "@/components/runner/run-progress";
 import { getRunDetail } from "@/db/repositories/runner";
+
+const TERMINAL_STATES = new Set(["completed", "failed", "cancelled"]);
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,7 @@ export default async function RunDetailPage({
         </Link>
       </div>
       <RunProgress projectId={id} runId={runId} initial={detail} />
+      <ExtractionPanel runId={runId} terminal={TERMINAL_STATES.has(detail.run.state)} />
     </main>
   );
 }

@@ -11,6 +11,16 @@ import {
   runEvents,
 } from "../schema";
 
+/**
+ * Test-only chaos config (D-027, extended by D-029): `generation` corrupts
+ * the worker's job processing (transport-level errors); `extraction`
+ * corrupts extraction validation (SM-2/SM-3). Independently controllable.
+ */
+export interface DebugFailureInjection {
+  generation?: { rate: number; errorType: string };
+  extraction?: { invalidRate: number };
+}
+
 export interface CreateRunInput {
   projectId: string;
   matrixVersionId: string;
@@ -19,7 +29,7 @@ export interface CreateRunInput {
   providers: string[];
   modes: ("grounded" | "ungrounded")[];
   costCapUsd: number;
-  debugFailureInjection?: { rate: number; errorType: string } | null;
+  debugFailureInjection?: DebugFailureInjection | null;
 }
 
 /** Provider capability lookup, so unsupported-mode jobs are skipped at planning (spec's `queued -> skipped`). */
@@ -211,22 +221,25 @@ export async function recordSuccess(
     costUsd: number;
     latencyMs: number;
   },
-) {
-  await db.transaction(async (tx) => {
-    await tx.insert(responses).values({
-      jobId: job.id,
-      runId: job.runId,
-      cellId: job.cellId,
-      providerId: job.providerId as (typeof responses.$inferInsert)["providerId"],
-      generationMode: job.generationMode as (typeof responses.$inferInsert)["generationMode"],
-      modelVersion: result.modelVersion,
-      rawText: result.rawText,
-      citationsJson: result.citations,
-      tokensIn: result.tokensIn,
-      tokensOut: result.tokensOut,
-      costUsd: String(result.costUsd),
-      latencyMs: result.latencyMs,
-    });
+): Promise<string> {
+  return db.transaction(async (tx) => {
+    const [response] = await tx
+      .insert(responses)
+      .values({
+        jobId: job.id,
+        runId: job.runId,
+        cellId: job.cellId,
+        providerId: job.providerId as (typeof responses.$inferInsert)["providerId"],
+        generationMode: job.generationMode as (typeof responses.$inferInsert)["generationMode"],
+        modelVersion: result.modelVersion,
+        rawText: result.rawText,
+        citationsJson: result.citations,
+        tokensIn: result.tokensIn,
+        tokensOut: result.tokensOut,
+        costUsd: String(result.costUsd),
+        latencyMs: result.latencyMs,
+      })
+      .returning({ id: responses.id });
     await tx
       .update(jobs)
       .set({ state: "succeeded", updatedAt: new Date() })
@@ -238,6 +251,7 @@ export async function recordSuccess(
         updatedAt: new Date(),
       })
       .where(eq(auditRuns.id, job.runId));
+    return response.id;
   });
 }
 

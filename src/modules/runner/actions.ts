@@ -9,6 +9,7 @@ import {
 import {
   cancelRun as cancelRunRepo,
   createRun as createRunRepo,
+  type DebugFailureInjection,
   getApprovedMatrixCellCount,
   getApprovedVersionForRun,
   getProjectStatus,
@@ -28,7 +29,7 @@ export interface RunCreationInput {
   modes: GenerationMode[];
   repetitions: number;
   costCapUsd: number;
-  debugFailureInjection?: { rate: number; errorType: string } | null;
+  debugFailureInjection?: DebugFailureInjection | null;
 }
 
 /** RN-1/RN-2: plan and validate before touching the database. */

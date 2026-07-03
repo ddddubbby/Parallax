@@ -167,7 +167,7 @@ async function main() {
       providers: ["mock"],
       modes: ["ungrounded", "grounded"],
       costCapUsd: 25,
-      debugFailureInjection: { rate: 0.1, errorType: "rate_limit" },
+      debugFailureInjection: { generation: { rate: 0.1, errorType: "rate_limit" } },
     },
     capabilities,
     plannedCalls,
