@@ -293,3 +293,30 @@ export async function listResponsesMissingExtraction(olderThanMs: number, limit:
   );
   return rows.rows.map((r) => r.id);
 }
+
+/**
+ * Reconcile sweep input, part 2: responses whose LATEST extraction row
+ * exists but is torn — stuck in 'pending' (worker died between
+ * createPendingExtraction and the pipeline running) or 'retrying' (died
+ * between the retry mark and the second attempt). listResponsesMissingExtraction
+ * only catches "no row at all"; a torn row has a row, just never one in a
+ * terminal state, so it was invisible to that query and never got picked
+ * up by anything. The age threshold (against the extraction's own
+ * updated_at) avoids racing a genuinely in-flight synchronous attempt.
+ */
+export async function listResponsesWithStaleExtraction(olderThanMs: number, limit: number) {
+  const threshold = new Date(Date.now() - olderThanMs);
+  const rows = await db.execute<{ id: string }>(
+    sql`
+      select distinct on (e.response_id) e.response_id as id
+      from ${extractions} e
+      where e.state in ('pending', 'retrying') and e.updated_at < ${threshold}
+        and e.extraction_version = (
+          select max(e2.extraction_version) from ${extractions} e2 where e2.response_id = e.response_id
+        )
+      order by e.response_id, e.updated_at asc
+      limit ${limit}
+    `,
+  );
+  return rows.rows.map((r) => r.id);
+}

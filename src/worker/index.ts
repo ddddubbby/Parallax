@@ -23,8 +23,8 @@ import {
   recordRetry,
   recordSuccess,
 } from "@/db/repositories/runner";
-import { listResponsesMissingExtraction } from "@/db/repositories/extraction";
-import { extractResponse } from "@/modules/extraction/service";
+import { listResponsesMissingExtraction, listResponsesWithStaleExtraction } from "@/db/repositories/extraction";
+import { extractResponse, reExtractResponse } from "@/modules/extraction/service";
 import { extractionProviderId, findExceededDailyBudget } from "@/modules/runner/budget";
 import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation";
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
@@ -93,6 +93,27 @@ async function afterJobFinished(runId: string) {
   const run = await getRun(runId);
   if (!run || run.state !== "running") return;
 
+  // Completion is checked FIRST: the breaker/budget checks below exist to
+  // stop FUTURE spend, but once no queued/running jobs remain there is no
+  // future spend to stop. Checking them first meant a run whose final job
+  // happened to cross the cost cap or daily budget got paused instead of
+  // completed — with zero jobs left to ever finish it later, it was
+  // stranded in 'paused' forever. A finished run always completes,
+  // regardless of what its final cost/spend happened to be.
+  if (await isRunFinished(runId)) {
+    await completeRun(runId);
+    // Raw counts here, not breaker counts — the completion record reports
+    // everything that happened, including any downed provider's failures.
+    const rawCounts = await getRunFailureCounts(runId);
+    await appendRunEvent({
+      runId,
+      level: "info",
+      eventType: "run_completed",
+      message: `Run completed: ${rawCounts.succeeded} succeeded, ${rawCounts.deadLettered} dead-lettered`,
+    });
+    return;
+  }
+
   // D-042: the failure-rate breaker evaluates only providers not marked
   // down — a downed provider's damage is already contained by skipping its
   // jobs, and counting its dead-letters here would pause the run and brick
@@ -131,20 +152,6 @@ async function afterJobFinished(runId: string) {
       level: "warn",
       eventType: "circuit_breaker_paused",
       message: `Run paused by circuit breaker (daily_budget_exceeded): ${budgetTrip.providerId} spent $${budgetTrip.spentUsd.toFixed(2)}/$${budgetTrip.budgetUsd.toFixed(2)} daily budget`,
-    });
-    return;
-  }
-
-  if (await isRunFinished(runId)) {
-    await completeRun(runId);
-    // Raw counts here, not breaker counts — the completion record reports
-    // everything that happened, including any downed provider's failures.
-    const rawCounts = await getRunFailureCounts(runId);
-    await appendRunEvent({
-      runId,
-      level: "info",
-      eventType: "run_completed",
-      message: `Run completed: ${rawCounts.succeeded} succeeded, ${rawCounts.deadLettered} dead-lettered`,
     });
   }
 }
@@ -318,6 +325,27 @@ async function main() {
           // synchronous path won the race — harmless.
           console.error(
             `[worker] extraction sweep failed for response ${responseId}:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
+
+      // Part 2: responses whose latest extraction row exists but is torn
+      // (worker died mid-pipeline, between createPendingExtraction/
+      // markExtractionRetrying and the next state transition) — invisible
+      // to the "no row at all" sweep above, and otherwise permanently
+      // ineligible for metrics without a manual re-extract. Re-extracting
+      // creates a new version (AD-2, C-3) rather than touching the stale row.
+      const stale = await listResponsesWithStaleExtraction(EXTRACTION_SWEEP_AGE_MS, EXTRACTION_SWEEP_BATCH);
+      if (stale.length > 0) {
+        console.log(`[worker] extraction sweep: re-extracting ${stale.length} stale pending/retrying response(s)`);
+      }
+      for (const responseId of stale) {
+        try {
+          await reExtractResponse(responseId);
+        } catch (err) {
+          console.error(
+            `[worker] extraction sweep (stale) failed for response ${responseId}:`,
             err instanceof Error ? err.message : err,
           );
         }

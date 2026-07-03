@@ -2,8 +2,23 @@
 // comma, quote, or newline; double up embedded quotes. No project-layer
 // imports (C-7).
 
+// Spreadsheet formula-injection guard (CWE-1236): a cell value starting
+// with =, +, -, @, tab, or CR can execute as a live formula the moment
+// someone opens the CSV in Excel/Sheets. Exports include raw model-origin
+// text (D-040's threat model: untrusted in live mode — raw responses,
+// citation titles/domains, extracted JSON), so every cell gets this guard,
+// not just ones a human typed. A leading single quote is the standard
+// mitigation: spreadsheet apps render the cell as literal text instead of
+// evaluating it, and the quote is invisible to a plain CSV/text reader —
+// JSON export (EX-3's other format) keeps raw values, since it's read as
+// evidence, not opened as a spreadsheet.
+const FORMULA_INJECTION_PREFIX_RE = /^[=+\-@\t\r]/;
+
 function escapeCsvField(value: unknown): string {
-  const str = value === null || value === undefined ? "" : String(value);
+  let str = value === null || value === undefined ? "" : String(value);
+  if (FORMULA_INJECTION_PREFIX_RE.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

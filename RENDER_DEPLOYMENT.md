@@ -45,6 +45,7 @@ The Blueprint cannot successfully deploy until M0 adds:
 ## Operational notes
 
 - **Never delete or recreate the `parallax-shared` env group.** `CREDENTIALS_ENCRYPTION_KEY` is generated once; a regenerated key orphans every stored provider credential (D-021). Recovery from KEK loss is re-entering keys in Settings.
+- **`generateValue: true` for `CREDENTIALS_ENCRYPTION_KEY` is verified safe (D-045).** Render's Blueprint docs confirm `generateValue: true` always produces a randomized, base64-encoded 256-bit (32-byte) value — exactly what `crypto.ts`'s `loadKey()` requires and correctly decodes. An independent audit flagged this as a possible first-deploy failure mode (an unconstrained generated value not matching the exact-32-byte shape); it was checked against Render's own documentation and confirmed not to be an issue. Don't re-flag it without new evidence that Render's generation format has changed.
 - **Migrations are additive-first.** The web service migrates in `preDeployCommand` while the worker may still run older code; destructive schema changes ship in a later deploy (D-024).
 - **Auto-deploy vs CI:** a Blueprint deploys on push regardless of GitHub Actions unless Render's wait-for-CI option is enabled. Verify and enable that setting at first deploy; otherwise CI is advisory, not a gate.
 - **Version pins move together:** the pnpm version pinned in `buildCommand` must match `package.json`'s `packageManager`; pin Node with a `.node-version` file (M0 prerequisite) so local, CI, and Render agree.
