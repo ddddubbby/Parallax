@@ -128,6 +128,9 @@ export function DashboardClient({
             onRowClick={(responseId, claimText) =>
               setDrilldown({ kind: "response", label: claimText.slice(0, 60), responseId })
             }
+            onReviewed={() => {
+              if (runId) fetchDashboardData(runId).then((d) => d && setData(d));
+            }}
           />
         </div>
       )}

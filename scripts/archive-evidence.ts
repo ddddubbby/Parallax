@@ -17,12 +17,14 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { db, pool } from "../src/db/client";
+import { getEligibleExtractionsForRun } from "../src/db/repositories/extraction";
 import {
   getExportCitations,
   getExportExtractions,
   getExportMetrics,
   getExportResponses,
 } from "../src/db/repositories/export";
+import { recomputeMetrics } from "../src/db/repositories/metrics";
 import { getRun } from "../src/db/repositories/runner";
 import { projects } from "../src/db/schema";
 
@@ -54,12 +56,27 @@ async function main() {
   mkdirSync(outDir, { recursive: true });
   log(`archiving run ${runId} (${run.runMode}, ${run.state}) -> ${outDir}`);
 
-  const [respRows, extRows, metricRows, citationRows] = await Promise.all([
+  // Metrics are disposable (C-5) and only get computed on demand (the
+  // dashboard/report recompute action) — a run that was never opened has
+  // zero metric rows, which would silently produce an evidence pack with
+  // no aggregate numbers. Recompute here (idempotent) so the archive is
+  // authoritative regardless of whether anyone viewed the run.
+  const metricCount = await recomputeMetrics(runId);
+  log(`recomputed metrics: ${metricCount} rows`);
+
+  const [respRows, extRows, metricRows, citationRows, eligible] = await Promise.all([
     getExportResponses(runId),
     getExportExtractions(runId),
     getExportMetrics(runId),
     getExportCitations(runId),
+    getEligibleExtractionsForRun(runId),
   ]);
+  // A run with eligible samples but no metric rows after a recompute is a
+  // real defect, not an empty run — surface it loudly rather than shipping
+  // a hollow evidence pack.
+  if (eligible.length > 0 && metricRows.length === 0) {
+    log(`WARNING: ${eligible.length} eligible samples but 0 metric rows after recompute — evidence pack is INCOMPLETE, investigate before delivery.`);
+  }
   const bundle = {
     archivedAt: new Date().toISOString(),
     runId,
