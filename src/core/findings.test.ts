@@ -110,6 +110,17 @@ describe("findSourceConcentration (RB-1)", () => {
     ]);
     expect(findings).toHaveLength(0);
   });
+
+  it("escapes HTML in the model-derived domain before it reaches report markdown", () => {
+    const findings = findSourceConcentration([
+      { domain: "evil.example<script>alert(1)</script>", citationCount: 45 },
+      { domain: "small.example", citationCount: 5 },
+    ]);
+    expect(findings[0].title).not.toContain("<script>");
+    expect(findings[0].bodyMd).not.toContain("<script>");
+    // evidence keeps the raw value — it's structured data, not rendered markdown
+    expect(findings[0].evidence.domain).toContain("<script>");
+  });
 });
 
 describe("findLowStabilityClusters (RB-1, D-015 directional-only)", () => {

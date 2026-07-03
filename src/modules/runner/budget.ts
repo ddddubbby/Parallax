@@ -4,11 +4,25 @@ import { getProviderSpendToday } from "@/db/repositories/runner";
 // C-2/D-012: global PROVIDER_DAILY_BUDGET_USD default, optional
 // <PROVIDER>_DAILY_BUDGET_USD override — env-configured, not DB-editable
 // (Settings surfaces the effective value read-only).
+//
+// A set-but-unparseable value (e.g. "25USD") fails CLOSED: budget 0, every
+// run pauses immediately, and the misconfiguration is loud. NaN passing
+// through would silently disable enforcement — the one failure direction a
+// cost guard must never have. Only a genuinely unset budget means "no
+// budget configured" (Infinity).
 export function readDailyBudgetUsd(providerId: string): number {
-  const override = process.env[`${providerId.toUpperCase()}_DAILY_BUDGET_USD`];
-  if (override) return Number(override);
-  const global = process.env.PROVIDER_DAILY_BUDGET_USD;
-  return global ? Number(global) : Infinity;
+  const raw =
+    process.env[`${providerId.toUpperCase()}_DAILY_BUDGET_USD`] ||
+    process.env.PROVIDER_DAILY_BUDGET_USD;
+  if (!raw) return Infinity;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.warn(
+      `[budget] unparseable daily budget "${raw}" for ${providerId} — failing closed (treating as $0)`,
+    );
+    return 0;
+  }
+  return parsed;
 }
 
 export interface BudgetTrip {
@@ -17,7 +31,15 @@ export interface BudgetTrip {
   budgetUsd: number;
 }
 
-/** Mock never spends real money and has no budget to enforce. */
+/**
+ * Mock never spends real money and has no budget to enforce.
+ *
+ * Enforcement runs after each job finishes (worker afterJobFinished), so
+ * jobs already in flight when the budget trips still complete — overshoot
+ * is bounded by provider concurrency (3 for DeepSeek) times one call's
+ * cost, fractions of a cent at current pricing. Accepted for MVP rather
+ * than paying a spend query on every claim.
+ */
 export async function findExceededDailyBudget(providerIds: string[]): Promise<BudgetTrip | null> {
   for (const providerId of providerIds) {
     if (providerId === "mock") continue;

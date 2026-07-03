@@ -9,10 +9,33 @@ import {
 // call these to make decisions, but the decisions themselves live here so
 // they're unit-testable without a database.
 
-// Mirrors src/providers/types.ts GenerationMode. Core cannot import from
-// /src/providers (C-7), so this small literal union is duplicated locally —
-// same pattern as Intent in src/core/matrix.ts.
+// Mirrors src/providers/types.ts GenerationMode/ProviderId. Core cannot
+// import from /src/providers (C-7), so these small literal unions are
+// duplicated locally — same pattern as Intent in src/core/matrix.ts. The
+// UI imports them from here rather than from /src/providers (C-7's "UI
+// never imports providers", now also lint-enforced).
 export type GenerationMode = "grounded" | "ungrounded";
+export type ProviderId =
+  | "mock"
+  | "deepseek"
+  | "minimax"
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "perplexity";
+
+export type RunMode = "mock" | "live_validation" | "live_audit";
+
+/**
+ * C-9 in both directions: a mock run must use only the mock provider
+ * (anything else is real spend hidden under a MOCK badge), and a live run
+ * must never include the mock provider (fixture output mixed into live
+ * aggregates). Enforced at run creation and again per job in the worker,
+ * since scripts/tests can insert job rows without going through the action.
+ */
+export function isProviderAllowedForRunMode(runMode: RunMode, providerId: string): boolean {
+  return runMode === "mock" ? providerId === "mock" : providerId !== "mock";
+}
 
 export const EXTRACTION_ENGINE_MOCK_COST_USD = 0;
 

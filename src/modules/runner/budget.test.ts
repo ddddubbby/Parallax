@@ -130,6 +130,16 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
     expect(readDailyBudgetUsd("deepseek")).toBe(3);
   });
 
+  it("readDailyBudgetUsd fails CLOSED on an unparseable or negative value — a typo must never disable enforcement", async () => {
+    const { readDailyBudgetUsd } = await import("./budget");
+    process.env.DEEPSEEK_DAILY_BUDGET_USD = "25USD"; // the typo that would have become NaN and been skipped
+    expect(readDailyBudgetUsd("deepseek")).toBe(0);
+    process.env.DEEPSEEK_DAILY_BUDGET_USD = "-5";
+    expect(readDailyBudgetUsd("deepseek")).toBe(0);
+    process.env.DEEPSEEK_DAILY_BUDGET_USD = "Infinity"; // explicit Infinity is not a budget either
+    expect(readDailyBudgetUsd("deepseek")).toBe(0);
+  });
+
   it("getProviderSpendToday sums today's response cost for the provider and excludes other providers", async () => {
     const projectId = await ensureProject();
     const version = await ensureApprovedVersion(projectId);

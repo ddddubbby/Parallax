@@ -1,4 +1,5 @@
 import type { Finding } from "./findings";
+import { escapeModelText } from "./md";
 
 // Report section templates (RB-4). Deterministic markdown generation from
 // already-computed metrics/findings data — no LLM call, matching the
@@ -159,7 +160,7 @@ function generateSources(ctx: ReportContext): string {
   const topSources = ctx.citedSources.slice(0, 10);
   const table =
     topSources.length > 0
-      ? `| Domain | Citations |\n|---|---|\n${topSources.map((s) => `| ${s.domain} | ${s.total} |`).join("\n")}`
+      ? `| Domain | Citations |\n|---|---|\n${topSources.map((s) => `| ${escapeModelText(s.domain)} | ${s.total} |`).join("\n")}`
       : "No citations were recorded in this run's grounded responses.";
 
   return `${table}\n\n${concentration.length > 0 ? concentration.map((f) => f.bodyMd).join("\n\n") : ""}`;
@@ -169,10 +170,13 @@ function generateMisinformationRegister(ctx: ReportContext): string {
   if (ctx.misinformation.length === 0) {
     return "No contradicted, unsupported, or outdated claims about the client brand were found in this run's sampled answers.";
   }
+  // claim_text and evidence_quote are model-derived (untrusted in live
+  // mode); verdict/severity are DB enums and fact_statement is the
+  // operator's own fact sheet.
   const rows = ctx.misinformation
     .map(
       (m) =>
-        `### ${m.verdict} (${m.severity} severity)\n\n> ${m.claimText}\n\n${m.evidenceQuote ? `Evidence: "${m.evidenceQuote}"\n\n` : ""}${m.factStatement ? `Fact sheet: ${m.factStatement}` : "Not checked against a specific fact-sheet entry."}`,
+        `### ${m.verdict} (${m.severity} severity)\n\n> ${escapeModelText(m.claimText)}\n\n${m.evidenceQuote ? `Evidence: "${escapeModelText(m.evidenceQuote)}"\n\n` : ""}${m.factStatement ? `Fact sheet: ${m.factStatement}` : "Not checked against a specific fact-sheet entry."}`,
     )
     .join("\n\n---\n\n");
   return `${ctx.misinformation.length} claim${ctx.misinformation.length === 1 ? "" : "s"} in this run's sampled answers did not match the client fact sheet:\n\n${rows}`;

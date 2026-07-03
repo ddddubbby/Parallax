@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { RunCreationForm } from "@/components/runner/run-creation-form";
-import { DEFAULT_VALIDATION_RUN_CAP_USD } from "@/core/constants";
+import { DEFAULT_AUDIT_RUN_CAP_USD, DEFAULT_VALIDATION_RUN_CAP_USD } from "@/core/constants";
 import { getApprovedVersionForRun, getProjectStatus } from "@/db/repositories/runner";
-import { listRegisteredProviders } from "@/providers/registry";
+import { listProviderOptions } from "@/modules/runner/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +18,9 @@ export default async function NewRunPage({
   const version = await getApprovedVersionForRun(id);
   if (!version) redirect(`/projects/${id}/matrix`);
 
-  const providers = listRegisteredProviders().map((p) => ({
-    id: p.id,
-    displayName: p.displayName,
-    supportsGrounded: p.supportsGrounded,
-    supportsUngrounded: p.supportsUngrounded,
-  }));
+  // C-7: provider metadata comes through the runner module's action, never
+  // from /src/providers directly (lint-enforced for app/components).
+  const providers = await listProviderOptions();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
@@ -32,7 +29,8 @@ export default async function NewRunPage({
         projectId={id}
         cellCount={version.cellCount}
         providers={providers}
-        defaultCostCapUsd={DEFAULT_VALIDATION_RUN_CAP_USD}
+        defaultValidationCapUsd={DEFAULT_VALIDATION_RUN_CAP_USD}
+        defaultAuditCapUsd={DEFAULT_AUDIT_RUN_CAP_USD}
       />
     </main>
   );

@@ -55,6 +55,25 @@ export async function createRun(
     .from(promptCells)
     .where(eq(promptCells.matrixVersionId, input.matrixVersionId));
 
+  // PV-5 backstop (the action validates too, but scripts call this repo
+  // directly): a run whose every job would be skipped never has a job
+  // finish, so afterJobFinished never runs and the run sits in 'queued'
+  // forever. Reject it here rather than creating an unfinishable run.
+  if (cells.length === 0) {
+    throw new Error("Matrix version has no cells — cannot create a run");
+  }
+  const anySupportedPair = input.providers.some((providerId) =>
+    input.modes.some((mode) => {
+      const cap = capabilities.find((c) => c.id === providerId);
+      return cap !== undefined && supportsMode(cap, mode);
+    }),
+  );
+  if (!anySupportedPair) {
+    throw new Error(
+      "No selected provider supports any selected generation mode (PV-5) — every job would be skipped and the run could never finish",
+    );
+  }
+
   return db.transaction(async (tx) => {
     const [run] = await tx
       .insert(auditRuns)
@@ -381,6 +400,19 @@ export async function getApprovedMatrixCellCount(matrixVersionId: string) {
     .from(promptCells)
     .where(eq(promptCells.matrixVersionId, matrixVersionId));
   return row?.n ?? 0;
+}
+
+/**
+ * RN-2 honesty: cost projection estimates token counts from the actual
+ * average prompt length of the version's cells, not an empty string
+ * (which projected near-zero input cost for every live run).
+ */
+export async function getAverageCellTextLength(matrixVersionId: string): Promise<number> {
+  const [row] = await db
+    .select({ avgLen: sql<string>`coalesce(avg(length(${promptCells.resolvedText})), 0)` })
+    .from(promptCells)
+    .where(eq(promptCells.matrixVersionId, matrixVersionId));
+  return Math.ceil(Number(row?.avgLen ?? 0));
 }
 
 export async function getApprovedVersionForRun(projectId: string) {

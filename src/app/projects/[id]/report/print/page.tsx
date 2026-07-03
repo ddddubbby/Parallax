@@ -16,10 +16,15 @@ export const dynamic = "force-dynamic";
 // PDF has zero app chrome even though the on-screen preview still shows
 // it for navigation.
 //
-// Markdown -> HTML is rendered server-side without a sanitizer: this is
-// the operator's own generated/edited content (single shared-password
-// operator, same trust boundary as Debug's raw SQL access), not
-// third-party or client-submitted input.
+// Markdown -> HTML is rendered server-side without a sanitizer library.
+// That is only safe because generated sections escape every MODEL-DERIVED
+// string (claim text, evidence quotes, citation domains) at the template
+// source — src/core/md.ts escapeModelText — so provider/web-origin text
+// can never smuggle raw HTML through marked into this
+// dangerouslySetInnerHTML. What remains unescaped is the operator's own
+// content (their edits, brand names, fact sheet), which the operator
+// already fully controls (single shared-password operator, same trust
+// boundary as Debug's raw SQL access).
 export default async function ReportPrintPage({
   params,
   searchParams,
