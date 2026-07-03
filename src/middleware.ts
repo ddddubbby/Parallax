@@ -12,8 +12,17 @@ export const config = {
 
 const PUBLIC_PATHS = new Set(["/login"]);
 
+// Local-dev-only bypass for UI testing (ST-6 stays enforced everywhere
+// else). Double-guarded: APP_ENV must not be "production" (Render always
+// sets it to "production" — see render.yaml — so this can never fire on a
+// real deploy even if DISABLE_AUTH leaked into prod env vars by mistake),
+// and DISABLE_AUTH must be explicitly "true" in .env.local (gitignored,
+// never committed). Remove both the flag and this block before any
+// client-facing use.
+const AUTH_DISABLED = process.env.APP_ENV !== "production" && process.env.DISABLE_AUTH === "true";
+
 export function middleware(request: NextRequest) {
-  if (PUBLIC_PATHS.has(request.nextUrl.pathname)) {
+  if (AUTH_DISABLED || PUBLIC_PATHS.has(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

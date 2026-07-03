@@ -17,6 +17,29 @@ envVarGroups:
         value: https://api.deepseek.com
       - key: DEEPSEEK_DEFAULT_MODEL
         value: deepseek-v4-flash
+      # Grounded audit providers (M9). Values verified against official docs
+      # 2026-07-03 (ENGINEERING_SPEC §3); API keys are NEVER set here (C-11) —
+      # the operator enters them in Settings after login.
+      - key: OPENAI_BASE_URL
+        value: https://api.openai.com
+      - key: OPENAI_DEFAULT_MODEL
+        value: gpt-5.5
+      - key: ANTHROPIC_BASE_URL
+        value: https://api.anthropic.com
+      - key: ANTHROPIC_DEFAULT_MODEL
+        value: claude-sonnet-5
+      - key: GOOGLE_BASE_URL
+        value: https://generativelanguage.googleapis.com
+      - key: GOOGLE_DEFAULT_MODEL
+        value: gemini-2.5-flash
+      - key: PERPLEXITY_BASE_URL
+        value: https://api.perplexity.ai
+      - key: PERPLEXITY_DEFAULT_MODEL
+        value: sonar
+      # D-041: the one extraction engine for all live runs; its credential
+      # must be active in Settings for any live run to extract.
+      - key: EXTRACTION_PROVIDER
+        value: deepseek
       - key: MINIMAX_BASE_URL
         value: https://api.minimaxi.com
       - key: MINIMAX_DEFAULT_MODEL
