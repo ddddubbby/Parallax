@@ -116,6 +116,8 @@ Seed prompt templates must exist as database seed data, not hard-coded UI string
 
 Each intent seeds at least three variant phrasings (`v1`, `v2`, `v3`); the list above is `v1`. Variant depth is what lets the allocator reach its per-intent quotas (see the demo-sizing contract in `ENGINEERING_SPEC.md` section 4). Additional variants follow the same placeholder constraints as CM-5.
 
+From M11, templates are additionally keyed by category archetype — the list above becomes the `b2b` pack, and consumer packs replace its procurement idiom with natural buyer language (AT-1..AT-5 in section 8.16, D-052).
+
 ### 8.5 Mock mode
 
 MK-1: MockProvider is selectable at run creation.
@@ -257,6 +259,45 @@ FR-2: Fresh-clone setup is documented in `README.md`.
 FR-3: M0 verification commands are `pnpm install`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, and a local `/health` smoke check.
 FR-4: M1 may not start until the table-by-table schema spec, lifecycle states, provider capability matrix, demo project, and fixture manifests exist.
 
+### 8.16 Semantic layer: the Four P's and category archetypes (M11)
+
+The next-stage organizing principle (D-051): every operator- and client-facing surface answers one of four client questions, called pillars — Presence ("Am I in AI's consideration set?"), Position ("When compared, do I win?"), Perception ("How does AI describe my brand?"), and Proof ("Is the story true — and sourced?"). The confidence machinery (k=5 sampling, Wilson intervals, n >= 30 gate, Stability Index) is deliberately NOT a pillar: it is the rail under all four. The intent taxonomy and all stored data are unchanged — the semantic layer sits on top.
+
+SL-1: A pure `src/core` module defines the pillar taxonomy and maps every intent to exactly one pillar: discovery and consideration map to Presence, comparison to Position, validation and objection to Perception. Proof is fed by every response's claims and citations regardless of intent.
+SL-2: A `METRIC_GLOSSARY` in `src/core` is the single source of truth for every metric key: human label, pillar, the client question it answers, plain-language definition, computation summary, interval caveat (per D-023), and direction-of-good. A completeness test fails if the analysis layer emits a metric key with no glossary entry.
+SL-3: The run page's metrics preview renders glossary labels grouped by pillar with one-line meanings. Raw metric keys never appear in any UI.
+SL-4: The matrix board shows each cell's pillar, and the approval view summarizes pillar coverage (cells per pillar), making question coverage a visible editorial decision.
+SL-5: Dashboard sections and report chapters are headed by pillar and phrased as the client question they answer.
+
+Category archetypes fix the B2B-jargon defect found in the Heytea pilot (prompts asked which "bubble tea vendors are worth a demo"):
+
+AT-1: Intake basics gains a required "how do buyers get this?" archetype selection: `b2b`, `consumer_product`, or `consumer_venue`. Stored on `projects` via migration; existing projects default to `b2b`.
+AT-2: `prompt_templates` gains an `archetype` column via migration. The seed provides three packs (5 intents x >= 3 variants each); matrix generation selects only templates matching the project's archetype.
+AT-3: Templates must read as natural buyer language for their archetype, enforced by a per-archetype forbidden-jargon test (e.g. consumer packs may not contain "vendor", "demo", "procurement", "teams evaluating") — same pattern as RB-5's forbidden-phrase test.
+AT-4: Approved matrices are untouched (C-4); archetype affects only new template selection and generation.
+AT-5: The allocator (PM-2, PM-3, PM-11) is archetype-agnostic; quotas and redistribution behave identically for every pack.
+
+### 8.17 Trust and provenance (M12)
+
+The statistical-honesty differentiator, made visible at the point of consumption. The client's core anxiety — "are these numbers computed from real LLM answers, or made up?" — is answered structurally, not rhetorically.
+
+TP-1: Every aggregate claim in the generated report carries its n, provider set, grounding mode, and run date inline.
+TP-2: The report gains an evidence appendix: each finding cites at least one quoted raw-response excerpt with its response id, escaped per D-040.
+TP-3: A methodology chapter is auto-generated from the metric glossary plus the run's actual configuration (k, caps, interval methods per D-023, eligibility definition per D-014).
+TP-4: Every dashboard metric card offers provenance drill-through: metric to the eligible raw responses behind it, <= 2 clicks, reusing the DB-2 drilldown machinery.
+TP-5: No aggregate number renders anywhere — dashboard, run page, report, export — without its n.
+
+### 8.18 Operator experience and demo polish (M13)
+
+The pilot proved features can exist and stay invisible (the operator ran a full audit without discovering the dashboard or exports). This milestone makes the pipeline legible and demo-ready.
+
+OX-1: A persistent per-project subnav (Intake, Matrix, Runs, Dashboard, Report) with active state on every project page; breadcrumbs stay.
+OX-2: Guided pipeline: every stage page states where the project is and offers the single primary next action (approved matrix offers "Start run"; completed run offers "View dashboard"; empty dashboard offers "Start a run").
+OX-3: Every page has deliberate empty, loading, and error states; no dead ends.
+OX-4: The dashboard reorganizes under pillar headings (SL-5) and adds the per-competitor Share of Voice breakdown (closing the M5/M6 known gap).
+OX-5: Demo-readiness: the seeded demo project walks every view end-to-end with real-shaped mock data at $0 spend.
+OX-6: Jargon pass: operator-facing terms (cell, rep, engine-mode) get inline glossary explanations.
+
 ## 9. Data model summary
 
 `projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`.
@@ -292,7 +333,10 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M7 | Report + export | Full report from golden run; edits survive other-section regeneration | Done |
 | M8 | Live validation: DeepSeek + extraction mini-audit | 5 cells x k=2 under $2 cap; validation labels visible; breaker fires | Done |
 | M9 | Provider expansion and hardening | Target grounded providers added through same interface; provider-down degrades gracefully | Done |
-| M10 | Pilot audit | Full live audit delivered; retro logged; release checklist complete | Not started |
+| M10 | Pilot audit | Full live audit delivered; retro logged; release checklist complete | In progress — DeepSeek gate closed (115-job live run, 2026-07-03); deploy + grounded-provider gates open |
+| M11 | Semantic layer: Four P's, metric glossary, archetype template packs | Every emitted metric key has a glossary entry and no raw key renders in UI; archetype packs seeded and selected at intake; pillar visible on matrix, run, dashboard, and report surfaces | Not started |
+| M12 | Trust and provenance | Report claims carry n/provider/mode/date; evidence appendix quotes raw excerpts by response id; methodology chapter auto-generates; metric-to-responses drill-through <= 2 clicks | Not started |
+| M13 | Operator UX and demo polish | Per-project subnav + guided next actions everywhere; pillar-organized dashboard incl. per-competitor SoV; full demo walkthrough at $0 | Not started |
 
 Progress notes:
 
@@ -329,6 +373,7 @@ Progress notes:
 - 2026-07-03 M8 done: shared-password login (rate-limited, constant-time compare, stateless HMAC-signed cookie session — D-034) gating every route via `middleware.ts`; credential encryption service (AES-256-GCM, D-021) with a full Settings UI (ST-1..ST-5: add/rotate, verify against a real minimal live call, disable, delete, read-only env-sourced defaults panel); DeepSeek `LLMProvider` adapter with typed `ProviderCallError` mapping real HTTP failures to RN-6's error-type enum, resolved at call time via a credential-aware runtime resolver kept separate from the static display-only registry (D-035); per-provider daily-budget enforcement (C-2/D-012) wired into the worker's existing circuit-breaker pause path (D-037); live extraction engine (D-022) reusing the response's own generation provider (D-036), JSON-mode DeepSeek call graded against the same Zod schema and SM-2/SM-3 retry/dead-letter machinery as mock, billing every attempt whether or not it validates. `pnpm audit:deepseek-mini` built and safety-verified (exits cleanly with no DB/network activity when no credential is configured — the actual live run was intentionally never executed this session, pending the operator's real key). 182 tests total (30 new this milestone), lint/typecheck/build green.
 - 2026-07-03 post-M8 hardening (external audit, branch m8-hardening): all eight audit findings confirmed and fixed. P1s: run mode is now an explicit, operator-selected boundary — the run form's DeepSeek exposure combined with `createRun`'s hardcoded `runMode: "mock"` could have stored real paid generations under MOCK semantics (D-038: server-side C-9 validation both directions, k=5 lock for live_audit, PV-5 all-skipped rejection, worker-level per-job guard); every provider call now carries a 45s `AbortSignal.timeout` kept under the stale-lock window, with `TimeoutError` correctly mapped (D-039); budget parsing fails closed on typos (D-039); cost projection now uses real average prompt length + per-call extraction estimates (D-039). P2s: credential base-URL overrides allowlisted against key exfiltration, and model-derived report text escaped at the template source against XSS through marked (D-040); C-7 "UI never imports providers" now lint-enforced with provider metadata flowing through a module action. 201 tests (19 new), mock e2e (500 jobs, kill/resume) green, lint/typecheck/build green.
 - 2026-07-03 UX polish pass (branch ux-polish): route-level loading skeletons (app previously froze on every nav click — zero loading.tsx files against all-force-dynamic pages), completed-run "View dashboard →" CTA + inline pause-reason banner + missing VALIDATION-ONLY stamp on the run page, breadcrumbs normalized to Projects / name / section on all five project sub-pages, nav active-state fixed (was hardcoded to Projects), dashboard dims stale content while switching runs. All verified via SSR curls against real dev-DB data incl. a fabricated-then-cleaned paused run; 240 tests, lint/typecheck/build green. No new dependencies, no new surfaces.
+- 2026-07-04 next-stage planning (branch m11-planning): the Four P's semantic layer, category archetype template packs, trust & provenance, and operator UX are specified as M11-M13 (new PRD sections 8.16-8.18, tracker rows, D-051/D-052/D-053) after an operator debrief on the first live pilot — key findings: metrics render as uninterpretable raw keys, prompts speak B2B jargon regardless of category (audit-validity defect), the dashboard/exports existed but were undiscoverable, and nothing ties prompts/metrics back to the client's core questions. M10 tracker row updated: DeepSeek gate closed by the 115-job live run; deploy and grounded-provider gates remain, running as a parallel ops track.
 - 2026-07-04 post-pilot gap-audit fixes (branch worker-env-bootstrap): implemented the four actionable items from a systematic M1-M10 gap audit (patterned on the three bugs found this session). (C1/C2, highest severity — a live bug reachable with no API key) the worker's `processJob` conflated a provider-call failure with a persistence (`recordSuccess`) failure in one try/catch, so a DB blip after a successful paid call was misclassified as a provider `server_error` and, after 5 such, wrongly marked a healthy provider "down" (D-042) — split into two failure domains, new `persistence_error` type (migration 0005) never fed to provider-down (D-049), regression-tested. (A1) `createRun` now preflights the per-provider daily budget and the run form shows today's spend vs cap, instead of the run silently pausing mid-flight (D-050). (B1) env-bootstrap added to seed/dev-db scripts. (D2) report page gains a run-switcher matching the dashboard. 247 tests, lint/typecheck green; report + run-form verified 200 via SSR. The remaining audit items are the already-known M10 go-live gates (live provider validation, Gemini grounding caveat, CI/deploy), not code fixes.
 - 2026-07-03 runs index page (branch worker-env-bootstrap): fixed a navigation dead-end — an in-progress run's queue/progress page was reachable only via the post-creation redirect, so clicking away stranded the run with no path back (reported during the live pilot). Added `/projects/[id]/runs` (newest-first list with state/mode badges + job progress via one grouped query), linked from the projects list and the run-detail breadcrumb (D-048, reversing S-018's "no run-list hub" note which only held for completed runs). Verified against the live DB: index lists both project runs and links to each; the live pilot run completed 115/115 jobs at $0.04. typecheck/lint green.
 - 2026-07-03 worker env bootstrap (branch worker-env-bootstrap): a live_audit run dead-lettered every deepseek job with "No active credential" and tripped the failure breaker — root cause was `pnpm worker` (bare `tsx`) loading no `.env` files, so `CREDENTIALS_ENCRYPTION_KEY` was unset in the worker; `decryptApiKey` swallowed the resulting config error to null and the resolver wrongly marked a good credential `invalid`. Fixed with `src/env-bootstrap.ts` (Node 22 `loadEnvFile`, no dep) imported first in the worker + audit/archive scripts, plus a `CredentialConfigError` split so a missing/malformed KEK propagates loudly (leaving the row alone) while only genuine ciphertext failures invalidate it (D-047). Credential verified-and-reactivated; run left paused (resuming spends real money — operator's call). 246 tests, lint/typecheck green. NOTE: committed on-branch only, not merged — a concurrent operator was live-editing the repo (WIP enable/disable-credential feature).
@@ -342,6 +387,6 @@ Progress notes:
 
 ## 12. Roadmap after MVP
 
-v1.1: AI Overviews through SERP/API vendor, `.docx` export, snapshot preset.
+Next stage (specified, D-053): M11 semantic layer -> M12 trust and provenance -> M13 operator UX and demo polish (sections 8.16-8.18). Ordering rationale: the semantic layer defines the vocabulary the trust features speak and the structure the UX reorganizes around, so it goes first; trust precedes visual polish because it is smaller and is the differentiator. M10 close-out (deploy, remaining live providers, Gemini grounding caveat) runs as a parallel ops track gated on operator actions, not on M11-M13 code.
 
-Later, demand-driven: run-over-run comparison, extraction-accuracy trends, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.
+After that, demand-driven: client-deliverable polish (charts in the PDF, branded layout, `.docx` export), AI Overviews through a SERP/API vendor, snapshot preset, run-over-run comparison, extraction-accuracy trends, bootstrap intervals for the D-023 point-estimate metrics, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.
