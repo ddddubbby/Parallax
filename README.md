@@ -10,18 +10,21 @@ Start here:
 4. Read `ENGINEERING_SPEC.md` before schema, provider, worker, seed, or fixture work.
 5. Read `RENDER_DEPLOYMENT.md` before touching deploy configuration.
 
-Current state: M9 is complete. The app has the runnable foundation, full schema and seed, intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, structured extraction + metrics, a six-view dashboard with drill-down, a findings engine + editable report builder with Markdown/print/JSON/CSV export, live infrastructure (shared-password auth, encrypted-credential Settings, daily budgets, one configured extraction engine), and all five live providers through one interface: DeepSeek (ungrounded validation) plus OpenAI, Anthropic, Gemini, and Perplexity (grounded audit providers with normalized citations). A dead provider mid-run degrades gracefully — its jobs skip, the rest finish, the run completes PARTIAL. No live call has been made yet: every provider needs its API key entered via Settings first (`pnpm audit:deepseek-mini` is the first paid step). Next product milestone is M10, the pilot audit. Node version is pinned in `.node-version`; pnpm is pinned by `packageManager`.
+Current state: M11 through M15 are complete; M10 (the pilot audit) is in progress — the DeepSeek gate is closed (a real 115-job live run succeeded), with the deploy and grounded-provider gates still open (see `RELEASE_CHECKLIST.md`).
 
-## Execution Readiness
+The pipeline is end to end: intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, structured extraction with claim verification, deterministic metrics with Wilson intervals, a dashboard with ≤2-click drill-down to raw answers, a findings engine, and an editable report builder with Markdown/print/JSON/CSV export. All five providers run through one interface — DeepSeek (ungrounded validation) plus OpenAI, Anthropic, Gemini, and Perplexity (grounded, with normalized citations); a provider that dies mid-run degrades gracefully (its jobs skip, the run completes PARTIAL). Live infrastructure is in place: shared-password auth, encrypted-credential Settings, per-provider daily budgets, and one configured extraction engine.
 
-M0.5 documentation is complete when engineers can answer these before coding:
+The product layer added since M10 prep:
 
-- What tables, states, and indexes exist?
-- Which provider is implemented first and what capabilities are allowed?
-- What seed/demo data drives local validation?
-- What commands prove each milestone is done?
+- **The Four P's** — every prompt, metric, and report chapter answers one client question: Presence (am I in AI's consideration set?), Position (when compared, do I win?), Perception (how does AI describe me?), Proof (is the story true and sourced?). The dashboard and matrix are organized into these numbered pillars.
+- **The prompt-frame rule** — a metric never counts a signal the prompt itself planted, so branded prompts are excluded from visibility metrics (see `MASTER_CONTEXT.md` D-054).
+- **Per-competitor spectrum** — the dashboard ranks the client against each tracked competitor (mention share, head-to-head win rate), not "rest of the field".
+- **Trust and provenance** — report claims carry n, provider, mode, and date; every dashboard figure drills to the eligible raw responses behind it.
+- **Explanatory layer** — the matrix explains each pillar's business value and shows a live per-pillar sample budget against the n≥30 gate.
 
-Fresh-clone local setup:
+No client-facing live audit has shipped yet: every provider needs its API key entered via Settings, and `pnpm audit:deepseek-mini` is the first paid step. Node is pinned in `.node-version`; pnpm by `packageManager`.
+
+## Local setup
 
 ```sh
 pnpm install
@@ -36,15 +39,20 @@ pnpm dev                     # app, in one terminal
 pnpm worker                  # polling worker, in another — required to process any run
 ```
 
-Run `pnpm test:mock-e2e` to exercise the full mock pipeline end to end (500-job run, worker kill/restart, failure injection) against the local dev database.
+`pnpm db:migrate` needs a running Postgres at `DATABASE_URL` and applies the tracked migrations in `src/db/migrations`.
+
+Useful scripts:
+
+- `pnpm test:mock-e2e` — the full mock pipeline end to end (500-job run, worker kill/restart, failure injection).
+- `pnpm demo:walkthrough` — populates the seeded demo project with a completed mock run at $0 so every view is walkable.
+- `pnpm audit:deepseek-mini` — the first paid step: a small DeepSeek validation run (needs a key in Settings).
+- `pnpm archive:evidence <runId>` — writes an off-Render evidence pack for a delivered audit.
 
 The canonical per-milestone acceptance command list lives in `DEVELOPMENT_GUIDELINES.md` section F.
 
-`pnpm db:migrate` needs a running Postgres reachable at `DATABASE_URL` and applies the tracked migrations in `src/db/migrations`.
-
 ## Secrets
 
-Do not put DeepSeek, MiniMax, OpenAI, Anthropic, Gemini, or Perplexity API keys in source files, `.env.example`, or `render.yaml`.
+Do not put DeepSeek, OpenAI, Anthropic, Gemini, or Perplexity API keys in source files, `.env.example`, or `render.yaml`.
 
 Provider API keys are entered after login in the Settings UI. The server encrypts them in Postgres using `CREDENTIALS_ENCRYPTION_KEY`; only server-side provider code and the worker may decrypt them.
 
