@@ -14,7 +14,7 @@ The operator's taste anchors: cyberpunk-adjacent but refined (terminal type and 
 
 ## 2. Design tenets
 
-1. **Ink and paper, one signal.** Two surfaces (near-black ink, warm paper) and exactly one accent orange. If a screen needs a second accent, the layout is wrong.
+1. **Ink and paper, one signal.** Two surfaces (near-black ink, warm paper) and exactly one accent orange. If a screen needs a second accent, the layout is wrong. Amendment (D-055): four muted structural tints (`--color-pillar-*`) exist for Four-P pillar identity only — section spines, numbered headers, chips. They are ruled ink, not accents: never on actions, verdicts, severity, or emphasis (V-2 unchanged).
 2. **Monospace is the voice of the machine.** Data, labels, metadata, and headings speak in mono. Long-form prose speaks in a quiet sans. Serif display appears only at editorial moments.
 3. **Dossier framing.** Screens and cards carry document metadata: run numbers, dates, sample counts, mode stamps. `RUN 014 / MOCK / K=5 / 2026.07.02` is a design element, not debug output.
 4. **Geometry over illustration.** Faceted solids, dot-matrix glyphs, blueprint grids. No mascots, no stock art, no gradients-as-decoration.

@@ -2,6 +2,9 @@ import type { Intent } from "./matrix";
 
 export type Pillar = "presence" | "position" | "perception" | "proof";
 
+/** Canonical display order — the numbering (01-04) every surface shows. */
+export const PILLAR_ORDER: Pillar[] = ["presence", "position", "perception", "proof"];
+
 export const PILLARS: Record<
   Pillar,
   { label: string; clientQuestion: string; description: string }

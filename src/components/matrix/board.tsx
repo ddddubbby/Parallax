@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { INTENT_ORDER, type Intent } from "@/core/matrix";
-import { PILLARS, intentToPillar, type Pillar } from "@/core/semantic";
+import { PillarSection } from "@/components/semantic/pillar";
+import { PILLAR_ORDER, PILLARS, intentToPillar, type Pillar } from "@/core/semantic";
 import {
   addCell,
   approveMatrix,
@@ -221,19 +222,28 @@ export function MatrixBoard({
                 {PILLARS[pillar].label}: {count}
               </Stamp>
             ))}
+            <span className="font-mono text-[11px] text-ink/45">
+              Proof is fed by every response&rsquo;s claims and citations, so all {count} cells count toward it (D-051).
+            </span>
           </div>
 
           <div className="flex flex-col gap-6">
-            {INTENT_ORDER.map((intent) => {
-              const cells = focus.cells.filter((c) => c.intent === intent);
-              if (cells.length === 0) return null;
-              const pillar = intentToPillar(intent);
+            {PILLAR_ORDER.filter((p) => p !== "proof").map((pillar) => {
+              const pillarIntents = INTENT_ORDER.filter((i) => intentToPillar(i) === pillar);
+              const pillarCellCount = focus.cells.filter((c) => intentToPillar(c.intent) === pillar).length;
+              if (pillarCellCount === 0) return null;
               return (
-                <section key={intent}>
-                  <h2 className="label-mono mb-2 text-xs font-medium text-ink/60">
-                    {PILLARS[pillar].label} / {intent} · {cells.length}
-                  </h2>
-                  <div className="flex flex-col gap-2">
+                <PillarSection key={pillar} pillar={pillar} count={pillarCellCount}>
+                  <div className="flex flex-col gap-5">
+                    {pillarIntents.map((intent) => {
+                      const cells = focus.cells.filter((c) => c.intent === intent);
+                      if (cells.length === 0) return null;
+                      return (
+                        <section key={intent}>
+                          <h3 className="label-mono mb-2 text-xs font-medium text-ink/60">
+                            {intent} · {cells.length}
+                          </h3>
+                          <div className="flex flex-col gap-2">
                     {cells.map((cell) => (
                       <div
                         key={cell.id}
@@ -245,7 +255,6 @@ export function MatrixBoard({
                       >
                         <div className="mb-1.5 flex items-center justify-between">
                           <span className="flex items-center gap-2 font-mono text-xs text-ink/45">
-                            <Stamp tone="ink">{PILLARS[intentToPillar(cell.intent)].label}</Stamp>
                             {cell.personaLabel} · {cell.marketLabel} ·{" "}
                             {cell.variantKey}
                             {cell.brandTermViolations.length > 0 && (
@@ -318,8 +327,12 @@ export function MatrixBoard({
                         )}
                       </div>
                     ))}
+                          </div>
+                        </section>
+                      );
+                    })}
                   </div>
-                </section>
+                </PillarSection>
               );
             })}
           </div>

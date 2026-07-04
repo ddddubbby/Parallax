@@ -19,6 +19,10 @@
   --color-ok: #1e7a4f;
   --color-danger: #b3261e;
   --color-warn: #8a6400;
+  --color-pillar-presence: #2f5f55;
+  --color-pillar-position: #3a5578;
+  --color-pillar-perception: #6e4768;
+  --color-pillar-proof: #5e5230;
 
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
