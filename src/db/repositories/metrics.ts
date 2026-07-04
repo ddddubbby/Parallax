@@ -16,7 +16,7 @@ import {
   shareOfVoice,
 } from "@/core/metrics";
 import { stabilityIndex, topTrackedBrandSet, type ExtractedBrand } from "@/core/extraction";
-import { normalizePhrase } from "@/core/intake";
+import { containsPhrase, normalizePhrase } from "@/core/intake";
 import type { Intent } from "@/core/matrix";
 import { metricIntentFilter } from "@/core/semantic";
 import { db } from "../client";
@@ -294,8 +294,9 @@ export async function recomputeMetrics(runId: string) {
     const attrSamplesIn = clientAttributeSets.filter((s) => s.scopes.some((x) => sameScope(x, scope)));
     if (attrSamplesIn.length > 0) {
       for (const attr of projectAttributes) {
-        const phrase = normalizePhrase(attr.name);
-        const unplanted = attrSamplesIn.filter((s) => !s.promptText.includes(phrase));
+        // Word-boundary match so a short attribute isn't over-excluded by
+        // an unrelated longer word in the prompt (audit finding).
+        const unplanted = attrSamplesIn.filter((s) => !containsPhrase(s.promptText, attr.name));
         if (unplanted.length > 0) {
           push(scope, `attribute_${attr.name}`, attributeAssociationRate(unplanted.map((s) => s.attrs), attr.name));
         }

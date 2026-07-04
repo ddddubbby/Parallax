@@ -12,6 +12,7 @@ export interface LiveExtractionInput {
   rawText: string;
   trackedBrandNames: string[];
   factClaims: Array<{ type: string; statement: string }>;
+  desiredAttributes: string[];
 }
 
 export interface LiveExtractionResult {
@@ -35,7 +36,7 @@ const SCHEMA_INSTRUCTIONS = `Return ONLY a JSON object with exactly these keys �
       "recommended": <true if the text recommends this brand>,
       "recommendation_strength": "strong" | "soft" | "neutral" | "discouraged",
       "sentiment": "positive" | "neutral" | "mixed" | "negative",
-      "attributes": ["<attribute phrases the text associates with this brand>"],
+      "attributes": ["<zero or more phrases from ATTRIBUTES OF INTEREST that the text associates with this brand — copy them EXACTLY as listed, or [] if none apply>"],
       "evidence_quote": "<=240 char exact quote from the text supporting this entry"
     }
   ],
@@ -62,10 +63,18 @@ function buildExtractionPrompt(input: LiveExtractionInput): string {
     input.factClaims.length > 0
       ? input.factClaims.map((f) => `- [${f.type}] ${f.statement}`).join("\n")
       : "(no fact sheet entries)";
+  // Give the model the canonical attribute list and require it to copy names
+  // verbatim — metrics later exact-match brands[].attributes against these
+  // names, so free-form phrasing would silently under-count (audit finding).
+  const attributeList =
+    input.desiredAttributes.length > 0 ? input.desiredAttributes.map((a) => `- ${a}`).join("\n") : "(none specified)";
   return `TRACKED BRANDS (first is the CLIENT brand, the rest are competitors): ${brandList}
 
 FACT SHEET (ground truth for checkable claims about the client brand):
 ${factSheet}
+
+ATTRIBUTES OF INTEREST (for each brand's "attributes" field, include ONLY the ones below that the text genuinely associates with that brand, copied verbatim; never invent or rephrase):
+${attributeList}
 
 ANSWER TEXT:
 """

@@ -1,6 +1,6 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../client";
-import { auditRuns, brandMentions, brands, claimsFound, extractions, factClaims, responses } from "../schema";
+import { attributes, auditRuns, brandMentions, brands, claimsFound, extractions, factClaims, responses } from "../schema";
 
 export async function getResponse(responseId: string) {
   const [row] = await db.select().from(responses).where(eq(responses.id, responseId));
@@ -19,6 +19,17 @@ export async function getProjectFactClaims(projectId: string) {
     .select({ id: factClaims.id, type: factClaims.type, statement: factClaims.statement })
     .from(factClaims)
     .where(eq(factClaims.projectId, projectId));
+}
+
+/** The project's desired-attribute list — given to the live extractor so it
+ *  tags brands with canonical attribute names, not free-form drift. */
+export async function getProjectAttributeNames(projectId: string): Promise<string[]> {
+  const rows = await db
+    .select({ name: attributes.name })
+    .from(attributes)
+    .where(eq(attributes.projectId, projectId))
+    .orderBy(asc(attributes.priority));
+  return rows.map((r) => r.name);
 }
 
 export async function createPendingExtraction(responseId: string, extractionVersion: number) {

@@ -3,6 +3,7 @@ import {
   collapseDuplicateBrandMentions,
   type ExtractedBrand,
   jaccardSimilarity,
+  mapAttributesToCanonical,
   resolveBrandId,
   stabilityIndex,
   topTrackedBrandSet,
@@ -157,5 +158,22 @@ describe("topTrackedBrandSet / jaccardSimilarity / stabilityIndex (MT-7)", () =>
   it("is 1 with fewer than 2 reps (nothing to compare)", () => {
     expect(stabilityIndex([new Set(["a"])])).toBe(1);
     expect(stabilityIndex([])).toBe(1);
+  });
+});
+
+describe("mapAttributesToCanonical (audit fix #1)", () => {
+  it("maps case/whitespace drift to canonical names and drops non-matches", () => {
+    const desired = ["easy implementation", "low cost", "AI"];
+    expect(mapAttributesToCanonical(["Easy Implementation", " low  cost "], desired)).toEqual([
+      "easy implementation",
+      "low cost",
+    ]);
+    expect(mapAttributesToCanonical(["scalable", "enterprise-ready"], desired)).toEqual([]);
+    // exact-normalized only: "AI" must NOT be captured by "email" or "detail"
+    expect(mapAttributesToCanonical(["email", "ai"], desired)).toEqual(["AI"]);
+  });
+
+  it("dedupes when two phrases map to the same canonical name", () => {
+    expect(mapAttributesToCanonical(["Low Cost", "low cost"], ["low cost"])).toEqual(["low cost"]);
   });
 });

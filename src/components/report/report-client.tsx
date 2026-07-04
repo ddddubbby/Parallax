@@ -49,13 +49,14 @@ export function ReportClient({
     startTransition(async () => {
       const result = await regenerateSectionAction(runId, s.id, s.sectionKey);
       if (result.ok) {
-        // Re-fetch just this row's siblings would require a server round
-        // trip; simplest correct approach is a full reload of this page's
-        // data via generateReportForRun's revalidate — but since we're
-        // client-side, just optimistically clear the edit locally for
-        // THIS section only (RB-3: never touch siblings).
+        // Update THIS section's generatedMd with the freshly-returned markdown
+        // and clear its edit (RB-3: never touch siblings). Previously only
+        // editedMd was cleared, leaving the editor/preview showing stale
+        // generatedMd while exports carried the new content (audit finding).
         setSections((prev) =>
-          prev.map((x) => (x.id === s.id ? { ...x, editedMd: null, state: "regenerated" } : x)),
+          prev.map((x) =>
+            x.id === s.id ? { ...x, generatedMd: result.generatedMd, editedMd: null, state: "regenerated" } : x,
+          ),
         );
       }
     });

@@ -109,6 +109,29 @@ const RECOMMENDATION_RANK: Record<ExtractedBrand["recommendation_strength"], num
 };
 
 /**
+ * SM-4-style resolution for attributes: map each extracted attribute phrase to
+ * the CANONICAL desired-attribute name whose normalized form it matches, and
+ * drop anything that matches nothing. Metrics exact-match brands[].attributes
+ * against the canonical list, so this corrects case/whitespace drift a live
+ * extractor may introduce and discards free-form noise (audit finding).
+ * Matching is normalized-EXACT (not substring), so short names like "AI" or
+ * "POS" can never be captured by an unrelated longer phrase.
+ */
+export function mapAttributesToCanonical(observed: string[], desired: string[]): string[] {
+  const canonicalByNorm = new Map(desired.map((d) => [normalizePhrase(d), d]));
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const attr of observed) {
+    const canonical = canonicalByNorm.get(normalizePhrase(attr));
+    if (canonical && !seen.has(canonical)) {
+      seen.add(canonical);
+      out.push(canonical);
+    }
+  }
+  return out;
+}
+
+/**
  * Guidelines E1: duplicate observed mentions of the same canonical brand
  * collapse into one record using the earliest position and strongest
  * recommendation. Brands with no canonical match (canonical_brand_id null)

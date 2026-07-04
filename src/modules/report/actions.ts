@@ -6,6 +6,7 @@ import { getRun } from "@/db/repositories/runner";
 import { computeFindings, editSection, generateReport, regenerateOneSection } from "./service";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
+type RegenerateResult = { ok: true; generatedMd: string } | { ok: false; error: string };
 
 /** Generates findings + report sections. Idempotent: never overwrites an existing (possibly edited) section. */
 export async function generateReportForRun(runId: string): Promise<ActionResult> {
@@ -29,15 +30,16 @@ export async function saveSectionEdit(runId: string, sectionId: string, editedMd
 }
 
 /** RB-3: regenerate exactly one section — the action layer enforces this by taking a single sectionId, never a list. */
-export async function regenerateSectionAction(runId: string, sectionId: string, sectionKey: string): Promise<ActionResult> {
+export async function regenerateSectionAction(runId: string, sectionId: string, sectionKey: string): Promise<RegenerateResult> {
+  let generatedMd: string;
   try {
-    await regenerateOneSection(runId, sectionId, sectionKey);
+    generatedMd = await regenerateOneSection(runId, sectionId, sectionKey);
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Regenerate failed" };
   }
   const run = await getRun(runId);
   if (run) revalidatePath(`/projects/${run.projectId}/report`);
-  return { ok: true };
+  return { ok: true, generatedMd };
 }
 
 export async function fetchReportSections(runId: string) {

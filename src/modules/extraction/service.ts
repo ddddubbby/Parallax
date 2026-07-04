@@ -2,6 +2,7 @@ import { EXTRACTION_ATTEMPTS } from "@/core/constants";
 import {
   collapseDuplicateBrandMentions,
   type ExtractedBrand,
+  mapAttributesToCanonical,
   resolveBrandId,
   type TrackedBrand,
   validateExtraction,
@@ -10,6 +11,7 @@ import { normalizePhrase } from "@/core/intake";
 import {
   commitValidExtraction,
   createPendingExtraction,
+  getProjectAttributeNames,
   getProjectBrandsForRun,
   getProjectFactClaims,
   getResponse,
@@ -74,6 +76,7 @@ interface PipelineContext {
   trackedBrands: TrackedBrand[];
   clientBrandId: string | null;
   factClaimRows: Array<{ id: string; type: string; statement: string }>;
+  desiredAttributes: string[];
   injection: ExtractionInjection | null;
 }
 
@@ -101,6 +104,7 @@ async function runLiveExtraction(ctx: PipelineContext) {
       rawText: ctx.rawText,
       trackedBrandNames: orderedNames,
       factClaims: ctx.factClaimRows.map((f) => ({ type: f.type, statement: f.statement })),
+      desiredAttributes: ctx.desiredAttributes,
     },
     AbortSignal.timeout(EXTRACTION_CALL_TIMEOUT_MS),
   );
@@ -158,6 +162,9 @@ async function runExtractionPipeline(
       const resolvedBrands: ExtractedBrand[] = validation.data.brands.map((b) => ({
         ...b,
         canonical_brand_id: resolveBrandId(b.observed_name, ctx.trackedBrands),
+        // Map extracted attribute phrases to canonical names so metrics'
+        // exact match works even if the extractor drifted (audit finding).
+        attributes: mapAttributesToCanonical(b.attributes, ctx.desiredAttributes),
       }));
       const collapsed = collapseDuplicateBrandMentions(resolvedBrands);
       // SM-4 applies to citations too: the engine emits observed brand
@@ -251,9 +258,10 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
   const run = await getRun(response.runId);
   if (!run) throw new Error(`run ${response.runId} not found`);
 
-  const [projectBrandRows, factClaimRows] = await Promise.all([
+  const [projectBrandRows, factClaimRows, desiredAttributes] = await Promise.all([
     getProjectBrandsForRun(run.projectId),
     getProjectFactClaims(run.projectId),
+    getProjectAttributeNames(run.projectId),
   ]);
   const trackedBrands: TrackedBrand[] = projectBrandRows.map((b) => ({
     id: b.id,
@@ -269,6 +277,7 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
     trackedBrands,
     clientBrandId: projectBrandRows.find((b) => b.role === "client")?.id ?? null,
     factClaimRows,
+    desiredAttributes,
     injection: readExtractionInjection(run.debugFailureInjectionJson),
   };
 }

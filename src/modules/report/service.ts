@@ -146,11 +146,12 @@ export async function generateReport(runId: string): Promise<{ ok: true; created
 }
 
 /** RB-3: regenerate exactly one section from fresh data — siblings are never touched. */
-export async function regenerateOneSection(runId: string, sectionId: string, sectionKey: string) {
+export async function regenerateOneSection(runId: string, sectionId: string, sectionKey: string): Promise<string> {
   const ctx = await buildReportContext(runId);
   if (!ctx) throw new Error("Run not found");
   const md = generateSection(sectionKey as Parameters<typeof generateSection>[0], ctx);
   await regenerateSection(sectionId, md);
+  return md;
 }
 
 export async function editSection(sectionId: string, editedMd: string) {

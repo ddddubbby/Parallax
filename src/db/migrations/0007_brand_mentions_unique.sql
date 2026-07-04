@@ -1,1 +1,2 @@
+DELETE FROM "brand_mentions" a USING "brand_mentions" b WHERE a."brand_id" IS NOT NULL AND a."extraction_id" = b."extraction_id" AND a."brand_id" = b."brand_id" AND a.ctid > b.ctid;--> statement-breakpoint
 CREATE UNIQUE INDEX "brand_mentions_extraction_brand_uq" ON "brand_mentions" USING btree ("extraction_id","brand_id") WHERE "brand_id" is not null;

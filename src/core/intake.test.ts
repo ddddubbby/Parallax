@@ -4,6 +4,7 @@ import {
   basicsSchema,
   competitorsSchema,
   findAliasOverlaps,
+  containsPhrase,
   normalizePhrase,
   personasSchema,
   slugify,
@@ -111,5 +112,16 @@ describe("helpers", () => {
   it("slugifies names with a suffix", () => {
     expect(slugify("LedgerFox AI Demo!", "ab12")).toBe("ledgerfox-ai-demo-ab12");
     expect(slugify("---", "ab12")).toBe("project-ab12");
+  });
+});
+
+describe("containsPhrase (audit fix #3 — word-boundary match)", () => {
+  it("matches whole phrases on word boundaries, not substrings", () => {
+    expect(containsPhrase("what is the best pos system", "pos")).toBe(true);
+    expect(containsPhrase("choose a position for the logo", "pos")).toBe(false);
+    expect(containsPhrase("does it use ai models", "ai")).toBe(true);
+    expect(containsPhrase("send me a detailed email", "ai")).toBe(false);
+    expect(containsPhrase("Easy   Implementation matters", "easy implementation")).toBe(true);
+    expect(containsPhrase("", "ai")).toBe(false);
   });
 });

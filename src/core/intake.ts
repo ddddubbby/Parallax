@@ -79,6 +79,19 @@ export function normalizePhrase(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/**
+ * Whole-phrase, word-boundary containment (same matcher as PM-9's brand
+ * scan). Both sides are normalized; the phrase matches only on word
+ * boundaries, so a short phrase like "ai" or "pos" is never captured inside
+ * an unrelated longer word (audit finding on planted-attribute exclusion).
+ */
+export function containsPhrase(haystack: string, phrase: string): boolean {
+  const needle = normalizePhrase(phrase);
+  if (!needle) return false;
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|\\W)${escaped}(\\W|$)`).test(normalizePhrase(haystack));
+}
+
 // CM-2: 6-12 normalized phrases, unique after normalization.
 export const attributesSchema = z.object({
   attributes: z

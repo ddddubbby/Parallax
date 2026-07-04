@@ -170,10 +170,7 @@ export function DashboardClient({
 
           <PillarSection pillar="perception">
             <div className="flex flex-col gap-6">
-              <AttributeSection
-                metrics={metrics}
-                onViewEvidence={() => setDrilldown({ kind: "scope", label: "Attribute evidence" })}
-              />
+              <AttributeSection metrics={metrics} onAttributeEvidence={onMetricEvidence} />
               <SentimentSection metrics={metrics} />
             </div>
           </PillarSection>

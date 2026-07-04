@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { normalizePhrase } from "@/core/intake";
+import { containsPhrase } from "@/core/intake";
 import type { Intent } from "@/core/matrix";
 import { metricIntentFilter } from "@/core/semantic";
 import { db } from "../client";
@@ -263,8 +263,8 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
   // exclusion. Evidence that doesn't match the number is worse than none.
   const intentPure = filter.scopeType === "intent" || filter.scopeType === "intent_persona";
   const allowedIntents = intentPure ? null : metricIntentFilter(filter.metricKey);
-  const plantedPhrase = filter.metricKey.startsWith("attribute_")
-    ? normalizePhrase(filter.metricKey.slice("attribute_".length))
+  const plantedAttribute = filter.metricKey.startsWith("attribute_")
+    ? filter.metricKey.slice("attribute_".length)
     : null;
 
   const scoped = eligible
@@ -273,7 +273,8 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
       const cell = cellById.get(e.cellId);
       if (allowedIntents && !(cell && allowedIntents.includes(cell.intent as Intent))) return false;
       if (filter.metricKey === "citation_share" && e.generationMode !== "grounded") return false;
-      if (plantedPhrase && normalizePhrase(cell?.resolvedText ?? "").includes(plantedPhrase)) return false;
+      // Word-boundary match, same as recomputeMetrics (audit finding).
+      if (plantedAttribute && containsPhrase(cell?.resolvedText ?? "", plantedAttribute)) return false;
       return true;
     })
     .sort((a, b) => a.responseId.localeCompare(b.responseId));
