@@ -286,6 +286,20 @@ export function resolveGlossary(metricKey: string): MetricGlossaryEntry {
  * The dynamic perception families (sentiment, attributes) are appended
  * since they are resolved on demand rather than named in the fixed map.
  */
+/**
+ * OX-6: plain-language definitions of the operator jargon that appears in
+ * the UI, so a term like "engine-mode" carries its meaning inline. Keyed by
+ * the lowercased term.
+ */
+export const GLOSSARY_TERMS: Record<string, string> = {
+  cell: "One resolved prompt — a specific intent × persona × market × phrasing that gets sent to the model.",
+  rep: "One repeated sample of a cell. Audit runs use k=5 reps per cell so metrics carry confidence intervals.",
+  "engine-mode": "A provider paired with a grounding mode (e.g. DeepSeek ungrounded, Perplexity grounded).",
+  grounded: "The provider returned web-grounded output with real citations. Ungrounded answers have no citations.",
+  eligible: "A stored response whose latest extraction is valid and not a refusal — the samples metrics are computed over.",
+  matrix: "The approved, frozen set of prompt cells a run executes.",
+};
+
 export function pillarMetricLabels(pillar: Pillar): string[] {
   const labels = Object.values(METRIC_GLOSSARY)
     .filter((e) => e.pillar === pillar && e.key !== "stability_index")

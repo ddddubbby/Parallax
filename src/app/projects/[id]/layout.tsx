@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
+import { ProjectNextAction } from "@/components/project-next-action";
 import { ProjectSubnav } from "@/components/project-subnav";
-import { getProjectSummary } from "@/db/repositories/runner";
+import { getProjectPipelineState, getProjectSummary } from "@/db/repositories/runner";
 
 export default async function ProjectLayout({
   params,
@@ -10,12 +11,13 @@ export default async function ProjectLayout({
   children: React.ReactNode;
 }) {
   const { id } = await params;
-  const project = await getProjectSummary(id);
+  const [project, pipeline] = await Promise.all([getProjectSummary(id), getProjectPipelineState(id)]);
   if (!project) notFound();
 
   return (
     <>
       <ProjectSubnav projectId={id} projectName={project.name} />
+      <ProjectNextAction projectId={id} state={pipeline} />
       {children}
     </>
   );

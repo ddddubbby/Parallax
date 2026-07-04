@@ -586,3 +586,24 @@ export async function getProjectSummary(projectId: string) {
     .where(eq(projects.id, projectId));
   return row ?? null;
 }
+
+/** OX-2: the booleans resolveProjectStage needs to pick a project's next action. */
+export async function getProjectPipelineState(projectId: string) {
+  const [statusRow, versionRow, runRows] = await Promise.all([
+    db.select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)),
+    db
+      .select({ state: matrixVersions.state })
+      .from(matrixVersions)
+      .where(eq(matrixVersions.projectId, projectId)),
+    db.select({ state: auditRuns.state }).from(auditRuns).where(eq(auditRuns.projectId, projectId)),
+  ]);
+  const versionStates = versionRow.map((v) => v.state);
+  const runStates = runRows.map((r) => r.state);
+  return {
+    intakeComplete: (statusRow[0]?.status ?? null) === "active",
+    hasMatrix: versionStates.length > 0,
+    hasApprovedMatrix: versionStates.includes("approved"),
+    hasActiveRun: runStates.some((s) => s === "queued" || s === "running"),
+    hasCompletedRun: runStates.includes("completed"),
+  };
+}

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { INTENT_ORDER, type Intent } from "@/core/matrix";
+import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { PillarExplainer, PillarSection } from "@/components/semantic/pillar";
 import { PILLAR_ORDER, PILLARS, intentToPillar, pillarMetricLabels, type Pillar } from "@/core/semantic";
 import {
@@ -105,7 +106,7 @@ export function MatrixBoard({
           <span
             className={`label-mono text-sm ${atCap ? "text-accent-ink font-semibold" : "text-ink/60"}`}
           >
-            {count} / {MAX_CELLS_PER_RUN} cells
+            {count} / {MAX_CELLS_PER_RUN} <GlossaryTerm term="cell">cells</GlossaryTerm>
           </span>
         )}
       </div>

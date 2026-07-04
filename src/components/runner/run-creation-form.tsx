@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { Button, Field, Input, Stamp } from "@/components/ui";
 import type { GenerationMode, ProviderId, RunMode } from "@/core/runner";
 import { createRun, projectRunCost, type RunCreationInput } from "@/modules/runner/actions";
@@ -134,7 +135,9 @@ export function RunCreationForm({
     <div className="flex flex-col gap-6">
       <div>
         <span className="label-mono text-xs text-ink/60">Approved matrix</span>
-        <p className="text-sm text-ink/85">{cellCount} cells</p>
+        <p className="text-sm text-ink/85">
+          {cellCount} <GlossaryTerm term="cell">cells</GlossaryTerm>
+        </p>
       </div>
 
       <Field label="Run mode">
@@ -163,7 +166,7 @@ export function RunCreationForm({
         <p className="rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
           {runMode === "live_validation"
             ? "Live validation spends real money and is labeled VALIDATION-ONLY — never client-ready evidence."
-            : "Live audit spends real money at k=5 per cell per engine-mode."}
+            : <>Live audit spends real money at k=5 per <GlossaryTerm term="cell">cell</GlossaryTerm> per <GlossaryTerm term="engine-mode">engine-mode</GlossaryTerm>.</>}
         </p>
       )}
 
