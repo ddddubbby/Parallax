@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { INTENT_ORDER, type Intent } from "@/core/matrix";
+import { PILLARS, intentToPillar, type Pillar } from "@/core/semantic";
 import {
   addCell,
   approveMatrix,
@@ -60,6 +61,12 @@ export function MatrixBoard({
   const isDraft = focus?.state === "draft";
   const count = focus?.cells.length ?? 0;
   const atCap = count >= MAX_CELLS_PER_RUN;
+  const pillarCounts = (["presence", "position", "perception", "proof"] as Pillar[]).map((pillar) => ({
+    pillar,
+    count: pillar === "proof"
+      ? count
+      : focus?.cells.filter((c) => intentToPillar(c.intent) === pillar).length ?? 0,
+  }));
   const violationCount =
     focus?.cells.filter((c) => c.brandTermViolations.length > 0).length ?? 0;
 
@@ -207,14 +214,24 @@ export function MatrixBoard({
             )}
           </div>
 
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="label-mono text-xs text-ink/45">Pillar coverage:</span>
+            {pillarCounts.map(({ pillar, count }) => (
+              <Stamp key={pillar} tone={count > 0 ? "ink" : "warn"}>
+                {PILLARS[pillar].label}: {count}
+              </Stamp>
+            ))}
+          </div>
+
           <div className="flex flex-col gap-6">
             {INTENT_ORDER.map((intent) => {
               const cells = focus.cells.filter((c) => c.intent === intent);
               if (cells.length === 0) return null;
+              const pillar = intentToPillar(intent);
               return (
                 <section key={intent}>
                   <h2 className="label-mono mb-2 text-xs font-medium text-ink/60">
-                    {intent} · {cells.length}
+                    {PILLARS[pillar].label} / {intent} · {cells.length}
                   </h2>
                   <div className="flex flex-col gap-2">
                     {cells.map((cell) => (
@@ -228,6 +245,7 @@ export function MatrixBoard({
                       >
                         <div className="mb-1.5 flex items-center justify-between">
                           <span className="flex items-center gap-2 font-mono text-xs text-ink/45">
+                            <Stamp tone="ink">{PILLARS[intentToPillar(cell.intent)].label}</Stamp>
                             {cell.personaLabel} · {cell.marketLabel} ·{" "}
                             {cell.variantKey}
                             {cell.brandTermViolations.length > 0 && (

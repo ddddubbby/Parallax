@@ -23,7 +23,12 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
 function withDefaults(server: IntakeDraft): Record<IntakeStepKey, unknown> {
   const merged = {} as Record<IntakeStepKey, unknown>;
   for (const { key } of INTAKE_STEPS) {
-    merged[key] = server[key] ?? structuredClone(STEP_DEFAULTS[key]);
+    const defaults = structuredClone(STEP_DEFAULTS[key]);
+    const value = server[key];
+    merged[key] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? { ...(defaults as Record<string, unknown>), ...(value as Record<string, unknown>) }
+        : (value ?? defaults);
   }
   return merged;
 }

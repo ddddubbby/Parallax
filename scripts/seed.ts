@@ -4,6 +4,7 @@ import "../src/env-bootstrap";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { and, eq } from "drizzle-orm";
+import { TEMPLATE_SEED } from "../src/core/prompt-templates";
 import { db, pool } from "../src/db/client";
 import {
   attributes,
@@ -14,32 +15,6 @@ import {
   projects,
   promptTemplates,
 } from "../src/db/schema";
-
-type IntentKey =
-  | "discovery"
-  | "consideration"
-  | "comparison"
-  | "validation"
-  | "objection";
-
-// Three variant phrasings per intent (PRD 8.4); v1 is the canonical PRD text.
-const TEMPLATE_SEED: Array<{ intent: IntentKey; variantKey: string; text: string }> = [
-  { intent: "discovery", variantKey: "v1", text: "What tools should a {persona} in {market} consider for {job_to_be_done}?" },
-  { intent: "discovery", variantKey: "v2", text: "Which solutions would you shortlist for a {persona} in {market} trying to {job_to_be_done}?" },
-  { intent: "discovery", variantKey: "v3", text: "I'm a {persona} in {market}. What should I look at for {job_to_be_done}?" },
-  { intent: "consideration", variantKey: "v1", text: "What are the best options for {persona} teams evaluating {category} in {market}?" },
-  { intent: "consideration", variantKey: "v2", text: "Rank the leading {category} options for a {persona} buyer in {market}." },
-  { intent: "consideration", variantKey: "v3", text: "As a {persona} in {market}, which {category} vendors are worth a demo?" },
-  { intent: "comparison", variantKey: "v1", text: "Compare {client_brand} against {competitor_list} for a {persona} buyer in {market}." },
-  { intent: "comparison", variantKey: "v2", text: "How does {client_brand} stack up against {competitor_list} for {persona} teams in {market}?" },
-  { intent: "comparison", variantKey: "v3", text: "Between {client_brand} and {competitor_list}, which fits a {persona} in {market} best, and why?" },
-  { intent: "validation", variantKey: "v1", text: "Is {client_brand} a good fit for {persona} teams that care about {attribute_list}?" },
-  { intent: "validation", variantKey: "v2", text: "Would you recommend {client_brand} to a {persona} prioritizing {attribute_list}?" },
-  { intent: "validation", variantKey: "v3", text: "For a {persona} that values {attribute_list}, what are {client_brand}'s strengths and weaknesses?" },
-  { intent: "objection", variantKey: "v1", text: "What concerns should a {persona} have before choosing {client_brand}?" },
-  { intent: "objection", variantKey: "v2", text: "What are the most common criticisms of {client_brand} from {persona} buyers?" },
-  { intent: "objection", variantKey: "v3", text: "Why might a {persona} decide against {client_brand}?" },
-];
 
 const DEMO_SLUG = "ledgerfox-demo";
 
@@ -72,12 +47,14 @@ async function seedTemplates(): Promise<number> {
       .where(
         and(
           eq(promptTemplates.intent, t.intent),
+          eq(promptTemplates.archetype, t.archetype),
           eq(promptTemplates.variantKey, t.variantKey),
           eq(promptTemplates.active, true),
         ),
       );
     if (existing.length === 0) {
       await db.insert(promptTemplates).values({
+        archetype: t.archetype,
         intent: t.intent,
         variantKey: t.variantKey,
         templateText: t.text,

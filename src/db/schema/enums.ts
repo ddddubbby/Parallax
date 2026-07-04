@@ -23,6 +23,12 @@ export const factClaimStatus = pgEnum("fact_claim_status", [
   "archived",
 ]);
 
+export const categoryArchetype = pgEnum("category_archetype", [
+  "b2b",
+  "consumer_product",
+  "consumer_venue",
+]);
+
 export const intent = pgEnum("intent", [
   "discovery",
   "consideration",

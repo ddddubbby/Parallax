@@ -2,7 +2,8 @@
 
 import { Stamp } from "@/components/ui";
 import { isSufficientN } from "@/core/metrics";
-import { formatCI, formatMetricValue, METRIC_LABELS, type MetricRow } from "./format";
+import { PILLARS, resolveGlossary } from "@/core/semantic";
+import { formatCI, formatMetricValue, metricLabel, type MetricRow } from "./format";
 
 const SCORECARD_KEYS = [
   "mention_rate",
@@ -28,7 +29,7 @@ export function Scorecard({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="label-mono text-xs font-medium text-ink/60">Scorecard</h2>
+        <h2 className="label-mono text-xs font-medium text-ink/60">Four P&apos;s Scorecard</h2>
         <button type="button" onClick={onViewEvidence} className="label-mono text-xs text-accent-ink hover:underline">
           View evidence →
         </button>
@@ -36,10 +37,14 @@ export function Scorecard({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {SCORECARD_KEYS.map((key) => {
           const m = byKey.get(key);
+          const glossary = resolveGlossary(key);
           const sufficient = m ? isSufficientN(m.n) : false;
           return (
             <div key={key} className="rounded-xl border border-ink/15 p-4">
-              <div className="label-mono mb-1 text-[11px] text-ink/50">{METRIC_LABELS[key]}</div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="label-mono text-[11px] text-ink/50">{metricLabel(key)}</div>
+                <Stamp tone="ink">{PILLARS[glossary.pillar].label}</Stamp>
+              </div>
               {!m ? (
                 <div className="font-mono text-sm text-ink/30">—</div>
               ) : !sufficient ? (

@@ -100,6 +100,7 @@ export async function completeIntake(id: string, data: NormalizedIntake) {
       .set({
         name: data.basics.name,
         category: data.basics.category,
+        categoryArchetype: data.basics.category_archetype,
         jobToBeDone: data.basics.job_to_be_done,
         status: "active",
         updatedAt: new Date(),

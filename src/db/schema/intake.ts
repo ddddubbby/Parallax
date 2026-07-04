@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   brandRole,
+  categoryArchetype,
   factClaimStatus,
   factClaimType,
   projectStatus,
@@ -21,6 +22,9 @@ export const projects = pgTable("projects", {
   // Auto-generated from name at creation; not operator-edited in MVP.
   slug: text("slug").notNull().unique(),
   category: text("category"),
+  categoryArchetype: categoryArchetype("category_archetype")
+    .notNull()
+    .default("b2b"),
   jobToBeDone: text("job_to_be_done"),
   status: projectStatus("status").notNull().default("draft"),
   intakeStep: integer("intake_step").notNull().default(1),

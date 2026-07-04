@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Select, Stamp } from "@/components/ui";
+import { PILLARS } from "@/core/semantic";
 import { reviewClaim } from "@/modules/dashboard/actions";
 
 interface MisinfoRow {
@@ -172,7 +173,7 @@ export function MisinformationRegister({
   return (
     <section>
       <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">
-        Misinformation Register <span className="text-ink/40">({rows.length})</span>
+        {PILLARS.proof.label} <span className="text-ink/40">— Misinformation Register ({rows.length})</span>
         {unreviewedCount > 0 && (
           <span className="ml-2 text-warn">{unreviewedCount} unreviewed</span>
         )}

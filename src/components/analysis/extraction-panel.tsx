@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Button, Stamp } from "@/components/ui";
+import { PILLARS, resolveGlossary, type Pillar } from "@/core/semantic";
 import { fetchExtractionAndMetrics } from "@/modules/extraction/actions";
 import { recomputeMetrics } from "@/modules/analysis/actions";
 
 const POLL_MS = 2000;
 const EXTRACTION_STATES = ["pending", "retrying", "valid", "dead_lettered", "qa_reviewed"];
+const PILLAR_ORDER: Pillar[] = ["presence", "position", "perception", "proof"];
 
 interface MetricRow {
   id: string;
@@ -43,6 +45,10 @@ export function ExtractionPanel({ runId, terminal }: { runId: string; terminal: 
   if (!data) return null;
 
   const overallMetrics = data.metrics.filter((m) => m.scopeType === "overall");
+  const metricsByPillar = PILLAR_ORDER.map((pillar) => ({
+    pillar,
+    metrics: overallMetrics.filter((m) => resolveGlossary(m.metricKey).pillar === pillar),
+  })).filter((group) => group.metrics.length > 0);
   const extracted = (data.progress.valid ?? 0) + (data.progress.qa_reviewed ?? 0);
   const deadLettered = data.progress.dead_lettered ?? 0;
 
@@ -62,7 +68,7 @@ export function ExtractionPanel({ runId, terminal }: { runId: string; terminal: 
 
       <div className="mb-3 flex items-center justify-between">
         <h2 className="label-mono text-xs font-medium text-ink/60">
-          Metrics preview <span className="text-ink/40">(overall scope — full dashboard is M6)</span>
+          Metrics preview <span className="text-ink/40">(overall scope)</span>
         </h2>
         <Button
           variant="secondary"
@@ -80,24 +86,43 @@ export function ExtractionPanel({ runId, terminal }: { runId: string; terminal: 
       {overallMetrics.length === 0 ? (
         <p className="font-mono text-xs text-ink/45">No metrics computed yet</p>
       ) : (
-        <table className="w-full border-collapse font-mono text-xs">
-          <thead>
-            <tr className="border-b border-ink/20 text-left text-ink/50">
-              <th className="py-1.5 pr-4">Metric</th>
-              <th className="py-1.5 pr-4">n</th>
-              <th className="py-1.5 pr-4">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {overallMetrics.map((m) => (
-              <tr key={m.id} className="border-b border-ink/10">
-                <td className="py-1.5 pr-4">{m.metricKey}</td>
-                <td className="py-1.5 pr-4 text-ink/50">{m.n}</td>
-                <td className="py-1.5 pr-4">{formatMetric(m)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="flex flex-col gap-4">
+          {metricsByPillar.map(({ pillar, metrics }) => (
+            <section key={pillar} className="rounded-xl border border-ink/15 p-3">
+              <div className="mb-2">
+                <h3 className="label-mono text-xs text-ink/70">
+                  {PILLARS[pillar].label}
+                </h3>
+                <p className="font-mono text-[11px] text-ink/45">
+                  {PILLARS[pillar].clientQuestion}
+                </p>
+              </div>
+              <table className="w-full border-collapse font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-ink/20 text-left text-ink/50">
+                    <th className="py-1.5 pr-4">Metric</th>
+                    <th className="py-1.5 pr-4">Meaning</th>
+                    <th className="py-1.5 pr-4">n</th>
+                    <th className="py-1.5 pr-4">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.map((m) => {
+                    const glossary = resolveGlossary(m.metricKey);
+                    return (
+                      <tr key={m.id} className="border-b border-ink/10">
+                        <td className="py-1.5 pr-4 text-ink/80">{glossary.label}</td>
+                        <td className="py-1.5 pr-4 text-ink/50">{glossary.definition}</td>
+                        <td className="py-1.5 pr-4 text-ink/50">{m.n}</td>
+                        <td className="py-1.5 pr-4">{formatMetric(m)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );

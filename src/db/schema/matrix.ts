@@ -11,13 +11,14 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { intent, matrixState } from "./enums";
+import { categoryArchetype, intent, matrixState } from "./enums";
 import { markets, personas, projects } from "./intake";
 
 export const promptTemplates = pgTable(
   "prompt_templates",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    archetype: categoryArchetype("archetype").notNull().default("b2b"),
     intent: intent("intent").notNull(),
     templateText: text("template_text").notNull(),
     variantKey: text("variant_key").notNull(),
@@ -31,8 +32,8 @@ export const promptTemplates = pgTable(
   },
   (t) => [
     // Unique while active: partial unique index per ENGINEERING_SPEC section 2.
-    uniqueIndex("prompt_templates_intent_variant_active_uq")
-      .on(t.intent, t.variantKey)
+    uniqueIndex("prompt_templates_archetype_intent_variant_active_uq")
+      .on(t.archetype, t.intent, t.variantKey)
       .where(sql`${t.active} = true`),
   ],
 );

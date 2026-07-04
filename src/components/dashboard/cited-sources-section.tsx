@@ -1,5 +1,7 @@
 "use client";
 
+import { PILLARS } from "@/core/semantic";
+
 interface CitedSource {
   domain: string;
   total: number;
@@ -17,7 +19,9 @@ export function CitedSourcesSection({
 }) {
   return (
     <section>
-      <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">Cited Sources</h2>
+      <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">
+        {PILLARS.proof.label} <span className="text-ink/40">— {PILLARS.proof.clientQuestion}</span>
+      </h2>
       {sources.length === 0 ? (
         <p className="font-mono text-xs text-ink/45">No citations in this run&rsquo;s grounded responses</p>
       ) : (

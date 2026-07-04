@@ -9,6 +9,7 @@ import {
   type IntakeStepKey,
 } from "@/core/intake";
 import { findBrandTerms } from "@/core/matrix";
+import { CATEGORY_ARCHETYPES, type CategoryArchetype } from "@/core/semantic";
 
 // PS-4: review deep-links to steps and returns to review.
 
@@ -56,7 +57,7 @@ export function Review({
   onEdit: (step: number) => void;
   onComplete: () => void;
 }) {
-  const basics = draft.basics as { name: string; category: string; job_to_be_done: string };
+  const basics = draft.basics as { name: string; category_archetype?: CategoryArchetype; category: string; job_to_be_done: string };
   const client = draft.client_brand as BrandAliasInput & { domain: string };
   const competitors = (draft.competitors as { competitors: (BrandAliasInput & { domain?: string })[] })
     .competitors;
@@ -123,7 +124,8 @@ export function Review({
       )}
 
       <Section step={1} title={INTAKE_STEPS[0].label} onEdit={onEdit} hasErrors={errFor("basics")}>
-        {basics.name || "—"} · {basics.category || "—"}
+        {basics.name || "—"} · {basics.category || "—"} ·{" "}
+        {CATEGORY_ARCHETYPES[basics.category_archetype ?? "b2b"].label}
         <p className="mt-1 text-ink/60">{basics.job_to_be_done || "—"}</p>
       </Section>
 

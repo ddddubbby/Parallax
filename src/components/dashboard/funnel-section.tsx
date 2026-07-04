@@ -2,6 +2,7 @@
 
 import { FunnelHeatmap, type HeatmapCell } from "@/components/charts/FunnelHeatmap";
 import { isSufficientN } from "@/core/metrics";
+import { PILLARS } from "@/core/semantic";
 import type { MetricRow } from "./format";
 
 /** DB-1 funnel heatmap: Mention Rate per intent x persona, DB-2 drill-down per cell. */
@@ -34,7 +35,7 @@ export function FunnelSection({
   return (
     <section>
       <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">
-        Funnel heatmap <span className="text-ink/40">(Mention Rate by intent × persona)</span>
+        {PILLARS.presence.label} <span className="text-ink/40">— {PILLARS.presence.clientQuestion}</span>
       </h2>
       <FunnelHeatmap cells={cells} onCellClick={onCellClick} />
     </section>

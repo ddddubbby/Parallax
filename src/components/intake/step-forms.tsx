@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import type { FieldErrors, IntakeStepKey } from "@/core/intake";
+import { CATEGORY_ARCHETYPES, type CategoryArchetype } from "@/core/semantic";
 
 // Draft value shapes: raw form state, validated server-side on Next (PS-3).
 
@@ -31,7 +32,7 @@ interface PersonaDraft {
 }
 
 export const STEP_DEFAULTS: Record<IntakeStepKey, unknown> = {
-  basics: { name: "", category: "", job_to_be_done: "" },
+  basics: { name: "", category_archetype: "b2b", category: "", job_to_be_done: "" },
   client_brand: { name: "", aliases: [], domain: "", description: "" },
   competitors: {
     competitors: [
@@ -127,7 +128,7 @@ export function StepForm({
 }) {
   switch (stepKey) {
     case "basics": {
-      const v = value as { name: string; category: string; job_to_be_done: string };
+      const v = value as { name: string; category_archetype?: CategoryArchetype; category: string; job_to_be_done: string };
       return (
         <div className="flex max-w-xl flex-col gap-4">
           <Field label="Project / client name" errors={errsFor(errors, "name")}>
@@ -135,6 +136,24 @@ export function StepForm({
               value={v.name}
               onChange={(e) => onChange({ ...v, name: e.target.value })}
             />
+          </Field>
+          <Field
+            label="How buyers get this"
+            hint="Selects the prompt-template language for this category"
+            errors={errsFor(errors, "category_archetype")}
+          >
+            <Select
+              value={v.category_archetype ?? "b2b"}
+              onChange={(e) =>
+                onChange({ ...v, category_archetype: e.target.value as CategoryArchetype })
+              }
+            >
+              {Object.entries(CATEGORY_ARCHETYPES).map(([key, meta]) => (
+                <option key={key} value={key}>
+                  {meta.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field
             label="Category"

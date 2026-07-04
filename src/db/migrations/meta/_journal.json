@@ -43,6 +43,13 @@
       "when": 1783200000000,
       "tag": "0005_persistence_error_type",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783203600000,
+      "tag": "0006_category_archetypes",
+      "breakpoints": true
     }
   ]
 }

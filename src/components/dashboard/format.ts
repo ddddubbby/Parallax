@@ -1,3 +1,5 @@
+import { resolveGlossary } from "@/core/semantic";
+
 // UI-only formatting for the dashboard. Not domain logic (that's
 // src/core/metrics.ts) — just how a MetricResult renders as text.
 
@@ -39,12 +41,6 @@ export function formatCI(m: MetricRow): string | null {
   return `[${(m.ciLow * 100).toFixed(0)}–${(m.ciHigh * 100).toFixed(0)}%]`;
 }
 
-export const METRIC_LABELS: Record<string, string> = {
-  mention_rate: "Mention Rate",
-  recommendation_rate: "Recommendation Rate",
-  share_of_voice: "Share of Voice",
-  avg_first_position: "Avg First Position",
-  citation_share: "Citation Share",
-  accuracy_rate: "Accuracy Rate",
-  stability_index: "Stability Index",
-};
+export function metricLabel(metricKey: string): string {
+  return resolveGlossary(metricKey).label;
+}

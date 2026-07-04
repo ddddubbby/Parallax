@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   attributesSchema,
+  basicsSchema,
   competitorsSchema,
   findAliasOverlaps,
   normalizePhrase,
@@ -10,6 +11,24 @@ import {
 } from "./intake";
 
 describe("intake step schemas", () => {
+  it("requires a category archetype in basics (AT-1)", () => {
+    expect(
+      basicsSchema.safeParse({
+        name: "Heytea",
+        category: "bubble tea",
+        job_to_be_done: "choose a drink",
+      }).success,
+    ).toBe(false);
+    expect(
+      basicsSchema.safeParse({
+        name: "Heytea",
+        category_archetype: "consumer_venue",
+        category: "bubble tea",
+        job_to_be_done: "choose a drink",
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects fewer than 3 competitors (BC-2)", () => {
     const result = competitorsSchema.safeParse({
       competitors: [{ name: "A", aliases: [] }],

@@ -3,6 +3,7 @@
 import { SoVChart, type SoVDatum } from "@/components/charts/SoVChart";
 import { Stamp } from "@/components/ui";
 import { isSufficientN } from "@/core/metrics";
+import { PILLARS } from "@/core/semantic";
 import type { MetricRow } from "./format";
 
 /** DB-1 share of voice: client vs competitor mention share, DB-3 small-n guard. */
@@ -36,7 +37,9 @@ export function ShareOfVoiceSection({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="label-mono text-xs font-medium text-ink/60">Share of Voice</h2>
+        <h2 className="label-mono text-xs font-medium text-ink/60">
+          {PILLARS.position.label} <span className="text-ink/40">— {PILLARS.position.clientQuestion}</span>
+        </h2>
         <button type="button" onClick={onViewEvidence} className="label-mono text-xs text-accent-ink hover:underline">
           View evidence →
         </button>

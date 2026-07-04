@@ -24,6 +24,23 @@ import {
 type MetricScope = { scopeType: string; scopeKey: string };
 const OVERALL: MetricScope = { scopeType: "overall", scopeKey: "__all__" };
 
+// M11 glossary completeness test imports this list so any new emitted metric
+// family must either be named here or be covered by a resolver prefix.
+export const EMITTED_METRIC_KEY_EXAMPLES = [
+  "mention_rate",
+  "recommendation_rate",
+  "share_of_voice",
+  "avg_first_position",
+  "citation_share",
+  "accuracy_rate",
+  "stability_index",
+  "sentiment_positive",
+  "sentiment_neutral",
+  "sentiment_mixed",
+  "sentiment_negative",
+  "attribute_easy implementation",
+] as const;
+
 interface ScopedSample extends EligibleSample {
   scopes: MetricScope[];
 }

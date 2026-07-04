@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CategoryArchetype } from "./semantic";
 
 // Intake domain: step definitions, Zod schemas (PRD 8.1-8.3), and pure
 // rules. Pure module — imports nothing from other project layers (C-7).
@@ -26,6 +27,7 @@ const aliasList = z.array(nonEmpty).default([]);
 
 export const basicsSchema = z.object({
   name: nonEmpty.max(200, "Keep under 200 characters"),
+  category_archetype: z.enum(["b2b", "consumer_product", "consumer_venue"]),
   category: nonEmpty,
   job_to_be_done: nonEmpty,
 });
@@ -126,6 +128,7 @@ export const STEP_SCHEMAS: Record<IntakeStepKey, z.ZodType> = {
 };
 
 export type Basics = z.infer<typeof basicsSchema>;
+export type { CategoryArchetype };
 export type ClientBrand = z.infer<typeof clientBrandSchema>;
 export type Competitor = z.infer<typeof competitorSchema>;
 export type FactSheet = z.infer<typeof factSheetSchema>;

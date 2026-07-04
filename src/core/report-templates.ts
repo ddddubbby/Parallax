@@ -1,5 +1,6 @@
 import type { Finding } from "./findings";
 import { escapeModelText } from "./md";
+import { PILLARS } from "./semantic";
 
 // Report section templates (RB-4). Deterministic markdown generation from
 // already-computed metrics/findings data — no LLM call, matching the
@@ -14,11 +15,11 @@ import { escapeModelText } from "./md";
 export const REPORT_SECTIONS = [
   { key: "executive_summary", title: "Executive Summary" },
   { key: "method_confidence", title: "Method & Confidence" },
-  { key: "visibility", title: "Visibility" },
-  { key: "perception", title: "Perception" },
-  { key: "competitive_dynamics", title: "Competitive Dynamics" },
-  { key: "sources", title: "Sources" },
-  { key: "misinformation_register", title: "Misinformation Register" },
+  { key: "visibility", title: `${PILLARS.presence.label}: ${PILLARS.presence.clientQuestion}` },
+  { key: "perception", title: `${PILLARS.perception.label}: ${PILLARS.perception.clientQuestion}` },
+  { key: "competitive_dynamics", title: `${PILLARS.position.label}: ${PILLARS.position.clientQuestion}` },
+  { key: "sources", title: `${PILLARS.proof.label}: Sources` },
+  { key: "misinformation_register", title: `${PILLARS.proof.label}: Claim Accuracy` },
   { key: "recommendations", title: "Recommendations" },
   { key: "raw_answer_appendix", title: "Raw Answer Appendix" },
 ] as const;
@@ -112,7 +113,9 @@ function generateVisibility(ctx: ReportContext): string {
   const stability = overall(ctx, "stability_index");
   const lowStability = findingsByType(ctx, "low_stability");
 
-  return `| Metric | Value | n |
+  return `${PILLARS.presence.clientQuestion}
+
+| Metric | Value | n |
 |---|---|---|
 | Mention Rate | ${pct(mention?.value)}${ci(mention)} | ${mention?.n ?? "—"} |
 | Recommendation Rate | ${pct(rec?.value)}${ci(rec)} | ${rec?.n ?? "—"} |
@@ -128,7 +131,9 @@ function generatePerception(ctx: ReportContext): string {
     .map(([label, rate]) => `- ${label}: ${pct(rate)}`)
     .join("\n");
 
-  return `Sentiment observed in mentions of ${ctx.clientBrandName}:
+  return `${PILLARS.perception.clientQuestion}
+
+Sentiment observed in mentions of ${ctx.clientBrandName}:
 
 ${sentimentLines || "No sentiment data available."}
 
@@ -144,7 +149,9 @@ function generateCompetitiveDynamics(ctx: ReportContext): string {
   const lostShortlist = findingsByType(ctx, "lost_shortlist");
   const groundedSplit = findingsByType(ctx, "grounded_ungrounded_split");
 
-  return `${ctx.clientBrandName}'s observed share of voice against ${ctx.competitorNames.join(", ") || "tracked competitors"} was ${pct(sov?.value)} in this run.
+  return `${PILLARS.position.clientQuestion}
+
+${ctx.clientBrandName}'s observed share of voice against ${ctx.competitorNames.join(", ") || "tracked competitors"} was ${pct(sov?.value)} in this run.
 
 ${
   lostShortlist.length > 0
@@ -163,12 +170,16 @@ function generateSources(ctx: ReportContext): string {
       ? `| Domain | Citations |\n|---|---|\n${topSources.map((s) => `| ${escapeModelText(s.domain)} | ${s.total} |`).join("\n")}`
       : "No citations were recorded in this run's grounded responses.";
 
-  return `${table}\n\n${concentration.length > 0 ? concentration.map((f) => f.bodyMd).join("\n\n") : ""}`;
+  return `${PILLARS.proof.clientQuestion}
+
+${table}\n\n${concentration.length > 0 ? concentration.map((f) => f.bodyMd).join("\n\n") : ""}`;
 }
 
 function generateMisinformationRegister(ctx: ReportContext): string {
   if (ctx.misinformation.length === 0) {
-    return "No contradicted, unsupported, or outdated claims about the client brand were found in this run's sampled answers.";
+    return `${PILLARS.proof.clientQuestion}
+
+No contradicted, unsupported, or outdated claims about the client brand were found in this run's sampled answers.`;
   }
   // claim_text and evidence_quote are model-derived (untrusted in live
   // mode); verdict/severity are DB enums and fact_statement is the
@@ -179,7 +190,9 @@ function generateMisinformationRegister(ctx: ReportContext): string {
         `### ${m.verdict} (${m.severity} severity)\n\n> ${escapeModelText(m.claimText)}\n\n${m.evidenceQuote ? `Evidence: "${escapeModelText(m.evidenceQuote)}"\n\n` : ""}${m.factStatement ? `Fact sheet: ${m.factStatement}` : "Not checked against a specific fact-sheet entry."}`,
     )
     .join("\n\n---\n\n");
-  return `${ctx.misinformation.length} claim${ctx.misinformation.length === 1 ? "" : "s"} in this run's sampled answers did not match the client fact sheet:\n\n${rows}`;
+  return `${PILLARS.proof.clientQuestion}
+
+${ctx.misinformation.length} claim${ctx.misinformation.length === 1 ? "" : "s"} in this run's sampled answers did not match the client fact sheet:\n\n${rows}`;
 }
 
 function generateRecommendations(ctx: ReportContext): string {

@@ -20,6 +20,7 @@ export async function getMatrixInputs(projectId: string) {
       name: projects.name,
       status: projects.status,
       category: projects.category,
+      categoryArchetype: projects.categoryArchetype,
       jobToBeDone: projects.jobToBeDone,
     })
     .from(projects)
@@ -47,11 +48,17 @@ export async function getMatrixInputs(projectId: string) {
       db
         .select({
           intent: promptTemplates.intent,
+          archetype: promptTemplates.archetype,
           variantKey: promptTemplates.variantKey,
           templateText: promptTemplates.templateText,
         })
         .from(promptTemplates)
-        .where(eq(promptTemplates.active, true)),
+        .where(
+          and(
+            eq(promptTemplates.active, true),
+            eq(promptTemplates.archetype, project.categoryArchetype),
+          ),
+        ),
     ]);
 
   const client = projectBrands.find((b) => b.role === "client");
