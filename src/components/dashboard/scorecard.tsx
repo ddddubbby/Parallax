@@ -7,9 +7,10 @@ import { formatCI, formatMetricValue, metricLabel, type MetricRow } from "./form
 
 const SCORECARD_KEYS = [
   "mention_rate",
-  "recommendation_rate",
   "share_of_voice",
   "avg_first_position",
+  "recommendation_rate",
+  "comparative_win_rate",
   "citation_share",
   "accuracy_rate",
   "stability_index",

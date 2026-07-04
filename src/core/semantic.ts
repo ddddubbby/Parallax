@@ -54,6 +54,52 @@ export function intentToPillar(intent: Intent): Pillar {
   return "perception";
 }
 
+/**
+ * Prompt-frame rule (D-054): a metric may never count a signal the prompt
+ * itself planted. Frames classify what each cell's prompt plants, derived
+ * from intent — PM-9 guarantees unbranded intents contain no tracked brand
+ * terms at approval, so the mapping is enforceable, not aspirational.
+ */
+export type PromptFrame = "unbranded" | "client_branded" | "comparative";
+
+export const PROMPT_FRAMES: Record<PromptFrame, { label: string; plants: string }> = {
+  unbranded: { label: "Unbranded", plants: "nothing — no tracked brand appears in the prompt" },
+  client_branded: { label: "Client-branded", plants: "the client brand (validation also names desired attributes)" },
+  comparative: { label: "Comparative", plants: "the client and all competitors" },
+};
+
+export function intentToFrame(intent: Intent): PromptFrame {
+  if (intent === "discovery" || intent === "consideration") return "unbranded";
+  if (intent === "comparison") return "comparative";
+  return "client_branded";
+}
+
+const UNBRANDED_INTENTS: Intent[] = ["discovery", "consideration"];
+
+/**
+ * D-054: the intents whose samples may feed a metric's denominator at
+ * cross-intent scopes (overall/provider/mode/persona/market). `null` means
+ * frame-agnostic (the counted signal — claims, citations content, stability
+ * — cannot be planted by the prompt). Intent-pure scopes (`intent`,
+ * `intent_persona`) are exempt: single-intent drill-down rows are honest at
+ * that granularity and stay computed within their own intent.
+ */
+export function metricIntentFilter(metricKey: string): Intent[] | null {
+  if (
+    metricKey === "mention_rate" ||
+    metricKey === "share_of_voice" ||
+    metricKey === "avg_first_position" ||
+    metricKey === "recommendation_rate" ||
+    metricKey === "citation_share" ||
+    metricKey.startsWith("sentiment_organic_")
+  ) {
+    return UNBRANDED_INTENTS;
+  }
+  if (metricKey === "comparative_win_rate") return ["comparison"];
+  if (metricKey.startsWith("sentiment_solicited_")) return ["validation"];
+  return null;
+}
+
 export type DirectionOfGood = "higher" | "lower" | "neutral";
 
 export interface MetricGlossaryEntry {
@@ -76,38 +122,48 @@ export const METRIC_GLOSSARY: Record<string, MetricGlossaryEntry> = {
     label: "Mention Rate",
     pillar: "presence",
     question: PILLARS.presence.clientQuestion,
-    definition: "Share of eligible answers that mention the client brand.",
-    computationSummary: "Eligible samples with a client-brand mention divided by all eligible samples in scope.",
+    definition: "Share of unbranded answers that mention the client brand unprompted.",
+    computationSummary: "Unbranded-frame samples (discovery, consideration — no tracked brand in the prompt, PM-9) with a client-brand mention, divided by all unbranded eligible samples in scope. Branded prompts are excluded: a mention the prompt planted is not visibility (D-054).",
     intervalCaveat: WILSON_CAVEAT,
     directionOfGood: "higher",
   },
   recommendation_rate: {
     key: "recommendation_rate",
-    label: "Recommendation Rate",
-    pillar: "presence",
-    question: PILLARS.presence.clientQuestion,
-    definition: "Share of eligible answers that recommend the client brand.",
-    computationSummary: "Eligible samples where the client brand is marked recommended divided by all eligible samples in scope.",
+    label: "Organic Recommendation Rate",
+    pillar: "position",
+    question: PILLARS.position.clientQuestion,
+    definition: "When the field is open, how often AI recommends the client unprompted.",
+    computationSummary: "Unbranded-frame samples where the client brand is marked recommended, divided by all unbranded eligible samples in scope. Validation cells ('is X a good fit?') are excluded — an affirmation of the prompt's own premise is not an organic recommendation (D-054).",
+    intervalCaveat: WILSON_CAVEAT,
+    directionOfGood: "higher",
+  },
+  comparative_win_rate: {
+    key: "comparative_win_rate",
+    label: "Comparative Win Rate",
+    pillar: "position",
+    question: PILLARS.position.clientQuestion,
+    definition: "In a forced head-to-head against the competitor set, how often AI picks the client.",
+    computationSummary: "Comparison-frame samples where the client brand is marked recommended, divided by all comparison eligible samples in scope. No comparative rank metric exists: position inside comparison answers mirrors prompt order (the template names the client first), so it is not reported (D-054).",
     intervalCaveat: WILSON_CAVEAT,
     directionOfGood: "higher",
   },
   share_of_voice: {
     key: "share_of_voice",
     label: "Share of Voice",
-    pillar: "position",
-    question: PILLARS.position.clientQuestion,
-    definition: "The client's share of tracked-brand mentions in the sampled answers.",
-    computationSummary: "Client mentions divided by all mentions of tracked client and competitor brands in scope.",
+    pillar: "presence",
+    question: PILLARS.presence.clientQuestion,
+    definition: "The client's share of tracked-brand mentions in unbranded answers.",
+    computationSummary: "Client mentions divided by all tracked-brand mentions across unbranded-frame samples in scope. Comparative cells are excluded (every named brand is planted, so the ratio collapses to prompt structure) as are client-branded cells (structurally 1.0) — D-054.",
     intervalCaveat: POINT_ESTIMATE_CAVEAT,
     directionOfGood: "higher",
   },
   avg_first_position: {
     key: "avg_first_position",
     label: "Avg First Position",
-    pillar: "position",
-    question: PILLARS.position.clientQuestion,
-    definition: "Average first listed position when the client brand appears.",
-    computationSummary: "Mean client-brand position across samples where the client brand is present.",
+    pillar: "presence",
+    question: PILLARS.presence.clientQuestion,
+    definition: "Where the client appears in AI's unprompted lists, when it appears at all.",
+    computationSummary: "Mean client-brand list position across unbranded-frame samples where the client is present. Branded prompts are excluded — a brand named in the prompt is trivially listed first (D-054).",
     intervalCaveat: POINT_ESTIMATE_CAVEAT,
     directionOfGood: "lower",
   },
@@ -116,8 +172,8 @@ export const METRIC_GLOSSARY: Record<string, MetricGlossaryEntry> = {
     label: "Citation Share",
     pillar: "proof",
     question: PILLARS.proof.clientQuestion,
-    definition: "The client's share of citations attributed to tracked brands.",
-    computationSummary: "Citations for the client brand divided by citations for all tracked brands in scope.",
+    definition: "The client's share of web citations attributed to tracked brands in grounded, unbranded answers.",
+    computationSummary: "Citations for the client brand divided by citations for all tracked brands, over grounded unbranded-frame samples in scope. Ungrounded samples are excluded entirely (they cannot carry citations, so counting them misstates n); comparative prompts are excluded because they direct research at every named brand (D-054).",
     intervalCaveat: POINT_ESTIMATE_CAVEAT,
     directionOfGood: "higher",
   },
@@ -141,51 +197,52 @@ export const METRIC_GLOSSARY: Record<string, MetricGlossaryEntry> = {
     intervalCaveat: POINT_ESTIMATE_CAVEAT,
     directionOfGood: "higher",
   },
-  sentiment_positive: {
-    key: "sentiment_positive",
-    label: "Positive Sentiment",
-    pillar: "perception",
-    question: PILLARS.perception.clientQuestion,
-    definition: "Share of client-brand mentions classified as positive.",
-    computationSummary: "Positive client-brand mentions divided by all client-brand mentions in scope.",
-    intervalCaveat: POINT_ESTIMATE_CAVEAT,
-    directionOfGood: "higher",
+};
+
+const SENTIMENT_LABELS = ["positive", "neutral", "mixed", "negative"] as const;
+
+const SENTIMENT_GROUPS: Record<
+  string,
+  { groupLabel: string; denominator: string }
+> = {
+  organic: {
+    groupLabel: "organic",
+    denominator:
+      "client-brand mentions in unbranded-frame samples (discovery, consideration) — how AI talks about the brand when AI brings it up",
   },
-  sentiment_neutral: {
-    key: "sentiment_neutral",
-    label: "Neutral Sentiment",
-    pillar: "perception",
-    question: PILLARS.perception.clientQuestion,
-    definition: "Share of client-brand mentions classified as neutral.",
-    computationSummary: "Neutral client-brand mentions divided by all client-brand mentions in scope.",
-    intervalCaveat: POINT_ESTIMATE_CAVEAT,
-    directionOfGood: "neutral",
-  },
-  sentiment_mixed: {
-    key: "sentiment_mixed",
-    label: "Mixed Sentiment",
-    pillar: "perception",
-    question: PILLARS.perception.clientQuestion,
-    definition: "Share of client-brand mentions classified as mixed.",
-    computationSummary: "Mixed client-brand mentions divided by all client-brand mentions in scope.",
-    intervalCaveat: POINT_ESTIMATE_CAVEAT,
-    directionOfGood: "neutral",
-  },
-  sentiment_negative: {
-    key: "sentiment_negative",
-    label: "Negative Sentiment",
-    pillar: "perception",
-    question: PILLARS.perception.clientQuestion,
-    definition: "Share of client-brand mentions classified as negative.",
-    computationSummary: "Negative client-brand mentions divided by all client-brand mentions in scope.",
-    intervalCaveat: POINT_ESTIMATE_CAVEAT,
-    directionOfGood: "lower",
+  solicited: {
+    groupLabel: "solicited",
+    denominator:
+      "client-brand mentions in validation samples — how AI answers a direct fit question. Objection cells are excluded from all sentiment metrics: their prompts solicit concerns, so their negative skew is by design (their content feeds findings instead)",
   },
 };
+
+function sentimentEntry(group: string, label: string): MetricGlossaryEntry {
+  const meta = SENTIMENT_GROUPS[group];
+  return {
+    key: `sentiment_${group}_${label}`,
+    label: `${label[0].toUpperCase()}${label.slice(1)} sentiment (${meta.groupLabel})`,
+    pillar: "perception",
+    question: PILLARS.perception.clientQuestion,
+    definition: `Share of ${meta.groupLabel} client-brand mentions classified as ${label}.`,
+    computationSummary: `${label[0].toUpperCase()}${label.slice(1)} mentions divided by ${meta.denominator} (D-054). Never averaged into a single score, and never pooled across groups.`,
+    intervalCaveat: POINT_ESTIMATE_CAVEAT,
+    directionOfGood: label === "positive" ? "higher" : label === "negative" ? "lower" : "neutral",
+  };
+}
 
 export function resolveGlossary(metricKey: string): MetricGlossaryEntry {
   const fixed = METRIC_GLOSSARY[metricKey];
   if (fixed) return fixed;
+
+  if (metricKey.startsWith("sentiment_")) {
+    const rest = metricKey.slice("sentiment_".length);
+    for (const group of Object.keys(SENTIMENT_GROUPS)) {
+      for (const label of SENTIMENT_LABELS) {
+        if (rest === `${group}_${label}`) return sentimentEntry(group, label);
+      }
+    }
+  }
 
   if (metricKey.startsWith("attribute_")) {
     const attribute = metricKey.slice("attribute_".length).trim() || "attribute";
@@ -194,8 +251,8 @@ export function resolveGlossary(metricKey: string): MetricGlossaryEntry {
       label: `Attribute: ${attribute}`,
       pillar: "perception",
       question: PILLARS.perception.clientQuestion,
-      definition: `Share of client-brand mentions associated with "${attribute}".`,
-      computationSummary: "Mentions where the extraction associates this attribute divided by all client-brand mentions in scope.",
+      definition: `Share of client-brand mentions associated with "${attribute}", excluding prompts that planted it.`,
+      computationSummary: `Mentions where the extraction associates this attribute, divided by client-brand mentions whose resolved prompt text does NOT contain the attribute phrase — an echo of an attribute the prompt named (e.g. validation's {attribute_list}) is planted, not perceived (D-054). The exclusion matches against stored resolved text, so operator-edited prompts are covered too.`,
       intervalCaveat: POINT_ESTIMATE_CAVEAT,
       directionOfGood: "higher",
     };

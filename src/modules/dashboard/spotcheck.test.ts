@@ -39,12 +39,17 @@ describe.skipIf(!dbUp)("dashboard figures match independent SQL spot-checks", ()
     const persisted = await listMetrics(run.id);
     const overall = (key: string) => persisted.find((m) => m.scopeType === "overall" && m.metricKey === key);
 
-    // Independent SQL: latest extraction per response, eligible (valid/qa_reviewed, refusal:false, D-014),
-    // joined to that response's client-brand mention row if one exists.
+    // Independent SQL: latest extraction per response, eligible (valid/qa_reviewed,
+    // refusal:false, D-014), joined to that response's client-brand mention row if
+    // one exists. D-054 frame rule encoded independently: mention/recommendation
+    // rates count only unbranded intents (discovery, consideration); the
+    // comparative win rate counts only comparison cells.
     const spotCheck = await db.execute<{
-      n: number;
+      n_unbranded: number;
       client_mentions: number;
       client_recommended: number;
+      n_comparison: number;
+      comparison_wins: number;
     }>(sql`
       with latest_ext as (
         select distinct on (response_id) id, response_id, state, extracted_json
@@ -52,36 +57,41 @@ describe.skipIf(!dbUp)("dashboard figures match independent SQL spot-checks", ()
         order by response_id, extraction_version desc
       ),
       eligible as (
-        select r.id as response_id, le.id as extraction_id
+        select r.id as response_id, le.id as extraction_id, pc.intent
         from responses r
         join latest_ext le on le.response_id = r.id
+        join prompt_cells pc on pc.id = r.cell_id
         where r.run_id = ${run.id}
           and le.state in ('valid', 'qa_reviewed')
           and coalesce((le.extracted_json->>'refusal')::boolean, false) = false
       )
       select
-        count(*)::int as n,
-        count(bm.id)::int as client_mentions,
-        count(*) filter (where bm.recommended)::int as client_recommended
+        count(*) filter (where e.intent in ('discovery','consideration'))::int as n_unbranded,
+        count(bm.id) filter (where e.intent in ('discovery','consideration'))::int as client_mentions,
+        count(*) filter (where e.intent in ('discovery','consideration') and bm.recommended)::int as client_recommended,
+        count(*) filter (where e.intent = 'comparison')::int as n_comparison,
+        count(*) filter (where e.intent = 'comparison' and bm.recommended)::int as comparison_wins
       from eligible e
       left join brand_mentions bm on bm.extraction_id = e.extraction_id and bm.brand_id = ${clientBrand.id}
     `);
-    const { n, client_mentions, client_recommended } = spotCheck.rows[0];
-    expect(n).toBeGreaterThan(0);
-
-    const sqlMentionRate = client_mentions / n;
-    const sqlRecommendationRate = client_recommended / n;
+    const { n_unbranded, client_mentions, client_recommended, n_comparison, comparison_wins } = spotCheck.rows[0];
+    expect(n_unbranded).toBeGreaterThan(0);
+    expect(n_comparison).toBeGreaterThan(0);
 
     const persistedMentionRate = overall("mention_rate");
     const persistedRecommendationRate = overall("recommendation_rate");
-    expect(persistedMentionRate?.n).toBe(n);
-    expect(persistedMentionRate?.value).toBeCloseTo(sqlMentionRate, 6);
-    expect(persistedRecommendationRate?.n).toBe(n);
-    expect(persistedRecommendationRate?.value).toBeCloseTo(sqlRecommendationRate, 6);
+    const persistedComparativeWinRate = overall("comparative_win_rate");
+    expect(persistedMentionRate?.n).toBe(n_unbranded);
+    expect(persistedMentionRate?.value).toBeCloseTo(client_mentions / n_unbranded, 6);
+    expect(persistedRecommendationRate?.n).toBe(n_unbranded);
+    expect(persistedRecommendationRate?.value).toBeCloseTo(client_recommended / n_unbranded, 6);
+    expect(persistedComparativeWinRate?.n).toBe(n_comparison);
+    expect(persistedComparativeWinRate?.value).toBeCloseTo(comparison_wins / n_comparison, 6);
 
     // Third spot-check: Citation Share, independently summed from the
-    // resolved extracted_json (D-031) rather than a joined table.
-    const citationCheck = await db.execute<{ client_citations: number; tracked_citations: number }>(sql`
+    // resolved extracted_json (D-031). D-054: grounded, unbranded samples
+    // only — if the run has none, the metric row must not exist at all.
+    const citationCheck = await db.execute<{ n_samples: number; client_citations: number; tracked_citations: number }>(sql`
       with latest_ext as (
         select distinct on (response_id) id, response_id, state, extracted_json
         from extractions
@@ -91,7 +101,10 @@ describe.skipIf(!dbUp)("dashboard figures match independent SQL spot-checks", ()
         select le.extracted_json
         from responses r
         join latest_ext le on le.response_id = r.id
+        join prompt_cells pc on pc.id = r.cell_id
         where r.run_id = ${run.id}
+          and r.generation_mode = 'grounded'
+          and pc.intent in ('discovery','consideration')
           and le.state in ('valid', 'qa_reviewed')
           and coalesce((le.extracted_json->>'refusal')::boolean, false) = false
       ),
@@ -99,15 +112,20 @@ describe.skipIf(!dbUp)("dashboard figures match independent SQL spot-checks", ()
         select jsonb_array_elements(extracted_json->'citations') as c from eligible
       )
       select
+        (select count(*) from eligible)::int as n_samples,
         count(*) filter (where c->'cited_for_brand_ids' ? ${clientBrand.id})::int as client_citations,
         count(*) filter (where jsonb_array_length(c->'cited_for_brand_ids') > 0)::int as tracked_citations
       from citations
     `);
-    const { client_citations, tracked_citations } = citationCheck.rows[0];
-    const sqlCitationShare = tracked_citations === 0 ? 0 : client_citations / tracked_citations;
-
+    const { n_samples, client_citations, tracked_citations } = citationCheck.rows[0];
     const persistedCitationShare = overall("citation_share");
-    expect(persistedCitationShare?.value).toBeCloseTo(sqlCitationShare, 6);
+    if (n_samples === 0) {
+      expect(persistedCitationShare).toBeUndefined();
+    } else {
+      const sqlCitationShare = tracked_citations === 0 ? 0 : client_citations / tracked_citations;
+      expect(persistedCitationShare?.value).toBeCloseTo(sqlCitationShare, 6);
+      expect(persistedCitationShare?.n).toBe(n_samples);
+    }
 
     await pool.end();
   }, 30_000);

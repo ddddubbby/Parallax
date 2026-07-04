@@ -1,4 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { normalizePhrase } from "@/core/intake";
+import type { Intent } from "@/core/matrix";
+import { metricIntentFilter } from "@/core/semantic";
 import { db } from "../client";
 import {
   auditRuns,
@@ -237,7 +240,7 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
     db.select({ id: brands.id, role: brands.role }).from(brands).where(eq(brands.projectId, run.projectId)),
     getEligibleExtractionsForRun(runId),
     db
-      .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId })
+      .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId, resolvedText: promptCells.resolvedText })
       .from(promptCells)
       .where(eq(promptCells.matrixVersionId, run.matrixVersionId)),
   ]);
@@ -246,8 +249,26 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
   const clientBrandId = projectBrands.find((b) => b.role === "client")?.id ?? null;
   const trackedBrandIds = new Set(projectBrands.map((b) => b.id));
   const cellById = new Map(cellRows.map((c) => [c.id, c]));
+
+  // D-054: the drill-through denominator must be exactly the metric's
+  // denominator — same frame filter as recomputeMetrics, same intent-pure
+  // exemption, same grounded gate for citations, same planted-attribute
+  // exclusion. Evidence that doesn't match the number is worse than none.
+  const intentPure = filter.scopeType === "intent" || filter.scopeType === "intent_persona";
+  const allowedIntents = intentPure ? null : metricIntentFilter(filter.metricKey);
+  const plantedPhrase = filter.metricKey.startsWith("attribute_")
+    ? normalizePhrase(filter.metricKey.slice("attribute_".length))
+    : null;
+
   const scoped = eligible
     .filter((e) => eligibleMatchesDrilldownScope(e, cellById.get(e.cellId), filter))
+    .filter((e) => {
+      const cell = cellById.get(e.cellId);
+      if (allowedIntents && !(cell && allowedIntents.includes(cell.intent as Intent))) return false;
+      if (filter.metricKey === "citation_share" && e.generationMode !== "grounded") return false;
+      if (plantedPhrase && normalizePhrase(cell?.resolvedText ?? "").includes(plantedPhrase)) return false;
+      return true;
+    })
     .sort((a, b) => a.responseId.localeCompare(b.responseId));
   if (scoped.length === 0) return [];
 
@@ -374,26 +395,32 @@ function metricResponseLabel(
   if (metricKey === "mention_rate") {
     return {
       numeratorLabel: input.clientMention ? "Numerator: client mentioned" : "Numerator: client absent",
-      denominatorLabel: "Denominator: eligible response",
+      denominatorLabel: "Denominator: unbranded eligible response (D-054)",
     };
   }
   if (metricKey === "recommendation_rate") {
     return {
       numeratorLabel: input.clientMention?.recommended ? "Numerator: client recommended" : "Numerator: not recommended",
-      denominatorLabel: "Denominator: eligible response",
+      denominatorLabel: "Denominator: unbranded eligible response (D-054)",
+    };
+  }
+  if (metricKey === "comparative_win_rate") {
+    return {
+      numeratorLabel: input.clientMention?.recommended ? "Numerator: client wins head-to-head" : "Numerator: client not picked",
+      denominatorLabel: "Denominator: comparison eligible response (D-054)",
     };
   }
   if (metricKey === "share_of_voice") {
     return {
       numeratorLabel: `Client tracked mentions: ${input.clientMention ? 1 : 0}`,
-      denominatorLabel: `All tracked-brand mentions in this response: ${input.trackedMentionCount}`,
+      denominatorLabel: `Tracked-brand mentions in this unbranded response: ${input.trackedMentionCount}`,
     };
   }
   if (metricKey === "avg_first_position") {
     if (!input.clientMention || input.clientMention.position === null) return null;
     return {
       numeratorLabel: `Client position: ${input.clientMention.position}`,
-      denominatorLabel: "Denominator: responses where client is mentioned",
+      denominatorLabel: "Denominator: unbranded responses where client is mentioned (D-054)",
     };
   }
   if (metricKey === "citation_share") {

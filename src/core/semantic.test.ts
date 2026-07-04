@@ -6,7 +6,9 @@ import {
   CATEGORY_ARCHETYPES,
   METRIC_GLOSSARY,
   PILLARS,
+  intentToFrame,
   intentToPillar,
+  metricIntentFilter,
   resolveGlossary,
   type CategoryArchetype,
 } from "./semantic";
@@ -60,6 +62,50 @@ describe("semantic layer (M11)", () => {
       const terms = forbidden[template.archetype] ?? [];
       for (const term of terms) {
         expect(template.text.toLowerCase(), `${template.archetype}/${template.intent}/${template.variantKey}`).not.toContain(term);
+      }
+    }
+  });
+});
+
+describe("prompt-frame rule (D-054)", () => {
+  it("maps intents to the frame their prompts plant", () => {
+    expect(intentToFrame("discovery")).toBe("unbranded");
+    expect(intentToFrame("consideration")).toBe("unbranded");
+    expect(intentToFrame("comparison")).toBe("comparative");
+    expect(intentToFrame("validation")).toBe("client_branded");
+    expect(intentToFrame("objection")).toBe("client_branded");
+  });
+
+  it("presence and position rates count only intents that cannot plant their signal", () => {
+    for (const key of ["mention_rate", "share_of_voice", "avg_first_position", "recommendation_rate", "citation_share"]) {
+      expect(metricIntentFilter(key), key).toEqual(["discovery", "consideration"]);
+    }
+    expect(metricIntentFilter("comparative_win_rate")).toEqual(["comparison"]);
+    expect(metricIntentFilter("sentiment_organic_positive")).toEqual(["discovery", "consideration"]);
+    expect(metricIntentFilter("sentiment_solicited_negative")).toEqual(["validation"]);
+  });
+
+  it("frame-agnostic metrics (unplantable signals) are unfiltered", () => {
+    for (const key of ["accuracy_rate", "stability_index", "attribute_low cost"]) {
+      expect(metricIntentFilter(key), key).toBeNull();
+    }
+  });
+
+  it("objection intent feeds no sentiment group (solicited-negative by design)", () => {
+    for (const group of ["organic", "solicited"]) {
+      for (const label of ["positive", "neutral", "mixed", "negative"]) {
+        const allowed = metricIntentFilter(`sentiment_${group}_${label}`);
+        expect(allowed, `sentiment_${group}_${label}`).not.toContain("objection");
+      }
+    }
+  });
+
+  it("resolves glossary entries for every frame-split sentiment key", () => {
+    for (const group of ["organic", "solicited"]) {
+      for (const label of ["positive", "neutral", "mixed", "negative"]) {
+        const entry = resolveGlossary(`sentiment_${group}_${label}`);
+        expect(entry.pillar).toBe("perception");
+        expect(entry.computationSummary).toContain("D-054");
       }
     }
   });

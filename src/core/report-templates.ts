@@ -186,17 +186,19 @@ ${metricRows || "| No metrics computed | — | — | — |"}`;
 
 function generateVisibility(ctx: ReportContext): string {
   const mention = overall(ctx, "mention_rate");
-  const rec = overall(ctx, "recommendation_rate");
+  const sov = overall(ctx, "share_of_voice");
   const pos = overall(ctx, "avg_first_position");
   const stability = overall(ctx, "stability_index");
   const lowStability = findingsByType(ctx, "low_stability");
 
   return `${PILLARS.presence.clientQuestion}
 
+Presence metrics are computed over unbranded prompts only — questions that name no tracked brand — so every mention below is one the AI volunteered, never one the prompt planted (D-054).
+
 | Metric | Value | Provenance |
 |---|---|---|
 | Mention Rate | ${pct(mention?.value)}${ci(mention)} | ${runProvenance(ctx, mention?.n)} |
-| Recommendation Rate | ${pct(rec?.value)}${ci(rec)} | ${runProvenance(ctx, rec?.n)} |
+| Share of Voice | ${pct(sov?.value)} | ${runProvenance(ctx, sov?.n)} |
 | Avg First Position (when mentioned) | ${pos?.value !== undefined ? pos.value.toFixed(1) : "not available"} | ${runProvenance(ctx, pos?.n)} |
 | Stability Index | ${stability?.value !== undefined ? stability.value.toFixed(2) : "not available"} | ${runProvenance(ctx, stability?.n)} |
 
@@ -213,7 +215,7 @@ function generatePerception(ctx: ReportContext): string {
 
   return `${PILLARS.perception.clientQuestion}
 
-Sentiment observed in mentions of ${ctx.clientBrandName}:
+Sentiment is reported in two separate groups that are never pooled (D-054): organic (how AI talks about ${ctx.clientBrandName} when AI brings it up in unbranded answers) and solicited (how AI answers a direct fit question). Objection-cell answers are excluded from sentiment entirely — those prompts ask for concerns, so their negative skew is by design; their content feeds the findings below instead.
 
 ${sentimentLines || "No sentiment data available."}
 
@@ -225,13 +227,19 @@ ${sentimentLines || "No sentiment data available."}
 }
 
 function generateCompetitiveDynamics(ctx: ReportContext): string {
-  const sov = overall(ctx, "share_of_voice");
+  const organicRec = overall(ctx, "recommendation_rate");
+  const compWin = overall(ctx, "comparative_win_rate");
   const lostShortlist = findingsByType(ctx, "lost_shortlist");
   const groundedSplit = findingsByType(ctx, "grounded_ungrounded_split");
 
   return `${PILLARS.position.clientQuestion}
 
-${ctx.clientBrandName}'s observed share of voice against ${ctx.competitorNames.join(", ") || "tracked competitors"} was ${pct(sov?.value)} in this run ${metricProvenance(ctx, sov)}.
+Two distinct winning conditions are measured separately and never pooled (D-054): the organic recommendation rate counts only unbranded prompts (does AI recommend ${ctx.clientBrandName} when nobody asked about it), while the comparative win rate counts only head-to-head prompts against ${ctx.competitorNames.join(", ") || "the tracked competitor set"} (when forced to compare, does AI pick ${ctx.clientBrandName}).
+
+| Metric | Value | Provenance |
+|---|---|---|
+| Organic Recommendation Rate | ${pct(organicRec?.value)}${ci(organicRec)} | ${runProvenance(ctx, organicRec?.n)} |
+| Comparative Win Rate | ${pct(compWin?.value)}${ci(compWin)} | ${runProvenance(ctx, compWin?.n)} |
 
 ${
   lostShortlist.length > 0

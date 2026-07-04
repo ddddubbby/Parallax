@@ -17,6 +17,7 @@ export interface MetricRow {
 const RATE_METRIC_KEYS = new Set([
   "mention_rate",
   "recommendation_rate",
+  "comparative_win_rate",
   "share_of_voice",
   "citation_share",
   "accuracy_rate",
