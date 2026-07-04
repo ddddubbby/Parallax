@@ -25,6 +25,7 @@ const BASE_CTX: ReportContext = {
   misinformation: [],
   citedSources: [],
   sentiment: { positive: 0.6, neutral: 0.3, mixed: 0.05, negative: 0.05 },
+  brandMetrics: [],
 };
 
 // RB-5: report tone is client-facing, cautious, evidence-led — never

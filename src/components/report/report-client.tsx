@@ -95,7 +95,7 @@ export function ReportClient({
         <a href={`${exportBase}/json?runId=${runId}`} className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink">
           Evidence JSON
         </a>
-        {(["responses", "extractions", "metrics", "citations"] as const).map((d) => (
+        {(["responses", "extractions", "metrics", "brand_metrics", "citations"] as const).map((d) => (
           <a key={d} href={`${exportBase}/csv/${d}?runId=${runId}`} className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink">
             {d}.csv
           </a>

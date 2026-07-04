@@ -6,8 +6,11 @@ import {
   citationShare,
   type EligibleSample,
   isSufficientN,
+  meanValue,
   mentionRate,
   meanStabilityIndex,
+  proportion,
+  ratio,
   recommendationRate,
   sentimentDistribution,
   shareOfVoice,
@@ -147,5 +150,27 @@ describe("isSufficientN (DB-3, D-015)", () => {
     expect(isSufficientN(30)).toBe(true);
     expect(isSufficientN(0)).toBe(false);
     expect(isSufficientN(500)).toBe(true);
+  });
+});
+
+describe("CS-1 per-brand primitives", () => {
+  it("proportion is a Wilson-bounded rate", () => {
+    const r = proportion(3, 10);
+    expect(r.value).toBeCloseTo(0.3, 6);
+    expect(r.n).toBe(10);
+    expect(r.ciLow).not.toBeNull();
+    expect(r.ciHigh).not.toBeNull();
+    expect(proportion(0, 0).value).toBe(0);
+  });
+
+  it("ratio is a point estimate, zero-safe", () => {
+    expect(ratio(2, 8, 40)).toEqual({ n: 40, value: 0.25, ciLow: null, ciHigh: null });
+    expect(ratio(0, 0, 40).value).toBe(0);
+  });
+
+  it("meanValue averages present positions only", () => {
+    expect(meanValue([1, 2, 3]).value).toBeCloseTo(2, 6);
+    expect(meanValue([1, 2, 3]).n).toBe(3);
+    expect(meanValue([])).toEqual({ n: 0, value: 0, ciLow: null, ciHigh: null });
   });
 });

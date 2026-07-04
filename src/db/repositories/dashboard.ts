@@ -250,6 +250,12 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
   const trackedBrandIds = new Set(projectBrands.map((b) => b.id));
   const cellById = new Map(cellRows.map((c) => [c.id, c]));
 
+  // CS-4: a per-brand-scope drill-through is about the scoped brand, not the
+  // client — "Chagee mentioned" when drilling Chagee's bar. Frame filtering
+  // still keys off metricKey (below), so it applies to brand scope for free.
+  const subjectBrandId =
+    filter.scopeType === "brand" && filter.scopeKey ? filter.scopeKey : clientBrandId;
+
   // D-054: the drill-through denominator must be exactly the metric's
   // denominator — same frame filter as recomputeMetrics, same intent-pure
   // exemption, same grounded gate for citations, same planted-attribute
@@ -302,12 +308,12 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
     const mentions = mentionsByExtraction.get(sample.extractionId) ?? [];
     const claims = claimsByExtraction.get(sample.extractionId) ?? [];
     const trackedMentions = mentions.filter((m) => m.brandId && trackedBrandIds.has(m.brandId));
-    const clientMention = trackedMentions.find((m) => m.brandId === clientBrandId);
+    const clientMention = trackedMentions.find((m) => m.brandId === subjectBrandId);
     const label = metricResponseLabel(filter.metricKey, sample.extractedJson, {
       clientMention,
       trackedMentionCount: trackedMentions.length,
       claims,
-      clientBrandId,
+      clientBrandId: subjectBrandId,
       trackedBrandIds,
     });
     if (!label) continue;
@@ -371,6 +377,10 @@ function eligibleMatchesDrilldownScope(
   if (filter.scopeType === "market") return cell?.marketId === filter.scopeKey;
   if (filter.scopeType === "intent_persona") return `${cell?.intent}|${cell?.personaId}` === filter.scopeKey;
   if (filter.scopeType === "cell") return filter.scopeKey?.split("|")[0] === sample.cellId;
+  // CS-4: brand scope spans all frame-appropriate samples (the metricKey
+  // frame filter in getResponsesForMetric does the narrowing); the scope
+  // itself never excludes a sample by cell attributes.
+  if (filter.scopeType === "brand") return true;
   return true;
 }
 

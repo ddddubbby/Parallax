@@ -5,9 +5,9 @@ import { AttributeSection } from "@/components/dashboard/attribute-section";
 import { CitedSourcesSection } from "@/components/dashboard/cited-sources-section";
 import { DrilldownPanel, type DrilldownRequest } from "@/components/dashboard/drilldown-panel";
 import { FunnelSection } from "@/components/dashboard/funnel-section";
+import { CompetitiveSpectrumSection } from "@/components/dashboard/competitive-spectrum-section";
 import { MisinformationRegister } from "@/components/dashboard/misinformation-register";
 import { MetricCards } from "@/components/dashboard/scorecard";
-import { ShareOfVoiceSection } from "@/components/dashboard/share-of-voice-section";
 import { PillarSection } from "@/components/semantic/pillar";
 import { Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
@@ -75,6 +75,16 @@ export function DashboardClient({
       scopeKey: "__all__",
     });
 
+  const brandName = (brandId: string) => data.brands.find((b) => b.id === brandId)?.name ?? "brand";
+  const onBrandEvidence = (brandId: string, metricKey: string) =>
+    setDrilldown({
+      kind: "metric",
+      label: `${brandName(brandId)} · ${metricLabel(metricKey)} evidence`,
+      metricKey,
+      scopeType: "brand",
+      scopeKey: brandId,
+    });
+
   return (
     // Dimming while a different run's data loads: for an evidence tool,
     // numbers that might belong to the PREVIOUS run must be visibly stale,
@@ -128,16 +138,33 @@ export function DashboardClient({
                   setDrilldown({ kind: "scope", label: `${intent} × persona evidence`, intent, personaId })
                 }
               />
-              <ShareOfVoiceSection metrics={metrics} brands={data.brands} onViewEvidence={onMetricEvidence} />
+              <CompetitiveSpectrumSection
+                title="Share of voice — the client vs each competitor"
+                caption="Each brand's share of tracked-brand mentions in open, unbranded answers. Shares sum to 100%."
+                metricKey="share_of_voice"
+                metrics={metrics}
+                brands={data.brands}
+                onBrandEvidence={onBrandEvidence}
+              />
             </div>
           </PillarSection>
 
           <PillarSection pillar="position">
-            <MetricCards
-              metrics={metrics}
-              keys={["recommendation_rate", "comparative_win_rate"]}
-              onViewEvidence={onMetricEvidence}
-            />
+            <div className="flex flex-col gap-6">
+              <MetricCards
+                metrics={metrics}
+                keys={["recommendation_rate", "comparative_win_rate"]}
+                onViewEvidence={onMetricEvidence}
+              />
+              <CompetitiveSpectrumSection
+                title="Head-to-head — who AI picks when forced to compare"
+                caption="Each brand's recommendation rate in direct comparison prompts. Brands are independent, so these need not sum to 100%."
+                metricKey="comparative_win_rate"
+                metrics={metrics}
+                brands={data.brands}
+                onBrandEvidence={onBrandEvidence}
+              />
+            </div>
           </PillarSection>
 
           <PillarSection pillar="perception">

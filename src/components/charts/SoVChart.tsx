@@ -6,14 +6,14 @@ export interface SoVDatum {
   brandId: string;
   name: string;
   isClient: boolean;
-  share: number; // 0-1
+  value: number; // 0-1
 }
 
 // DESIGN_GUIDELINES §9: client brand in accent, competitors in stepped ink
 // alphas, no categorical rainbow, flat canvas (no gridlines beyond --line).
 const COMPETITOR_ALPHAS = ["0.7", "0.5", "0.35", "0.22"];
 
-export function SoVChart({ data }: { data: SoVDatum[] }) {
+export function SoVChart({ data, height = 220 }: { data: SoVDatum[]; height?: number }) {
   let competitorIdx = 0;
   const colored = data.map((d) => {
     if (d.isClient) return { ...d, fill: "var(--color-accent)" };
@@ -23,7 +23,7 @@ export function SoVChart({ data }: { data: SoVDatum[] }) {
   });
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={height}>
       <BarChart data={colored} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
         <CartesianGrid horizontal={false} stroke="var(--color-ink)" strokeOpacity={0.14} />
         <XAxis
@@ -53,7 +53,7 @@ export function SoVChart({ data }: { data: SoVDatum[] }) {
             fontSize: 12,
           }}
         />
-        <Bar dataKey="share" radius={[0, 2, 2, 0]} isAnimationActive={false}>
+        <Bar dataKey="value" radius={[0, 2, 2, 0]} isAnimationActive={false}>
           {colored.map((d) => (
             <Cell key={d.brandId} fill={d.fill} />
           ))}

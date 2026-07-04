@@ -1,6 +1,6 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../client";
-import { extractions, metrics, responses } from "../schema";
+import { brands, extractions, metrics, responses } from "../schema";
 
 /** EX-3: raw responses for a run — the base evidence every other export trace back to (C-3). */
 export async function getExportResponses(runId: string) {
@@ -55,6 +55,28 @@ export async function getExportMetrics(runId: string) {
     })
     .from(metrics)
     .where(eq(metrics.runId, runId));
+}
+
+/**
+ * CS-3: per-brand metrics with brand names resolved (the metrics CSV carries
+ * only UUID scope keys). One readable row per (brand, metric) — the client
+ * ranked against every competitor across the D-054-framed metrics.
+ */
+export async function getExportBrandMetrics(runId: string) {
+  return db
+    .select({
+      brandName: brands.name,
+      brandRole: brands.role,
+      metricKey: metrics.metricKey,
+      n: metrics.n,
+      value: metrics.value,
+      ciLow: metrics.ciLow,
+      ciHigh: metrics.ciHigh,
+    })
+    .from(metrics)
+    .innerJoin(brands, sql`${brands.id}::text = ${metrics.scopeKey}`)
+    .where(and(eq(metrics.runId, runId), eq(metrics.scopeType, "brand")))
+    .orderBy(brands.role, brands.name, metrics.metricKey);
 }
 
 /** Citations are embedded per-extraction JSON, not a separate table — flatten them for export. */

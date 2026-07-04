@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { toCsv } from "@/core/csv";
-import { getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
+import { getExportBrandMetrics, getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
 import { getRun } from "@/db/repositories/runner";
 
 // EX-3, D-013: synchronous download, one CSV per dataset (each has a
@@ -27,6 +27,10 @@ async function buildCsv(dataset: string, runId: string): Promise<string | null> 
     case "metrics":
       return toCsv(await getExportMetrics(runId), [
         "scopeType", "scopeKey", "metricKey", "n", "value", "ciLow", "ciHigh", "computedAt",
+      ]);
+    case "brand_metrics":
+      return toCsv(await getExportBrandMetrics(runId), [
+        "brandName", "brandRole", "metricKey", "n", "value", "ciLow", "ciHigh",
       ]);
     case "citations":
       return toCsv(await getExportCitations(runId), [

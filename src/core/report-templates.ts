@@ -73,6 +73,8 @@ export interface ReportContext {
   }>;
   citedSources: Array<{ domain: string; total: number }>;
   sentiment: Record<string, number>;
+  // CS-3: per-brand metrics (client + each competitor), resolved to names.
+  brandMetrics: Array<{ brandName: string; isClient: boolean; metricKey: string; value: number; n: number }>;
 }
 
 function overall(ctx: ReportContext, key: string): MetricLike | undefined {
@@ -226,6 +228,36 @@ ${sentimentLines || "No sentiment data available."}
   }`;
 }
 
+/** CS-3: the client ranked against every competitor across the framed metrics. */
+function brandRankingTable(ctx: ReportContext): string {
+  const brandNames = [...new Set(ctx.brandMetrics.map((b) => b.brandName))];
+  if (brandNames.length === 0) return "";
+
+  const get = (name: string, key: string) => ctx.brandMetrics.find((b) => b.brandName === name && b.metricKey === key);
+  const winN = ctx.brandMetrics.find((b) => b.metricKey === "comparative_win_rate")?.n;
+  const shareN = ctx.brandMetrics.find((b) => b.metricKey === "share_of_voice")?.n;
+
+  const ranked = brandNames
+    .map((name) => ({
+      name,
+      isClient: ctx.brandMetrics.find((b) => b.brandName === name)?.isClient ?? false,
+      win: get(name, "comparative_win_rate")?.value,
+      share: get(name, "share_of_voice")?.value,
+    }))
+    .sort((a, b) => (b.win ?? -1) - (a.win ?? -1));
+
+  const rows = ranked
+    .map((r) => `| ${r.name}${r.isClient ? " (client)" : ""} | ${pct(r.win)} | ${pct(r.share)} |`)
+    .join("\n");
+
+  return `Where ${ctx.clientBrandName} ranks across the full competitor spectrum — head-to-head win rate (comparison prompts, n=${winN ?? "n/a"}) and organic share of voice (unbranded prompts, n=${shareN ?? "n/a"}), D-054 frames:
+
+| Brand | Comparative Win Rate | Share of Voice |
+|---|---|---|
+${rows}
+`;
+}
+
 function generateCompetitiveDynamics(ctx: ReportContext): string {
   const organicRec = overall(ctx, "recommendation_rate");
   const compWin = overall(ctx, "comparative_win_rate");
@@ -241,6 +273,7 @@ Two distinct winning conditions are measured separately and never pooled (D-054)
 | Organic Recommendation Rate | ${pct(organicRec?.value)}${ci(organicRec)} | ${runProvenance(ctx, organicRec?.n)} |
 | Comparative Win Rate | ${pct(compWin?.value)}${ci(compWin)} | ${runProvenance(ctx, compWin?.n)} |
 
+${brandRankingTable(ctx)}
 ${
   lostShortlist.length > 0
     ? `${lostShortlist.length} cell${lostShortlist.length === 1 ? "" : "s"} showed a competitor dominating a high-intent comparison while ${ctx.clientBrandName} was nearly absent (directional, cell-level observations, not aggregate claims) ${countProvenance(ctx, lostShortlist.length, "flagged cells")}:\n\n${lostShortlist.map((f) => `- ${f.title}: ${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n")}`

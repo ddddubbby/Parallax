@@ -82,6 +82,15 @@ async function buildReportContext(runId: string): Promise<ReportContext | null> 
   const sentimentEntries = metrics.filter((m) => m.scopeType === "overall" && m.metricKey.startsWith("sentiment_"));
   const sentiment = Object.fromEntries(sentimentEntries.map((m) => [m.metricKey.replace("sentiment_", ""), m.value]));
 
+  // CS-3: resolve per-brand metric rows (scope_key = brand id) to names.
+  const brandById = new Map(projectBrands.map((b) => [b.id, b]));
+  const brandMetrics = metrics
+    .filter((m) => m.scopeType === "brand" && brandById.has(m.scopeKey))
+    .map((m) => {
+      const b = brandById.get(m.scopeKey)!;
+      return { brandName: b.name, isClient: b.role === "client", metricKey: m.metricKey, value: m.value, n: m.n };
+    });
+
   return {
     clientBrandName: client?.name ?? "the client brand",
     competitorNames: competitors.map((c) => c.name),
@@ -114,6 +123,7 @@ async function buildReportContext(runId: string): Promise<ReportContext | null> 
     })),
     citedSources: citedSources.map((s) => ({ domain: s.domain, total: s.total })),
     sentiment,
+    brandMetrics,
   };
 }
 

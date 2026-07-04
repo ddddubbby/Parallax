@@ -28,6 +28,26 @@ function pointEstimate(value: number, n: number): MetricResult {
   return { n, value, ciLow: null, ciHigh: null };
 }
 
+// --- CS-1 generic primitives for per-brand metrics (D-054 frames applied by
+// the caller). Same math as the client-centric metrics above, exposed so the
+// per-brand pass reuses tested code instead of inlining arithmetic. ---
+
+/** Per-sample proportion with a Wilson interval (per-brand mention/win rates). */
+export function proportion(successes: number, n: number): MetricResult {
+  return proportionMetric(successes, n);
+}
+
+/** Point-estimate ratio of counts, no interval (per-brand mention share). */
+export function ratio(numerator: number, denominator: number, n: number): MetricResult {
+  return pointEstimate(denominator === 0 ? 0 : numerator / denominator, n);
+}
+
+/** Point-estimate mean, no interval (per-brand average first position). */
+export function meanValue(values: number[]): MetricResult {
+  if (values.length === 0) return pointEstimate(0, 0);
+  return pointEstimate(values.reduce((sum, v) => sum + v, 0) / values.length, values.length);
+}
+
 // --- Per-sample eligible-response shape the aggregate metrics consume ---
 
 export interface EligibleSample {

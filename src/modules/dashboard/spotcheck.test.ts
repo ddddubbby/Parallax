@@ -127,6 +127,48 @@ describe.skipIf(!dbUp)("dashboard figures match independent SQL spot-checks", ()
       expect(persistedCitationShare?.n).toBe(n_samples);
     }
 
+    // CS-5: per-brand scope (CS-1). Independent SQL derives each tracked
+    // brand's unbranded mention rate (D-054 frame) and asserts it matches the
+    // persisted brand-scope row; also checks all brands' share_of_voice sums
+    // to 1 (each brand's slice of unbranded tracked mentions).
+    const brandCheck = await db.execute<{ brand_id: string; mentions: number; n_unbranded: number }>(sql`
+      with latest_ext as (
+        select distinct on (response_id) id, response_id, state, extracted_json from extractions order by response_id, extraction_version desc
+      ),
+      eligible as (
+        select le.id as extraction_id, pc.intent
+        from responses r
+        join latest_ext le on le.response_id = r.id
+        join prompt_cells pc on pc.id = r.cell_id
+        where r.run_id = ${run.id}
+          and le.state in ('valid','qa_reviewed')
+          and coalesce((le.extracted_json->>'refusal')::boolean, false) = false
+      ),
+      unbranded as (select * from eligible where intent in ('discovery','consideration'))
+      select b.id::text as brand_id,
+             count(bm.id)::int as mentions,
+             (select count(*) from unbranded)::int as n_unbranded
+      from brands b
+      left join brand_mentions bm on bm.brand_id = b.id
+        and bm.extraction_id in (select extraction_id from unbranded)
+      where b.project_id = ${project.id}
+      group by b.id
+    `);
+    const brandRows = await listMetrics(run.id);
+    const brandMetric = (brandId: string, key: string) =>
+      brandRows.find((m) => m.scopeType === "brand" && m.scopeKey === brandId && m.metricKey === key);
+    let shareSum = 0;
+    for (const { brand_id, mentions, n_unbranded } of brandCheck.rows) {
+      if (n_unbranded === 0) continue;
+      const mr = brandMetric(brand_id, "mention_rate");
+      expect(mr?.n).toBe(n_unbranded);
+      expect(mr?.value).toBeCloseTo(mentions / n_unbranded, 6);
+      shareSum += brandMetric(brand_id, "share_of_voice")?.value ?? 0;
+    }
+    if (brandCheck.rows.some((r) => r.mentions > 0)) {
+      expect(shareSum).toBeCloseTo(1, 6);
+    }
+
     await pool.end();
   }, 30_000);
 });

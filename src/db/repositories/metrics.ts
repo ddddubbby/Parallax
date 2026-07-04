@@ -5,8 +5,11 @@ import {
   avgFirstPosition,
   citationShare,
   type EligibleSample,
+  meanValue,
   mentionRate,
   meanStabilityIndex,
+  proportion,
+  ratio,
   recommendationRate,
   sentimentDistribution,
   type Sentiment,
@@ -111,6 +114,17 @@ export async function recomputeMetrics(runId: string) {
   const claimVerdicts: Array<{ verdict: string; scopes: MetricScope[] }> = [];
   const stabilityByCell = new Map<string, Set<string>[]>();
 
+  // CS-1 per-brand accumulators (D-054 frames applied per brand). Presence
+  // metrics count unbranded samples only; comparative win rate counts
+  // comparison samples only — so a competitor named in a comparison prompt
+  // never inflates its own "organic" visibility, exactly like the client.
+  let unbrandedSampleCount = 0;
+  let unbrandedTrackedMentionTotal = 0;
+  let comparisonSampleCount = 0;
+  const brandUnbrandedMentions = new Map<string, number>();
+  const brandUnbrandedPositions = new Map<string, number[]>();
+  const brandComparisonWins = new Map<string, number>();
+
   for (const e of eligible) {
     const mentions = mentionsByExtraction.get(e.extractionId) ?? [];
     const trackedMentions = mentions.filter((m) => m.brandId && trackedBrandIds.has(m.brandId));
@@ -183,6 +197,27 @@ export async function recomputeMetrics(runId: string) {
       const set = topTrackedBrandSet(mentions.map(toExtractedBrandShape));
       if (!stabilityByCell.has(key)) stabilityByCell.set(key, []);
       stabilityByCell.get(key)!.push(set);
+    }
+
+    // CS-1: per-brand tallies under D-054 frames.
+    if (intent === "discovery" || intent === "consideration") {
+      unbrandedSampleCount += 1;
+      unbrandedTrackedMentionTotal += trackedMentions.length;
+      for (const m of trackedMentions) {
+        if (!m.brandId) continue;
+        brandUnbrandedMentions.set(m.brandId, (brandUnbrandedMentions.get(m.brandId) ?? 0) + 1);
+        if (m.position !== null && m.position !== undefined) {
+          if (!brandUnbrandedPositions.has(m.brandId)) brandUnbrandedPositions.set(m.brandId, []);
+          brandUnbrandedPositions.get(m.brandId)!.push(m.position);
+        }
+      }
+    } else if (intent === "comparison") {
+      comparisonSampleCount += 1;
+      for (const m of trackedMentions) {
+        if (m.brandId && m.recommended) {
+          brandComparisonWins.set(m.brandId, (brandComparisonWins.get(m.brandId) ?? 0) + 1);
+        }
+      }
     }
   }
 
@@ -288,6 +323,25 @@ export async function recomputeMetrics(runId: string) {
     });
   }
   if (perCellValues.length > 0) push(OVERALL, "stability_index", meanStabilityIndex(perCellValues));
+
+  // CS-1: per-brand scope (scope_key = brand id) so the dashboard can chart
+  // each competitor against the client instead of "rest of the field". One
+  // row set per tracked brand, all under D-054 frames: mention_rate and
+  // avg_first_position over unbranded samples, share_of_voice as this
+  // brand's share of unbranded tracked mentions (all brands' shares sum to
+  // 1), comparative_win_rate over comparison samples.
+  for (const brandId of trackedBrandIds) {
+    const brandScope: MetricScope = { scopeType: "brand", scopeKey: brandId };
+    if (unbrandedSampleCount > 0) {
+      const mentions = brandUnbrandedMentions.get(brandId) ?? 0;
+      push(brandScope, "mention_rate", proportion(mentions, unbrandedSampleCount));
+      push(brandScope, "share_of_voice", ratio(mentions, unbrandedTrackedMentionTotal, unbrandedSampleCount));
+      push(brandScope, "avg_first_position", meanValue(brandUnbrandedPositions.get(brandId) ?? []));
+    }
+    if (comparisonSampleCount > 0) {
+      push(brandScope, "comparative_win_rate", proportion(brandComparisonWins.get(brandId) ?? 0, comparisonSampleCount));
+    }
+  }
 
   await db.transaction(async (tx) => {
     await tx.delete(metrics).where(eq(metrics.runId, runId));
