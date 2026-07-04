@@ -10,7 +10,7 @@ import { Scorecard } from "@/components/dashboard/scorecard";
 import { ShareOfVoiceSection } from "@/components/dashboard/share-of-voice-section";
 import { Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
-import type { MetricRow } from "@/components/dashboard/format";
+import { metricLabel, type MetricRow } from "@/components/dashboard/format";
 
 interface RunOption {
   id: string;
@@ -104,7 +104,15 @@ export function DashboardClient({
         <div className="flex flex-col gap-10">
           <Scorecard
             metrics={metrics}
-            onViewEvidence={() => setDrilldown({ kind: "scope", label: "Scorecard evidence" })}
+            onViewEvidence={(metricKey) =>
+              setDrilldown({
+                kind: "metric",
+                label: `${metricLabel(metricKey)} evidence`,
+                metricKey,
+                scopeType: "overall",
+                scopeKey: "__all__",
+              })
+            }
           />
           <FunnelSection
             metrics={metrics}
@@ -116,7 +124,15 @@ export function DashboardClient({
           <ShareOfVoiceSection
             metrics={metrics}
             brands={data.brands}
-            onViewEvidence={() => setDrilldown({ kind: "scope", label: "Share of Voice evidence" })}
+            onViewEvidence={(metricKey) =>
+              setDrilldown({
+                kind: "metric",
+                label: `${metricLabel(metricKey)} evidence`,
+                metricKey,
+                scopeType: "overall",
+                scopeKey: "__all__",
+              })
+            }
           />
           <AttributeSection
             metrics={metrics}

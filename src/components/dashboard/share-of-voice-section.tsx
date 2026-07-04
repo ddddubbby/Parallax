@@ -14,7 +14,7 @@ export function ShareOfVoiceSection({
 }: {
   metrics: MetricRow[];
   brands: Array<{ id: string; role: string; name: string }>;
-  onViewEvidence: () => void;
+  onViewEvidence: (metricKey: string) => void;
 }) {
   const sovRow = metrics.find((m) => m.scopeType === "overall" && m.metricKey === "share_of_voice");
   const mentionRow = metrics.find((m) => m.scopeType === "overall" && m.metricKey === "mention_rate");
@@ -40,14 +40,17 @@ export function ShareOfVoiceSection({
         <h2 className="label-mono text-xs font-medium text-ink/60">
           {PILLARS.position.label} <span className="text-ink/40">— {PILLARS.position.clientQuestion}</span>
         </h2>
-        <button type="button" onClick={onViewEvidence} className="label-mono text-xs text-accent-ink hover:underline">
+        <button type="button" onClick={() => onViewEvidence("share_of_voice")} className="label-mono text-xs text-accent-ink hover:underline">
           View evidence →
         </button>
       </div>
       {!sovRow || !sufficient ? (
         <Stamp tone="warn">Insufficient data</Stamp>
       ) : (
-        <SoVChart data={data} />
+        <>
+          <p className="label-mono mb-2 text-[11px] text-ink/45">n={sovRow.n}</p>
+          <SoVChart data={data} />
+        </>
       )}
     </section>
   );

@@ -335,7 +335,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M9 | Provider expansion and hardening | Target grounded providers added through same interface; provider-down degrades gracefully | Done |
 | M10 | Pilot audit | Full live audit delivered; retro logged; release checklist complete | In progress — DeepSeek gate closed (115-job live run, 2026-07-03); deploy + grounded-provider gates open |
 | M11 | Semantic layer: Four P's, metric glossary, archetype template packs | Every emitted metric key has a glossary entry and no raw key renders in UI; archetype packs seeded and selected at intake; pillar visible on matrix, run, dashboard, and report surfaces | Done |
-| M12 | Trust and provenance | Report claims carry n/provider/mode/date; evidence appendix quotes raw excerpts by response id; methodology chapter auto-generates; metric-to-responses drill-through <= 2 clicks | Not started |
+| M12 | Trust and provenance | Report claims carry n/provider/mode/date; evidence appendix quotes raw excerpts by response id; methodology chapter auto-generates; metric-to-responses drill-through <= 2 clicks | Done |
 | M13 | Operator UX and demo polish | Per-project subnav + guided next actions everywhere; pillar-organized dashboard incl. per-competitor SoV; full demo walkthrough at $0 | Not started |
 
 Progress notes:
@@ -387,6 +387,9 @@ Progress notes:
 - 2026-07-04 M11 done: pure semantic layer added (`PILLARS`, intent-to-pillar map, metric glossary + prefix resolver), with a completeness test covering every emitted metric family including dynamic sentiment/attribute keys.
 - 2026-07-04 M11 archetypes: migration 0006 added `category_archetype`/`archetype`; intake persists the buyer-language archetype; matrix generation filters templates by archetype; seed now has 45 templates and an AT-3 forbidden-jargon test for consumer packs.
 - 2026-07-04 M11 surfaces/verification: run metrics preview, matrix board, dashboard headings/cards, and report chapter titles now render pillar/question framing instead of raw metric keys; verified with focused tests, full Vitest, lint, typecheck, build, migration, and seed-twice idempotency.
+- 2026-07-04 M12 report trust: generated report aggregate claims now carry n/providers/modes/run date inline; Method & Confidence is generated from actual run config plus the metric glossary; Raw Answer Appendix cites deterministic raw-response excerpts per finding (D-055).
+- 2026-07-04 M12 dashboard provenance: scorecard metric cards and Share of Voice drill through to D-014 eligible responses with numerator/denominator labels in <=2 clicks; aggregate chart sections expose n beside the visualization.
+- 2026-07-04 M12 verification: no migration; report-template tests, typecheck, lint, full Vitest (211 passed, 44 DB-gated skipped), and production build pass.
 
 ## 12. Roadmap after MVP
 

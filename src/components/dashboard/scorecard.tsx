@@ -21,7 +21,7 @@ export function Scorecard({
   onViewEvidence,
 }: {
   metrics: MetricRow[];
-  onViewEvidence: () => void;
+  onViewEvidence: (metricKey: string) => void;
 }) {
   const overall = metrics.filter((m) => m.scopeType === "overall" && SCORECARD_KEYS.includes(m.metricKey));
   const byKey = new Map(overall.map((m) => [m.metricKey, m]));
@@ -30,9 +30,6 @@ export function Scorecard({
     <section>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="label-mono text-xs font-medium text-ink/60">Four P&apos;s Scorecard</h2>
-        <button type="button" onClick={onViewEvidence} className="label-mono text-xs text-accent-ink hover:underline">
-          View evidence →
-        </button>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {SCORECARD_KEYS.map((key) => {
@@ -61,6 +58,13 @@ export function Scorecard({
                   </div>
                 </>
               )}
+              <button
+                type="button"
+                onClick={() => onViewEvidence(key)}
+                className="label-mono mt-3 text-[11px] text-accent-ink hover:underline"
+              >
+                Evidence →
+              </button>
             </div>
           );
         })}

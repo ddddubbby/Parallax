@@ -12,7 +12,13 @@ import { isSufficientN } from "@/core/metrics";
 import { getCitedSources, getMisinformationRegister, getProjectBrandNames } from "@/db/repositories/dashboard";
 import { getCellBrandPresence, listFindings, saveFindings } from "@/db/repositories/findings";
 import { listMetrics } from "@/db/repositories/metrics";
-import { ensureSection, getReportSections, regenerateSection, saveEdit } from "@/db/repositories/report";
+import {
+  ensureSection,
+  getFindingEvidenceExcerpts,
+  getReportSections,
+  regenerateSection,
+  saveEdit,
+} from "@/db/repositories/report";
 import { getRun, getRunFailureCounts } from "@/db/repositories/runner";
 
 /** RB-1: compute every finding type and persist (disposable, C-5 — same pattern as metrics recompute). */
@@ -69,6 +75,7 @@ async function buildReportContext(runId: string): Promise<ReportContext | null> 
     getProjectBrandNames(run.projectId),
     getRunFailureCounts(runId),
   ]);
+  const evidenceExcerpts = await getFindingEvidenceExcerpts(runId, findingRows);
 
   const client = projectBrands.find((b) => b.role === "client");
   const competitors = projectBrands.filter((b) => b.role === "competitor");
@@ -79,13 +86,17 @@ async function buildReportContext(runId: string): Promise<ReportContext | null> 
     clientBrandName: client?.name ?? "the client brand",
     competitorNames: competitors.map((c) => c.name),
     runMode: run.runMode,
+    runDate: (run.completedAt ?? run.createdAt).toISOString().slice(0, 10),
     isMock: run.runMode === "mock",
     isPartial: failureCounts.deadLettered > 0 || failureCounts.cancelled > 0,
     repetitions: run.repetitions,
+    plannedCalls: run.plannedCalls,
+    costCapUsd: Number(run.costCapUsd),
     providers: (run.selectedProvidersJson as string[]) ?? [],
     modes: (run.selectedModesJson as string[]) ?? [],
     metrics: metrics.map((m) => ({ scopeType: m.scopeType, metricKey: m.metricKey, n: m.n, value: m.value, ciLow: m.ciLow, ciHigh: m.ciHigh })),
     findings: findingRows.map((f) => ({
+      id: f.id,
       findingType: f.findingType,
       severity: f.severity,
       title: f.title,
@@ -93,6 +104,7 @@ async function buildReportContext(runId: string): Promise<ReportContext | null> 
       evidence: f.evidenceJson as Record<string, unknown>,
       directionalOnly: Boolean((f.evidenceJson as { directionalOnly?: boolean })?.directionalOnly),
     })),
+    evidenceExcerpts,
     misinformation: misinformation.map((m) => ({
       claimText: m.claimText,
       verdict: m.operatorVerdict ?? m.extractedVerdict,

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Stamp } from "@/components/ui";
-import { fetchDrilldown, fetchResponseDetail, fetchResponsesByIds } from "@/modules/dashboard/actions";
+import { fetchDrilldown, fetchMetricDrilldown, fetchResponseDetail, fetchResponsesByIds } from "@/modules/dashboard/actions";
 
 export type DrilldownRequest =
   | { kind: "scope"; label: string; intent?: string; personaId?: string }
+  | { kind: "metric"; label: string; metricKey: string; scopeType: string; scopeKey: string }
   | { kind: "responses"; label: string; responseIds: string[] }
   | { kind: "response"; label: string; responseId: string };
 
@@ -15,6 +16,8 @@ interface ResponseRow {
   generationMode: string;
   rawText: string;
   createdAt: string | Date;
+  numeratorLabel?: string;
+  denominatorLabel?: string;
 }
 
 /**
@@ -59,6 +62,12 @@ export function DrilldownPanel({
       const list =
         request.kind === "scope"
           ? await fetchDrilldown(runId, { intent: request.intent, personaId: request.personaId })
+          : request.kind === "metric"
+            ? await fetchMetricDrilldown(runId, {
+                metricKey: request.metricKey,
+                scopeType: request.scopeType,
+                scopeKey: request.scopeKey,
+              })
           : await fetchResponsesByIds(request.responseIds);
       setRows(list as ResponseRow[]);
       setLoading(false);
@@ -125,6 +134,12 @@ export function DrilldownPanel({
                   <Stamp tone="ink">{row.providerId}</Stamp>
                   <Stamp tone="ink">{row.generationMode}</Stamp>
                 </div>
+                {(row.numeratorLabel || row.denominatorLabel) && (
+                  <div className="mb-2 flex flex-col gap-1 font-mono text-[11px] text-ink/50">
+                    {row.numeratorLabel && <span>{row.numeratorLabel}</span>}
+                    {row.denominatorLabel && <span>{row.denominatorLabel}</span>}
+                  </div>
+                )}
                 <p className="line-clamp-2 text-ink/70">{row.rawText}</p>
               </button>
             ))}

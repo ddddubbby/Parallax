@@ -1,6 +1,12 @@
-import { and, eq } from "drizzle-orm";
+import type { ReportEvidenceExcerpt } from "@/core/report-templates";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../client";
-import { reportSections } from "../schema";
+import { reportSections, responses } from "../schema";
+import {
+  getBrandMentionsForExtractions,
+  getClaimsForExtractions,
+  getEligibleExtractionsForRun,
+} from "./extraction";
 
 export async function getReportSections(runId: string) {
   return db.select().from(reportSections).where(eq(reportSections.runId, runId)).orderBy(reportSections.position);
@@ -44,4 +50,138 @@ export async function regenerateSection(sectionId: string, generatedMd: string) 
 export async function getSection(sectionId: string) {
   const [row] = await db.select().from(reportSections).where(eq(reportSections.id, sectionId));
   return row ?? null;
+}
+
+interface FindingEvidenceRow {
+  id: string;
+  findingType: string;
+  title: string;
+  evidenceJson: unknown;
+}
+
+const UNSUPPORTED_VERDICTS = new Set(["contradicted", "unsupported", "outdated"]);
+
+/** TP-2: deterministic first-k raw-response excerpts for each report finding. */
+export async function getFindingEvidenceExcerpts(
+  runId: string,
+  findingRows: FindingEvidenceRow[],
+  limitPerFinding = 1,
+): Promise<ReportEvidenceExcerpt[]> {
+  if (findingRows.length === 0) return [];
+
+  const eligible = await getEligibleExtractionsForRun(runId);
+  if (eligible.length === 0) return [];
+
+  const responseIds = eligible.map((e) => e.responseId);
+  const extractionIds = eligible.map((e) => e.extractionId);
+  const [responseRows, mentionRows, claimRows] = await Promise.all([
+    db
+      .select({
+        id: responses.id,
+        rawText: responses.rawText,
+        providerId: responses.providerId,
+        generationMode: responses.generationMode,
+      })
+      .from(responses)
+      .where(inArray(responses.id, responseIds)),
+    getBrandMentionsForExtractions(extractionIds),
+    getClaimsForExtractions(extractionIds),
+  ]);
+
+  const responseById = new Map(responseRows.map((r) => [r.id, r]));
+  const mentionsByExtraction = groupBy(mentionRows, (m) => m.extractionId);
+  const claimsByExtraction = groupBy(claimRows, (c) => c.extractionId);
+  const sortedEligible = [...eligible].sort((a, b) => a.responseId.localeCompare(b.responseId));
+
+  const excerpts: ReportEvidenceExcerpt[] = [];
+  for (const finding of findingRows) {
+    const matches = matchingEligibleForFinding(
+      finding,
+      sortedEligible,
+      mentionsByExtraction,
+      claimsByExtraction,
+    );
+    const selected = (matches.length > 0 ? matches : sortedEligible).slice(0, limitPerFinding);
+
+    for (const sample of selected) {
+      const response = responseById.get(sample.responseId);
+      if (!response) continue;
+      excerpts.push({
+        findingId: finding.id,
+        findingType: finding.findingType,
+        findingTitle: finding.title,
+        responseId: response.id,
+        providerId: response.providerId,
+        generationMode: response.generationMode,
+        quote: rawExcerpt(response.rawText),
+      });
+    }
+  }
+  return excerpts;
+}
+
+function matchingEligibleForFinding<TMention extends { extractionId: string; attributesJson: unknown }, TClaim extends { extractionId: string; extractedVerdict: string; operatorVerdict: string | null }>(
+  finding: FindingEvidenceRow,
+  eligible: Array<{
+    responseId: string;
+    cellId: string;
+    generationMode: string;
+    extractionId: string;
+    extractedJson: unknown;
+  }>,
+  mentionsByExtraction: Map<string, TMention[]>,
+  claimsByExtraction: Map<string, TClaim[]>,
+) {
+  const evidence = (finding.evidenceJson ?? {}) as Record<string, unknown>;
+  const cellId = typeof evidence.cellId === "string" ? evidence.cellId : null;
+  const attribute = typeof evidence.attribute === "string" ? evidence.attribute : null;
+  const domain = typeof evidence.domain === "string" ? evidence.domain : null;
+
+  if (finding.findingType === "lost_shortlist" || finding.findingType === "low_stability") {
+    return cellId ? eligible.filter((e) => e.cellId === cellId) : [];
+  }
+
+  if (finding.findingType === "positioning_gap" && attribute) {
+    return eligible.filter((e) =>
+      (mentionsByExtraction.get(e.extractionId) ?? []).some((m) =>
+        Array.isArray(m.attributesJson) && m.attributesJson.includes(attribute),
+      ),
+    );
+  }
+
+  if (finding.findingType === "misinformation") {
+    return eligible.filter((e) =>
+      (claimsByExtraction.get(e.extractionId) ?? []).some((c) =>
+        UNSUPPORTED_VERDICTS.has(c.operatorVerdict ?? c.extractedVerdict),
+      ),
+    );
+  }
+
+  if (finding.findingType === "grounded_ungrounded_split") {
+    return eligible.filter((e) => e.generationMode === "grounded" || e.generationMode === "ungrounded");
+  }
+
+  if (finding.findingType === "source_concentration" && domain) {
+    return eligible.filter((e) => {
+      const payload = e.extractedJson as { citations?: Array<{ domain?: string }> } | null;
+      return (payload?.citations ?? []).some((c) => c.domain === domain);
+    });
+  }
+
+  return [];
+}
+
+function rawExcerpt(rawText: string, max = 320): string {
+  const normalized = rawText.replace(/\s+/g, " ").trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 3).trimEnd()}...`;
+}
+
+function groupBy<T, K>(items: T[], key: (item: T) => K): Map<K, T[]> {
+  const map = new Map<K, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    map.set(k, [...(map.get(k) ?? []), item]);
+  }
+  return map;
 }

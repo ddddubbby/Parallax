@@ -1,6 +1,6 @@
 import type { Finding } from "./findings";
 import { escapeModelText } from "./md";
-import { PILLARS } from "./semantic";
+import { PILLARS, resolveGlossary, type Pillar } from "./semantic";
 
 // Report section templates (RB-4). Deterministic markdown generation from
 // already-computed metrics/findings data — no LLM call, matching the
@@ -35,17 +35,35 @@ interface MetricLike {
   ciHigh: number | null;
 }
 
+interface ReportFinding extends Finding {
+  id?: string;
+}
+
+export interface ReportEvidenceExcerpt {
+  findingId: string;
+  findingType: string;
+  findingTitle: string;
+  responseId: string;
+  providerId: string;
+  generationMode: string;
+  quote: string;
+}
+
 export interface ReportContext {
   clientBrandName: string;
   competitorNames: string[];
   runMode: string;
+  runDate: string;
   isMock: boolean;
   isPartial: boolean;
   repetitions: number;
+  plannedCalls: number;
+  costCapUsd: number;
   providers: string[];
   modes: string[];
   metrics: MetricLike[];
-  findings: Finding[];
+  findings: ReportFinding[];
+  evidenceExcerpts: ReportEvidenceExcerpt[];
   misinformation: Array<{
     claimText: string;
     verdict: string;
@@ -74,6 +92,42 @@ function findingsByType(ctx: ReportContext, type: string): Finding[] {
   return ctx.findings.filter((f) => f.findingType === type);
 }
 
+function runProvenance(ctx: ReportContext, n: number | null | undefined): string {
+  const sample = typeof n === "number" ? `n=${n}` : "n=not available";
+  return `${sample}; providers: ${ctx.providers.join(", ") || "none"}; modes: ${ctx.modes.join(", ") || "none"}; run date: ${ctx.runDate}`;
+}
+
+function metricProvenance(ctx: ReportContext, metric: MetricLike | undefined): string {
+  return `(${runProvenance(ctx, metric?.n)})`;
+}
+
+function findingProvenance(ctx: ReportContext, finding: Finding): string {
+  const n = typeof finding.evidence.n === "number" ? finding.evidence.n : null;
+  return `(${runProvenance(ctx, n)})`;
+}
+
+function countProvenance(ctx: ReportContext, count: number, unit: string): string {
+  return `(n=${count} ${unit}; providers: ${ctx.providers.join(", ") || "none"}; modes: ${ctx.modes.join(", ") || "none"}; run date: ${ctx.runDate})`;
+}
+
+function metricRowsByPillar(ctx: ReportContext): Array<{ pillar: Pillar; rows: MetricLike[] }> {
+  const overall = ctx.metrics.filter((m) => m.scopeType === "overall");
+  const byKey = new Map(overall.map((m) => [m.metricKey, m]));
+  const pillarOrder: Pillar[] = ["presence", "position", "perception", "proof"];
+  const ordered = [...byKey.values()].sort((a, b) => {
+    const ga = resolveGlossary(a.metricKey);
+    const gb = resolveGlossary(b.metricKey);
+    return ga.pillar === gb.pillar ? ga.label.localeCompare(gb.label) : pillarOrder.indexOf(ga.pillar) - pillarOrder.indexOf(gb.pillar);
+  });
+
+  const groups = new Map<Pillar, MetricLike[]>();
+  for (const row of ordered) {
+    const pillar = resolveGlossary(row.metricKey).pillar;
+    groups.set(pillar, [...(groups.get(pillar) ?? []), row]);
+  }
+  return [...groups.entries()].map(([pillar, rows]) => ({ pillar, rows }));
+}
+
 function badgeLine(ctx: ReportContext): string {
   const badges: string[] = [];
   if (ctx.isMock) badges.push("**MOCK** — this run used simulated provider fixtures, not live AI answers.");
@@ -88,22 +142,46 @@ function generateExecutiveSummary(ctx: ReportContext): string {
   const sov = overall(ctx, "share_of_voice");
   const highFindings = ctx.findings.filter((f) => f.severity === "high").length;
 
-  return `${badgeLine(ctx)}This report summarizes how AI assistants described **${ctx.clientBrandName}** across ${mention?.n ?? 0} sampled answers in this run, compared against ${ctx.competitorNames.length} tracked competitors.
+  return `${badgeLine(ctx)}This report summarizes how AI assistants described **${ctx.clientBrandName}** across this run's eligible sampled answers (${runProvenance(ctx, mention?.n)}), compared against ${ctx.competitorNames.length} tracked competitors.
 
-In the sampled answers, ${ctx.clientBrandName} was mentioned in ${pct(mention?.value)} of eligible responses${ci(mention)} and recommended in ${pct(rec?.value)}${ci(rec)}. Its share of voice against tracked competitors was ${pct(sov?.value)}.
+In the sampled answers, ${ctx.clientBrandName} was mentioned in ${pct(mention?.value)} of eligible responses${ci(mention)} ${metricProvenance(ctx, mention)} and recommended in ${pct(rec?.value)}${ci(rec)} ${metricProvenance(ctx, rec)}. Its share of voice against tracked competitors was ${pct(sov?.value)} ${metricProvenance(ctx, sov)}.
 
 ${highFindings > 0 ? `${highFindings} high-severity finding${highFindings === 1 ? "" : "s"} ${highFindings === 1 ? "requires" : "require"} attention — see the sections below.` : "No high-severity findings were flagged in this run."} These figures describe what was observed in this specific sample and should be read alongside the confidence intervals and sample sizes noted throughout this report, not as a guarantee of future AI behavior.`;
 }
 
 function generateMethodConfidence(ctx: ReportContext): string {
   const mention = overall(ctx, "mention_rate");
-  return `${badgeLine(ctx)}This audit sampled each approved prompt ${ctx.repetitions} time${ctx.repetitions === 1 ? "" : "s"} per engine-mode, across provider(s) ${ctx.providers.join(", ") || "none"} and mode(s) ${ctx.modes.join(", ") || "none"}.
+  const metricRows = metricRowsByPillar(ctx)
+    .flatMap(({ rows }) => rows)
+    .map((m) => {
+      const glossary = resolveGlossary(m.metricKey);
+      return `| ${glossary.label} | ${PILLARS[glossary.pillar].label} | ${glossary.computationSummary} | ${glossary.intervalCaveat} |`;
+    })
+    .join("\n");
 
-${mention?.n ?? 0} responses were eligible for aggregate metrics — refusals and responses that could not be extracted are excluded from every rate in this report and reported separately, not silently dropped.
+  return `${badgeLine(ctx)}## Run configuration
+
+| Field | Value |
+|---|---|
+| Run date | ${ctx.runDate} |
+| Run mode | ${ctx.runMode} |
+| Planned calls | ${ctx.plannedCalls} |
+| Repetitions per approved prompt | ${ctx.repetitions} |
+| Providers | ${ctx.providers.join(", ") || "none"} |
+| Grounding modes | ${ctx.modes.join(", ") || "none"} |
+| Run cost cap | $${ctx.costCapUsd.toFixed(2)} |
+
+## Eligibility
+
+${mention?.n ?? 0} responses were eligible for aggregate metrics (${runProvenance(ctx, mention?.n)}). Per D-014, an eligible sample is a stored response whose latest extraction is valid or QA-reviewed with \`refusal=false\`; refusals, dead-lettered jobs, and unusable extractions are excluded from metric denominators rather than silently mixed in.
 
 Aggregate figures render only where the eligible sample size is at least 30; smaller samples show as "insufficient data" rather than a number that could mislead. Cell-level findings such as lost-shortlist cells are exempt from that threshold but are always labeled directional-only, since a single cell reflects only a handful of samples.
 
-Wilson confidence intervals are shown for true proportions (Mention Rate, Recommendation Rate, Accuracy Rate). Share of Voice, Citation Share, Avg First Position, and Stability Index are point estimates without a defined interval in this version of the tool.`;
+## Metric glossary used in this run
+
+| Metric | Pillar | Computation | Interval method |
+|---|---|---|---|
+${metricRows || "| No metrics computed | — | — | — |"}`;
 }
 
 function generateVisibility(ctx: ReportContext): string {
@@ -115,20 +193,22 @@ function generateVisibility(ctx: ReportContext): string {
 
   return `${PILLARS.presence.clientQuestion}
 
-| Metric | Value | n |
+| Metric | Value | Provenance |
 |---|---|---|
-| Mention Rate | ${pct(mention?.value)}${ci(mention)} | ${mention?.n ?? "—"} |
-| Recommendation Rate | ${pct(rec?.value)}${ci(rec)} | ${rec?.n ?? "—"} |
-| Avg First Position (when mentioned) | ${pos?.value !== undefined ? pos.value.toFixed(1) : "not available"} | ${pos?.n ?? "—"} |
-| Stability Index | ${stability?.value !== undefined ? stability.value.toFixed(2) : "not available"} | ${stability?.n ?? "—"} |
+| Mention Rate | ${pct(mention?.value)}${ci(mention)} | ${runProvenance(ctx, mention?.n)} |
+| Recommendation Rate | ${pct(rec?.value)}${ci(rec)} | ${runProvenance(ctx, rec?.n)} |
+| Avg First Position (when mentioned) | ${pos?.value !== undefined ? pos.value.toFixed(1) : "not available"} | ${runProvenance(ctx, pos?.n)} |
+| Stability Index | ${stability?.value !== undefined ? stability.value.toFixed(2) : "not available"} | ${runProvenance(ctx, stability?.n)} |
 
-${lowStability.length > 0 ? `${lowStability.length} cell${lowStability.length === 1 ? "" : "s"} showed low stability (repeated samples disagreeing on which brands appear) — see the evidence appendix for specifics. These are cell-level observations, not aggregate claims.` : "No cells fell below the stability threshold in this run."}`;
+${lowStability.length > 0 ? `${lowStability.length} cell${lowStability.length === 1 ? "" : "s"} showed low stability (repeated samples disagreeing on which brands appear) — see the evidence appendix for specifics. These are cell-level observations, not aggregate claims. ${countProvenance(ctx, lowStability.length, "flagged cells")}` : "No cells fell below the stability threshold in this run."}`;
 }
 
 function generatePerception(ctx: ReportContext): string {
   const positioningGaps = findingsByType(ctx, "positioning_gap");
-  const sentimentLines = Object.entries(ctx.sentiment)
-    .map(([label, rate]) => `- ${label}: ${pct(rate)}`)
+  const sentimentLines = ctx.metrics
+    .filter((m) => m.scopeType === "overall" && m.metricKey.startsWith("sentiment_"))
+    .sort((a, b) => resolveGlossary(a.metricKey).label.localeCompare(resolveGlossary(b.metricKey).label))
+    .map((m) => `- ${resolveGlossary(m.metricKey).label}: ${pct(m.value)} ${metricProvenance(ctx, m)}`)
     .join("\n");
 
   return `${PILLARS.perception.clientQuestion}
@@ -137,11 +217,11 @@ Sentiment observed in mentions of ${ctx.clientBrandName}:
 
 ${sentimentLines || "No sentiment data available."}
 
-${
+  ${
   positioningGaps.length > 0
-    ? `${positioningGaps.length} desired attribute${positioningGaps.length === 1 ? "" : "s"} showed a low association rate with ${ctx.clientBrandName} in sampled answers:\n\n${positioningGaps.map((f) => `- ${f.title}: ${f.bodyMd}`).join("\n")}`
+    ? `${positioningGaps.length} desired attribute${positioningGaps.length === 1 ? "" : "s"} showed a low association rate with ${ctx.clientBrandName} in sampled answers ${countProvenance(ctx, positioningGaps.length, "flagged attributes")}:\n\n${positioningGaps.map((f) => `- ${f.title}: ${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n")}`
     : "No positioning gaps were flagged against the desired attribute list in this run."
-}`;
+  }`;
 }
 
 function generateCompetitiveDynamics(ctx: ReportContext): string {
@@ -151,15 +231,15 @@ function generateCompetitiveDynamics(ctx: ReportContext): string {
 
   return `${PILLARS.position.clientQuestion}
 
-${ctx.clientBrandName}'s observed share of voice against ${ctx.competitorNames.join(", ") || "tracked competitors"} was ${pct(sov?.value)} in this run.
+${ctx.clientBrandName}'s observed share of voice against ${ctx.competitorNames.join(", ") || "tracked competitors"} was ${pct(sov?.value)} in this run ${metricProvenance(ctx, sov)}.
 
 ${
   lostShortlist.length > 0
-    ? `${lostShortlist.length} cell${lostShortlist.length === 1 ? "" : "s"} showed a competitor dominating a high-intent comparison while ${ctx.clientBrandName} was nearly absent (directional, cell-level observations, not aggregate claims):\n\n${lostShortlist.map((f) => `- ${f.title}`).join("\n")}`
+    ? `${lostShortlist.length} cell${lostShortlist.length === 1 ? "" : "s"} showed a competitor dominating a high-intent comparison while ${ctx.clientBrandName} was nearly absent (directional, cell-level observations, not aggregate claims) ${countProvenance(ctx, lostShortlist.length, "flagged cells")}:\n\n${lostShortlist.map((f) => `- ${f.title}: ${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n")}`
     : "No lost-shortlist cells were flagged in this run."
 }
 
-${groundedSplit.length > 0 ? groundedSplit.map((f) => f.bodyMd).join("\n\n") : ""}`;
+${groundedSplit.length > 0 ? groundedSplit.map((f) => `${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n\n") : ""}`;
 }
 
 function generateSources(ctx: ReportContext): string {
@@ -172,7 +252,11 @@ function generateSources(ctx: ReportContext): string {
 
   return `${PILLARS.proof.clientQuestion}
 
-${table}\n\n${concentration.length > 0 ? concentration.map((f) => f.bodyMd).join("\n\n") : ""}`;
+${table}
+
+Citation counts are drawn from eligible responses in this run (${runProvenance(ctx, overall(ctx, "citation_share")?.n)}).
+
+${concentration.length > 0 ? concentration.map((f) => `${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n\n") : ""}`;
 }
 
 function generateMisinformationRegister(ctx: ReportContext): string {
@@ -192,7 +276,7 @@ No contradicted, unsupported, or outdated claims about the client brand were fou
     .join("\n\n---\n\n");
   return `${PILLARS.proof.clientQuestion}
 
-${ctx.misinformation.length} claim${ctx.misinformation.length === 1 ? "" : "s"} in this run's sampled answers did not match the client fact sheet:\n\n${rows}`;
+${ctx.misinformation.length} claim${ctx.misinformation.length === 1 ? "" : "s"} in this run's sampled answers did not match the client fact sheet ${countProvenance(ctx, ctx.misinformation.length, "extracted claims")}:\n\n${rows}`;
 }
 
 function generateRecommendations(ctx: ReportContext): string {
@@ -208,9 +292,41 @@ Add your analysis and recommended next steps below.`;
 
 function generateRawAnswerAppendix(ctx: ReportContext): string {
   const mention = overall(ctx, "mention_rate");
-  return `This run sampled ${mention?.n ?? 0} eligible responses across provider(s) ${ctx.providers.join(", ") || "none"} and mode(s) ${ctx.modes.join(", ") || "none"}.
+  if (ctx.findings.length === 0) {
+    return `This run sampled ${mention?.n ?? 0} eligible responses (${runProvenance(ctx, mention?.n)}).
 
-Full raw response text, structured extractions, computed metrics, and citations for every sample are available via the CSV/JSON evidence export (EX-3), not duplicated inline here — every figure in this report traces back to a specific stored raw response.`;
+No findings were generated for this run. Full raw response text, structured extractions, computed metrics, and citations for every sample remain available via the CSV/JSON evidence export (EX-3).`;
+  }
+
+  const excerptsByFinding = new Map<string, ReportEvidenceExcerpt[]>();
+  for (const excerpt of ctx.evidenceExcerpts) {
+    excerptsByFinding.set(excerpt.findingId, [...(excerptsByFinding.get(excerpt.findingId) ?? []), excerpt]);
+  }
+
+  const findingBlocks = ctx.findings
+    .map((finding, index) => {
+      const id = finding.id ?? `${finding.findingType}:${index}`;
+      const excerpts = excerptsByFinding.get(id) ?? [];
+      const quoteLines =
+        excerpts.length > 0
+          ? excerpts
+              .map(
+                (e) =>
+                  `> "${escapeModelText(e.quote)}"\n\nResponse: \`${e.responseId}\` · provider: ${e.providerId} · mode: ${e.generationMode}`,
+              )
+              .join("\n\n")
+          : "No eligible raw-response excerpt was available for this finding.";
+      return `### ${finding.title}\n\n${quoteLines}`;
+    })
+    .join("\n\n---\n\n");
+
+  return `This run sampled ${mention?.n ?? 0} eligible responses (${runProvenance(ctx, mention?.n)}).
+
+Each finding below cites deterministic raw-response evidence: first eligible matching response by response id, so regenerated reports stay stable.
+
+${findingBlocks}
+
+Full raw response text, structured extractions, computed metrics, and citations for every sample are available via the CSV/JSON evidence export (EX-3).`;
 }
 
 const GENERATORS: Record<SectionKey, (ctx: ReportContext) => string> = {

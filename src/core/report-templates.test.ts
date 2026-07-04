@@ -5,9 +5,12 @@ const BASE_CTX: ReportContext = {
   clientBrandName: "LedgerFox",
   competitorNames: ["SpendPilot", "Northstar AP"],
   runMode: "mock",
+  runDate: "2026-07-04",
   isMock: true,
   isPartial: false,
   repetitions: 5,
+  plannedCalls: 100,
+  costCapUsd: 20,
   providers: ["mock"],
   modes: ["ungrounded"],
   metrics: [
@@ -18,6 +21,7 @@ const BASE_CTX: ReportContext = {
     { scopeType: "overall", metricKey: "stability_index", n: 20, value: 0.7, ciLow: null, ciHigh: null },
   ],
   findings: [],
+  evidenceExcerpts: [],
   misinformation: [],
   citedSources: [],
   sentiment: { positive: 0.6, neutral: 0.3, mixed: 0.05, negative: 0.05 },
@@ -50,7 +54,20 @@ describe("report templates (RB-4)", () => {
     const md = generateSection("executive_summary", BASE_CTX);
     expect(md).toContain("LedgerFox");
     expect(md).toContain("60%");
-    expect(md).toContain("100");
+    expect(md).toContain("n=100");
+    expect(md).toContain("providers: mock");
+    expect(md).toContain("modes: ungrounded");
+    expect(md).toContain("run date: 2026-07-04");
+  });
+
+  it("methodology is generated from the real run config and metric glossary", () => {
+    const md = generateSection("method_confidence", BASE_CTX);
+    expect(md).toContain("| Planned calls | 100 |");
+    expect(md).toContain("| Run cost cap | $20.00 |");
+    expect(md).toContain("valid or QA-reviewed");
+    expect(md).toContain("Mention Rate");
+    expect(md).toContain("Wilson 95% confidence interval");
+    expect(md).toContain("Point estimate only");
   });
 
   it("recommendations section explicitly marks itself as an operator-completed scaffold, not final advice", () => {
@@ -68,6 +85,38 @@ describe("report templates (RB-4)", () => {
   it("raw answer appendix points to the CSV/JSON export rather than duplicating raw text inline", () => {
     const md = generateSection("raw_answer_appendix", BASE_CTX);
     expect(md.toLowerCase()).toContain("csv/json");
+  });
+
+  it("raw answer appendix cites deterministic response excerpts for findings", () => {
+    const md = generateSection("raw_answer_appendix", {
+      ...BASE_CTX,
+      findings: [
+        {
+          id: "finding-1",
+          findingType: "source_concentration",
+          severity: "low",
+          title: "Citations concentrated on example.com",
+          bodyMd: "example.com dominates citations",
+          evidence: { domain: "example.com", n: 10 },
+          directionalOnly: false,
+        },
+      ],
+      evidenceExcerpts: [
+        {
+          findingId: "finding-1",
+          findingType: "source_concentration",
+          findingTitle: "Citations concentrated on example.com",
+          responseId: "response-001",
+          providerId: "mock",
+          generationMode: "ungrounded",
+          quote: 'Raw answer with <img src=x onerror="alert(1)"> and | table',
+        },
+      ],
+    });
+    expect(md).toContain("response-001");
+    expect(md).toContain("&lt;img");
+    expect(md).toContain("\\|");
+    expect(md).not.toContain("<img");
   });
 
   it("misinformation register reports 'no claims' cleanly when there are none", () => {

@@ -37,7 +37,10 @@ export function AttributeSection({
       ) : !sufficient ? (
         <Stamp tone="warn">Insufficient data</Stamp>
       ) : (
-        <AttributeRadar data={data} />
+        <>
+          <p className="label-mono mb-2 text-[11px] text-ink/45">n={attrRows[0].n}</p>
+          <AttributeRadar data={data} />
+        </>
       )}
     </section>
   );

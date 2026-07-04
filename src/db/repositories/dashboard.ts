@@ -11,7 +11,11 @@ import {
   promptCells,
   responses,
 } from "../schema";
-import { getEligibleExtractionsForRun } from "./extraction";
+import {
+  getBrandMentionsForExtractions,
+  getClaimsForExtractions,
+  getEligibleExtractionsForRun,
+} from "./extraction";
 
 export async function listCompletedRuns(projectId: string) {
   return db
@@ -177,6 +181,9 @@ interface DrilldownFilter {
   marketId?: string;
   providerId?: string;
   mode?: string;
+  scopeType?: string;
+  scopeKey?: string;
+  metricKey?: string;
 }
 
 /** DB-2 drill-down (click 1): responses matching a dashboard figure's scope. */
@@ -221,6 +228,80 @@ export async function getResponsesForScope(runId: string, filter: DrilldownFilte
     .slice(0, limit);
 }
 
+/** TP-4: metric-specific drill-through to eligible responses behind a dashboard metric. */
+export async function getResponsesForMetric(runId: string, filter: DrilldownFilter & { metricKey: string }, limit = 25) {
+  const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
+  if (!run) return [];
+
+  const [projectBrands, eligible, cellRows] = await Promise.all([
+    db.select({ id: brands.id, role: brands.role }).from(brands).where(eq(brands.projectId, run.projectId)),
+    getEligibleExtractionsForRun(runId),
+    db
+      .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, run.matrixVersionId)),
+  ]);
+  if (eligible.length === 0) return [];
+
+  const clientBrandId = projectBrands.find((b) => b.role === "client")?.id ?? null;
+  const trackedBrandIds = new Set(projectBrands.map((b) => b.id));
+  const cellById = new Map(cellRows.map((c) => [c.id, c]));
+  const scoped = eligible
+    .filter((e) => eligibleMatchesDrilldownScope(e, cellById.get(e.cellId), filter))
+    .sort((a, b) => a.responseId.localeCompare(b.responseId));
+  if (scoped.length === 0) return [];
+
+  const responseIds = scoped.map((e) => e.responseId);
+  const extractionIds = scoped.map((e) => e.extractionId);
+  const [responseRows, mentionRows, claimRows] = await Promise.all([
+    db
+      .select({
+        id: responses.id,
+        cellId: responses.cellId,
+        providerId: responses.providerId,
+        generationMode: responses.generationMode,
+        rawText: responses.rawText,
+        createdAt: responses.createdAt,
+      })
+      .from(responses)
+      .where(inArray(responses.id, responseIds)),
+    getBrandMentionsForExtractions(extractionIds),
+    getClaimsForExtractions(extractionIds),
+  ]);
+
+  const responseById = new Map(responseRows.map((r) => [r.id, r]));
+  const mentionsByExtraction = groupBy(mentionRows, (m) => m.extractionId);
+  const claimsByExtraction = groupBy(claimRows, (c) => c.extractionId);
+  const rows = [];
+
+  for (const sample of scoped) {
+    const response = responseById.get(sample.responseId);
+    if (!response) continue;
+
+    const mentions = mentionsByExtraction.get(sample.extractionId) ?? [];
+    const claims = claimsByExtraction.get(sample.extractionId) ?? [];
+    const trackedMentions = mentions.filter((m) => m.brandId && trackedBrandIds.has(m.brandId));
+    const clientMention = trackedMentions.find((m) => m.brandId === clientBrandId);
+    const label = metricResponseLabel(filter.metricKey, sample.extractedJson, {
+      clientMention,
+      trackedMentionCount: trackedMentions.length,
+      claims,
+      clientBrandId,
+      trackedBrandIds,
+    });
+    if (!label) continue;
+
+    rows.push({
+      ...response,
+      numeratorLabel: label.numeratorLabel,
+      denominatorLabel: label.denominatorLabel,
+    });
+    if (rows.length >= limit) break;
+  }
+
+  return rows;
+}
+
 /** DB-2 drill-down (click 1) for cited sources: the specific responses that cited a domain. */
 export async function getResponsesByIds(responseIds: string[]) {
   if (responseIds.length === 0) return [];
@@ -248,4 +329,128 @@ export async function getResponseDetail(responseId: string) {
     .orderBy(desc(extractions.extractionVersion))
     .limit(1);
   return { response, extraction: extraction ?? null };
+}
+
+function eligibleMatchesDrilldownScope(
+  sample: { cellId: string; providerId: string; generationMode: string },
+  cell: { intent: string; personaId: string | null; marketId: string | null } | undefined,
+  filter: DrilldownFilter,
+): boolean {
+  if (filter.providerId && sample.providerId !== filter.providerId) return false;
+  if (filter.mode && sample.generationMode !== filter.mode) return false;
+  if (filter.intent && cell?.intent !== filter.intent) return false;
+  if (filter.personaId && cell?.personaId !== filter.personaId) return false;
+  if (filter.marketId && cell?.marketId !== filter.marketId) return false;
+
+  if (!filter.scopeType || filter.scopeType === "overall") return true;
+  if (filter.scopeType === "provider") return sample.providerId === filter.scopeKey;
+  if (filter.scopeType === "mode") return sample.generationMode === filter.scopeKey;
+  if (filter.scopeType === "intent") return cell?.intent === filter.scopeKey;
+  if (filter.scopeType === "persona") return cell?.personaId === filter.scopeKey;
+  if (filter.scopeType === "market") return cell?.marketId === filter.scopeKey;
+  if (filter.scopeType === "intent_persona") return `${cell?.intent}|${cell?.personaId}` === filter.scopeKey;
+  if (filter.scopeType === "cell") return filter.scopeKey?.split("|")[0] === sample.cellId;
+  return true;
+}
+
+function metricResponseLabel(
+  metricKey: string,
+  extractedJson: unknown,
+  input: {
+    clientMention:
+      | {
+          recommended: boolean;
+          position: number | null;
+          sentiment: string;
+          attributesJson: unknown;
+        }
+      | undefined;
+    trackedMentionCount: number;
+    claims: Array<{ extractedVerdict: string; operatorVerdict: string | null }>;
+    clientBrandId: string | null;
+    trackedBrandIds: Set<string>;
+  },
+): { numeratorLabel: string; denominatorLabel: string } | null {
+  if (metricKey === "mention_rate") {
+    return {
+      numeratorLabel: input.clientMention ? "Numerator: client mentioned" : "Numerator: client absent",
+      denominatorLabel: "Denominator: eligible response",
+    };
+  }
+  if (metricKey === "recommendation_rate") {
+    return {
+      numeratorLabel: input.clientMention?.recommended ? "Numerator: client recommended" : "Numerator: not recommended",
+      denominatorLabel: "Denominator: eligible response",
+    };
+  }
+  if (metricKey === "share_of_voice") {
+    return {
+      numeratorLabel: `Client tracked mentions: ${input.clientMention ? 1 : 0}`,
+      denominatorLabel: `All tracked-brand mentions in this response: ${input.trackedMentionCount}`,
+    };
+  }
+  if (metricKey === "avg_first_position") {
+    if (!input.clientMention || input.clientMention.position === null) return null;
+    return {
+      numeratorLabel: `Client position: ${input.clientMention.position}`,
+      denominatorLabel: "Denominator: responses where client is mentioned",
+    };
+  }
+  if (metricKey === "citation_share") {
+    const payload = extractedJson as { citations?: Array<{ cited_for_brand_ids?: string[] }> } | null;
+    const citations = payload?.citations ?? [];
+    const client = citations.filter((c) => c.cited_for_brand_ids?.includes(input.clientBrandId ?? "")).length;
+    const tracked = citations.filter((c) => (c.cited_for_brand_ids ?? []).some((id) => input.trackedBrandIds.has(id))).length;
+    return {
+      numeratorLabel: `Client citations: ${client}`,
+      denominatorLabel: `Tracked-brand citations: ${tracked}`,
+    };
+  }
+  if (metricKey === "accuracy_rate") {
+    const checked = input.claims.filter((c) => {
+      const verdict = c.operatorVerdict ?? c.extractedVerdict;
+      return verdict !== "not_checked" && verdict !== "ambiguous";
+    });
+    if (checked.length === 0) return null;
+    const supported = checked.filter((c) => (c.operatorVerdict ?? c.extractedVerdict) === "supported").length;
+    return {
+      numeratorLabel: `Supported checked claims: ${supported}`,
+      denominatorLabel: `Checked claims in this response: ${checked.length}`,
+    };
+  }
+  if (metricKey === "stability_index") {
+    return {
+      numeratorLabel: "Included in repeated-sample brand-set comparison",
+      denominatorLabel: "Denominator: eligible response in a repeated cell",
+    };
+  }
+  if (metricKey.startsWith("attribute_")) {
+    if (!input.clientMention) return null;
+    const attribute = metricKey.slice("attribute_".length);
+    const attrs = Array.isArray(input.clientMention.attributesJson) ? input.clientMention.attributesJson : [];
+    return {
+      numeratorLabel: attrs.includes(attribute) ? `Attribute present: ${attribute}` : `Attribute absent: ${attribute}`,
+      denominatorLabel: "Denominator: client-mentioned response",
+    };
+  }
+  if (metricKey.startsWith("sentiment_")) {
+    if (!input.clientMention) return null;
+    return {
+      numeratorLabel: `Client sentiment: ${input.clientMention.sentiment}`,
+      denominatorLabel: "Denominator: client-mentioned response",
+    };
+  }
+  return {
+    numeratorLabel: "Included in metric sample",
+    denominatorLabel: "Denominator: eligible response",
+  };
+}
+
+function groupBy<T, K>(items: T[], key: (item: T) => K): Map<K, T[]> {
+  const map = new Map<K, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    map.set(k, [...(map.get(k) ?? []), item]);
+  }
+  return map;
 }

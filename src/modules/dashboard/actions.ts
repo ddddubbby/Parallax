@@ -7,6 +7,7 @@ import {
   getProjectPersonasAndMarkets,
   getResponseDetail,
   getResponsesByIds,
+  getResponsesForMetric,
   getResponsesForScope,
   getRunForDashboard,
   listCompletedRuns,
@@ -66,6 +67,22 @@ export async function fetchDrilldown(
   filter: { intent?: string; personaId?: string; marketId?: string; providerId?: string; mode?: string },
 ) {
   return getResponsesForScope(runId, filter);
+}
+
+export async function fetchMetricDrilldown(
+  runId: string,
+  filter: {
+    metricKey: string;
+    scopeType?: string;
+    scopeKey?: string;
+    intent?: string;
+    personaId?: string;
+    marketId?: string;
+    providerId?: string;
+    mode?: string;
+  },
+) {
+  return getResponsesForMetric(runId, filter);
 }
 
 export async function fetchResponseDetail(responseId: string) {
