@@ -193,6 +193,66 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     expect(requestInit.signal?.aborted).toBe(false);
   });
 
+  it("enableCredential reactivates a disabled row and disables any other active credential for that provider", async () => {
+    const { saveCredential, disableCredential, enableCredential } = await import("./actions");
+
+    const first = await saveCredential("deepseek", "sk-test-enable-one", { label: "test-m8-enable-one" });
+    expect(first.ok).toBe(true);
+    const [firstRow] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.label, "test-m8-enable-one"));
+
+    await disableCredential(firstRow.id);
+    const [disabledFirst] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.id, firstRow.id));
+    expect(disabledFirst.status).toBe("disabled");
+
+    const second = await saveCredential("deepseek", "sk-test-enable-two", { label: "test-m8-enable-two" });
+    expect(second.ok).toBe(true);
+    const [secondRow] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.label, "test-m8-enable-two"));
+    expect(secondRow.status).toBe("active");
+
+    const enabled = await enableCredential(firstRow.id);
+    expect(enabled.ok).toBe(true);
+
+    const rows = await db
+      .select()
+      .from(providerCredentials)
+      .where(like(providerCredentials.label, "test-m8-enable-%"));
+    expect(rows.find((r) => r.id === firstRow.id)?.status).toBe("active");
+    expect(rows.find((r) => r.id === secondRow.id)?.status).toBe("disabled");
+    expect(rows.filter((r) => r.providerId === "deepseek" && r.status === "active")).toHaveLength(1);
+  });
+
+  it("enableCredential refuses invalid rows; those require re-entry or rotation", async () => {
+    const { saveCredential, enableCredential } = await import("./actions");
+    const saved = await saveCredential("deepseek", "sk-test-enable-invalid", { label: "test-m8-enable-invalid" });
+    expect(saved.ok).toBe(true);
+    const [row] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.label, "test-m8-enable-invalid"));
+
+    await db
+      .update(providerCredentials)
+      .set({ status: "invalid" })
+      .where(eq(providerCredentials.id, row.id));
+
+    const result = await enableCredential(row.id);
+    expect(result.ok).toBe(false);
+    const [after] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.id, row.id));
+    expect(after.status).toBe("invalid");
+  });
+
   it("disableCredential and deleteCredential", async () => {
     const { saveCredential, disableCredential, deleteCredential } = await import("./actions");
     const saved = await saveCredential("deepseek", "sk-test-lifecycle", { label: "test-m8-lifecycle" });

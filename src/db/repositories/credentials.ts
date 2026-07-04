@@ -91,6 +91,46 @@ export async function disableCredential(credentialId: string) {
     .where(eq(providerCredentials.id, credentialId));
 }
 
+/**
+ * Re-enable a deliberately disabled credential without asking the operator
+ * to paste the secret again. This is intentionally NOT available for
+ * invalid rows: invalid can mean a bad key or a decrypt failure, and those
+ * require re-entry/rotation (D-021). D-020 still holds — enabling one row
+ * disables any other active row for the same provider in the same
+ * transaction.
+ */
+export async function enableCredential(credentialId: string): Promise<number> {
+  return db.transaction(async (tx) => {
+    const [credential] = await tx
+      .select({
+        id: providerCredentials.id,
+        providerId: providerCredentials.providerId,
+        status: providerCredentials.status,
+      })
+      .from(providerCredentials)
+      .where(eq(providerCredentials.id, credentialId));
+
+    if (!credential || credential.status !== "disabled") return 0;
+
+    await tx
+      .update(providerCredentials)
+      .set({ status: "disabled", updatedAt: new Date() })
+      .where(
+        and(
+          eq(providerCredentials.providerId, credential.providerId),
+          eq(providerCredentials.status, "active"),
+        ),
+      );
+
+    const enabled = await tx
+      .update(providerCredentials)
+      .set({ status: "active", updatedAt: new Date() })
+      .where(and(eq(providerCredentials.id, credentialId), eq(providerCredentials.status, "disabled")))
+      .returning({ id: providerCredentials.id });
+    return enabled.length;
+  });
+}
+
 export async function deleteCredential(credentialId: string) {
   await db.delete(providerCredentials).where(eq(providerCredentials.id, credentialId));
 }

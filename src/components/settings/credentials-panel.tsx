@@ -7,6 +7,7 @@ import type { ProviderId } from "@/core/runner";
 import {
   deleteCredential,
   disableCredential,
+  enableCredential,
   saveCredential,
   verifyCredential,
 } from "@/modules/settings/actions";
@@ -96,6 +97,17 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     });
   }
 
+  function handleEnable(id: string) {
+    setError(null);
+    setBusyId(id);
+    startTransition(async () => {
+      const result = await enableCredential(id);
+      setBusyId(null);
+      if (!result.ok) setError(result.error);
+      router.refresh();
+    });
+  }
+
   function handleDelete(id: string) {
     setError(null);
     setBusyId(id);
@@ -155,6 +167,16 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
                           Disable
                         </Button>
                       </>
+                    )}
+                    {c.status === "disabled" && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={pending && busyId === c.id}
+                        onClick={() => handleEnable(c.id)}
+                      >
+                        {busyId === c.id && pending ? "Enabling…" : "Enable"}
+                      </Button>
                     )}
                     <Button
                       type="button"

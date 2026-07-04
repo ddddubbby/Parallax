@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   deleteCredential as deleteCredentialRow,
   disableCredential as disableCredentialRow,
+  enableCredential as enableCredentialRow,
   getActiveCredential,
   markInvalid,
   markVerified,
@@ -188,6 +189,15 @@ export async function verifyCredential(
 
 export async function disableCredential(credentialId: string): Promise<ActionResult> {
   await disableCredentialRow(credentialId);
+  revalidatePath(SETTINGS_PATH);
+  return { ok: true };
+}
+
+export async function enableCredential(credentialId: string): Promise<ActionResult> {
+  const updated = await enableCredentialRow(credentialId);
+  if (updated === 0) {
+    return { ok: false, error: "Credential must be disabled before it can be enabled" };
+  }
   revalidatePath(SETTINGS_PATH);
   return { ok: true };
 }
