@@ -237,7 +237,7 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
   if (!run) return [];
 
   const [projectBrands, eligible, cellRows] = await Promise.all([
-    db.select({ id: brands.id, role: brands.role }).from(brands).where(eq(brands.projectId, run.projectId)),
+    db.select({ id: brands.id, role: brands.role, name: brands.name }).from(brands).where(eq(brands.projectId, run.projectId)),
     getEligibleExtractionsForRun(runId),
     db
       .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId, resolvedText: promptCells.resolvedText })
@@ -255,6 +255,7 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
   // still keys off metricKey (below), so it applies to brand scope for free.
   const subjectBrandId =
     filter.scopeType === "brand" && filter.scopeKey ? filter.scopeKey : clientBrandId;
+  const subjectBrandName = projectBrands.find((b) => b.id === subjectBrandId)?.name ?? "the client";
 
   // D-054: the drill-through denominator must be exactly the metric's
   // denominator — same frame filter as recomputeMetrics, same intent-pure
@@ -315,6 +316,7 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
       claims,
       clientBrandId: subjectBrandId,
       trackedBrandIds,
+      subjectName: subjectBrandName,
     });
     if (!label) continue;
 
@@ -400,37 +402,41 @@ function metricResponseLabel(
     claims: Array<{ extractedVerdict: string; operatorVerdict: string | null }>;
     clientBrandId: string | null;
     trackedBrandIds: Set<string>;
+    subjectName: string;
   },
 ): { numeratorLabel: string; denominatorLabel: string } | null {
+  // CS-4/D-056 audit: labels name the SCOPED brand (the client for overall
+  // scopes, a competitor when its bar is drilled), never a hardcoded "client".
+  const subject = input.subjectName;
   if (metricKey === "mention_rate") {
     return {
-      numeratorLabel: input.clientMention ? "Numerator: client mentioned" : "Numerator: client absent",
+      numeratorLabel: input.clientMention ? `Numerator: ${subject} mentioned` : `Numerator: ${subject} absent`,
       denominatorLabel: "Denominator: unbranded eligible response (D-054)",
     };
   }
   if (metricKey === "recommendation_rate") {
     return {
-      numeratorLabel: input.clientMention?.recommended ? "Numerator: client recommended" : "Numerator: not recommended",
+      numeratorLabel: input.clientMention?.recommended ? `Numerator: ${subject} recommended` : `Numerator: ${subject} not recommended`,
       denominatorLabel: "Denominator: unbranded eligible response (D-054)",
     };
   }
   if (metricKey === "comparative_win_rate") {
     return {
-      numeratorLabel: input.clientMention?.recommended ? "Numerator: client wins head-to-head" : "Numerator: client not picked",
+      numeratorLabel: input.clientMention?.recommended ? `Numerator: ${subject} wins head-to-head` : `Numerator: ${subject} not picked`,
       denominatorLabel: "Denominator: comparison eligible response (D-054)",
     };
   }
   if (metricKey === "share_of_voice") {
     return {
-      numeratorLabel: `Client tracked mentions: ${input.clientMention ? 1 : 0}`,
+      numeratorLabel: `${subject} tracked mentions: ${input.clientMention ? 1 : 0}`,
       denominatorLabel: `Tracked-brand mentions in this unbranded response: ${input.trackedMentionCount}`,
     };
   }
   if (metricKey === "avg_first_position") {
     if (!input.clientMention || input.clientMention.position === null) return null;
     return {
-      numeratorLabel: `Client position: ${input.clientMention.position}`,
-      denominatorLabel: "Denominator: unbranded responses where client is mentioned (D-054)",
+      numeratorLabel: `${subject} position: ${input.clientMention.position}`,
+      denominatorLabel: `Denominator: unbranded responses where ${subject} is mentioned (D-054)`,
     };
   }
   if (metricKey === "citation_share") {
@@ -439,7 +445,7 @@ function metricResponseLabel(
     const client = citations.filter((c) => c.cited_for_brand_ids?.includes(input.clientBrandId ?? "")).length;
     const tracked = citations.filter((c) => (c.cited_for_brand_ids ?? []).some((id) => input.trackedBrandIds.has(id))).length;
     return {
-      numeratorLabel: `Client citations: ${client}`,
+      numeratorLabel: `${subject} citations: ${client}`,
       denominatorLabel: `Tracked-brand citations: ${tracked}`,
     };
   }
@@ -467,14 +473,14 @@ function metricResponseLabel(
     const attrs = Array.isArray(input.clientMention.attributesJson) ? input.clientMention.attributesJson : [];
     return {
       numeratorLabel: attrs.includes(attribute) ? `Attribute present: ${attribute}` : `Attribute absent: ${attribute}`,
-      denominatorLabel: "Denominator: client-mentioned response",
+      denominatorLabel: `Denominator: ${subject}-mentioned response`,
     };
   }
   if (metricKey.startsWith("sentiment_")) {
     if (!input.clientMention) return null;
     return {
-      numeratorLabel: `Client sentiment: ${input.clientMention.sentiment}`,
-      denominatorLabel: "Denominator: client-mentioned response",
+      numeratorLabel: `${subject} sentiment: ${input.clientMention.sentiment}`,
+      denominatorLabel: `Denominator: ${subject}-mentioned response`,
     };
   }
   return {

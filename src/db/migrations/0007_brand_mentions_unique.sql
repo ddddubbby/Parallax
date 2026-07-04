@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "brand_mentions_extraction_brand_uq" ON "brand_mentions" USING btree ("extraction_id","brand_id") WHERE "brand_id" is not null;

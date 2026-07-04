@@ -101,7 +101,10 @@ export async function getFindingEvidenceExcerpts(
       mentionsByExtraction,
       claimsByExtraction,
     );
-    const selected = (matches.length > 0 ? matches : sortedEligible).slice(0, limitPerFinding);
+    // TP-2: cite only responses that actually match the finding. A finding
+    // with no match gets no excerpt (the report template renders "no excerpt
+    // available") rather than a misleading unrelated one.
+    const selected = matches.slice(0, limitPerFinding);
 
     for (const sample of selected) {
       const response = responseById.get(sample.responseId);

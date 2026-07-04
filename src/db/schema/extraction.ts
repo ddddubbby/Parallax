@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -82,7 +83,17 @@ export const brandMentions = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("brand_mentions_brand_recommended_idx").on(t.brandId, t.recommended)],
+  (t) => [
+    index("brand_mentions_brand_recommended_idx").on(t.brandId, t.recommended),
+    // One resolved mention row per (extraction, brand). collapseDuplicateBrand-
+    // Mentions already guarantees this at persist time; the index is the DB
+    // backstop so a future extraction bug can't inflate a per-brand
+    // mention_rate above 1.0 and break its Wilson interval (D-056 audit).
+    // Partial: unresolved mentions (brand_id NULL) are legitimately many.
+    uniqueIndex("brand_mentions_extraction_brand_uq")
+      .on(t.extractionId, t.brandId)
+      .where(sql`${t.brandId} is not null`),
+  ],
 );
 
 export const claimsFound = pgTable("claims_found", {

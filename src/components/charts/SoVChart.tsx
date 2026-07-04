@@ -13,7 +13,15 @@ export interface SoVDatum {
 // alphas, no categorical rainbow, flat canvas (no gridlines beyond --line).
 const COMPETITOR_ALPHAS = ["0.7", "0.5", "0.35", "0.22"];
 
-export function SoVChart({ data, height = 220 }: { data: SoVDatum[]; height?: number }) {
+export function SoVChart({
+  data,
+  height = 220,
+  onBarClick,
+}: {
+  data: SoVDatum[];
+  height?: number;
+  onBarClick?: (brandId: string) => void;
+}) {
   let competitorIdx = 0;
   const colored = data.map((d) => {
     if (d.isClient) return { ...d, fill: "var(--color-accent)" };
@@ -53,7 +61,16 @@ export function SoVChart({ data, height = 220 }: { data: SoVDatum[]; height?: nu
             fontSize: 12,
           }}
         />
-        <Bar dataKey="value" radius={[0, 2, 2, 0]} isAnimationActive={false}>
+        <Bar
+          dataKey="value"
+          radius={[0, 2, 2, 0]}
+          isAnimationActive={false}
+          cursor={onBarClick ? "pointer" : undefined}
+          onClick={(bar) => {
+            const brandId = (bar as unknown as { payload?: { brandId?: string } })?.payload?.brandId;
+            if (onBarClick && brandId) onBarClick(brandId);
+          }}
+        >
           {colored.map((d) => (
             <Cell key={d.brandId} fill={d.fill} />
           ))}

@@ -40,29 +40,22 @@ export function CompetitiveSpectrumSection({
   // Every brand row shares the same denominator (unbranded or comparison
   // sample count), so one n gates the whole chart.
   const n = ranked[0]?.n ?? 0;
-  const client = ranked.find((d) => d.isClient);
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <span className="label-mono text-xs font-medium text-ink/70">{title}</span>
-        {client && (
-          <button
-            type="button"
-            onClick={() => onBrandEvidence(client.brandId, metricKey)}
-            className="label-mono text-[11px] text-accent-ink hover:underline"
-          >
-            Evidence →
-          </button>
-        )}
-      </div>
+      <span className="mb-2 block label-mono text-xs font-medium text-ink/70">{title}</span>
       <p className="mb-2 font-mono text-[11px] text-ink/45">{caption}</p>
       {data.length === 0 || !isSufficientN(n) ? (
         <Stamp tone="warn">Insufficient data{n > 0 ? ` (n=${n})` : ""}</Stamp>
       ) : (
         <>
-          <SoVChart data={data} height={Math.max(120, data.length * 42 + 40)} />
-          <p className="label-mono mt-1 text-[11px] text-ink/45">n={n}</p>
+          {/* CS-4: every bar drills to that brand's evidence, not just the client. */}
+          <SoVChart
+            data={data}
+            height={Math.max(120, data.length * 42 + 40)}
+            onBarClick={(brandId) => onBrandEvidence(brandId, metricKey)}
+          />
+          <p className="label-mono mt-1 text-[11px] text-ink/45">n={n} · click a bar for its evidence</p>
         </>
       )}
     </div>

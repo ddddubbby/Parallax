@@ -8,6 +8,7 @@ import { FunnelSection } from "@/components/dashboard/funnel-section";
 import { CompetitiveSpectrumSection } from "@/components/dashboard/competitive-spectrum-section";
 import { MisinformationRegister } from "@/components/dashboard/misinformation-register";
 import { MetricCards } from "@/components/dashboard/scorecard";
+import { SentimentSection } from "@/components/dashboard/sentiment-section";
 import { PillarSection } from "@/components/semantic/pillar";
 import { Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
@@ -168,10 +169,13 @@ export function DashboardClient({
           </PillarSection>
 
           <PillarSection pillar="perception">
-            <AttributeSection
-              metrics={metrics}
-              onViewEvidence={() => setDrilldown({ kind: "scope", label: "Attribute evidence" })}
-            />
+            <div className="flex flex-col gap-6">
+              <AttributeSection
+                metrics={metrics}
+                onViewEvidence={() => setDrilldown({ kind: "scope", label: "Attribute evidence" })}
+              />
+              <SentimentSection metrics={metrics} />
+            </div>
           </PillarSection>
 
           <PillarSection pillar="proof">
