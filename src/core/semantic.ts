@@ -7,27 +7,42 @@ export const PILLAR_ORDER: Pillar[] = ["presence", "position", "perception", "pr
 
 export const PILLARS: Record<
   Pillar,
-  { label: string; clientQuestion: string; description: string }
+  {
+    label: string;
+    clientQuestion: string;
+    description: string;
+    // EL-1: what the pillar's prompts do, and why it matters to the client.
+    whatPromptsDo: string;
+    businessValue: string;
+  }
 > = {
   presence: {
     label: "Presence",
     clientQuestion: "Am I in AI's consideration set?",
     description: "Whether AI answers include and recommend the client brand.",
+    whatPromptsDo: "Ask open, unbranded category questions a real buyer would type — no brand named — and measure whether AI volunteers the client.",
+    businessValue: "If AI never mentions you unprompted, you are invisible at the top of the funnel where buyers form their shortlist.",
   },
   position: {
     label: "Position",
     clientQuestion: "When compared, do I win?",
     description: "How the client appears against tracked competitors.",
+    whatPromptsDo: "Force a head-to-head against the tracked competitor set and measure who AI actually recommends.",
+    businessValue: "Shows whether AI puts you ahead of or behind named rivals at the moment of choice — the difference between winning and losing the deal.",
   },
   perception: {
     label: "Perception",
     clientQuestion: "How does AI describe my brand?",
     description: "The qualities, sentiment, and objections attached to the client brand.",
+    whatPromptsDo: "Ask about the client directly and stress-test it with objection prompts to surface the qualities and concerns AI attaches to the brand.",
+    businessValue: "Reveals the story AI tells about you — the attributes, tone, and objections that shape how buyers feel before they ever reach your site.",
   },
   proof: {
     label: "Proof",
     clientQuestion: "Is the story true - and sourced?",
     description: "Whether claims are accurate and backed by cited sources.",
+    whatPromptsDo: "Every answer's factual claims about the client are checked against the fact sheet, and its citations are traced to sources.",
+    businessValue: "Catches where AI misstates facts about you or cites the wrong sources — reputational and compliance risk you can correct.",
   },
 };
 
@@ -262,4 +277,19 @@ export function resolveGlossary(metricKey: string): MetricGlossaryEntry {
   }
 
   throw new Error(`No metric glossary entry for "${metricKey}"`);
+}
+
+/**
+ * EL-1: the metrics a pillar's cells accumulate into, derived from the
+ * glossary's own pillar tags (single source — never a hand-kept list).
+ * Stability is excluded: it is the confidence rail, not a pillar metric.
+ * The dynamic perception families (sentiment, attributes) are appended
+ * since they are resolved on demand rather than named in the fixed map.
+ */
+export function pillarMetricLabels(pillar: Pillar): string[] {
+  const labels = Object.values(METRIC_GLOSSARY)
+    .filter((e) => e.pillar === pillar && e.key !== "stability_index")
+    .map((e) => e.label);
+  if (pillar === "perception") labels.push("Sentiment", "Attribute associations");
+  return labels;
 }

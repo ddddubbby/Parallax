@@ -9,6 +9,8 @@ import {
   intentToFrame,
   intentToPillar,
   metricIntentFilter,
+  PILLAR_ORDER,
+  pillarMetricLabels,
   resolveGlossary,
   type CategoryArchetype,
 } from "./semantic";
@@ -107,6 +109,24 @@ describe("prompt-frame rule (D-054)", () => {
         expect(entry.pillar).toBe("perception");
         expect(entry.computationSummary).toContain("D-054");
       }
+    }
+  });
+});
+
+describe("EL-1 pillar explainer metadata (M15)", () => {
+  it("every pillar has non-empty business value and prompt description", () => {
+    for (const p of PILLAR_ORDER) {
+      expect(PILLARS[p].businessValue.length, p).toBeGreaterThan(0);
+      expect(PILLARS[p].whatPromptsDo.length, p).toBeGreaterThan(0);
+    }
+  });
+
+  it("pillarMetricLabels derives from the glossary and excludes the stability rail", () => {
+    expect(pillarMetricLabels("presence")).toEqual(expect.arrayContaining(["Mention Rate", "Share of Voice"]));
+    expect(pillarMetricLabels("position")).toEqual(expect.arrayContaining(["Comparative Win Rate"]));
+    expect(pillarMetricLabels("perception")).toEqual(expect.arrayContaining(["Sentiment", "Attribute associations"]));
+    for (const p of PILLAR_ORDER) {
+      expect(pillarMetricLabels(p)).not.toContain("Stability Index");
     }
   });
 });

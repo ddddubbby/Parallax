@@ -5,8 +5,8 @@ import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { INTENT_ORDER, type Intent } from "@/core/matrix";
-import { PillarSection } from "@/components/semantic/pillar";
-import { PILLAR_ORDER, PILLARS, intentToPillar, type Pillar } from "@/core/semantic";
+import { PillarExplainer, PillarSection } from "@/components/semantic/pillar";
+import { PILLAR_ORDER, PILLARS, intentToPillar, pillarMetricLabels, type Pillar } from "@/core/semantic";
 import {
   addCell,
   approveMatrix,
@@ -16,6 +16,12 @@ import {
   removeCell,
   saveCellText,
 } from "@/modules/matrix/actions";
+
+// EL-2: audit-grade repetitions (C-1). The sample-budget projection assumes
+// k=5 and one engine-mode — the floor an audit run uses — so the operator can
+// see at matrix time whether each pillar will clear the n>=30 aggregate gate.
+const AUDIT_K = 5;
+const SMALL_N_GATE = 30;
 
 interface CellView {
   id: string;
@@ -215,16 +221,31 @@ export function MatrixBoard({
             )}
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className="label-mono text-xs text-ink/45">Pillar coverage:</span>
-            {pillarCounts.map(({ pillar, count }) => (
-              <Stamp key={pillar} tone={count > 0 ? "ink" : "warn"}>
-                {PILLARS[pillar].label}: {count}
-              </Stamp>
-            ))}
-            <span className="font-mono text-[11px] text-ink/45">
-              Proof is fed by every response&rsquo;s claims and citations, so all {count} cells count toward it (D-051).
-            </span>
+          {/* EL-2: per-pillar sample budget vs the n>=30 aggregate gate,
+              live as cells change — so coverage is a deliberate decision at
+              matrix time, not a surprise on the dashboard (S-024). */}
+          <div className="mb-4 rounded-lg border border-ink/15 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="label-mono text-xs text-ink/45">Sample budget</span>
+              <span className="font-mono text-[11px] text-ink/40">
+                projected at k={AUDIT_K}, one engine-mode — aggregate metrics need n ≥ {SMALL_N_GATE}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {pillarCounts.map(({ pillar, count }) => {
+                const samples = count * AUDIT_K;
+                const clears = samples >= SMALL_N_GATE;
+                return (
+                  <Stamp key={pillar} tone={count === 0 ? "warn" : clears ? "ok" : "warn"}>
+                    {PILLARS[pillar].label}: {count} → {samples}{clears ? " ✓" : ` (< ${SMALL_N_GATE})`}
+                  </Stamp>
+                );
+              })}
+            </div>
+            <p className="mt-2 font-mono text-[11px] text-ink/45">
+              Proof draws on every response&rsquo;s claims and citations, so all {count} cells count toward it (D-051).
+              A pillar under {SMALL_N_GATE} still renders per-cell and directional findings, just no aggregate claim (D-015).
+            </p>
           </div>
 
           <div className="flex flex-col gap-6">
@@ -234,10 +255,12 @@ export function MatrixBoard({
               if (pillarCellCount === 0) return null;
               return (
                 <PillarSection key={pillar} pillar={pillar} count={pillarCellCount}>
+                  <PillarExplainer pillar={pillar} />
                   <div className="flex flex-col gap-5">
                     {pillarIntents.map((intent) => {
                       const cells = focus.cells.filter((c) => c.intent === intent);
                       if (cells.length === 0) return null;
+                      const feeds = pillarMetricLabels(intentToPillar(intent)).join(", ");
                       return (
                         <section key={intent}>
                           <h3 className="label-mono mb-2 text-xs font-medium text-ink/60">
@@ -247,6 +270,7 @@ export function MatrixBoard({
                     {cells.map((cell) => (
                       <div
                         key={cell.id}
+                        title={feeds ? `Feeds: ${feeds}` : undefined}
                         className={`rounded-xl border p-3 ${
                           cell.brandTermViolations.length > 0
                             ? "border-warn"

@@ -1,4 +1,4 @@
-import { PILLAR_ORDER, PILLARS, type Pillar } from "@/core/semantic";
+import { PILLAR_ORDER, PILLARS, type Pillar, pillarMetricLabels } from "@/core/semantic";
 
 // D-055 pillar visual system: pillars are identified by NUMBERED STRUCTURE
 // (dossier sections) plus four muted structural tints used only here — for
@@ -56,5 +56,27 @@ export function PillarSection({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * EL-1: what a pillar's prompts do, why it matters to the client, and which
+ * metrics the cells accumulate into. Rendered in the matrix (where the
+ * operator builds and approves), not the dashboard (which shows the data).
+ */
+export function PillarExplainer({ pillar }: { pillar: Pillar }) {
+  const meta = PILLARS[pillar];
+  const feeds = pillarMetricLabels(pillar);
+  return (
+    <div className="mb-4 rounded-lg border border-ink/10 bg-paper-2/40 p-3">
+      <p className="mb-1 font-mono text-xs text-ink/70">{meta.whatPromptsDo}</p>
+      <p className="mb-2 font-mono text-xs text-ink/55">
+        <span className="text-ink/70">Why it matters: </span>
+        {meta.businessValue}
+      </p>
+      {feeds.length > 0 && (
+        <p className="label-mono text-[11px] text-ink/45">Feeds: {feeds.join(" · ")}</p>
+      )}
+    </div>
   );
 }
