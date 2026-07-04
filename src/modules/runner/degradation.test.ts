@@ -205,4 +205,41 @@ describe.skipIf(!dbUp)("provider-down degradation against the dev database (D-04
     const finished = await getRun(run.id);
     expect(finished?.state).toBe("completed");
   }, 60_000);
+
+  it("persistence_error dead-letters (DB fault after a successful call) never mark a provider down (C2)", async () => {
+    const projectId = await ensureProject();
+    const version = await ensureApprovedVersion(projectId, 6);
+    const run = await createRun(
+      {
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "live_validation",
+        repetitions: 2,
+        providers: ["deepseek"],
+        modes: ["ungrounded"],
+        costCapUsd: 25,
+        debugFailureInjection: null,
+      },
+      [{ id: "deepseek", supportsGrounded: false, supportsUngrounded: true }],
+      version.cellCount * 2,
+    );
+    createdRunIds.push(run.id);
+
+    // Dead-letter well past the down threshold, all as persistence_error — a
+    // DB fault, not a provider fault. The provider must NOT be marked down,
+    // because getProviderOutcomeCounts excludes persistence_error.
+    for (let i = 0; i < PROVIDER_DOWN_DEAD_LETTERS + 1; i++) {
+      const job = await claimForRun(run.id, "deepseek");
+      expect(job).not.toBeNull();
+      await recordDeadLetter(job!.id, 3, "persistence_error", "DB fault persisting response");
+      const result = await handleProviderDownAfterDeadLetter(run.id, "deepseek");
+      expect(result.providerDown).toBe(false);
+      expect(result.skippedJobs).toBe(0);
+    }
+
+    // No provider_down event was ever logged, and queued jobs remain claimable.
+    const events = await listRunEvents(run.id, 100);
+    expect(events.some((e) => e.eventType === "provider_down")).toBe(false);
+    expect(await claimForRun(run.id, "deepseek")).not.toBeNull();
+  }, 60_000);
 });

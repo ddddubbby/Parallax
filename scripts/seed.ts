@@ -1,5 +1,6 @@
 // Idempotent seed (ENGINEERING_SPEC section 4): running twice creates no
 // duplicate projects, brands, templates, or intake rows.
+import "../src/env-bootstrap";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { and, eq } from "drizzle-orm";

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ReportClient } from "@/components/report/report-client";
+import { ReportRunSwitcher } from "@/components/report/report-run-switcher";
 import { listCompletedRuns } from "@/db/repositories/dashboard";
 import { getReportSections } from "@/db/repositories/report";
 import { getProjectSummary } from "@/db/repositories/runner";
@@ -41,7 +42,8 @@ export default async function ReportPage({
         </Link>{" "}
         / Report
       </div>
-      <h1 className="label-mono mb-6 text-lg font-semibold">Report</h1>
+      <h1 className="label-mono mb-4 text-lg font-semibold">Report</h1>
+      <ReportRunSwitcher projectId={id} runId={runId} runs={runs} />
       <ReportClient projectId={id} runId={runId} initialSections={sections} />
     </main>
   );

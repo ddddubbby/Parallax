@@ -50,7 +50,11 @@ export function RunCreationForm({
   const [injectionErrorType, setInjectionErrorType] = useState("rate_limit");
   const [extractionInjectionEnabled, setExtractionInjectionEnabled] = useState(false);
   const [extractionInvalidRate, setExtractionInvalidRate] = useState(0.15);
-  const [projection, setProjection] = useState<{ plannedCalls: number; projectedCostUsd: number } | null>(null);
+  const [projection, setProjection] = useState<{
+    plannedCalls: number;
+    projectedCostUsd: number;
+    budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number }>;
+  } | null>(null);
 
   const visibleProviders = providers.filter((p) =>
     runMode === "mock" ? p.id === "mock" : p.id !== "mock",
@@ -95,7 +99,11 @@ export function RunCreationForm({
     let cancelled = false;
     projectRunCost(projectId, input).then((result) => {
       if (!cancelled && result.ok) {
-        setProjection({ plannedCalls: result.plannedCalls, projectedCostUsd: result.projectedCostUsd });
+        setProjection({
+          plannedCalls: result.plannedCalls,
+          projectedCostUsd: result.projectedCostUsd,
+          budgets: result.budgets,
+        });
       }
     });
     return () => {
@@ -238,6 +246,35 @@ export function RunCreationForm({
             <p className="mt-2 font-mono text-xs text-danger">
               Exceeds the ${costCapUsd} cap — run creation will be blocked server-side (RN-2)
             </p>
+          )}
+          {projection.budgets.length > 0 && (
+            <div className="mt-3 border-t border-ink/10 pt-3">
+              <span className="label-mono text-xs text-ink/45">
+                Daily budget (spent today / cap, C-2)
+              </span>
+              {projection.budgets.map((b) => {
+                const already = b.spentUsd >= b.budgetUsd;
+                const wouldExceed = b.spentUsd + projection.projectedCostUsd > b.budgetUsd;
+                return (
+                  <div
+                    key={b.providerId}
+                    className={`mt-1 flex items-center justify-between font-mono text-xs ${
+                      already ? "text-danger" : wouldExceed ? "text-warn" : "text-ink/60"
+                    }`}
+                  >
+                    <span>{b.providerId}</span>
+                    <span>
+                      ${b.spentUsd.toFixed(4)} / ${b.budgetUsd.toFixed(2)}
+                      {already
+                        ? " — already over; run blocked server-side"
+                        : wouldExceed
+                          ? " — projected spend may pause the run mid-way"
+                          : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

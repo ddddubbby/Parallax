@@ -89,6 +89,11 @@ export const providerErrorType = pgEnum("provider_error_type", [
   // M9 graceful degradation (D-042): set on jobs skipped because their
   // provider was detected down mid-run (repeated dead-letters, zero successes).
   "provider_down",
+  // Set when the provider call SUCCEEDED but persisting the response failed
+  // (a DB fault, not a provider fault). Kept distinct so it is never
+  // misclassified as a provider failure and never feeds the provider-down
+  // counter (D-042) — a DB blip must not brick a healthy provider.
+  "persistence_error",
   "unknown",
 ]);
 

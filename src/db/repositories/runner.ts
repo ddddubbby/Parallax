@@ -442,12 +442,17 @@ export async function getBreakerCounts(runId: string) {
   return row ?? { succeeded: 0, deadLettered: 0 };
 }
 
-/** D-042: per-provider outcomes within one run, the isProviderDown input. */
+/**
+ * D-042: per-provider outcomes within one run, the isProviderDown input.
+ * `persistence_error` dead-letters are EXCLUDED from the tally — those are
+ * DB faults after a successful provider call, not provider faults, and must
+ * never contribute to marking a healthy provider down (C2).
+ */
 export async function getProviderOutcomeCounts(runId: string, providerId: string) {
   const [row] = await db
     .select({
       succeeded: sql<number>`count(*) filter (where ${jobs.state} = 'succeeded')::int`,
-      deadLettered: sql<number>`count(*) filter (where ${jobs.state} = 'dead_lettered')::int`,
+      deadLettered: sql<number>`count(*) filter (where ${jobs.state} = 'dead_lettered' and ${jobs.lastErrorType} is distinct from 'persistence_error')::int`,
     })
     .from(jobs)
     .where(and(eq(jobs.runId, runId), eq(jobs.providerId, providerId as (typeof jobs.$inferInsert)["providerId"])));

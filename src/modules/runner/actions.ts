@@ -19,13 +19,14 @@ import {
   getApprovedVersionForRun,
   getAverageCellTextLength,
   getProjectStatus,
+  getProviderSpendToday,
   getRunDetail,
   getRunFailureCounts,
   pauseRun as pauseRunRepo,
   requeueJob as requeueJobRepo,
   resumeRun as resumeRunRepo,
 } from "@/db/repositories/runner";
-import { extractionProviderId } from "@/modules/runner/budget";
+import { extractionProviderId, findExceededDailyBudget, readDailyBudgetUsd } from "@/modules/runner/budget";
 import { estimateExtractionCostUsd } from "@/providers/deepseek";
 import { getProvider, listRegisteredProviders } from "@/providers/registry";
 
@@ -108,7 +109,21 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
       projectedCostUsd += callsPerPair * (generationCostPerCall + extractionCostPerCall);
     }
   }
-  return { ok: true as const, plannedCalls, projectedCostUsd, cellCount, versionId: version.id };
+  // A1: surface today's spend vs daily budget per relevant provider (live
+  // runs only) so the form can warn BEFORE submit — the worker's per-provider
+  // daily-budget enforcement (C-2/D-012) was previously invisible until a
+  // run paused mid-flight. Providers with no configured budget are omitted.
+  const budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number }> = [];
+  if (input.runMode !== "mock") {
+    for (const providerId of new Set<string>([...input.providers, extractionProviderId()])) {
+      if (providerId === "mock") continue;
+      const budgetUsd = readDailyBudgetUsd(providerId);
+      if (!Number.isFinite(budgetUsd)) continue;
+      budgets.push({ providerId, spentUsd: await getProviderSpendToday(providerId), budgetUsd });
+    }
+  }
+
+  return { ok: true as const, plannedCalls, projectedCostUsd, cellCount, versionId: version.id, budgets };
 }
 
 /** RN-2, RN-3, PV-5, C-9: validated, capped, mode-consistent run creation. */
@@ -177,6 +192,24 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
       ok: false,
       error: `Projected cost $${projection.projectedCostUsd.toFixed(4)} exceeds the $${input.costCapUsd} cap by $${capCheck.overBy?.toFixed(4)} (RN-2)`,
     };
+  }
+
+  // Daily-budget preflight (C-2/D-012): the worker enforces per-provider
+  // daily budgets post-job and pauses a live run when a provider's spend
+  // today crosses its budget. Without this check a run whose provider is
+  // ALREADY over budget could be created, queued, and only pause on its
+  // first finished job with zero progress — the same "fails at the terminal
+  // gate, no earlier signal" shape as PM-9. Reject at creation instead,
+  // over the same provider set the worker checks (selected + extraction
+  // engine, D-041).
+  if (input.runMode !== "mock") {
+    const trip = await findExceededDailyBudget([...input.providers, extractionProviderId()]);
+    if (trip) {
+      return {
+        ok: false,
+        error: `${trip.providerId} has already spent $${trip.spentUsd.toFixed(4)} of its $${trip.budgetUsd.toFixed(2)} daily budget today (C-2) — this run would pause immediately. Wait for the budget to reset (UTC midnight) or raise ${trip.providerId.toUpperCase()}_DAILY_BUDGET_USD.`,
+      };
+    }
   }
 
   let run;

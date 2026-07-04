@@ -1,6 +1,7 @@
 // Local dev Postgres via embedded binaries — this machine has no system
 // Postgres or docker. Runs in the foreground; Ctrl+C stops it cleanly.
 // Data persists in .pgdata (gitignored). Production uses Render Postgres.
+import "../src/env-bootstrap";
 import { existsSync, readdirSync, symlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";

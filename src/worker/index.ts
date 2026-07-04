@@ -34,7 +34,7 @@ import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation"
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
 import { listRegisteredProviders } from "@/providers/registry";
 import { ProviderCallError } from "@/providers/shared";
-import type { GenerationMode, ProviderId } from "@/providers/types";
+import type { GenerationMode, GenerationResult, ProviderId } from "@/providers/types";
 
 const POLL_INTERVAL_MS = 300;
 const HEARTBEAT_MS = 30_000;
@@ -197,10 +197,15 @@ async function processJob(job: ClaimedJob) {
     return;
   }
 
-  let responseId: string | null = null;
+  // Provider-call domain: resolving credentials, the network call, auth,
+  // timeouts. Real providers fail in distinguishable ways (401/429/5xx/
+  // timeout); mock never did, so this branch only matters from M8 onward.
+  // A failure here is a genuine provider fault → handleFailure retries or
+  // dead-letters and feeds the provider-down counter (D-042).
+  let result: GenerationResult;
   try {
     const provider = await resolveRuntimeProvider(job.providerId as ProviderId);
-    const result = await provider.generate(
+    result = await provider.generate(
       {
         promptText: job.resolvedText,
         mode: job.generationMode as GenerationMode,
@@ -208,6 +213,24 @@ async function processJob(job: ClaimedJob) {
       },
       AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS),
     );
+  } catch (err) {
+    const errorType = err instanceof ProviderCallError ? err.errorType : "server_error";
+    await handleFailure(job, errorType, err instanceof Error ? err.message : String(err));
+    await afterJobFinished(job.runId);
+    return;
+  }
+
+  // Persistence domain: the provider call already SUCCEEDED (and may have
+  // cost real money). Storing the response is a SEPARATE failure domain — a
+  // DB fault here is not a provider fault. It must never be classified as
+  // one (the old shared try/catch dead-lettered it as `server_error`) nor
+  // feed the provider-down counter, or a transient DB blip would brick a
+  // healthy provider (C2). Dead-letter it as `persistence_error` — distinct,
+  // greppable, and deliberately NOT routed through handleProviderDownAfter-
+  // DeadLetter — so the run still completes (the lost sample is excluded
+  // from denominators) without a double-billing reclaim of the paid call.
+  let responseId: string;
+  try {
     responseId = await recordSuccess(job, {
       modelVersion: result.modelVersion,
       rawText: result.text,
@@ -218,10 +241,19 @@ async function processJob(job: ClaimedJob) {
       latencyMs: result.latencyMs,
     });
   } catch (err) {
-    // Real providers fail in distinguishable ways (401/429/5xx/timeout);
-    // mock never did, so this branch only matters from M8 onward.
-    const errorType = err instanceof ProviderCallError ? err.errorType : "server_error";
-    await handleFailure(job, errorType, err instanceof Error ? err.message : String(err));
+    await recordDeadLetter(
+      job.id,
+      job.attemptCount + 1,
+      "persistence_error",
+      err instanceof Error ? err.message : String(err),
+    );
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "error",
+      eventType: "job_persist_failed",
+      message: `Provider call succeeded but persisting the response failed (DB fault, not a provider fault): ${err instanceof Error ? err.message : String(err)}`,
+    });
     await afterJobFinished(job.runId);
     return;
   }
