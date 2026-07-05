@@ -49,6 +49,11 @@ Claim review state:
 - `unreviewed` -> `corrected`
 - `confirmed | corrected` -> `corrected`
 
+Resonance study state (M17+, D-064; approval compiles and freezes the study's resonance matrix version in the same transaction):
+
+- `draft` -> `approved`
+- `draft | approved` -> `archived`
+
 Report section state:
 
 - `generated` -> `edited`
@@ -85,6 +90,10 @@ Schema changes require a migration file in `src/db/migrations`; the Drizzle sche
 | `findings` | `id`, `run_id`, `finding_type`, `severity`, `title`, `body_md`, `evidence_json`, `created_at`, `updated_at` | Derived; rows are regenerate-only in MVP — operators edit narrative in report sections, never finding rows |
 | `report_sections` | `id`, `run_id`, `section_key`, `position`, `generated_md`, `edited_md`, `state`, `created_at`, `updated_at` | Unique `(run_id, section_key)`; `edited_md` always wins |
 | `run_events` | `id`, `run_id`, `job_id`, `level`, `event_type`, `message`, `metadata_json`, `created_at` | Append-only; index `(run_id, created_at)` |
+| `resonance_studies` (M17, migration 0008) | `id`, `project_id`, `name`, `state`, `construct`, `anchor_set_version`, `panel_personas_json`, `baseline_stimulus_id`, `conditioned`, `approved_at`, `created_at`, `updated_at` | FK `project_id`; `state` per this file; `construct` = `purchase_intent` in v1; `anchor_set_version` pinned at approval, loader refuses unknown versions (C-4-for-anchors); `panel_personas_json` entries carry validated axes only (C-14): `{key,label,age,incomeBand,location,behavioralProfile}` |
+| `resonance_stimuli` (M17, migration 0008) | `id`, `study_id`, `label`, `stimulus_kind`, `body_md`, `evidence_response_ids_json`, `position`, `created_at` | FK `study_id`; `stimulus_kind` in `measured_ai`, `corrected`, `repositioned`, `custom`; unique `(study_id, position)`; `measured_ai` requires >=1 same-project response id (C-13, validated at approval); immutable after study approval |
+
+Migration 0008 also: `matrix_versions` gains `kind text not null default 'audit'` (`audit | resonance`) and nullable `resonance_study_id` FK; `prompt_cells` gains nullable `stimulus_id` FK and `panel_persona_key text`, and `persona_id`/`market_id` become nullable (resonance cells set `intent='simulation'`, audit paths still always set persona/market). SSR scores are NOT a new table: they are `extractions` rows with `schema_version='ssr-v1'`, `extraction_model` = embedding model (or `mock-fixture`), and `extracted_json = { kind:'ssr', anchorSetVersion, pmf[5], perSetPmfs, meanScore }` — re-scoring creates the next `extraction_version` (C-3). Resonance metrics reuse `metrics` with scopes `resonance_variant` (scope_key = stimulus id), `resonance_variant_persona` (`<stimulusId>|<panelPersonaKey>`), `resonance_delta` (scope_key = stimulus id, metadata carries baseline id); `ci_low`/`ci_high` stay null (D-023). Recompute dispatches on matrix `kind` — the C-12 wall.
 
 ## 3. Provider capability matrix
 
@@ -108,6 +117,8 @@ GEMINI GROUNDING CAVEAT (PV-7, open until first live grounded validation run): G
 
 D-041: the extraction engine is one configured provider for all live runs — `EXTRACTION_PROVIDER` env, default `deepseek`; its credential must be active for ANY live run to extract.
 
+D-064 (M18+): the embedding engine is one configured provider for all live SSR scoring — `EMBEDDING_PROVIDER` env, default `openai`, model `text-embedding-3-small` (verify name/pricing against official docs at implementation date; the SSR paper's model). It is a SEPARATE `EmbeddingProvider` interface, not a widening of `LLMProvider`; resolved worker-side per the D-035 registry/resolver split. DeepSeek exposes no embeddings endpoint (as of 2026-07-05 — verify) and must not be the embedding engine. Embedding spend is attributed to the embedding provider in cost projection, the per-run cap, and daily budgets (C-2, D-022/D-044 pattern), and its credential must be active for any live resonance run to score. Mock runs and CI never call a live embedding engine (fixture-backed scoring).
+
 ## 4. Seeds and fixtures
 
 Seed and fixture files are implementation contracts:
@@ -117,5 +128,12 @@ Seed and fixture files are implementation contracts:
 - `fixtures/golden/README.md`: manifest for expected extractions and metric outputs.
 - Prompt templates are seeded into `prompt_templates`; they are not hard-coded in JSX. Seed at least three variant phrasings per intent (`v1`, `v2`, `v3`); cells are intent x persona x market x variant, so variant depth is what lets the allocator reach its per-intent quotas.
 - Demo sizing: the demo project must yield enough candidate cells for the default allocation and the cap boundary tests. With 2 personas x 2 markets x 3 variants x 5 intents = 60 candidates, the 40-cell default allocation (12 per intent maximum = 2 x 2 x 3) is exactly reachable and 51-cell rejection tests have headroom.
+
+Resonance fixtures (M17+, D-064):
+
+- `fixtures/ssr/anchor-sets.json`: versioned anchor statement sets — `{ version, construct, sets: [{ id, sentences[5] }] }`, >=4 sets, sentences[i] maps to Likert i+1. Editing sentences requires a new `version` string; the loader refuses unknown versions.
+- `fixtures/ssr/fixture-pmfs.json`: hand-authored plausible PMFs keyed by mock-response fixture id — the fixture-backed scoring path for mock runs (D-022 discipline); loader errors loudly on an unmapped fixture.
+- `fixtures/mock-responses/` gains a resonance archetype family (>=10 free-text buyer reactions across 5 intensity levels), selected by the same D-016 stable hash; manifest README updated.
+- `pnpm demo:resonance` (M19) is idempotent like `demo:walkthrough` and must leave every resonance surface walkable at $0.
 
 The seed script must be idempotent. Running it twice creates no duplicate projects, brands, templates, fixtures, or expectations.

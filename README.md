@@ -1,6 +1,6 @@
-# Parallax
+# Parallax (product: Resonance)
 
-Internal operator-facing web tool for auditing how AI systems describe, recommend, cite, and misrepresent brands.
+Internal operator-facing web tool for auditing how AI systems describe, recommend, cite, and misrepresent brands — and, from M16, simulating how buyer segments respond to that AI framing. The product umbrella is **Resonance**, organized as a marketing funnel; Parallax is the measurement engine's name and stays the repo/package name (D-063).
 
 Start here:
 
@@ -8,9 +8,10 @@ Start here:
 2. Read the relevant milestone in `PRD.md`.
 3. Read `DEVELOPMENT_GUIDELINES.md` section A before implementation.
 4. Read `ENGINEERING_SPEC.md` before schema, provider, worker, seed, or fixture work.
-5. Read `RENDER_DEPLOYMENT.md` before touching deploy configuration.
+5. For M16-M20 work, read `RESONANCE_BUILD_PLAN.md` — the step-by-step execution playbook with QA gates.
+6. Read `RENDER_DEPLOYMENT.md` before touching deploy configuration.
 
-Current state: M11 through M15 are complete; M10 (the pilot audit) is in progress — the DeepSeek gate is closed (a real 115-job live run succeeded), with the deploy and grounded-provider gates still open (see `RELEASE_CHECKLIST.md`).
+Current state: M11 through M15 are complete; M10 (the pilot audit) is in progress — the DeepSeek gate is closed (a real 115-job live run succeeded), with the deploy and grounded-provider gates still open (see `RELEASE_CHECKLIST.md`). M16-M20 (funnel presentation layer + lower-funnel synthetic panel + value-add template packs) are specified and ready for execution (PRD 8.19-8.22, `RESONANCE_BUILD_PLAN.md`).
 
 The pipeline is end to end: intake wizard, budget-aware matrix with versioned approval, a mock run pipeline, structured extraction with claim verification, deterministic metrics with Wilson intervals, a dashboard with ≤2-click drill-down to raw answers, a findings engine, and an editable report builder with Markdown/print/JSON/CSV export. All five providers run through one interface — DeepSeek (ungrounded validation) plus OpenAI, Anthropic, Gemini, and Perplexity (grounded, with normalized citations); a provider that dies mid-run degrades gracefully (its jobs skip, the run completes PARTIAL). Live infrastructure is in place: shared-password auth, encrypted-credential Settings, per-provider daily budgets, and one configured extraction engine.
 

@@ -1,12 +1,16 @@
-# PRD.md - Parallax MVP
+# PRD.md - Resonance (Parallax engine) MVP
 
-> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
+> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Execution detail for M16+ lives in `RESONANCE_BUILD_PLAN.md`.
 
 ---
 
 ## 1. Vision
 
-Parallax turns a multi-week manual research task, "how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?", into a same-day operator pipeline: structured intake, capped prompt matrix, sampled provider runs, structured extraction, metrics with confidence intervals, findings, and an editable report. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations.
+Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and simulates what that presentation does to buyers. It is organized as a marketing funnel — Upper Funnel (awareness & reach: Presence), Mid Funnel (consideration & education: Position + Perception, with Proof as the trust rail), Lower Funnel (simulated buyer action: the synthetic panel), and a value-add layer of test-before-you-spend study templates. The funnel is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
+
+Parallax remains the name of the measurement engine (M0-M15): it turns a multi-week manual research task, "how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?", into a same-day operator pipeline: structured intake, capped prompt matrix, sampled provider runs, structured extraction, metrics with confidence intervals, findings, and an editable report. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations.
+
+The lower funnel is a simulation layer with a different epistemic status from the measurement engine: measured and simulated data never mix (C-12), simulations are conditioned on measured audit evidence by default (C-13), and simulation claims are comparative only (C-14). Scope through M20 is an internal tool for testing and demos: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
 
 ## 2. How Parallax works
 
@@ -63,9 +67,10 @@ Routes:
 - `/projects`
 - `/projects/new`
 - `/projects/[id]/matrix`
-- `/projects/[id]/runs/[runId]`
+- `/projects/[id]/runs` and `/projects/[id]/runs/[runId]`
 - `/projects/[id]/dashboard`
 - `/projects/[id]/report`
+- `/projects/[id]/resonance` and `/projects/[id]/resonance/[studyId]` (M16+ — lower-funnel studies and results, always SIMULATED-badged)
 - `/settings`
 - `/debug`
 
@@ -322,9 +327,43 @@ OX-2 (M15): Guided pipeline: every stage page states where the project is and of
 OX-5 (M15): Demo-readiness: the seeded demo project walks every view end-to-end with real-shaped mock data at $0 spend.
 OX-6 (M15): Jargon pass: operator-facing terms (cell, rep, engine-mode) get inline glossary explanations.
 
+### 8.19 Funnel presentation layer and Resonance identity (M16)
+
+FL-1: A pure core mapping (`src/core/funnel.ts`) assigns pillars to funnel stages: Presence -> Upper, Position + Perception -> Mid, Proof -> trust rail (never a stage), lower funnel fed by resonance metrics only. Additive over D-051; no pillar/metric/intent renames.
+FL-2: Dashboard and matrix pillar sections display their funnel-stage chip; Proof displays "TRUST RAIL". Chips are structural (badge tokens), never a new accent (V-2).
+FL-3: The app presents as Resonance; Parallax remains the engine name. No repo/package/identifier renames.
+FL-4: A shared `SimulatedBadge` component exists; every simulation surface added in M17+ must render it (C-12).
+FL-5: Project subnav gains a Resonance item from M16 (stub until M17); glossary gains funnel-stage and simulated terms.
+
+### 8.20 Lower funnel: resonance studies and synthetic panel runs (M17-M18)
+
+RS-1: A resonance study = named panel personas (validated conditioning axes only: age, income band, location, behavioral profile — C-14) x 2-3 stimulus variants (`measured_ai | corrected | repositioned | custom`), with one designated baseline.
+RS-2: `measured_ai` stimuli must cite stored raw response ids from the same project (C-13); studies may be explicitly marked unconditioned and are then labeled GENERIC on every surface.
+RS-3: Approval compiles the study into a frozen `matrix_versions` row (`kind='resonance'`) with one cell per persona x stimulus (`intent='simulation'`); C-1 cap applies; PM-2/PM-8/PM-9/archetype logic is bypassed by design (stimuli legitimately contain brand names).
+RS-4: Resonance runs reuse the run/job/worker pipeline unchanged: run modes, k semantics, C-9 mock separation, cost guards, breaker, events. Runs display a SIM badge everywhere runs are listed.
+RS-5: Elicitation prompts request a free-text reaction and never a numeric rating (the validated SSR elicitation; direct Likert elicitation is a known-failed baseline).
+RS-6: SSR scoring converts each response to a 5-point PMF via embedding similarity against versioned anchor statement sets (>=4 sets, averaged; min-subtraction normalization). Scores are stored as versioned `extractions` rows (`schema_version='ssr-v1'`); re-scoring creates a new version (C-3). Anchor sets are checked-in fixtures; a study pins its anchor version at approval.
+RS-7: Embeddings are a provider capability (`EmbeddingProvider`, `EMBEDDING_PROVIDER` env, OpenAI `text-embedding-3-small` first) with spend counted in projection, the per-run cap, and daily budgets (C-2, D-022 pattern). Mock runs are fixture-backed and never call a live embedding engine.
+RS-8: Resonance metrics (disposable, C-5) compute per-variant and per-variant-x-persona PMFs, mean purchase-intent point estimates (no invented intervals — D-023), and delta-vs-baseline rows. Variant aggregates obey the n>=30 gate (default study shape: 6 personas x k=5 = 30 per variant); persona slices are always directional-only.
+RS-9: Audit metrics and resonance metrics never cross-contaminate: recompute dispatches on matrix kind, and wall tests prove an interleaved project keeps audit rows byte-identical (C-12).
+
+### 8.21 Lower funnel: results, report, exports, demo (M19)
+
+RR-1: A lower-funnel results view shows variant ranking (PMF distributions), the delta table per segment, and deterministic highest/lowest excerpt panels (D-061 pattern, no LLM summarizer); every panel SIMULATED-badged.
+RR-2: Drill-through from any resonance figure reaches the exact eligible responses (shared eligibility function with recompute) in <=2 clicks (TP-4 pattern).
+RR-3: Resonance runs generate their own report sections (`resonance_method`, `resonance_results`, `resonance_evidence`) via deterministic templates (D-033) with model-origin text escaped (D-040) and C-14 language enforced by an extended forbidden-phrase test (RB-5 pattern).
+RR-4: Exports: markdown, print-HTML, JSON evidence, and CSV (formula-injection guarded, D-045); the evidence archive works on resonance runs.
+RR-5: `pnpm demo:resonance` walks a seeded demo study end-to-end at $0 (idempotent, D-059 pattern); the project next-action banner surfaces the resonance step once an audit run completes.
+
+### 8.22 Value-add layer: study template packs (M20)
+
+VA-1: Four seeded study templates — AI-framing repair (default, the C-13 flagship), promo framing, price presentation (framing only, never absolute willingness-to-pay), message/claim variants — each a stimulus scaffold plus test-before-you-spend guidance copy.
+VA-2: Template placeholders must be resolved before approval; pack copy is covered by the C-14 forbidden-phrase test.
+VA-3: An adversarial hardening checklist (C-12/C-13/C-14 sweeps, budget chaos, injection, kill/resume) and a fresh-clone internal demo close out the internal build (see `RESONANCE_BUILD_PLAN.md` M20).
+
 ## 9. Data model summary
 
-`projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`.
+`projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`; from M17: `resonance_studies`, `resonance_stimuli` (migration 0008, which also adds `matrix_versions.kind`, `matrix_versions.resonance_study_id`, `prompt_cells.stimulus_id`, `prompt_cells.panel_persona_key`, and relaxes `prompt_cells.persona_id`/`market_id` to nullable).
 
 Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require migrations.
 
@@ -363,8 +402,15 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M13 | Pillar visual system + navigation | Numbered pillar sections with spines/tints on dashboard and matrix; per-project subnav on every project page; V-2 intact (orange stays the only accent) | Done |
 | M14 | Competitive spectrum | Per-brand metric scope under D-054 frames; head-to-head and open-field bar charts replace "rest of the field"; per-competitor report table + CSV; SQL spot-check green | Done |
 | M15 | Explanatory layer | Pillar business-value explainers in matrix; live per-pillar sample-budget panel vs the n>=30 gate; guided next actions; $0 demo walkthrough | Done |
+| M16 | Funnel presentation layer + Resonance identity | Funnel chips on dashboard/matrix; app presents as Resonance; SimulatedBadge exists; recompute byte-identical pre/post (presentation-only proven) | Planned (spec: PRD 8.19, plan: RESONANCE_BUILD_PLAN M16) |
+| M17 | Resonance studies + mock panel run | Migration 0008 clean on fresh+existing DB; study -> approve -> mock run completes storing raw responses, zero extractions; PM-9 bypass proven with branded stimulus; audit mock e2e still green | Planned (spec: PRD 8.20, plan: RESONANCE_BUILD_PLAN M17) |
+| M18 | SSR scoring + resonance metrics | Golden SSR math tests; mock run fixture-scored end-to-end, recompute idempotent; embedding spend in projection+budgets; C-12 wall tests green | Planned (spec: PRD 8.20, plan: RESONANCE_BUILD_PLAN M18) |
+| M19 | Lower-funnel surfaces + report + demo | Results view with <=2-click drill-through; resonance report sections + guarded exports; archive works; `pnpm demo:resonance` walkable at $0 | Planned (spec: PRD 8.21, plan: RESONANCE_BUILD_PLAN M19) |
+| M20 | Value-add packs + hardening + internal demo | Four template packs seeded; C-12/13/14 adversarial sweep logged; fresh-clone demo executed unassisted | Planned (spec: PRD 8.22, plan: RESONANCE_BUILD_PLAN M20) |
 
 Progress notes:
+
+- 2026-07-05 Resonance roadmap: product restructured as Resonance (funnel presentation layer over the Parallax engine) with the lower-funnel synthetic panel and value-add template packs specified as M16-M20 (PRD 8.19-8.22, D-063/D-064/D-065, constraints C-12/C-13/C-14). Execution playbook with per-milestone steps, QA gates, and critical-bug risk tables written for handover: `RESONANCE_BUILD_PLAN.md`. M10 close-out (deploy, grounded providers, Gemini caveat) still runs as the parallel ops track and is unaffected.
 
 - 2026-07-02 done: canonical docs moved into repo, ambiguity reduced, structured repo folders initialized, and M0.5 execution-readiness specs added.
 - 2026-07-02 remaining: initialize package dependencies, health route, CI workflow, Render skeleton, and first migration.
@@ -426,6 +472,6 @@ Progress notes:
 
 ## 12. Roadmap after MVP
 
-Next stage (specified, D-053): M11 semantic layer -> M12 trust and provenance -> M13 operator UX and demo polish (sections 8.16-8.18). Ordering rationale: the semantic layer defines the vocabulary the trust features speak and the structure the UX reorganizes around, so it goes first; trust precedes visual polish because it is smaller and is the differentiator. M10 close-out (deploy, remaining live providers, Gemini grounding caveat) runs as a parallel ops track gated on operator actions, not on M11-M13 code.
+Current stage (specified, D-063): M16 funnel presentation layer -> M17 resonance data layer + mock panel runs -> M18 SSR scoring + metrics -> M19 lower-funnel surfaces + demo -> M20 value-add packs + hardening. Ordering rationale: identity/presentation first because it is zero-risk and stabilizes navigation; data layer before scoring so the pipeline is provable in mock at $0 before any embedding spend; surfaces after metrics so every chart has real rows behind it; value-add packs last because they are presets over proven machinery. M10 close-out (deploy, remaining live providers, Gemini grounding caveat) remains a parallel ops track gated on operator actions.
 
-After that, demand-driven: client-deliverable polish (charts in the PDF, branded layout, `.docx` export), AI Overviews through a SERP/API vendor, snapshot preset, run-over-run comparison, extraction-accuracy trends, bootstrap intervals for the D-023 point-estimate metrics, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.
+Post-PoC parking lot (deliberately NOT scheduled — see RESONANCE_BUILD_PLAN parking lot): multi-user/auth changes, payments, client portals, live embedding-fidelity calibration, bootstrap intervals for PMF means and D-023 point estimates, additional simulation constructs (relevance/trust/switch-likelihood), image stimuli, anchor-set tuning, non-English panels, location/footfall studies. Earlier demand-driven items stand: client-deliverable polish (charts in the PDF, branded layout, `.docx` export), AI Overviews through a SERP/API vendor, snapshot preset, run-over-run comparison, extraction-accuracy trends, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.

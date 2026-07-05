@@ -144,6 +144,22 @@ Provider rules:
 - Citation normalization happens inside provider adapters.
 - Provider adapters receive decrypted credentials from a server-only credential service. They never read provider API keys directly from environment variables.
 
+Embedding abstraction (M18+, D-064) — a SEPARATE interface, never a widening of `LLMProvider` (the static display registry must not carry a paid capability):
+
+```ts
+interface EmbeddingProvider {
+  providerId: string; // "openai" first; "mock" for unit tests only
+  embed(req: { texts: string[]; model?: string; signal?: AbortSignal }): Promise<{
+    vectors: number[][];
+    model: string;
+    tokens: number;
+    costUsd: number;
+  }>;
+}
+```
+
+Embedding rules: resolved worker-side via `resolveEmbeddingProvider()` (`EMBEDDING_PROVIDER` env, D-035 split); every call carries `AbortSignal.timeout` (D-039); spend attributed to the embedding provider across all C-2 guards (D-022/D-044 pattern); mock runs and CI never call a live embedding engine — scoring is fixture-backed (`fixtures/ssr/fixture-pmfs.json`).
+
 ### C3. Data invariants
 
 - `responses` are immutable. Never update raw response text, model version, cost, citations, or token counts.
@@ -153,6 +169,7 @@ Provider rules:
 - `report_sections.edited_md` wins over `generated_md`.
 - Mock rows are flagged and never aggregate with live rows.
 - Validation mini-runs are flagged and never presented as client-ready audit evidence.
+- Simulated rows never aggregate with measured rows (C-12): `matrix_versions.kind` discriminates; metrics recompute dispatches on kind; `resonance_*` scopes never appear from an audit run and vice versa — wall tests required whenever either recompute path changes. SSR scores are `extractions` rows (`schema_version='ssr-v1'`) and follow the same versioning invariant as re-extraction. Anchor sets are versioned fixtures; a study pins its version at approval and re-scoring an old study must load the pinned version or fail loudly.
 
 ### C4. Canonical value sets
 
@@ -301,6 +318,7 @@ Milestone acceptance commands:
 - M4: `pnpm test:mock-e2e`, worker kill/restart check, failure injection check.
 - M5: `pnpm test:golden`, extraction retry/dead-letter tests, metric recompute idempotency test.
 - M8: `pnpm audit:deepseek-mini`, 5 cells x k=2 under `$2`, validation labels visible.
+- M16-M20: per-milestone QA gates in `RESONANCE_BUILD_PLAN.md` are the acceptance contract — including the M16 recompute-invariance check, M17/M18 C-12 wall tests plus audit `test:mock-e2e` regression, golden SSR math tests (hand-computed PMFs; must fail if min-subtraction or the (1+cos)/2 rescale is skipped), and the M19 `pnpm demo:resonance` $0 walkthrough. Gate outputs are pasted into `BUILD_NOTES.md`.
 
 Standing rules:
 
