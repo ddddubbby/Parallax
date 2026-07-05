@@ -8,6 +8,10 @@ export function extractionProviderId(): string {
   return process.env.EXTRACTION_PROVIDER || "deepseek";
 }
 
+export function embeddingProviderId(): string {
+  return process.env.EMBEDDING_PROVIDER || "openai";
+}
+
 // C-2/D-012: global PROVIDER_DAILY_BUDGET_USD default, optional
 // <PROVIDER>_DAILY_BUDGET_USD override — env-configured, not DB-editable
 // (Settings surfaces the effective value read-only).

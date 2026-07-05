@@ -1,3 +1,4 @@
+import "../../env-bootstrap";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { db, pool } from "@/db/client";
@@ -12,6 +13,7 @@ import {
   extractions,
   jobs,
   matrixVersions,
+  metrics,
   projects,
   promptCells,
   resonanceStimuli,
@@ -22,6 +24,7 @@ import {
 import { extractResponse } from "@/modules/extraction/service";
 import { createRun, projectRunCost } from "@/modules/runner/actions";
 import { completeRun, getRun, isRunFinished, recordSuccess } from "@/db/repositories/runner";
+import { listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import { mockProvider } from "@/providers/mock";
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
@@ -40,6 +43,12 @@ const createdStudyIds: string[] = [];
 
 afterAll(async () => {
   for (const runId of createdRunIds) {
+    const responseRows = await db.select({ id: responses.id }).from(responses).where(eq(responses.runId, runId)).catch(() => []);
+    if (responseRows.length > 0) {
+      await db.delete(extractions).where(inArray(extractions.responseId, responseRows.map((r) => r.id))).catch(() => {});
+      await db.delete(responses).where(eq(responses.runId, runId)).catch(() => {});
+    }
+    await db.delete(metrics).where(eq(metrics.runId, runId)).catch(() => {});
     await db.delete(jobs).where(eq(jobs.runId, runId)).catch(() => {});
     await db.delete(runEvents).where(eq(runEvents.runId, runId)).catch(() => {});
     await db.delete(auditRuns).where(eq(auditRuns.id, runId)).catch(() => {});
@@ -152,7 +161,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
         costUsd: result.costUsd,
         latencyMs: result.latencyMs,
       });
-      await expect(extractResponse(responseId)).resolves.toMatchObject({ outcome: "skipped" });
+      await expect(extractResponse(responseId)).resolves.toMatchObject({ outcome: "valid", attempts: 1 });
     }
     expect(await isRunFinished(run.runId)).toBe(true);
     await completeRun(run.runId);
@@ -165,6 +174,39 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       .select()
       .from(extractions)
       .where(inArray(extractions.responseId, responseRows.map((response) => response.id)));
-    expect(extractionRows).toHaveLength(0);
+    expect(extractionRows).toHaveLength(2);
+    for (const row of extractionRows) {
+      const payload = row.extractedJson as { kind?: string; pmf?: number[]; meanScore?: number };
+      expect(row.state).toBe("valid");
+      expect(row.schemaVersion).toBe(1);
+      expect(payload.kind).toBe("ssr");
+      expect(payload.pmf).toHaveLength(5);
+      expect(payload.pmf?.reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 8);
+      expect(payload.meanScore).toBeGreaterThanOrEqual(1);
+      expect(payload.meanScore).toBeLessThanOrEqual(5);
+    }
+
+    const rowCount = await recomputeMetrics(run.runId);
+    expect(rowCount).toBe(5);
+    const first = await listMetrics(run.runId);
+    expect(first.every((row) => row.scopeType.startsWith("resonance_"))).toBe(true);
+    expect(first.some((row) => row.scopeType === "resonance_delta" && row.metricKey === "delta_pi_mean")).toBe(true);
+    await recomputeMetrics(run.runId);
+    const second = await listMetrics(run.runId);
+    const stableShape = (row: (typeof first)[number]) => ({
+      scopeType: row.scopeType,
+      scopeKey: row.scopeKey,
+      metricKey: row.metricKey,
+      n: row.n,
+      value: row.value,
+      ciLow: row.ciLow,
+      ciHigh: row.ciHigh,
+      metadataJson: row.metadataJson,
+    });
+    expect(second.map(stableShape).sort(sortMetric)).toEqual(first.map(stableShape).sort(sortMetric));
   });
 });
+
+function sortMetric(a: { scopeType: string; scopeKey: string; metricKey: string }, b: { scopeType: string; scopeKey: string; metricKey: string }) {
+  return `${a.scopeType}|${a.scopeKey}|${a.metricKey}`.localeCompare(`${b.scopeType}|${b.scopeKey}|${b.metricKey}`);
+}

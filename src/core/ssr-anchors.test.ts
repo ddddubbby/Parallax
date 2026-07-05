@@ -8,11 +8,11 @@ describe("SSR anchor sets (M17)", () => {
     expect(set.calibrated).toBe(false);
   });
 
-  it("keeps at least four sets with exactly five sentences per set", () => {
+  it("keeps one bucket per score and at least four transposable statement sets", () => {
     for (const set of listSsrAnchorSets()) {
-      expect(set.sets.length).toBeGreaterThanOrEqual(4);
+      expect(set.sets.map((bucket) => bucket.score).sort()).toEqual([1, 2, 3, 4, 5]);
       for (const sentenceSet of set.sets) {
-        expect(sentenceSet.sentences).toHaveLength(5);
+        expect(sentenceSet.sentences.length).toBeGreaterThanOrEqual(4);
       }
     }
   });

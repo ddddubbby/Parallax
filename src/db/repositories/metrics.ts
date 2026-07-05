@@ -20,7 +20,16 @@ import { containsPhrase, normalizePhrase } from "@/core/intake";
 import type { Intent } from "@/core/matrix";
 import { metricIntentFilter } from "@/core/semantic";
 import { db } from "../client";
-import { attributes as attributesTable, auditRuns, brands, metrics, promptCells } from "../schema";
+import {
+  attributes as attributesTable,
+  auditRuns,
+  brands,
+  metrics,
+  matrixVersions,
+  promptCells,
+  resonanceStimuli,
+  resonanceStudies,
+} from "../schema";
 import {
   getBrandMentionsForExtractions,
   getClaimsForExtractions,
@@ -82,6 +91,11 @@ function frameFilter<T extends { intent: Intent | null }>(
 export async function recomputeMetrics(runId: string) {
   const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
   if (!run) throw new Error(`run ${runId} not found`);
+  const [version] = await db
+    .select({ kind: matrixVersions.kind })
+    .from(matrixVersions)
+    .where(eq(matrixVersions.id, run.matrixVersionId));
+  if (version?.kind === "resonance") return recomputeResonanceMetrics(runId);
 
   const [projectBrands, eligible] = await Promise.all([
     db
@@ -341,6 +355,166 @@ export async function recomputeMetrics(runId: string) {
     }
     if (comparisonSampleCount > 0) {
       push(brandScope, "comparative_win_rate", proportion(brandComparisonWins.get(brandId) ?? 0, comparisonSampleCount));
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(metrics).where(eq(metrics.runId, runId));
+    for (const row of rows) await tx.insert(metrics).values(row);
+  });
+
+  return rows.length;
+}
+
+interface SsrPayload {
+  kind?: string;
+  pmf?: number[];
+  meanScore?: number;
+}
+
+function readSsrPayload(payload: unknown): { pmf: number[]; meanScore: number } | null {
+  const parsed = payload as SsrPayload | null;
+  if (!parsed || parsed.kind !== "ssr") return null;
+  if (!Array.isArray(parsed.pmf) || parsed.pmf.length !== 5) return null;
+  if (parsed.pmf.some((value) => typeof value !== "number" || !Number.isFinite(value))) return null;
+  if (typeof parsed.meanScore !== "number" || !Number.isFinite(parsed.meanScore)) return null;
+  return { pmf: parsed.pmf, meanScore: parsed.meanScore };
+}
+
+function averagePmf(pmfs: number[][]): number[] {
+  if (pmfs.length === 0) return [0, 0, 0, 0, 0];
+  const totals = [0, 0, 0, 0, 0];
+  for (const pmf of pmfs) {
+    for (let i = 0; i < 5; i++) totals[i] += pmf[i];
+  }
+  return totals.map((value) => value / pmfs.length);
+}
+
+function mean(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+async function recomputeResonanceMetrics(runId: string) {
+  const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
+  if (!run) throw new Error(`run ${runId} not found`);
+
+  const eligible = await getEligibleExtractionsForRun(runId);
+  const [studyRow] = await db
+    .select({
+      baselineStimulusId: resonanceStudies.baselineStimulusId,
+    })
+    .from(matrixVersions)
+    .innerJoin(resonanceStudies, eq(resonanceStudies.id, matrixVersions.resonanceStudyId))
+    .where(eq(matrixVersions.id, run.matrixVersionId));
+
+  const cellRows = await db
+    .select({
+      id: promptCells.id,
+      stimulusId: promptCells.stimulusId,
+      panelPersonaKey: promptCells.panelPersonaKey,
+      stimulusKind: resonanceStimuli.kind,
+      stimulusLabel: resonanceStimuli.label,
+      stimulusPosition: resonanceStimuli.position,
+    })
+    .from(promptCells)
+    .innerJoin(resonanceStimuli, eq(resonanceStimuli.id, promptCells.stimulusId))
+    .where(eq(promptCells.matrixVersionId, run.matrixVersionId));
+  const cellById = new Map(cellRows.map((cell) => [cell.id, cell]));
+
+  const samples: Array<{
+    stimulusId: string;
+    panelPersonaKey: string;
+    stimulusKind: string;
+    stimulusLabel: string;
+    stimulusPosition: number;
+    pmf: number[];
+    meanScore: number;
+  }> = [];
+  for (const row of eligible) {
+    const ssr = readSsrPayload(row.extractedJson);
+    if (!ssr) continue;
+    const cell = cellById.get(row.cellId);
+    if (!cell?.stimulusId || !cell.panelPersonaKey) continue;
+    samples.push({
+      stimulusId: cell.stimulusId,
+      panelPersonaKey: cell.panelPersonaKey,
+      stimulusKind: cell.stimulusKind,
+      stimulusLabel: cell.stimulusLabel,
+      stimulusPosition: cell.stimulusPosition,
+      pmf: ssr.pmf,
+      meanScore: ssr.meanScore,
+    });
+  }
+
+  const rows: Array<typeof metrics.$inferInsert> = [];
+  const byStimulus = groupBy(samples, (sample) => sample.stimulusId);
+  const stimulusMeans = new Map<string, number>();
+
+  for (const [stimulusId, items] of byStimulus) {
+    const first = items[0];
+    const value = mean(items.map((item) => item.meanScore));
+    stimulusMeans.set(stimulusId, value);
+    rows.push({
+      runId,
+      scopeType: "resonance_variant",
+      scopeKey: stimulusId,
+      metricKey: "pi_mean",
+      n: items.length,
+      value,
+      ciLow: null,
+      ciHigh: null,
+      metadataJson: {
+        pmf: averagePmf(items.map((item) => item.pmf)),
+        stimulusKind: first.stimulusKind,
+        label: first.stimulusLabel,
+        sufficientN: items.length >= 30,
+      },
+    });
+  }
+
+  const byStimulusPersona = groupBy(samples, (sample) => `${sample.stimulusId}|${sample.panelPersonaKey}`);
+  for (const [key, items] of byStimulusPersona) {
+    const first = items[0];
+    rows.push({
+      runId,
+      scopeType: "resonance_variant_persona",
+      scopeKey: key,
+      metricKey: "pi_mean",
+      n: items.length,
+      value: mean(items.map((item) => item.meanScore)),
+      ciLow: null,
+      ciHigh: null,
+      metadataJson: {
+        pmf: averagePmf(items.map((item) => item.pmf)),
+        stimulusKind: first.stimulusKind,
+        label: first.stimulusLabel,
+        directionalOnly: true,
+      },
+    });
+  }
+
+  const orderedStimuli = [...byStimulus.values()]
+    .map((items) => items[0])
+    .sort((a, b) => a.stimulusPosition - b.stimulusPosition);
+  const measuredBaseline = orderedStimuli.find((item) => item.stimulusKind === "measured_ai")?.stimulusId;
+  const fallbackBaseline = orderedStimuli[0]?.stimulusId;
+  const baselineStimulusId = studyRow?.baselineStimulusId ?? measuredBaseline ?? fallbackBaseline ?? null;
+  const baselineMean = baselineStimulusId ? stimulusMeans.get(baselineStimulusId) : undefined;
+  if (baselineStimulusId && baselineMean !== undefined) {
+    for (const [stimulusId, value] of stimulusMeans) {
+      if (stimulusId === baselineStimulusId) continue;
+      rows.push({
+        runId,
+        scopeType: "resonance_delta",
+        scopeKey: stimulusId,
+        metricKey: "delta_pi_mean",
+        n: byStimulus.get(stimulusId)?.length ?? 0,
+        value: value - baselineMean,
+        ciLow: null,
+        ciHigh: null,
+        metadataJson: { baselineStimulusId },
+      });
     }
   }
 

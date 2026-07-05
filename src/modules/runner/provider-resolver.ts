@@ -5,9 +5,10 @@ import { createDeepSeekProvider } from "@/providers/deepseek";
 import { createGoogleProvider } from "@/providers/google";
 import { mockProvider } from "@/providers/mock";
 import { createOpenAIProvider } from "@/providers/openai";
+import { createOpenAIEmbeddingProvider } from "@/providers/openai/embeddings";
 import { createPerplexityProvider } from "@/providers/perplexity";
 import { type LiveCredentials, ProviderCallError } from "@/providers/shared";
-import type { LLMProvider, ProviderId } from "@/providers/types";
+import type { EmbeddingProvider, LLMProvider, ProviderId } from "@/providers/types";
 
 // Credential-aware runtime resolution — distinct from the static,
 // metadata-only registry (src/providers/registry.ts), which run creation
@@ -73,4 +74,19 @@ export async function resolveExtractionCredentials(): Promise<LiveCredentials> {
     );
   }
   return resolveLiveCredentials(engineId);
+}
+
+export function embeddingProviderId(): ProviderId {
+  return (process.env.EMBEDDING_PROVIDER || "openai") as ProviderId;
+}
+
+export async function resolveEmbeddingProvider(): Promise<EmbeddingProvider> {
+  const providerId = embeddingProviderId();
+  if (providerId !== "openai") {
+    throw new ProviderCallError(
+      "unsupported_mode",
+      `No live embedding adapter for EMBEDDING_PROVIDER="${providerId}" — only openai is supported in M18`,
+    );
+  }
+  return createOpenAIEmbeddingProvider(await resolveLiveCredentials(providerId));
 }

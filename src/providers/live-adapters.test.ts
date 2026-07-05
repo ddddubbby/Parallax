@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAnthropicProvider } from "./anthropic";
 import { createGoogleProvider } from "./google";
 import { createOpenAIProvider } from "./openai";
+import { createOpenAIEmbeddingProvider } from "./openai/embeddings";
 import { createPerplexityProvider } from "./perplexity";
 import { ProviderCallError } from "./shared";
 
@@ -87,6 +88,33 @@ describe("OpenAI adapter (Responses API)", () => {
     await expect(createOpenAIProvider(CREDS).generate({ promptText: "x", mode: "ungrounded" })).rejects.toMatchObject({
       errorType: "auth_error",
     });
+  });
+});
+
+describe("OpenAI embedding adapter", () => {
+  it("posts text batches to /v1/embeddings, preserves vector order, and records token cost", async () => {
+    const spy = stubFetch({
+      data: [
+        { index: 1, embedding: [0, 1, 0] },
+        { index: 0, embedding: [1, 0, 0] },
+      ],
+      usage: { prompt_tokens: 12, total_tokens: 12 },
+      model: "text-embedding-3-small",
+    });
+    const provider = createOpenAIEmbeddingProvider(CREDS);
+    const result = await provider.embed({ texts: ["buyer reaction", "anchor sentence"] });
+
+    expect(result.vectors).toEqual([
+      [1, 0, 0],
+      [0, 1, 0],
+    ]);
+    expect(result.tokens).toBe(12);
+    expect(result.costUsd).toBeCloseTo((12 / 1e6) * 0.02, 10);
+
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe("https://api.openai.com/v1/embeddings");
+    const requestBody = JSON.parse((spy.mock.calls[0][1] as RequestInit).body as string);
+    expect(requestBody).toMatchObject({ model: "text-embedding-3-small", input: ["buyer reaction", "anchor sentence"] });
   });
 });
 

@@ -407,7 +407,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M15 | Explanatory layer | Pillar business-value explainers in matrix; live per-pillar sample-budget panel vs the n>=30 gate; guided next actions; $0 demo walkthrough | Done |
 | M16 | Funnel presentation layer + Resonance identity | Funnel chips on dashboard/matrix; app presents as Resonance; SimulatedBadge exists; recompute byte-identical pre/post (presentation-only proven) | Done |
 | M17 | Resonance studies + mock panel run | Migration 0008 clean on fresh+existing DB; study -> approve -> mock run completes storing raw responses, zero extractions; PM-9 bypass proven with branded stimulus; audit mock e2e still green | Done |
-| M18 | SSR scoring + resonance metrics | Golden SSR math tests; mock run fixture-scored end-to-end, recompute idempotent; embedding spend in projection+budgets; C-12 wall tests green | Planned (spec: PRD 8.20, plan: RESONANCE_BUILD_PLAN M18) |
+| M18 | SSR scoring + resonance metrics | Golden SSR math tests; mock run fixture-scored end-to-end, recompute idempotent; embedding spend in projection+budgets; C-12 wall tests green | Done |
 | M19 | Lower-funnel surfaces + report + demo | Results view with <=2-click drill-through; resonance report sections + guarded exports; archive works; `pnpm demo:resonance` walkable at $0 | Planned (spec: PRD 8.21, plan: RESONANCE_BUILD_PLAN M19) |
 | M20 | Value-add packs + hardening + internal demo | Four template packs seeded; C-12/13/14 adversarial sweep logged; fresh-clone demo executed unassisted | Planned (spec: PRD 8.22, plan: RESONANCE_BUILD_PLAN M20) |
 
@@ -420,6 +420,9 @@ Progress notes:
 - 2026-07-05 M17 done: migration 0008 adds `resonance_studies`, `resonance_stimuli`, `matrix_versions.kind`, resonance study/cell links, and `intent='simulation'`; study builder now creates/edits personas and stimuli, compiles approved studies into frozen resonance matrices, and starts single-engine mock runs.
 - 2026-07-05 M17 wall verified: audit matrix/dashboard/report/export/pipeline queries filter or reject resonance runs per D-068; resonance responses skip audit extraction and log the C-12 skip event. New integration test proves study -> approve -> mock run -> raw responses stored -> zero extraction rows.
 - 2026-07-05 M17 verification: existing DB migration applied, fresh temp DB migration succeeded, `pnpm typecheck`, `pnpm lint`, `pnpm test` (283 passed), and `pnpm build` green. Local preview running at `http://localhost:3001` (`/projects/.../resonance` returned 200).
+- 2026-07-05 M18 done: SSR scoring now routes resonance responses into versioned `extractions` rows with `extracted_json.kind='ssr'`; mock scoring is fixture-backed, live scoring uses the separate OpenAI embedding provider capability, and re-score creates a new extraction version.
+- 2026-07-05 M18 metrics/cost wall: `recomputeMetrics` dispatches on matrix kind and emits only `resonance_variant`, `resonance_variant_persona`, and `resonance_delta` rows for resonance runs; live resonance projection, credential preflight, worker budget checks, and daily spend attribution include `EMBEDDING_PROVIDER` instead of the audit extraction engine.
+- 2026-07-05 M18 verification: golden SSR/core/anchor/provider tests green; `CI=true pnpm test` passed (289 passed, including DB-backed resonance SSR/metrics and audit extraction tests), `CI=true pnpm lint`, `CI=true pnpm typecheck`, `CI=true pnpm build`, and `CI=true pnpm test:mock-e2e` passed.
 
 - 2026-07-02 done: canonical docs moved into repo, ambiguity reduced, structured repo folders initialized, and M0.5 execution-readiness specs added.
 - 2026-07-02 remaining: initialize package dependencies, health route, CI workflow, Render skeleton, and first migration.

@@ -11,7 +11,8 @@
           "This makes the product feel wrong for me.",
           "I would remove this from my shortlist.",
           "This framing reduces my interest a lot.",
-          "I see no reason to take the next step."
+          "I see no reason to take the next step.",
+          "I would stop evaluating this option."
         ]
       },
       {
@@ -21,7 +22,8 @@
           "This leaves me skeptical about fit.",
           "I would need a much stronger reason to continue.",
           "This does not address what I care about.",
-          "I would probably look at alternatives first."
+          "I would probably look at alternatives first.",
+          "This makes me hesitant to spend more time on it."
         ]
       },
       {
@@ -31,7 +33,8 @@
           "This sounds relevant but not compelling yet.",
           "I would need more evidence before deciding.",
           "This keeps the product in the maybe pile.",
-          "I am neutral about taking the next step."
+          "I am neutral about taking the next step.",
+          "I need to compare details before choosing."
         ]
       },
       {
@@ -41,7 +44,8 @@
           "This makes the product feel relevant to me.",
           "I would keep this on my shortlist.",
           "This gives me a good reason to consider it.",
-          "I can imagine taking the next step."
+          "I can imagine taking the next step.",
+          "I am interested enough to keep evaluating."
         ]
       },
       {
@@ -51,17 +55,8 @@
           "This feels like a very good fit for me.",
           "I would prioritize this over alternatives.",
           "This framing makes me want to act soon.",
-          "I am ready to take the next step."
-        ]
-      },
-      {
-        "score": 3,
-        "sentences": [
-          "I need to compare details before choosing.",
-          "This could work, but it depends on proof.",
-          "I am interested enough to keep evaluating.",
-          "This creates curiosity without commitment.",
-          "I would ask follow-up questions before buying."
+          "I am ready to take the next step.",
+          "This gives me confidence to move forward."
         ]
       }
     ]

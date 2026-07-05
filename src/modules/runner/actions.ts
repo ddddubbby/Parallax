@@ -27,8 +27,10 @@ import {
   requeueJob as requeueJobRepo,
   resumeRun as resumeRunRepo,
 } from "@/db/repositories/runner";
-import { extractionProviderId, findExceededDailyBudget, readDailyBudgetUsd } from "@/modules/runner/budget";
+import { embeddingProviderId, extractionProviderId, findExceededDailyBudget, readDailyBudgetUsd } from "@/modules/runner/budget";
+import { anchorStatementSets, getSsrAnchorSet } from "@/core/ssr-anchors";
 import { estimateExtractionCostUsd } from "@/providers/deepseek";
+import { estimateOpenAIEmbeddingCostUsd } from "@/providers/openai/embeddings";
 import { getProvider, listRegisteredProviders } from "@/providers/registry";
 
 type ActionResult = { ok: true; runId?: string } | { ok: false; error: string };
@@ -103,8 +105,16 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   // the cap while real spend was higher). Unsupported pairs (e.g.
   // deepseek+grounded) are skipped at planning, so they contribute $0.
   const callsPerPair = cellCount * input.repetitions;
+  const isResonance = version.kind === "resonance";
   const extractionCostPerCall =
-    input.runMode === "mock" ? EXTRACTION_ENGINE_MOCK_COST_USD : estimateExtractionCostUsd();
+    input.runMode === "mock" || isResonance ? EXTRACTION_ENGINE_MOCK_COST_USD : estimateExtractionCostUsd();
+  const embeddingCostPerCall =
+    input.runMode === "mock" || !isResonance
+      ? 0
+      : estimateOpenAIEmbeddingCostUsd([
+          "x".repeat(2_000),
+          ...anchorStatementSets(getSsrAnchorSet("purchase_intent.v1")).flat(),
+        ]);
   let projectedCostUsd = 0;
   for (const providerId of input.providers) {
     const provider = getProvider(providerId);
@@ -114,7 +124,7 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
       if (!supported) continue;
       const generationCostPerCall = provider.estimateCostUsd({ promptText: representativePrompt, mode });
       // D-022: one estimated extraction call per generation call.
-      projectedCostUsd += callsPerPair * (generationCostPerCall + extractionCostPerCall);
+      projectedCostUsd += callsPerPair * (generationCostPerCall + extractionCostPerCall + embeddingCostPerCall);
     }
   }
   // A1: surface today's spend vs daily budget per relevant provider (live
@@ -123,7 +133,8 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   // run paused mid-flight. Providers with no configured budget are omitted.
   const budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number }> = [];
   if (input.runMode !== "mock") {
-    for (const providerId of new Set<string>([...input.providers, extractionProviderId()])) {
+    const secondaryProvider = isResonance ? embeddingProviderId() : extractionProviderId();
+    for (const providerId of new Set<string>([...input.providers, secondaryProvider])) {
       if (providerId === "mock") continue;
       const budgetUsd = readDailyBudgetUsd(providerId);
       if (!Number.isFinite(budgetUsd)) continue;
@@ -176,7 +187,11 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
   // the subtle one: without its key, generation succeeds and spends, then
   // every extraction dead-letters and the run yields no usable metrics.
   if (input.runMode !== "mock") {
-    const needed = new Set<string>([...input.providers, extractionProviderId()]);
+    const projectionVersion = input.matrixVersionId
+      ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
+      : await getApprovedVersionForRun(projectId);
+    const secondaryProvider = projectionVersion?.kind === "resonance" ? embeddingProviderId() : extractionProviderId();
+    const needed = new Set<string>([...input.providers, secondaryProvider]);
     const missing: string[] = [];
     for (const providerId of needed) {
       if (providerId === "mock") continue;
@@ -186,7 +201,7 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
     if (missing.length > 0) {
       return {
         ok: false,
-        error: `No active credential in Settings for: ${missing.join(", ")} — a live run needs a key for every selected provider and the extraction engine (${extractionProviderId()}) before it can spend.`,
+        error: `No active credential in Settings for: ${missing.join(", ")} — a live run needs a key for every selected provider and the ${projectionVersion?.kind === "resonance" ? "embedding provider" : "extraction engine"} (${secondaryProvider}) before it can spend.`,
       };
     }
   }
@@ -211,7 +226,12 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
   // over the same provider set the worker checks (selected + extraction
   // engine, D-041).
   if (input.runMode !== "mock") {
-    const trip = await findExceededDailyBudget([...input.providers, extractionProviderId()]);
+    const secondaryProvider = projection.versionId
+      ? (await getMatrixVersionForRun(projectId, projection.versionId))?.kind === "resonance"
+        ? embeddingProviderId()
+        : extractionProviderId()
+      : extractionProviderId();
+    const trip = await findExceededDailyBudget([...input.providers, secondaryProvider]);
     if (trip) {
       return {
         ok: false,

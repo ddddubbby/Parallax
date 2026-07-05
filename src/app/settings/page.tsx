@@ -21,6 +21,7 @@ function readDefaults() {
     auditCapUsd: Number(process.env.DEFAULT_AUDIT_RUN_CAP_USD ?? 25),
     globalDailyBudgetUsd: Number(process.env.PROVIDER_DAILY_BUDGET_USD ?? 25),
     extractionProvider: process.env.EXTRACTION_PROVIDER || "deepseek",
+    embeddingProvider: process.env.EMBEDDING_PROVIDER || "openai",
     providers: PROVIDER_ROWS.map((p) => ({
       label: p.label,
       model: process.env[`${p.id}_DEFAULT_MODEL`] || p.fallbackModel,
@@ -64,6 +65,13 @@ export default async function SettingsPage() {
             {defaults.extractionProvider}
             <span className="block text-xs text-ink/45">
               one engine for all live runs — its credential must be active
+            </span>
+          </dd>
+          <dt className="text-ink/60">Embedding engine (M18)</dt>
+          <dd>
+            {defaults.embeddingProvider}
+            <span className="block text-xs text-ink/45">
+              scores live Resonance runs — its credential must be active
             </span>
           </dd>
           {defaults.providers.map((p) => (

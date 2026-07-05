@@ -618,6 +618,7 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
   todayStart.setUTCHours(0, 0, 0, 0);
   const pid = providerId as (typeof responses.$inferInsert)["providerId"];
   const extractionEngine = process.env.EXTRACTION_PROVIDER || "deepseek";
+  const embeddingEngine = process.env.EMBEDDING_PROVIDER || "openai";
 
   const [genRow] = await db
     .select({ total: sql<string>`coalesce(sum(${responses.costUsd}), 0)` })
@@ -629,11 +630,25 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
     const [extRow] = await db
       .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
       .from(extractions)
-      .where(gte(extractions.createdAt, todayStart));
+      .where(
+        and(
+          gte(extractions.createdAt, todayStart),
+          sql`coalesce(${extractions.extractedJson}->>'kind', '') <> 'ssr'`,
+        ),
+      );
     extractionTotal = Number(extRow?.total ?? 0);
   }
 
-  return Number(genRow?.total ?? 0) + extractionTotal;
+  let embeddingTotal = 0;
+  if (providerId === embeddingEngine) {
+    const [ssrRow] = await db
+      .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
+      .from(extractions)
+      .where(and(gte(extractions.createdAt, todayStart), sql`${extractions.extractedJson}->>'kind' = 'ssr'`));
+    embeddingTotal = Number(ssrRow?.total ?? 0);
+  }
+
+  return Number(genRow?.total ?? 0) + extractionTotal + embeddingTotal;
 }
 
 export async function getProjectStatus(projectId: string) {

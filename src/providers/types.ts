@@ -53,3 +53,16 @@ export interface LLMProvider {
   generate(req: GenerationRequest, signal?: AbortSignal): Promise<GenerationResult>;
   estimateCostUsd(req: GenerationRequest): number;
 }
+
+export interface EmbeddingProvider {
+  providerId: ProviderId;
+  displayName: string;
+  defaultModel: string;
+  embed(req: { texts: string[]; model?: string; signal?: AbortSignal }): Promise<{
+    vectors: number[][];
+    model: string;
+    tokens: number;
+    costUsd: number;
+  }>;
+  estimateCostUsd(req: { texts: string[]; model?: string }): number;
+}

@@ -22,6 +22,7 @@ import {
 } from "@/db/repositories/extraction";
 import { appendRunEvent, getRun, getRunMatrixKind, hasRunEvent } from "@/db/repositories/runner";
 import { resolveExtractionCredentials } from "@/modules/runner/provider-resolver";
+import { scoreResponse, reScoreResponse } from "@/modules/resonance/scoring";
 import { callDeepSeekExtraction } from "@/providers/deepseek/extraction";
 import { MOCK_EXTRACTION_MODEL, extractViaMockEngine } from "@/providers/mock/extraction-engine";
 
@@ -289,16 +290,17 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
 export async function extractResponse(responseId: string): Promise<ExtractionRunResult> {
   const ctx = await buildContext(responseId);
   if (ctx.matrixKind === "resonance") {
-    const alreadyLogged = await hasRunEvent(ctx.runId, "resonance_audit_extraction_skipped");
+    const result = await scoreResponse(responseId);
+    const alreadyLogged = await hasRunEvent(ctx.runId, "resonance_ssr_scored");
     if (!alreadyLogged) {
       await appendRunEvent({
         runId: ctx.runId,
         level: "info",
-        eventType: "resonance_audit_extraction_skipped",
-        message: "Resonance response stored; audit extraction skipped for this simulation run (C-12/M17)",
+        eventType: "resonance_ssr_scored",
+        message: "Resonance responses are routed to SSR scoring; audit extraction remains walled off (C-12/M18)",
       });
     }
-    return { outcome: "skipped", attempts: 0 };
+    return result;
   }
   const extractionId = await createPendingExtraction(responseId, 1);
   return runExtractionPipeline(extractionId, ctx);
@@ -308,7 +310,7 @@ export async function extractResponse(responseId: string): Promise<ExtractionRun
 export async function reExtractResponse(responseId: string): Promise<ExtractionRunResult> {
   const ctx = await buildContext(responseId);
   if (ctx.matrixKind === "resonance") {
-    return { outcome: "skipped", attempts: 0 };
+    return reScoreResponse(responseId);
   }
   const extractionId = await createRequeuedExtraction(responseId);
   return runExtractionPipeline(extractionId, ctx);
