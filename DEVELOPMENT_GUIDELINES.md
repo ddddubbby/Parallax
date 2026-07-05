@@ -169,7 +169,7 @@ Embedding rules: resolved worker-side via `resolveEmbeddingProvider()` (`EMBEDDI
 - `report_sections.edited_md` wins over `generated_md`.
 - Mock rows are flagged and never aggregate with live rows.
 - Validation mini-runs are flagged and never presented as client-ready audit evidence.
-- Simulated rows never aggregate with measured rows (C-12): `matrix_versions.kind` discriminates; metrics recompute dispatches on kind; `resonance_*` scopes never appear from an audit run and vice versa — wall tests required whenever either recompute path changes. SSR scores are `extractions` rows (`schema_version='ssr-v1'`) and follow the same versioning invariant as re-extraction. Anchor sets are versioned fixtures; a study pins its version at approval and re-scoring an old study must load the pinned version or fail loudly.
+- Simulated rows never aggregate with measured rows (C-12): `matrix_versions.kind` discriminates; metrics recompute dispatches on kind; `resonance_*` scopes never appear from an audit run and vice versa — wall tests required whenever either recompute path changes. SSR scores are `extractions` rows discriminated by `extracted_json.kind='ssr'` (`schema_version` keeps its integer type — D-066) and follow the same versioning invariant as re-extraction. Anchor sets are versioned fixtures; a study pins its version at approval and re-scoring an old study must load the pinned version or fail loudly.
 
 ### C4. Canonical value sets
 
