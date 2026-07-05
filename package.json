@@ -22,7 +22,8 @@
     "test:golden": "vitest run src/modules/extraction/golden.test.ts",
     "audit:deepseek-mini": "tsx scripts/audit-deepseek-mini.ts",
     "archive:evidence": "tsx scripts/archive-evidence.ts",
-    "demo:walkthrough": "tsx scripts/demo-walkthrough.ts"
+    "demo:walkthrough": "tsx scripts/demo-walkthrough.ts",
+    "demo:resonance": "tsx scripts/demo-resonance.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",

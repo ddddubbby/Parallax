@@ -13,7 +13,7 @@ export function ReportRunSwitcher({
 }: {
   projectId: string;
   runId: string;
-  runs: Array<{ id: string; runMode: string; state: string; createdAt: Date }>;
+  runs: Array<{ id: string; runMode: string; state: string; createdAt: Date; matrixKind?: string }>;
 }) {
   const router = useRouter();
   if (runs.length < 2) return null;
@@ -25,7 +25,7 @@ export function ReportRunSwitcher({
     >
       {runs.map((r) => (
         <option key={r.id} value={r.id}>
-          {new Date(r.createdAt).toISOString().slice(0, 16).replace("T", " ")} · {r.runMode} · {r.state}
+          {new Date(r.createdAt).toISOString().slice(0, 16).replace("T", " ")} · {r.matrixKind === "resonance" ? "SIM" : "AUDIT"} · {r.runMode} · {r.state}
         </option>
       ))}
     </select>

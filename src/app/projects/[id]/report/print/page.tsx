@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import { notFound } from "next/navigation";
-import { REPORT_SECTIONS } from "@/core/report-templates";
+import { REPORT_SECTIONS, RESONANCE_REPORT_SECTIONS } from "@/core/report-templates";
 import { getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 import { getProjectBrandNames } from "@/db/repositories/dashboard";
@@ -39,7 +39,7 @@ export default async function ReportPrintPage({
   const run = await getRun(runId);
   if (!run || run.projectId !== id) notFound();
   const kind = await getRunMatrixKind(runId);
-  if (kind?.kind !== "audit") notFound();
+  const reportSections = kind?.kind === "resonance" ? RESONANCE_REPORT_SECTIONS : REPORT_SECTIONS;
 
   const [sections, brands] = await Promise.all([getReportSections(runId), getProjectBrandNames(id)]);
   const byKey = new Map(sections.map((s) => [s.sectionKey, s]));
@@ -77,10 +77,10 @@ export default async function ReportPrintPage({
         {new Date().toISOString().slice(0, 10).replaceAll("-", ".")} · RUN {runId.slice(0, 8)}
       </div>
       <h1 style={{ fontSize: "2rem", marginBottom: "2rem" }}>
-        AI Visibility Audit{client ? ` — ${client.name}` : ""}
+        {kind?.kind === "resonance" ? "Resonance Simulation Report" : "AI Visibility Audit"}{client ? ` — ${client.name}` : ""}
       </h1>
 
-      {REPORT_SECTIONS.map(({ key, title }) => {
+      {reportSections.map(({ key, title }) => {
         const section = byKey.get(key);
         const md = section?.editedMd ?? section?.generatedMd ?? "_Not yet generated._";
         const html = marked.parse(md, { async: false });

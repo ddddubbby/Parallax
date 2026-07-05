@@ -26,6 +26,14 @@ export const REPORT_SECTIONS = [
 
 export type SectionKey = (typeof REPORT_SECTIONS)[number]["key"];
 
+export const RESONANCE_REPORT_SECTIONS = [
+  { key: "resonance_method", title: "Resonance Method" },
+  { key: "resonance_results", title: "Resonance Results" },
+  { key: "resonance_evidence", title: "Resonance Evidence" },
+] as const;
+
+export type ResonanceSectionKey = (typeof RESONANCE_REPORT_SECTIONS)[number]["key"];
+
 interface MetricLike {
   scopeType: string;
   metricKey: string;
@@ -75,6 +83,50 @@ export interface ReportContext {
   sentiment: Record<string, number>;
   // CS-3: per-brand metrics (client + each competitor), resolved to names.
   brandMetrics: Array<{ brandName: string; isClient: boolean; metricKey: string; value: number; n: number }>;
+}
+
+export interface ResonanceReportContext {
+  studyName: string;
+  runMode: string;
+  runDate: string;
+  isMock: boolean;
+  genericUnconditioned: boolean;
+  repetitions: number;
+  providers: string[];
+  modes: string[];
+  anchorSetVersion: string;
+  anchorSetCalibrated: boolean;
+  embeddingModel: string;
+  variants: Array<{
+    stimulusId: string;
+    label: string;
+    stimulusKind: string;
+    n: number;
+    piMean: number;
+    pmf: number[];
+    sufficientN: boolean;
+  }>;
+  deltas: Array<{
+    label: string;
+    baselineLabel: string;
+    n: number;
+    deltaPiMean: number;
+    directionalOnly: boolean;
+  }>;
+  personaRows: Array<{
+    panelPersonaLabel: string;
+    stimulusLabel: string;
+    n: number;
+    piMean: number;
+    directionalOnly: boolean;
+  }>;
+  evidence: Array<{
+    stimulusLabel: string;
+    responseId: string;
+    panelPersonaLabel: string;
+    meanScore: number;
+    rawText: string;
+  }>;
 }
 
 function overall(ctx: ReportContext, key: string): MetricLike | undefined {
@@ -136,6 +188,13 @@ function badgeLine(ctx: ReportContext): string {
   if (ctx.runMode === "live_validation") badges.push("**VALIDATION-ONLY** — a small dry-run, not client-ready evidence.");
   if (ctx.isPartial) badges.push("**PARTIAL** — some samples in this run did not complete or could not be extracted.");
   return badges.length > 0 ? badges.map((b) => `> ${b}`).join("\n") + "\n\n" : "";
+}
+
+function resonanceBadgeLine(ctx: ResonanceReportContext): string {
+  const badges = ["**SIMULATED** — this lower-funnel section reports synthetic-panel proxy output, not measured human behavior."];
+  if (ctx.isMock) badges.push("**MOCK** — this run used fixture-backed provider responses.");
+  if (ctx.genericUnconditioned) badges.push("**GENERIC** — this study was not conditioned on stored AI-channel evidence.");
+  return badges.map((b) => `> ${b}`).join("\n") + "\n\n";
 }
 
 function generateExecutiveSummary(ctx: ReportContext): string {
@@ -382,7 +441,97 @@ const GENERATORS: Record<SectionKey, (ctx: ReportContext) => string> = {
   raw_answer_appendix: generateRawAnswerAppendix,
 };
 
+function pmfText(pmf: number[]): string {
+  return pmf.map((value, idx) => `${idx + 1}: ${Math.round(value * 100)}%`).join("; ");
+}
+
+function generateResonanceMethod(ctx: ResonanceReportContext): string {
+  return `${resonanceBadgeLine(ctx)}This Resonance study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). The figures are comparative and directional: ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior.
+
+| Field | Value |
+|---|---|
+| Study | ${escapeModelText(ctx.studyName)} |
+| Run date | ${ctx.runDate} |
+| Run mode | ${ctx.runMode} |
+| Repetitions per cell | ${ctx.repetitions} |
+| Providers | ${ctx.providers.join(", ") || "none"} |
+| Modes | ${ctx.modes.join(", ") || "none"} |
+| SSR anchor version | ${ctx.anchorSetVersion} |
+| Anchor calibration | ${ctx.anchorSetCalibrated ? "calibrated" : "uncalibrated anchor sets"} |
+| Embedding model | ${ctx.embeddingModel} |
+
+Respondents saw text-only stimulus variants. This limitation matters: the reference SSR method also studies image stimuli, and text-only stimuli should be read as a narrower proxy. Means are point estimates with no confidence interval; per-persona slices are always directional-only. Panel personas use age and income as validated conditioning axes, with location and behavioral profile as prompt context.`;
+}
+
+function generateResonanceResults(ctx: ResonanceReportContext): string {
+  const variantRows = ctx.variants
+    .map(
+      (v) =>
+        `| ${escapeModelText(v.label)} | ${escapeModelText(v.stimulusKind)} | ${v.piMean.toFixed(2)} | ${v.n} | ${pmfText(v.pmf)} | ${v.sufficientN ? "aggregate" : "directional"} |`,
+    )
+    .join("\n");
+  const deltaRows = ctx.deltas
+    .map(
+      (d) =>
+        `| ${escapeModelText(d.label)} | ${escapeModelText(d.baselineLabel)} | ${d.deltaPiMean > 0 ? "+" : ""}${d.deltaPiMean.toFixed(2)} | ${d.n} | ${d.directionalOnly ? "directional" : "aggregate"} |`,
+    )
+    .join("\n");
+  const personaRows = ctx.personaRows
+    .map(
+      (p) =>
+        `| ${escapeModelText(p.panelPersonaLabel)} | ${escapeModelText(p.stimulusLabel)} | ${p.piMean.toFixed(2)} | ${p.n} | directional |`,
+    )
+    .join("\n");
+
+  return `${resonanceBadgeLine(ctx)}## Variant ranking
+
+| Variant | Kind | Mean PI | n | PMF | Gate |
+|---|---|---:|---:|---|---|
+${variantRows || "| No variant metrics | — | — | — | — | — |"}
+
+## Delta vs baseline
+
+| Variant | Baseline | ΔPI | n | Gate |
+|---|---|---:|---:|---|
+${deltaRows || "| No delta metrics | — | — | — | — |"}
+
+## Persona slices
+
+Persona slices are included for diagnosis and are always directional-only.
+
+| Persona | Variant | Mean PI | n | Gate |
+|---|---|---:|---:|---|
+${personaRows || "| No persona metrics | — | — | — | — |"}`;
+}
+
+function generateResonanceEvidence(ctx: ResonanceReportContext): string {
+  const rows = ctx.evidence
+    .map(
+      (e) =>
+        `### ${escapeModelText(e.stimulusLabel)} · ${escapeModelText(e.panelPersonaLabel)}
+
+> "${escapeModelText(e.rawText)}"
+
+Response: \`${e.responseId}\` · scored mean PI: ${e.meanScore.toFixed(2)}`,
+    )
+    .join("\n\n---\n\n");
+
+  return `${resonanceBadgeLine(ctx)}Evidence excerpts below are deterministic: responses are sorted by response id within each stimulus and selected from eligible SSR-scored responses. They are shown so every simulated figure can be traced back to stored raw text.
+
+${rows || "No eligible SSR-scored responses were available for this run."}`;
+}
+
+const RESONANCE_GENERATORS: Record<ResonanceSectionKey, (ctx: ResonanceReportContext) => string> = {
+  resonance_method: generateResonanceMethod,
+  resonance_results: generateResonanceResults,
+  resonance_evidence: generateResonanceEvidence,
+};
+
 /** RB-3: generates exactly one section's markdown — callers control which sections get touched. */
 export function generateSection(key: SectionKey, ctx: ReportContext): string {
   return GENERATORS[key](ctx);
+}
+
+export function generateResonanceSection(key: ResonanceSectionKey, ctx: ResonanceReportContext): string {
+  return RESONANCE_GENERATORS[key](ctx);
 }

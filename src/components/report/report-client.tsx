@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
-import { REPORT_SECTIONS } from "@/core/report-templates";
+import { REPORT_SECTIONS, RESONANCE_REPORT_SECTIONS } from "@/core/report-templates";
 import { generateReportForRun, regenerateSectionAction, saveSectionEdit } from "@/modules/report/actions";
 
 interface SectionRow {
@@ -22,10 +22,12 @@ export function ReportClient({
   projectId,
   runId,
   initialSections,
+  kind = "audit",
 }: {
   projectId: string;
   runId: string;
   initialSections: SectionRow[];
+  kind?: "audit" | "resonance";
 }) {
   const [sections, setSections] = useState(initialSections);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -83,6 +85,11 @@ export function ReportClient({
 
   const ordered = [...sections].sort((a, b) => a.position - b.position);
   const exportBase = `/projects/${projectId}/report/export`;
+  const reportSections = kind === "resonance" ? RESONANCE_REPORT_SECTIONS : REPORT_SECTIONS;
+  const csvDatasets =
+    kind === "resonance"
+      ? (["resonance_responses", "resonance_metrics"] as const)
+      : (["responses", "extractions", "metrics", "brand_metrics", "citations"] as const);
 
   return (
     <div>
@@ -96,7 +103,7 @@ export function ReportClient({
         <a href={`${exportBase}/json?runId=${runId}`} className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink">
           Evidence JSON
         </a>
-        {(["responses", "extractions", "metrics", "brand_metrics", "citations"] as const).map((d) => (
+        {csvDatasets.map((d) => (
           <a key={d} href={`${exportBase}/csv/${d}?runId=${runId}`} className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink">
             {d}.csv
           </a>
@@ -104,7 +111,7 @@ export function ReportClient({
       </div>
 
       <div className="flex flex-col gap-6">
-        {REPORT_SECTIONS.map(({ key, title }) => {
+        {reportSections.map(({ key, title }) => {
           const s = ordered.find((x) => x.sectionKey === key);
           if (!s) return null;
           const editing = editingKey === key;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ReportClient } from "@/components/report/report-client";
 import { ReportRunSwitcher } from "@/components/report/report-run-switcher";
-import { listCompletedRuns } from "@/db/repositories/dashboard";
+import { listCompletedResonanceRuns, listCompletedRuns } from "@/db/repositories/dashboard";
 import { getReportSections } from "@/db/repositories/report";
 import { getProjectSummary } from "@/db/repositories/runner";
 
@@ -20,10 +20,21 @@ export default async function ReportPage({
   const project = await getProjectSummary(id);
   if (project === null) notFound();
 
-  const runs = await listCompletedRuns(id);
+  const [auditRuns, resonanceRuns] = await Promise.all([
+    listCompletedRuns(id),
+    listCompletedResonanceRuns(id),
+  ]);
+  const runs = [
+    ...auditRuns.map((run) => ({ ...run, matrixKind: "audit" as const })),
+    ...resonanceRuns.map((run) => ({ ...run, matrixKind: "resonance" as const })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   if (runs.length === 0) redirect(`/projects/${id}/dashboard`);
 
-  const runId = requestedRunId && runs.some((r) => r.id === requestedRunId) ? requestedRunId : runs[0].id;
+  const defaultRun = auditRuns[0]
+    ? { ...auditRuns[0], matrixKind: "audit" as const }
+    : runs[0];
+  const selectedRun = requestedRunId ? runs.find((r) => r.id === requestedRunId) ?? defaultRun : defaultRun;
+  const runId = selectedRun.id;
   const sections = await getReportSections(runId);
 
   return (
@@ -44,7 +55,7 @@ export default async function ReportPage({
       </div>
       <h1 className="label-mono mb-4 text-lg font-semibold">Report</h1>
       <ReportRunSwitcher projectId={id} runId={runId} runs={runs} />
-      <ReportClient projectId={id} runId={runId} initialSections={sections} />
+      <ReportClient projectId={id} runId={runId} initialSections={sections} kind={selectedRun.matrixKind} />
     </main>
   );
 }

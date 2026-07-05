@@ -50,11 +50,14 @@ Copy this block into the log below for each delivered audit.
 - [ ] Aggregate report claims all carry n >= 30; anything below renders as
   insufficient-data or directional-only (D-015).
 - [ ] Report sections reviewed and edited by the operator; RB-5 tone spot-checked.
+- [ ] Resonance demo gate (internal): `pnpm demo:resonance` exits 0, then walk audit evidence -> Resonance study -> mock run -> results -> report -> exports at $0.
 - [ ] Exports delivered to client: report (Markdown and/or print-PDF) +
   agreed evidence pack subset.
-- [ ] **Evidence archived (D-024): `pnpm archive:evidence <runId>` — exit
-  code 0 (a 2 means the DB dump is missing and the archive is incomplete;
-  install postgres client tools or run where DATABASE_URL is reachable).
+- [ ] **Evidence archived (D-024): `pnpm archive:evidence <runId>` exits 0.
+  Preferred dump mode is native `pg_dump` custom format; if local Postgres
+  client tools are unavailable, the script writes a marked SQL data snapshot
+  plus dump manifest through the existing DB connection. Set
+  `ARCHIVE_REQUIRE_PG_DUMP=true` when a native custom dump is mandatory.
   Archive directory moved OFF Render (external drive / cloud storage).**
 - [ ] Archive recorded in the log below.
 - [ ] Retro logged: pilot audits get a full retro in `MASTER_CONTEXT.md`
@@ -62,6 +65,6 @@ Copy this block into the log below for each delivered audit.
 
 ## Archive log
 
-| Date | Project | Run ID | Archive location | Dump included | Recorded by |
+| Date | Project | Run ID | Archive location | Dump mode | Recorded by |
 |---|---|---|---|---|---|
 | _none yet_ | | | | | |

@@ -7,11 +7,21 @@ import {
   findSourceConcentration,
   type Finding,
 } from "@/core/findings";
-import { generateSection, REPORT_SECTIONS, type ReportContext } from "@/core/report-templates";
+import {
+  generateResonanceSection,
+  generateSection,
+  REPORT_SECTIONS,
+  RESONANCE_REPORT_SECTIONS,
+  type ReportContext,
+  type ResonanceReportContext,
+  type ResonanceSectionKey,
+} from "@/core/report-templates";
 import { isSufficientN } from "@/core/metrics";
 import { getCitedSources, getMisinformationRegister, getProjectBrandNames } from "@/db/repositories/dashboard";
+import { getExportExtractions } from "@/db/repositories/export";
 import { getCellBrandPresence, listFindings, saveFindings } from "@/db/repositories/findings";
 import { listMetrics } from "@/db/repositories/metrics";
+import { getResonanceStudyResults } from "@/db/repositories/resonance";
 import {
   ensureSection,
   getFindingEvidenceExcerpts,
@@ -19,7 +29,7 @@ import {
   regenerateSection,
   saveEdit,
 } from "@/db/repositories/report";
-import { getRun, getRunFailureCounts } from "@/db/repositories/runner";
+import { getRun, getRunFailureCounts, getRunMatrixKind } from "@/db/repositories/runner";
 
 /** RB-1: compute every finding type and persist (disposable, C-5 — same pattern as metrics recompute). */
 export async function computeFindings(runId: string): Promise<number> {
@@ -127,6 +137,71 @@ async function buildReportContext(runId: string): Promise<ReportContext | null> 
   };
 }
 
+async function buildResonanceReportContext(runId: string): Promise<ResonanceReportContext | null> {
+  const run = await getRun(runId);
+  if (!run) return null;
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind !== "resonance" || !kind.resonanceStudyId) return null;
+
+  const [results, extractionRows] = await Promise.all([
+    getResonanceStudyResults(run.projectId, kind.resonanceStudyId, runId),
+    getExportExtractions(runId),
+  ]);
+  if (!results) return null;
+
+  const embeddingModel =
+    extractionRows.find((row) => {
+      const payload = row.extractedJson as { kind?: string } | null;
+      return payload?.kind === "ssr";
+    })?.extractionModel ?? "not available";
+
+  return {
+    studyName: results.study.name,
+    runMode: run.runMode,
+    runDate: (run.completedAt ?? run.createdAt).toISOString().slice(0, 10),
+    isMock: run.runMode === "mock",
+    genericUnconditioned: results.study.genericUnconditioned,
+    repetitions: run.repetitions,
+    providers: (run.selectedProvidersJson as string[]) ?? [],
+    modes: (run.selectedModesJson as string[]) ?? [],
+    anchorSetVersion: results.study.anchorSetVersion,
+    anchorSetCalibrated: results.study.anchorSetCalibrated,
+    embeddingModel,
+    variants: results.variants.map((variant) => ({
+      stimulusId: variant.stimulusId,
+      label: variant.label,
+      stimulusKind: variant.stimulusKind,
+      n: variant.n,
+      piMean: variant.piMean,
+      pmf: variant.pmf,
+      sufficientN: variant.sufficientN,
+    })),
+    deltas: results.deltas.map((delta) => ({
+      label: delta.label,
+      baselineLabel: delta.baselineLabel,
+      n: delta.n,
+      deltaPiMean: delta.deltaPiMean,
+      directionalOnly: delta.directionalOnly,
+    })),
+    personaRows: results.personaRows.map((row) => ({
+      panelPersonaLabel: row.panelPersonaLabel,
+      stimulusLabel: row.stimulusLabel,
+      n: row.n,
+      piMean: row.piMean,
+      directionalOnly: row.directionalOnly,
+    })),
+    evidence: results.variants.flatMap((variant) =>
+      variant.responses.slice(0, 4).map((response) => ({
+        stimulusLabel: variant.label,
+        responseId: response.responseId,
+        panelPersonaLabel: response.panelPersonaLabel,
+        meanScore: response.meanScore,
+        rawText: response.rawText,
+      })),
+    ),
+  };
+}
+
 /** Creates the nine RB-4 sections if they don't already exist — never overwrites an existing (possibly edited) section. */
 export async function generateReport(runId: string): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
   const ctx = await buildReportContext(runId);
@@ -145,13 +220,41 @@ export async function generateReport(runId: string): Promise<{ ok: true; created
   return { ok: true, created };
 }
 
+export async function generateResonanceReport(runId: string): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
+  const ctx = await buildResonanceReportContext(runId);
+  if (!ctx) return { ok: false, error: "Resonance run not found" };
+
+  const existingSections = await getReportSections(runId);
+  const existingKeys = new Set(existingSections.map((s) => s.sectionKey));
+
+  let created = 0;
+  for (const [i, section] of RESONANCE_REPORT_SECTIONS.entries()) {
+    if (existingKeys.has(section.key)) continue;
+    const md = generateResonanceSection(section.key, ctx);
+    await ensureSection(runId, section.key, i, md);
+    created++;
+  }
+  return { ok: true, created };
+}
+
 /** RB-3: regenerate exactly one section from fresh data — siblings are never touched. */
 export async function regenerateOneSection(runId: string, sectionId: string, sectionKey: string): Promise<string> {
+  if (isResonanceSectionKey(sectionKey)) {
+    const ctx = await buildResonanceReportContext(runId);
+    if (!ctx) throw new Error("Resonance run not found");
+    const md = generateResonanceSection(sectionKey, ctx);
+    await regenerateSection(sectionId, md);
+    return md;
+  }
   const ctx = await buildReportContext(runId);
   if (!ctx) throw new Error("Run not found");
   const md = generateSection(sectionKey as Parameters<typeof generateSection>[0], ctx);
   await regenerateSection(sectionId, md);
   return md;
+}
+
+function isResonanceSectionKey(key: string): key is ResonanceSectionKey {
+  return RESONANCE_REPORT_SECTIONS.some((section) => section.key === key);
 }
 
 export async function editSection(sectionId: string, editedMd: string) {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
-import { computeFindings, editSection, generateReport, regenerateOneSection } from "./service";
+import { computeFindings, editSection, generateReport, generateResonanceReport, regenerateOneSection } from "./service";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type RegenerateResult = { ok: true; generatedMd: string } | { ok: false; error: string };
@@ -13,11 +13,13 @@ export async function generateReportForRun(runId: string): Promise<ActionResult>
   try {
     const kind = await getRunMatrixKind(runId);
     if (kind?.kind === "resonance") {
-      return { ok: false, error: "Audit reports cannot be generated from Resonance simulation runs (C-12)" };
+      const result = await generateResonanceReport(runId);
+      if (!result.ok) return result;
+    } else {
+      await computeFindings(runId);
+      const result = await generateReport(runId);
+      if (!result.ok) return result;
     }
-    await computeFindings(runId);
-    const result = await generateReport(runId);
-    if (!result.ok) return result;
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Report generation failed" };
   }

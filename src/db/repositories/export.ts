@@ -51,6 +51,7 @@ export async function getExportMetrics(runId: string) {
       value: metrics.value,
       ciLow: metrics.ciLow,
       ciHigh: metrics.ciHigh,
+      metadataJson: metrics.metadataJson,
       computedAt: metrics.computedAt,
     })
     .from(metrics)

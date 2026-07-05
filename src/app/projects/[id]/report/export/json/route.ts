@@ -12,9 +12,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
   const kind = await getRunMatrixKind(runId);
-  if (kind?.kind !== "audit") {
-    return Response.json({ error: "Audit evidence exports do not support Resonance simulation runs" }, { status: 400 });
-  }
 
   const [respRows, extRows, metricRows, citationRows] = await Promise.all([
     getExportResponses(runId),
@@ -24,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   ]);
 
   const body = JSON.stringify(
-    { runId, responses: respRows, extractions: extRows, metrics: metricRows, citations: citationRows },
+    { runId, kind: kind?.kind ?? "audit", responses: respRows, extractions: extRows, metrics: metricRows, citations: citationRows },
     null,
     2,
   );

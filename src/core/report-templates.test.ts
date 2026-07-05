@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { generateSection, REPORT_SECTIONS, type ReportContext } from "./report-templates";
+import {
+  generateResonanceSection,
+  generateSection,
+  REPORT_SECTIONS,
+  RESONANCE_REPORT_SECTIONS,
+  type ReportContext,
+  type ResonanceReportContext,
+} from "./report-templates";
 
 const BASE_CTX: ReportContext = {
   clientBrandName: "LedgerFox",
@@ -33,6 +40,68 @@ const BASE_CTX: ReportContext = {
 // promissory phrasing specifically — a disclaimer like "not a guarantee of
 // future behavior" is exactly what RB-5 wants and must not trip this check.
 const FORBIDDEN_PHRASES = ["#1", "ranked first", "will rank", "will improve", "we promise", "is guaranteed", "we guarantee"];
+const RESONANCE_FORBIDDEN_PHRASES = ["will increase sales", "predicted revenue", "guaranteed uplift", "roi of"];
+
+const RESONANCE_CTX: ResonanceReportContext = {
+  studyName: "AI framing repair",
+  runMode: "mock",
+  runDate: "2026-07-05",
+  isMock: true,
+  genericUnconditioned: false,
+  repetitions: 5,
+  providers: ["mock"],
+  modes: ["ungrounded"],
+  anchorSetVersion: "purchase_intent.v1",
+  anchorSetCalibrated: false,
+  embeddingModel: "mock-fixture",
+  variants: [
+    {
+      stimulusId: "stim-1",
+      label: "Measured AI framing",
+      stimulusKind: "measured_ai",
+      n: 30,
+      piMean: 3.2,
+      pmf: [0.05, 0.1, 0.35, 0.35, 0.15],
+      sufficientN: true,
+    },
+    {
+      stimulusId: "stim-2",
+      label: "Corrected proof framing",
+      stimulusKind: "corrected",
+      n: 10,
+      piMean: 3.7,
+      pmf: [0.02, 0.08, 0.25, 0.4, 0.25],
+      sufficientN: false,
+    },
+  ],
+  deltas: [
+    {
+      label: "Corrected proof framing",
+      baselineLabel: "Measured AI framing",
+      n: 10,
+      deltaPiMean: 0.5,
+      directionalOnly: true,
+    },
+  ],
+  personaRows: [
+    {
+      panelPersonaLabel: "Primary buyer",
+      stimulusLabel: "Corrected proof framing",
+      n: 5,
+      piMean: 3.8,
+      directionalOnly: true,
+    },
+  ],
+  evidence: [
+    {
+      stimulusLabel: "Corrected proof framing",
+      responseId: "response-001",
+      panelPersonaLabel: "Primary buyer",
+      meanScore: 3.8,
+      rawText: 'I would consider it after seeing the proof. <script>alert("x")</script>',
+    },
+  ],
+};
 
 describe("report templates (RB-4)", () => {
   it("generates non-empty markdown for all nine sections", () => {
@@ -123,6 +192,33 @@ describe("report templates (RB-4)", () => {
   it("misinformation register reports 'no claims' cleanly when there are none", () => {
     const md = generateSection("misinformation_register", BASE_CTX);
     expect(md.toLowerCase()).toContain("no contradicted");
+  });
+});
+
+describe("resonance report templates (RR-3)", () => {
+  it("generates non-empty markdown for all resonance sections", () => {
+    for (const { key } of RESONANCE_REPORT_SECTIONS) {
+      expect(generateResonanceSection(key, RESONANCE_CTX).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("states simulated/directional caveats without business-outcome promises", () => {
+    const md = RESONANCE_REPORT_SECTIONS.map(({ key }) => generateResonanceSection(key, RESONANCE_CTX))
+      .join("\n\n")
+      .toLowerCase();
+    expect(md).toContain("simulated");
+    expect(md).toContain("directional");
+    expect(md).toContain("uncalibrated anchor sets");
+    expect(md).toContain("not predicted buying behavior");
+    for (const phrase of RESONANCE_FORBIDDEN_PHRASES) {
+      expect(md, `resonance report should not contain "${phrase}"`).not.toContain(phrase);
+    }
+  });
+
+  it("escapes model-origin resonance evidence", () => {
+    const md = generateResonanceSection("resonance_evidence", RESONANCE_CTX);
+    expect(md).toContain("&lt;script&gt;");
+    expect(md).not.toContain("<script>");
   });
 });
 

@@ -7,7 +7,28 @@ import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 // different shape — responses/extractions/metrics/citations don't share
 // columns, so one combined CSV isn't natural; see /export/json for a
 // single-file bundle instead).
-async function buildCsv(dataset: string, runId: string): Promise<string | null> {
+async function buildCsv(dataset: string, runId: string, kind: string): Promise<string | null> {
+  if (kind === "resonance") {
+    switch (dataset) {
+      case "resonance_responses":
+        return toCsv(await getExportResponses(runId), [
+          "id", "cellId", "providerId", "generationMode", "modelVersion",
+          "tokensIn", "tokensOut", "costUsd", "latencyMs", "rawText", "createdAt",
+        ]);
+      case "resonance_metrics": {
+        const rows = (await getExportMetrics(runId)).map((m) => ({
+          ...m,
+          metadataJson: JSON.stringify(m.metadataJson),
+        }));
+        return toCsv(rows, [
+          "scopeType", "scopeKey", "metricKey", "n", "value", "ciLow", "ciHigh", "metadataJson", "computedAt",
+        ]);
+      }
+      default:
+        return null;
+    }
+  }
+
   switch (dataset) {
     case "responses":
       return toCsv(await getExportResponses(runId), [
@@ -52,11 +73,8 @@ export async function GET(
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
   const kind = await getRunMatrixKind(runId);
-  if (kind?.kind !== "audit") {
-    return Response.json({ error: "Audit CSV exports do not support Resonance simulation runs" }, { status: 400 });
-  }
 
-  const csv = await buildCsv(dataset, runId);
+  const csv = await buildCsv(dataset, runId, kind?.kind ?? "audit");
   if (csv === null) return Response.json({ error: "unknown dataset" }, { status: 404 });
 
   return new Response(csv, {

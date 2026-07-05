@@ -9,17 +9,120 @@ import { getSsrAnchorSet } from "@/core/ssr-anchors";
 import { db } from "../client";
 import {
   auditRuns,
+  metrics,
   matrixVersions,
   promptCells,
   resonanceStimuli,
   resonanceStudies,
   responses,
 } from "../schema";
+import { getEligibleExtractionsForRun } from "./extraction";
 
 export interface ResonanceStudyPatch {
   name?: string;
   panelPersonas?: PanelPersona[];
   genericUnconditioned?: boolean;
+}
+
+export interface ResonanceEvidenceResponse {
+  responseId: string;
+  cellId: string;
+  rawText: string;
+  pmf: number[];
+  meanScore: number;
+  panelPersonaKey: string;
+  panelPersonaLabel: string;
+  stimulusId: string;
+  stimulusLabel: string;
+}
+
+export interface ResonanceVariantResult {
+  stimulusId: string;
+  stimulusKind: string;
+  label: string;
+  n: number;
+  piMean: number;
+  pmf: number[];
+  sufficientN: boolean;
+  responses: ResonanceEvidenceResponse[];
+}
+
+export interface ResonancePersonaResult {
+  key: string;
+  stimulusId: string;
+  panelPersonaKey: string;
+  panelPersonaLabel: string;
+  stimulusLabel: string;
+  n: number;
+  piMean: number;
+  pmf: number[];
+  directionalOnly: boolean;
+  responses: ResonanceEvidenceResponse[];
+}
+
+export interface ResonanceDeltaResult {
+  stimulusId: string;
+  label: string;
+  baselineStimulusId: string;
+  baselineLabel: string;
+  n: number;
+  deltaPiMean: number;
+  directionalOnly: boolean;
+}
+
+export interface ResonanceStudyResults {
+  study: {
+    id: string;
+    name: string;
+    genericUnconditioned: boolean;
+    anchorSetVersion: string;
+    anchorSetCalibrated: boolean;
+  };
+  run: {
+    id: string;
+    runMode: string;
+    completedAt: Date | null;
+    repetitions: number;
+  };
+  variants: ResonanceVariantResult[];
+  personaRows: ResonancePersonaResult[];
+  deltas: ResonanceDeltaResult[];
+}
+
+type PmfMetricMetadata = {
+  pmf?: unknown;
+  stimulusKind?: unknown;
+  label?: unknown;
+  sufficientN?: unknown;
+  directionalOnly?: unknown;
+};
+
+type DeltaMetricMetadata = {
+  baselineStimulusId?: unknown;
+};
+
+type SsrPayload = {
+  kind?: unknown;
+  pmf?: unknown;
+  meanScore?: unknown;
+};
+
+function readPmf(value: unknown): number[] {
+  if (!Array.isArray(value) || value.length !== 5) return [0, 0, 0, 0, 0];
+  return value.map((item) => (typeof item === "number" && Number.isFinite(item) ? item : 0));
+}
+
+function readSsrPayload(payload: unknown): { pmf: number[]; meanScore: number } | null {
+  const parsed = payload as SsrPayload | null;
+  if (!parsed || parsed.kind !== "ssr") return null;
+  const pmf = readPmf(parsed.pmf);
+  if (pmf.every((value) => value === 0)) return null;
+  if (typeof parsed.meanScore !== "number" || !Number.isFinite(parsed.meanScore)) return null;
+  return { pmf, meanScore: parsed.meanScore };
+}
+
+function personaLabel(personas: PanelPersona[], key: string) {
+  return personas.find((persona) => persona.key === key)?.label ?? key;
 }
 
 export async function listResonanceStudies(projectId: string) {
@@ -53,6 +156,192 @@ export async function listResonanceStudies(projectId: string) {
     stimuli: stimuli.filter((s) => s.studyId === study.id),
     matrixVersion: versions.find((v) => v.studyId === study.id && v.state === "approved") ?? null,
   }));
+}
+
+export async function getResonanceStudyResults(
+  projectId: string,
+  studyId: string,
+  runId?: string,
+): Promise<ResonanceStudyResults | null> {
+  const [study] = await db
+    .select()
+    .from(resonanceStudies)
+    .where(and(eq(resonanceStudies.id, studyId), eq(resonanceStudies.projectId, projectId)));
+  if (!study) return null;
+
+  const [version] = await db
+    .select({ id: matrixVersions.id })
+    .from(matrixVersions)
+    .where(
+      and(
+        eq(matrixVersions.projectId, projectId),
+        eq(matrixVersions.kind, "resonance"),
+        eq(matrixVersions.resonanceStudyId, studyId),
+        eq(matrixVersions.state, "approved"),
+      ),
+    )
+    .orderBy(desc(matrixVersions.version))
+    .limit(1);
+  if (!version) return null;
+
+  const runQuery = db
+    .select({
+      id: auditRuns.id,
+      runMode: auditRuns.runMode,
+      completedAt: auditRuns.completedAt,
+      repetitions: auditRuns.repetitions,
+    })
+    .from(auditRuns)
+    .where(
+      runId
+        ? and(
+            eq(auditRuns.id, runId),
+            eq(auditRuns.projectId, projectId),
+            eq(auditRuns.matrixVersionId, version.id),
+            eq(auditRuns.state, "completed"),
+          )
+        : and(eq(auditRuns.matrixVersionId, version.id), eq(auditRuns.state, "completed")),
+    )
+    .orderBy(desc(auditRuns.completedAt), desc(auditRuns.createdAt))
+    .limit(1);
+  const [run] = await runQuery;
+  if (!run) return null;
+
+  const [metricRows, eligible, cellRows] = await Promise.all([
+    db
+      .select()
+      .from(metrics)
+      .where(eq(metrics.runId, run.id))
+      .orderBy(metrics.scopeType, metrics.scopeKey),
+    getEligibleExtractionsForRun(run.id),
+    db
+      .select({
+        id: promptCells.id,
+        stimulusId: promptCells.stimulusId,
+        panelPersonaKey: promptCells.panelPersonaKey,
+        stimulusLabel: resonanceStimuli.label,
+      })
+      .from(promptCells)
+      .innerJoin(resonanceStimuli, eq(resonanceStimuli.id, promptCells.stimulusId))
+      .where(eq(promptCells.matrixVersionId, version.id)),
+  ]);
+
+  const responseIds = eligible.map((row) => row.responseId);
+  const responseRows =
+    responseIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: responses.id,
+            cellId: responses.cellId,
+            rawText: responses.rawText,
+          })
+          .from(responses)
+          .where(inArray(responses.id, responseIds));
+
+  const personas = study.panelPersonasJson as PanelPersona[];
+  const anchorSet = getSsrAnchorSet(study.anchorSetVersion);
+  const cellById = new Map(cellRows.map((cell) => [cell.id, cell]));
+  const responseById = new Map(responseRows.map((response) => [response.id, response]));
+  const evidenceByStimulus = new Map<string, ResonanceEvidenceResponse[]>();
+  const evidenceByStimulusPersona = new Map<string, ResonanceEvidenceResponse[]>();
+
+  for (const sample of [...eligible].sort((a, b) => a.responseId.localeCompare(b.responseId))) {
+    const cell = cellById.get(sample.cellId);
+    const response = responseById.get(sample.responseId);
+    const ssr = readSsrPayload(sample.extractedJson);
+    if (!cell?.stimulusId || !cell.panelPersonaKey || !response || !ssr) continue;
+    const row: ResonanceEvidenceResponse = {
+      responseId: sample.responseId,
+      cellId: sample.cellId,
+      rawText: response.rawText,
+      pmf: ssr.pmf,
+      meanScore: ssr.meanScore,
+      panelPersonaKey: cell.panelPersonaKey,
+      panelPersonaLabel: personaLabel(personas, cell.panelPersonaKey),
+      stimulusId: cell.stimulusId,
+      stimulusLabel: cell.stimulusLabel,
+    };
+    if (!evidenceByStimulus.has(cell.stimulusId)) evidenceByStimulus.set(cell.stimulusId, []);
+    evidenceByStimulus.get(cell.stimulusId)?.push(row);
+    const personaKey = `${cell.stimulusId}|${cell.panelPersonaKey}`;
+    if (!evidenceByStimulusPersona.has(personaKey)) evidenceByStimulusPersona.set(personaKey, []);
+    evidenceByStimulusPersona.get(personaKey)?.push(row);
+  }
+
+  const variantById = new Map<string, ResonanceVariantResult>();
+  const variants = metricRows
+    .filter((row) => row.scopeType === "resonance_variant" && row.metricKey === "pi_mean")
+    .map((row) => {
+      const metadata = row.metadataJson as PmfMetricMetadata;
+      const result: ResonanceVariantResult = {
+        stimulusId: row.scopeKey,
+        stimulusKind: typeof metadata.stimulusKind === "string" ? metadata.stimulusKind : "custom",
+        label: typeof metadata.label === "string" ? metadata.label : row.scopeKey,
+        n: row.n,
+        piMean: row.value,
+        pmf: readPmf(metadata.pmf),
+        sufficientN: metadata.sufficientN === true,
+        responses: evidenceByStimulus.get(row.scopeKey) ?? [],
+      };
+      variantById.set(result.stimulusId, result);
+      return result;
+    })
+    .sort((a, b) => b.piMean - a.piMean || a.label.localeCompare(b.label));
+
+  const personaRows = metricRows
+    .filter((row) => row.scopeType === "resonance_variant_persona" && row.metricKey === "pi_mean")
+    .map((row) => {
+      const [stimulusId, panelPersonaKey = "unknown"] = row.scopeKey.split("|");
+      const metadata = row.metadataJson as PmfMetricMetadata;
+      const label = typeof metadata.label === "string" ? metadata.label : variantById.get(stimulusId)?.label ?? stimulusId;
+      return {
+        key: row.scopeKey,
+        stimulusId,
+        panelPersonaKey,
+        panelPersonaLabel: personaLabel(personas, panelPersonaKey),
+        stimulusLabel: label,
+        n: row.n,
+        piMean: row.value,
+        pmf: readPmf(metadata.pmf),
+        directionalOnly: metadata.directionalOnly === true,
+        responses: evidenceByStimulusPersona.get(row.scopeKey) ?? [],
+      };
+    })
+    .sort((a, b) => a.panelPersonaLabel.localeCompare(b.panelPersonaLabel) || b.piMean - a.piMean);
+
+  const deltas = metricRows
+    .filter((row) => row.scopeType === "resonance_delta" && row.metricKey === "delta_pi_mean")
+    .map((row) => {
+      const metadata = row.metadataJson as DeltaMetricMetadata;
+      const baselineStimulusId = typeof metadata.baselineStimulusId === "string" ? metadata.baselineStimulusId : "";
+      const variant = variantById.get(row.scopeKey);
+      const baseline = variantById.get(baselineStimulusId);
+      return {
+        stimulusId: row.scopeKey,
+        label: variant?.label ?? row.scopeKey,
+        baselineStimulusId,
+        baselineLabel: baseline?.label ?? baselineStimulusId,
+        n: row.n,
+        deltaPiMean: row.value,
+        directionalOnly: !(variant?.sufficientN && baseline?.sufficientN),
+      };
+    })
+    .sort((a, b) => b.deltaPiMean - a.deltaPiMean || a.label.localeCompare(b.label));
+
+  return {
+    study: {
+      id: study.id,
+      name: study.name,
+      genericUnconditioned: study.genericUnconditioned,
+      anchorSetVersion: study.anchorSetVersion,
+      anchorSetCalibrated: anchorSet.calibrated,
+    },
+    run,
+    variants,
+    personaRows,
+    deltas,
+  };
 }
 
 export async function createResonanceStudy(projectId: string, name: string) {
