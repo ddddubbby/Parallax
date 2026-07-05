@@ -5,6 +5,8 @@ import {
   type StimulusKind,
   validateResonanceCellCount,
 } from "@/core/resonance";
+import type { ResonanceStudyTemplate } from "@/core/resonance-templates";
+import { unresolvedStimulusPlaceholders } from "@/core/resonance-templates";
 import { getSsrAnchorSet } from "@/core/ssr-anchors";
 import { db } from "../client";
 import {
@@ -365,6 +367,40 @@ export async function createResonanceStudy(projectId: string, name: string) {
   return study;
 }
 
+export async function createResonanceStudyFromTemplate(projectId: string, template: ResonanceStudyTemplate) {
+  return db.transaction(async (tx) => {
+    const [study] = await tx
+      .insert(resonanceStudies)
+      .values({
+        projectId,
+        name: template.name,
+        panelPersonasJson: [
+          {
+            key: "p1",
+            label: "Primary buyer",
+            ageBand: "35-44",
+            incomeBand: "$100k-$150k",
+            locationContext: "United States",
+            behavioralProfile: "researches carefully before choosing a vendor",
+          },
+        ],
+      })
+      .returning({ id: resonanceStudies.id });
+
+    for (const [idx, stimulus] of template.stimuli.entries()) {
+      await tx.insert(resonanceStimuli).values({
+        studyId: study.id,
+        kind: stimulus.kind,
+        label: stimulus.label,
+        body: stimulus.body,
+        evidenceResponseIdsJson: [],
+        position: idx + 1,
+      });
+    }
+    return study;
+  });
+}
+
 export async function updateResonanceStudy(projectId: string, studyId: string, patch: ResonanceStudyPatch) {
   const values: Partial<typeof resonanceStudies.$inferInsert> = { updatedAt: new Date() };
   if (patch.name !== undefined) values.name = patch.name;
@@ -500,6 +536,12 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
     .where(eq(resonanceStimuli.studyId, studyId))
     .orderBy(asc(resonanceStimuli.position));
   if (stimuli.length < 2) throw new Error("Add at least two stimulus variants before approval");
+  const unresolved = stimuli.flatMap((stimulus) =>
+    unresolvedStimulusPlaceholders({ label: stimulus.label, body: stimulus.body }),
+  );
+  if (unresolved.length > 0) {
+    throw new Error(`Resolve template placeholders before approval: ${[...new Set(unresolved)].join(", ")}`);
+  }
   validateResonanceCellCount(personas.length, stimuli.length);
 
   const measured = stimuli.filter((s) => s.kind === "measured_ai");

@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { parsePanelPersonaLines, STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
+import { getResonanceStudyTemplate } from "@/core/resonance-templates";
 import {
   addResonanceStimulus,
   approveAndCompileResonanceStudy,
   createResonanceStudy,
+  createResonanceStudyFromTemplate,
   deleteResonanceStimulus,
   updateResonanceStimulus,
   updateResonanceStudy,
@@ -33,6 +35,15 @@ export async function createStudyAction(projectId: string, formData: FormData): 
   const name = textField(formData, "name");
   if (!name) return { ok: false, error: "Study name is required" };
   const study = await createResonanceStudy(projectId, name);
+  revalidatePath(`/projects/${projectId}/resonance`);
+  return { ok: true, id: study.id };
+}
+
+export async function createStudyFromTemplateAction(projectId: string, formData: FormData): Promise<ActionResult> {
+  const templateId = textField(formData, "templateId");
+  const template = getResonanceStudyTemplate(templateId);
+  if (!template) return { ok: false, error: "Unknown Resonance study template" };
+  const study = await createResonanceStudyFromTemplate(projectId, template);
   revalidatePath(`/projects/${projectId}/resonance`);
   return { ok: true, id: study.id };
 }
@@ -125,6 +136,10 @@ function unwrap(result: ActionResult) {
 
 export async function createStudyFormAction(projectId: string, formData: FormData) {
   unwrap(await createStudyAction(projectId, formData));
+}
+
+export async function createStudyFromTemplateFormAction(projectId: string, formData: FormData) {
+  unwrap(await createStudyFromTemplateAction(projectId, formData));
 }
 
 export async function updateStudyFormAction(projectId: string, studyId: string, formData: FormData) {

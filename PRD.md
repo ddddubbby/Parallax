@@ -409,7 +409,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M17 | Resonance studies + mock panel run | Migration 0008 clean on fresh+existing DB; study -> approve -> mock run completes storing raw responses, zero extractions; PM-9 bypass proven with branded stimulus; audit mock e2e still green | Done |
 | M18 | SSR scoring + resonance metrics | Golden SSR math tests; mock run fixture-scored end-to-end, recompute idempotent; embedding spend in projection+budgets; C-12 wall tests green | Done |
 | M19 | Lower-funnel surfaces + report + demo | Results view with <=2-click drill-through; resonance report sections + guarded exports; archive works; `pnpm demo:resonance` walkable at $0 | Done |
-| M20 | Value-add packs + hardening + internal demo | Four template packs seeded; C-12/13/14 adversarial sweep logged; fresh-clone demo executed unassisted | Planned (spec: PRD 8.22, plan: RESONANCE_BUILD_PLAN M20) |
+| M20 | Value-add packs + hardening + internal demo | Four template packs seeded; C-12/13/14 adversarial sweep logged; fresh-clone demo executed unassisted | In progress (spec: PRD 8.22, plan: RESONANCE_BUILD_PLAN M20) |
 
 Progress notes:
 
@@ -427,6 +427,7 @@ Progress notes:
 - 2026-07-05 M19 report/export slice: resonance runs now dispatch to `resonance_method`, `resonance_results`, and `resonance_evidence` sections; markdown, print HTML, JSON, and resonance CSV exports are kind-aware and preserve PMF/SSR evidence.
 - 2026-07-05 M19 verification: `pnpm demo:resonance` completed at $0 (90 responses, 23 metrics, 3 report sections); `CI=true pnpm test`, lint, typecheck, and build green; HTTP preview on port 3010 confirmed results/report/export markers. `archive:evidence` archives resonance runs without local `pg_dump` by writing a marked SQL data snapshot fallback; strict native dumps remain available with `ARCHIVE_REQUIRE_PG_DUMP=true`. Verified fallback archive exit 0 at `/tmp/resonance-archive-fixed`.
 - 2026-07-05 M19 visual QA accepted in the in-app browser on the local preview; milestone closed as Done.
+- 2026-07-05 M20 start: static value-add study template packs are being implemented without a migration; placeholder resolution and C-14 copy tests guard approval and pack language.
 
 - 2026-07-02 done: canonical docs moved into repo, ambiguity reduced, structured repo folders initialized, and M0.5 execution-readiness specs added.
 - 2026-07-02 remaining: initialize package dependencies, health route, CI workflow, Render skeleton, and first migration.

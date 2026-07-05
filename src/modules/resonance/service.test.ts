@@ -71,6 +71,51 @@ async function demoProjectId() {
 }
 
 describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
+  it("rejects unresolved template placeholders before compiling a study (VA-2)", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 Placeholder Rejection");
+    createdStudyIds.push(study.id);
+    await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
+    await addResonanceStimulus({
+      studyId: study.id,
+      kind: "custom",
+      label: "Variant A",
+      body: "First unresolved scaffold: {variant_a}",
+      evidenceResponseIds: [],
+    });
+    await addResonanceStimulus({
+      studyId: study.id,
+      kind: "custom",
+      label: "Variant B",
+      body: "Second resolved scaffold.",
+      evidenceResponseIds: [],
+    });
+
+    await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/Resolve template placeholders/);
+  });
+
+  it("rejects measured_ai evidence ids that are missing or outside the project (C-13)", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 C13 Missing Evidence");
+    createdStudyIds.push(study.id);
+    await addResonanceStimulus({
+      studyId: study.id,
+      kind: "measured_ai",
+      label: "Measured AI framing",
+      body: "LedgerFox is described as easy to implement.",
+      evidenceResponseIds: ["00000000-0000-4000-8000-000000000000"],
+    });
+    await addResonanceStimulus({
+      studyId: study.id,
+      kind: "corrected",
+      label: "Corrected framing",
+      body: "LedgerFox is described with clearer proof.",
+      evidenceResponseIds: [],
+    });
+
+    await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/stored audit responses/);
+  });
+
   it("blocks unconditioned measured_ai by default, then compiles GENERIC studies into simulation cells", async () => {
     const projectId = await demoProjectId();
     const study = await createResonanceStudy(projectId, "M17 Compiler E2E");

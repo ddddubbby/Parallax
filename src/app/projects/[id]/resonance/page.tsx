@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, Input, Select, Stamp, Textarea } from "@/components/ui";
 import { formatPanelPersonaLines, STIMULUS_KINDS, type PanelPersona } from "@/core/resonance";
+import { RESONANCE_STUDY_TEMPLATES, unresolvedStimulusPlaceholders } from "@/core/resonance-templates";
 import {
   getResonanceStudyResults,
   listAuditEvidenceResponses,
@@ -12,6 +13,7 @@ import {
 import { getProjectSummary } from "@/db/repositories/runner";
 import {
   addStimulusFormAction,
+  createStudyFromTemplateFormAction,
   approveStudyFormAction,
   createStudyFormAction,
   deleteStimulusAction,
@@ -319,6 +321,43 @@ export default async function ResonancePage({
         </div>
       </form>
 
+      <section className="mb-6 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="label-mono text-sm font-semibold">Start from template</h2>
+          <SimulatedBadge />
+          <Stamp tone="ink">VALUE ADD</Stamp>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {RESONANCE_STUDY_TEMPLATES.map((template) => (
+            <form
+              key={template.id}
+              action={createStudyFromTemplateFormAction.bind(null, id)}
+              className="rounded-lg border border-ink/10 bg-paper p-3"
+            >
+              <input type="hidden" name="templateId" value={template.id} />
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <h3 className="label-mono text-xs font-semibold text-ink/75">{template.name}</h3>
+                {template.default && <Stamp tone="accent">DEFAULT</Stamp>}
+              </div>
+              <p className="text-sm leading-6 text-ink/70">{template.summary}</p>
+              <p className="mt-2 font-mono text-xs leading-5 text-ink/45">{template.guidance}</p>
+              <div className="mt-3 flex flex-wrap gap-1">
+                {template.stimuli.map((stimulus) => (
+                  <Stamp key={`${template.id}-${stimulus.label}`} tone="ink">
+                    {stimulus.kind}
+                  </Stamp>
+                ))}
+              </div>
+              <div className="mt-3">
+                <Button type="submit" variant={template.default ? "primary" : "secondary"}>
+                  Create draft
+                </Button>
+              </div>
+            </form>
+          ))}
+        </div>
+      </section>
+
       {studies.length === 0 ? (
         <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-8 text-center">
           <p className="label-mono text-sm text-ink/60">No Resonance studies yet</p>
@@ -395,6 +434,7 @@ export default async function ResonancePage({
                 <div className="mb-4 grid gap-3">
                   {stimuli.map((stimulus) => {
                     const selected = new Set((stimulus.evidenceResponseIdsJson as string[]) ?? []);
+                    const unresolved = unresolvedStimulusPlaceholders({ label: stimulus.label, body: stimulus.body });
                     return (
                       <form
                         key={stimulus.id}
@@ -418,6 +458,11 @@ export default async function ResonancePage({
                         <Field label="Stimulus text">
                           <Textarea name="body" defaultValue={stimulus.body} disabled={!isDraft} rows={4} />
                         </Field>
+                        {unresolved.length > 0 && (
+                          <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
+                            Resolve before approval: {unresolved.join(", ")}
+                          </p>
+                        )}
                         {evidence.length > 0 && (
                           <div className="mt-3">
                             <span className="label-mono text-xs text-ink/60">Evidence responses</span>

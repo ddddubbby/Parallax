@@ -115,11 +115,15 @@ async function recordFabricatedSpend(runId: string, costUsd: number) {
 describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
   beforeEach(() => {
     delete process.env.DEEPSEEK_DAILY_BUDGET_USD;
+    delete process.env.OPENAI_DAILY_BUDGET_USD;
     delete process.env.PROVIDER_DAILY_BUDGET_USD;
+    delete process.env.EMBEDDING_PROVIDER;
   });
   afterEach(() => {
     delete process.env.DEEPSEEK_DAILY_BUDGET_USD;
+    delete process.env.OPENAI_DAILY_BUDGET_USD;
     delete process.env.PROVIDER_DAILY_BUDGET_USD;
+    delete process.env.EMBEDDING_PROVIDER;
   });
 
   it("readDailyBudgetUsd prefers the per-provider override over the global default, falls back to Infinity when neither is set", async () => {
@@ -139,6 +143,16 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
     expect(readDailyBudgetUsd("deepseek")).toBe(0);
     process.env.DEEPSEEK_DAILY_BUDGET_USD = "Infinity"; // explicit Infinity is not a budget either
     expect(readDailyBudgetUsd("deepseek")).toBe(0);
+  });
+
+  it("embedding provider daily budget env follows the same fail-closed parser (M20 budget chaos)", async () => {
+    const { embeddingProviderId, readDailyBudgetUsd } = await import("./budget");
+    process.env.EMBEDDING_PROVIDER = "openai";
+    process.env.OPENAI_DAILY_BUDGET_USD = "0.000001";
+    expect(embeddingProviderId()).toBe("openai");
+    expect(readDailyBudgetUsd(embeddingProviderId())).toBe(0.000001);
+    process.env.OPENAI_DAILY_BUDGET_USD = "one dollar";
+    expect(readDailyBudgetUsd(embeddingProviderId())).toBe(0);
   });
 
   it("getProviderSpendToday sums today's response cost for the provider and excludes other providers", async () => {
