@@ -27,7 +27,7 @@ The lower funnel is a simulation layer with a different epistemic status from th
 
 ## 3. Target user
 
-The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month and need evidence that survives client scrutiny.
+The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month (and, from M16, lower-funnel simulation studies off the back of those audits) and need evidence that survives client scrutiny.
 
 The end client is not an app user.
 
@@ -38,8 +38,11 @@ The end client is not an app user.
 3. Misinformation register: factual-risk deliverable for regulated or trust-sensitive clients.
 4. Competitive displacement diagnosis: lost-shortlist cells plus sources driving competitor wins.
 5. Evidence pack: raw answers, extractions, and metrics backing strategy work.
+6. Lower-funnel simulation (M16+): after an audit surfaces how AI frames the brand, a resonance study simulates how buyer segments respond to that framing and to candidate fixes — the "so what, and which fix" chapter that closes the loop from measurement to action. Comparative and evidence-conditioned only (C-12/C-13/C-14).
 
 ## 5. MVP scope
+
+This section and §6 define the original measurement-engine MVP (M0-M10). The funnel presentation layer and the lower-funnel simulation product are specified in sections 8.19-8.22 and tracked as M16-M20; nothing below is retracted by them.
 
 - Seven-step intake wizard with autosave and review.
 - Budget-aware prompt matrix, operator-edited, versioned, and capped per C-1.

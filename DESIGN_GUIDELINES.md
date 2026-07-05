@@ -1,20 +1,20 @@
-# DESIGN_GUIDELINES.md - Parallax Visual Language
+# DESIGN_GUIDELINES.md - Resonance Visual Language
 
-> How the product looks, moves, and speaks. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.
+> How the product looks, moves, and speaks. Applies to every surface — the Parallax measurement engine and the Resonance lower-funnel simulation layer alike. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.
 
 ---
 
 ## 1. Aesthetic thesis
 
-Parallax looks like a **machine-age evidence dossier**: the terminal, industrial-editorial language of Bitkey and "Machine Age Modernism" applied to an audit instrument. Every screen should feel like a numbered field document produced by a precise machine — monospace metadata, ink-on-paper contrast, one signal-orange accent, geometric solidity, and silk-smooth restrained motion.
+Resonance looks like a **machine-age evidence dossier**: the terminal, industrial-editorial language of Bitkey and "Machine Age Modernism" applied to a measurement instrument. Every screen should feel like a numbered field document produced by a precise machine — monospace metadata, ink-on-paper contrast, one signal-orange accent, geometric solidity, and silk-smooth restrained motion.
 
-This is deliberate product fit, not decoration: Parallax sells statistical honesty and preserved evidence. A dossier aesthetic — dates, run numbers, stamps, uppercase labels — makes the evidence-chain identity visible in the UI itself.
+This is deliberate product fit, not decoration: the product sells statistical honesty and preserved evidence. A dossier aesthetic — dates, run numbers, stamps, uppercase labels — makes the evidence-chain identity visible in the UI itself. The dossier discipline is exactly why the simulation layer fits without softening the differentiator: a `SIMULATED` stamp is a native dossier element, and marking simulated evidence as plainly as measured evidence (C-12) is the aesthetic doing its job, not a compromise of it.
 
 The operator's taste anchors: cyberpunk-adjacent but refined (terminal type and dark chrome, never neon clutter), Bitcoin-native (signal orange, hard-money sobriety), and visually smooth (eased motion, matte depth, no gloss).
 
 ## 2. Design tenets
 
-1. **Ink and paper, one signal.** Two surfaces (near-black ink, warm paper) and exactly one accent orange. If a screen needs a second accent, the layout is wrong. Amendment (D-055): four muted structural tints (`--color-pillar-*`) exist for Four-P pillar identity only — section spines, numbered headers, chips. They are ruled ink, not accents: never on actions, verdicts, severity, or emphasis (V-2 unchanged).
+1. **Ink and paper, one signal.** Two surfaces (near-black ink, warm paper) and exactly one accent orange. If a screen needs a second accent, the layout is wrong. Amendment (D-055): four muted structural tints (`--color-pillar-*`) exist for Four-P pillar identity only — section spines, numbered headers, chips. They are ruled ink, not accents: never on actions, verdicts, severity, or emphasis (V-2 unchanged). Amendment (D-063): funnel-stage chips (`UPPER FUNNEL`/`MID FUNNEL`/`TRUST RAIL`/`LOWER FUNNEL · SIM`) and the `SIMULATED` badge are structural stamps in the existing badge family (2px mono uppercase, ink-outlined) — they introduce no new accent or color. The lower funnel does NOT get its own color identity; it is distinguished by the `SIMULATED` stamp and dossier framing, not by hue.
 2. **Monospace is the voice of the machine.** Data, labels, metadata, and headings speak in mono. Long-form prose speaks in a quiet sans. Serif display appears only at editorial moments.
 3. **Dossier framing.** Screens and cards carry document metadata: run numbers, dates, sample counts, mode stamps. `RUN 014 / MOCK / K=5 / 2026.07.02` is a design element, not debug output.
 4. **Geometry over illustration.** Faceted solids, dot-matrix glyphs, blueprint grids. No mascots, no stock art, no gradients-as-decoration.
@@ -73,7 +73,7 @@ Rules:
 
 ## 6. Surfaces: the dual-theme strategy
 
-Parallax is not globally dark or light. It has two named surfaces used by role:
+The product is not globally dark or light. It has two named surfaces used by role:
 
 - **Ink (dark):** app chrome — top nav, auth screen, Debug console, run-progress live view, empty states. The cyberpunk register lives here.
 - **Paper (light):** the workbench — wizard, matrix editor, dashboard, claim review, report builder. Dense reading and QA happen on paper because that's where legibility wins.
@@ -98,7 +98,7 @@ Silk-smooth means fast, eased, and rare:
 
 - **Nav:** ink pill chips with the paired-tab notch look; active state is a paper chip. Cart-corner slot holds the run-cost live meter.
 - **Buttons:** primary = accent pill, mono uppercase label; secondary = outlined pill on current surface; destructive = `--danger` outline that fills on hover, always with a confirm step. Arrow-in-pill prefix for "learn more"-style secondary actions.
-- **Badges/stamps** (`MOCK`, `VALIDATION-ONLY`, `UNGROUNDED`, `PARTIAL`, `DIRECTIONAL`, `DEAD-LETTER`): 2px-radius mono uppercase stamps. `MOCK` is always accent-filled; state stamps are ink-outlined; severity stamps use semantic colors. Reserved styles — see V-1.
+- **Badges/stamps** (`MOCK`, `VALIDATION-ONLY`, `UNGROUNDED`, `PARTIAL`, `DIRECTIONAL`, `DEAD-LETTER`, `SIMULATED`, `GENERIC`): 2px-radius mono uppercase stamps. `MOCK` is always accent-filled; state stamps are ink-outlined; severity stamps use semantic colors. `SIMULATED` is ink-outlined like the other state stamps (never accent-filled — it marks epistemic status, not emphasis); `GENERIC` marks an unconditioned resonance study (C-13). Reserved styles — see V-1.
 - **Cards:** metadata header row (mono, muted, uppercase) above content, like a labeled specimen. Cards on paper get `--line` hairlines; on ink they step to `--ink-2`.
 - **Tables:** the workhorse. Mono tabular numerals, `--paper-2` row stripes, sticky headers, row hover = accent hairline on the left edge. Drill-down affordance is an arrow-pill on the row end (supports the ≤2-click evidence rule DB-2).
 - **Wizard:** progress rail as numbered mono stops (`01 BRAND`, `02 COMPETITORS`…), completed stops get a dot-matrix check. Autosave indicator is a quiet mono timestamp (`SAVED 14:02:11`), never a toast.
@@ -125,7 +125,7 @@ Silk-smooth means fast, eased, and rare:
 
 | ID | Rule |
 |---|---|
-| V-1 | Badge styles for `MOCK`, `VALIDATION-ONLY`, `UNGROUNDED`, `PARTIAL`, `DIRECTIONAL` are reserved: minimum 12px mono uppercase, AA contrast, never hidden, shrunk, or restyled per-view. They exist to enforce C-9, D-008, and D-015 visually. |
+| V-1 | Badge styles for `MOCK`, `VALIDATION-ONLY`, `UNGROUNDED`, `PARTIAL`, `DIRECTIONAL`, `SIMULATED`, `GENERIC` are reserved: minimum 12px mono uppercase, AA contrast, never hidden, shrunk, or restyled per-view. They exist to enforce C-9, D-008, D-015, and C-12/C-13 visually. `SIMULATED` in particular appears on every lower-funnel surface and export and is never suppressed to make a simulation read as measurement. |
 | V-2 | Accent orange never encodes verdicts, severity, or destruction. Semantic colors never appear in non-semantic decoration. |
 | V-3 | Metric text, CI ranges, and table numerals meet 4.5:1 contrast on their surface. Muted text is for labels, never for values. |
 | V-4 | Client-facing report preview and all exports are paper-surface, texture-free, and conservatively styled. The cyberpunk register is operator-only. |

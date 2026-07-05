@@ -1,6 +1,6 @@
-# MASTER_CONTEXT.md - Parallax
+# MASTER_CONTEXT.md - Resonance (Parallax engine)
 
-> The single canonical context file for this repository. Every AI coding session and every human contributor starts here. It contains project identity, non-negotiable constraints, durable decisions, and session rituals. Product scope lives in `PRD.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
+> The single canonical context file for this repository. Every AI coding session and every human contributor starts here. It contains project identity, non-negotiable constraints, durable decisions, and session rituals. Resonance is the product; Parallax is the measurement engine and the repo/package/code name (D-063). Product scope lives in `PRD.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
 
 ---
 
