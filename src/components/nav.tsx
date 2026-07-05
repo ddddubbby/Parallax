@@ -20,9 +20,12 @@ export function Nav() {
     <header className="flex items-center justify-between bg-ink px-6 py-3">
       <Link
         href="/projects"
-        className="label-mono text-sm font-semibold text-paper"
+        className="flex flex-col text-paper"
       >
-        Parallax
+        <span className="label-mono text-sm font-semibold">Resonance</span>
+        <span className="hidden font-mono text-[10px] text-paper/45 sm:block">
+          Parallax measurement engine
+        </span>
       </Link>
       <nav className="flex items-center gap-2">
         {SECTIONS.map(({ href, label }) => {

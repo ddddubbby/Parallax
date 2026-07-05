@@ -30,8 +30,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink px-6">
       <form onSubmit={onSubmit} className="w-full max-w-sm rounded-xl border border-paper/20 p-8">
-        <h1 className="label-mono mb-1 text-lg font-semibold text-paper">Parallax</h1>
-        <p className="mb-6 font-mono text-xs text-paper/50">Operator access only</p>
+        <h1 className="label-mono mb-1 text-lg font-semibold text-paper">Resonance</h1>
+        <p className="mb-6 font-mono text-xs text-paper/50">
+          Parallax measurement engine · Operator access only
+        </p>
         <label className="label-mono mb-1.5 block text-xs text-paper/70" htmlFor="password">
           Password
         </label>

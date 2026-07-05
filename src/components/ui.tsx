@@ -5,6 +5,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
+import React from "react";
 
 // Token-backed primitives per DESIGN_GUIDELINES sections 5 and 8. shadcn/ui
 // components are adopted when a complex widget (dialog, combobox) arrives.

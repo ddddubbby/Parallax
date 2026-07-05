@@ -405,7 +405,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M13 | Pillar visual system + navigation | Numbered pillar sections with spines/tints on dashboard and matrix; per-project subnav on every project page; V-2 intact (orange stays the only accent) | Done |
 | M14 | Competitive spectrum | Per-brand metric scope under D-054 frames; head-to-head and open-field bar charts replace "rest of the field"; per-competitor report table + CSV; SQL spot-check green | Done |
 | M15 | Explanatory layer | Pillar business-value explainers in matrix; live per-pillar sample-budget panel vs the n>=30 gate; guided next actions; $0 demo walkthrough | Done |
-| M16 | Funnel presentation layer + Resonance identity | Funnel chips on dashboard/matrix; app presents as Resonance; SimulatedBadge exists; recompute byte-identical pre/post (presentation-only proven) | Planned (spec: PRD 8.19, plan: RESONANCE_BUILD_PLAN M16) |
+| M16 | Funnel presentation layer + Resonance identity | Funnel chips on dashboard/matrix; app presents as Resonance; SimulatedBadge exists; recompute byte-identical pre/post (presentation-only proven) | Done |
 | M17 | Resonance studies + mock panel run | Migration 0008 clean on fresh+existing DB; study -> approve -> mock run completes storing raw responses, zero extractions; PM-9 bypass proven with branded stimulus; audit mock e2e still green | Planned (spec: PRD 8.20, plan: RESONANCE_BUILD_PLAN M17) |
 | M18 | SSR scoring + resonance metrics | Golden SSR math tests; mock run fixture-scored end-to-end, recompute idempotent; embedding spend in projection+budgets; C-12 wall tests green | Planned (spec: PRD 8.20, plan: RESONANCE_BUILD_PLAN M18) |
 | M19 | Lower-funnel surfaces + report + demo | Results view with <=2-click drill-through; resonance report sections + guarded exports; archive works; `pnpm demo:resonance` walkable at $0 | Planned (spec: PRD 8.21, plan: RESONANCE_BUILD_PLAN M19) |
@@ -414,6 +414,9 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 Progress notes:
 
 - 2026-07-05 Resonance roadmap: product restructured as Resonance (funnel presentation layer over the Parallax engine) with the lower-funnel synthetic panel and value-add template packs specified as M16-M20 (PRD 8.19-8.22, D-063/D-064/D-065, constraints C-12/C-13/C-14). Execution playbook with per-milestone steps, QA gates, and critical-bug risk tables written for handover: `RESONANCE_BUILD_PLAN.md`. M10 close-out (deploy, grounded providers, Gemini caveat) still runs as the parallel ops track and is unaffected.
+- 2026-07-05 M16 done: Resonance identity is now product-facing in app chrome/title/login, with Parallax retained as the measurement-engine subtitle. `src/core/funnel.ts` adds the pure additive funnel-stage mapping; dashboard and matrix pillar sections render `UPPER FUNNEL`, `MID FUNNEL`, and Proof as `TRUST RAIL`.
+- 2026-07-05 M16 verification: SimulatedBadge exists, `/projects/[id]/resonance` stub is linked from project subnav and carries `SIMULATED`; SSR curl confirmed required strings and no visible raw pillar ids; demo run recompute stayed byte-identical across two passes (312 rows). `pnpm lint`, `pnpm typecheck`, `pnpm test` (231 passed / 44 skipped), and `pnpm build` green.
+- 2026-07-05 M16 scope note: no migration, no metric/math/schema changes. M17 starts the real `kind` discriminator work and must implement D-068 shared-plumbing wall guards before completed resonance runs can exist.
 
 - 2026-07-02 done: canonical docs moved into repo, ambiguity reduced, structured repo folders initialized, and M0.5 execution-readiness specs added.
 - 2026-07-02 remaining: initialize package dependencies, health route, CI workflow, Render skeleton, and first migration.

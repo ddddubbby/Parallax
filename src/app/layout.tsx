@@ -18,8 +18,8 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Parallax",
-  description: "Internal operator tool for auditing how AI systems describe brands.",
+  title: "Resonance",
+  description: "Internal operator tool for AI visibility audits and evidence-conditioned simulation studies.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

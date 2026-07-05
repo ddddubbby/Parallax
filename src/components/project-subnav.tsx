@@ -8,6 +8,7 @@ const SECTIONS = [
   { label: "Runs", segment: "runs" },
   { label: "Dashboard", segment: "dashboard" },
   { label: "Report", segment: "report" },
+  { label: "Resonance", segment: "resonance" },
 ] as const;
 
 /**

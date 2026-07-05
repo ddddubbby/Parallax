@@ -1,3 +1,4 @@
+import { FUNNEL_STAGES, funnelStageForPillar, funnelStampForPillar } from "@/core/funnel";
 import { PILLAR_ORDER, PILLARS, type Pillar, pillarMetricLabels } from "@/core/semantic";
 
 // D-055 pillar visual system: pillars are identified by NUMBERED STRUCTURE
@@ -42,6 +43,9 @@ export function PillarSection({
   children: React.ReactNode;
 }) {
   const tint = TINT[pillar];
+  const funnelStage = funnelStageForPillar(pillar);
+  const funnelStamp = funnelStampForPillar(pillar);
+  const funnelTitle = funnelStage === null ? "Proof trust rail" : FUNNEL_STAGES[funnelStage].label;
   return (
     <section className={`border-l-2 pl-4 ${tint.border}`} aria-label={PILLARS[pillar].label}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -50,6 +54,12 @@ export function PillarSection({
             {pillarNumber(pillar)} · {PILLARS[pillar].label}
             {count !== undefined && <span className="text-ink/45"> · {count}</span>}
           </h2>
+          <span
+            className="label-mono inline-flex rounded-xs border border-ink/30 px-1.5 py-0.5 text-[11px] text-ink/60"
+            title={funnelTitle}
+          >
+            {funnelStamp}
+          </span>
           <span className="font-mono text-xs text-ink/60">{PILLARS[pillar].clientQuestion}</span>
         </div>
         {right}

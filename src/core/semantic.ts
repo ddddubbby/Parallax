@@ -295,9 +295,11 @@ export const GLOSSARY_TERMS: Record<string, string> = {
   cell: "One resolved prompt — a specific intent × persona × market × phrasing that gets sent to the model.",
   rep: "One repeated sample of a cell. Audit runs use k=5 reps per cell so metrics carry confidence intervals.",
   "engine-mode": "A provider paired with a grounding mode (e.g. DeepSeek ungrounded, Perplexity grounded).",
+  "funnel stage": "A presentation grouping over the Four P pillars: Upper = Presence, Mid = Position and Perception, Proof = trust rail, Lower = simulated response.",
   grounded: "The provider returned web-grounded output with real citations. Ungrounded answers have no citations.",
   eligible: "A stored response whose latest extraction is valid and not a refusal — the samples metrics are computed over.",
   matrix: "The approved, frozen set of prompt cells a run executes.",
+  "simulated (sim)": "A lower-funnel result produced by synthetic panel responses, not measured AI visibility data. Simulated rows never mix with audit metrics.",
 };
 
 export function pillarMetricLabels(pillar: Pillar): string[] {

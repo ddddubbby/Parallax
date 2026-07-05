@@ -238,6 +238,7 @@ export function MatrixBoard({
                 const clears = samples >= SMALL_N_GATE;
                 return (
                   <Stamp key={pillar} tone={count === 0 ? "warn" : clears ? "ok" : "warn"}>
+                    {pillar === "proof" ? "TRUST RAIL · " : ""}
                     {PILLARS[pillar].label}: {count} → {samples}{clears ? " ✓" : ` (< ${SMALL_N_GATE})`}
                   </Stamp>
                 );
