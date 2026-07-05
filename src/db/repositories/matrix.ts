@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, max, sql } from "drizzle-orm";
-import type { CellPlan } from "@/core/matrix";
+import { isAuditIntent, type CellPlan } from "@/core/matrix";
 import { db } from "../client";
 import {
   attributes,
@@ -80,7 +80,7 @@ export async function listVersions(projectId: string) {
       createdAt: matrixVersions.createdAt,
     })
     .from(matrixVersions)
-    .where(eq(matrixVersions.projectId, projectId))
+    .where(and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.kind, "audit")))
     .orderBy(desc(matrixVersions.version));
 }
 
@@ -88,7 +88,7 @@ export async function getVersionWithCells(versionId: string) {
   const [version] = await db
     .select()
     .from(matrixVersions)
-    .where(eq(matrixVersions.id, versionId));
+    .where(and(eq(matrixVersions.id, versionId), eq(matrixVersions.kind, "audit")));
   if (!version) return null;
   const cells = await db
     .select({
@@ -103,7 +103,15 @@ export async function getVersionWithCells(versionId: string) {
     .from(promptCells)
     .where(eq(promptCells.matrixVersionId, versionId))
     .orderBy(asc(promptCells.createdAt));
-  return { version, cells };
+  return {
+    version,
+    cells: cells.map((cell) => {
+      if (!isAuditIntent(cell.intent)) {
+        throw new Error("Audit matrix view cannot load simulation cells (C-12)");
+      }
+      return { ...cell, intent: cell.intent };
+    }),
+  };
 }
 
 export type CellInput = Omit<CellPlan, "personaId" | "marketId"> & {
@@ -122,6 +130,7 @@ export async function createDraftVersion(projectId: string, cells: CellInput[]) 
       .insert(matrixVersions)
       .values({
         projectId,
+        kind: "audit",
         version: (latest ?? 0) + 1,
         cellCount: cells.length,
       })
@@ -143,9 +152,9 @@ export async function createDraftVersion(projectId: string, cells: CellInput[]) 
 
 async function assertDraft(versionId: string) {
   const [version] = await db
-    .select({ state: matrixVersions.state })
-    .from(matrixVersions)
-    .where(eq(matrixVersions.id, versionId));
+      .select({ state: matrixVersions.state })
+      .from(matrixVersions)
+      .where(and(eq(matrixVersions.id, versionId), eq(matrixVersions.kind, "audit")));
   if (!version || version.state !== "draft") {
     throw new Error("Matrix version is not a draft; approved versions are frozen (C-4)");
   }
@@ -219,7 +228,11 @@ export async function approveVersion(projectId: string, versionId: string) {
       .update(matrixVersions)
       .set({ state: "superseded", supersededAt: new Date(), updatedAt: new Date() })
       .where(
-        and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.state, "approved")),
+        and(
+          eq(matrixVersions.projectId, projectId),
+          eq(matrixVersions.kind, "audit"),
+          eq(matrixVersions.state, "approved"),
+        ),
       );
     const approved = await tx
       .update(matrixVersions)

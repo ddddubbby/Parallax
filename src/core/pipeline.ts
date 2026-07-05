@@ -8,6 +8,9 @@ export interface PipelineState {
   hasApprovedMatrix: boolean;
   hasActiveRun: boolean; // queued or running
   hasCompletedRun: boolean;
+  hasApprovedResonanceStudy?: boolean;
+  hasActiveResonanceRun?: boolean;
+  hasCompletedResonanceRun?: boolean;
 }
 
 export interface PipelineStage {

@@ -35,7 +35,9 @@ export default async function RunDetailPage({
         / Run {runId.slice(0, 8)}
       </div>
       <RunProgress projectId={id} runId={runId} initial={detail} />
-      <ExtractionPanel runId={runId} terminal={TERMINAL_STATES.has(detail.run.state)} />
+      {detail.run.matrixKind !== "resonance" && (
+        <ExtractionPanel runId={runId} terminal={TERMINAL_STATES.has(detail.run.state)} />
+      )}
     </main>
   );
 }

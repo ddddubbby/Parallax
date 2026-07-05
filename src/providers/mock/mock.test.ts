@@ -52,6 +52,16 @@ describe("mockProvider", () => {
     expect(results.every((r) => r.citations.length === 0)).toBe(true);
   });
 
+  it("returns citation-free free-text reactions for Resonance simulation prompts", async () => {
+    const result = await mockProvider.generate({
+      promptText: "You are simulating one buyer's free-text reaction for a Resonance lower-funnel study.",
+      mode: "grounded",
+      repIndex: 0,
+    });
+    expect(result.text).toMatch(/I |This /);
+    expect(result.citations).toEqual([]);
+  });
+
   it("never throws — content archetypes are successful generations (D-011)", async () => {
     const fixtures = loadMockFixtures();
     const refusalFixture = fixtures.find((f) => f.archetype === "refusal");

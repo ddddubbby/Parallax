@@ -16,6 +16,8 @@ export type Intent =
   | "validation"
   | "objection";
 
+export type CellIntent = Intent | "simulation";
+
 export const INTENT_ORDER: Intent[] = [
   "comparison",
   "consideration",
@@ -23,6 +25,12 @@ export const INTENT_ORDER: Intent[] = [
   "objection",
   "discovery",
 ];
+
+const INTENT_SET = new Set<string>(INTENT_ORDER);
+
+export function isAuditIntent(intent: CellIntent | string | null | undefined): intent is Intent {
+  return typeof intent === "string" && INTENT_SET.has(intent);
+}
 
 /** PM-9: unbranded intents may not contain tracked brand terms at approval. */
 export const UNBRANDED_INTENTS: Intent[] = ["discovery", "consideration"];

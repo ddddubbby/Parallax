@@ -2,7 +2,7 @@ import { marked } from "marked";
 import { notFound } from "next/navigation";
 import { REPORT_SECTIONS } from "@/core/report-templates";
 import { getReportSections } from "@/db/repositories/report";
-import { getRun } from "@/db/repositories/runner";
+import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 import { getProjectBrandNames } from "@/db/repositories/dashboard";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,8 @@ export default async function ReportPrintPage({
 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) notFound();
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind !== "audit") notFound();
 
   const [sections, brands] = await Promise.all([getReportSections(runId), getProjectBrandNames(id)]);
   const byKey = new Map(sections.map((s) => [s.sectionKey, s]));

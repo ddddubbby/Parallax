@@ -35,6 +35,7 @@ export const intent = pgEnum("intent", [
   "comparison",
   "validation",
   "objection",
+  "simulation",
 ]);
 
 export const matrixState = pgEnum("matrix_state", [

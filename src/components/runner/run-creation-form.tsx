@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
+import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, Input, Stamp } from "@/components/ui";
 import type { GenerationMode, ProviderId, RunMode } from "@/core/runner";
 import { createRun, projectRunCost, type RunCreationInput } from "@/modules/runner/actions";
@@ -31,12 +32,16 @@ export function RunCreationForm({
   providers,
   defaultValidationCapUsd,
   defaultAuditCapUsd,
+  matrixVersionId,
+  singleEngine = false,
 }: {
   projectId: string;
   cellCount: number;
   providers: ProviderOption[];
   defaultValidationCapUsd: number;
   defaultAuditCapUsd: number;
+  matrixVersionId?: string;
+  singleEngine?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -78,6 +83,7 @@ export function RunCreationForm({
   }
 
   const input: RunCreationInput = {
+    matrixVersionId,
     runMode,
     providers: selectedProviders,
     modes: selectedModes,
@@ -111,9 +117,13 @@ export function RunCreationForm({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, runMode, selectedProviders.join(","), selectedModes.join(","), effectiveRepetitions]);
+  }, [projectId, matrixVersionId, runMode, selectedProviders.join(","), selectedModes.join(","), effectiveRepetitions]);
 
   function toggle<T>(list: T[], value: T, set: (next: T[]) => void) {
+    if (singleEngine) {
+      set([value]);
+      return;
+    }
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
@@ -137,7 +147,13 @@ export function RunCreationForm({
         <span className="label-mono text-xs text-ink/60">Approved matrix</span>
         <p className="text-sm text-ink/85">
           {cellCount} <GlossaryTerm term="cell">cells</GlossaryTerm>
+          {singleEngine && <span className="ml-2"><SimulatedBadge /></span>}
         </p>
+        {singleEngine && (
+          <p className="mt-2 font-mono text-xs text-ink/55">
+            Resonance runs use one provider and one mode; each engine is a distinct synthetic population (D-067).
+          </p>
+        )}
       </div>
 
       <Field label="Run mode">

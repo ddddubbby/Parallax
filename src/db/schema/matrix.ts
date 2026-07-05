@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { categoryArchetype, intent, matrixState } from "./enums";
 import { markets, personas, projects } from "./intake";
+import { resonanceStimuli, resonanceStudies } from "./resonance";
 
 export const promptTemplates = pgTable(
   "prompt_templates",
@@ -47,6 +48,8 @@ export const matrixVersions = pgTable(
       .references(() => projects.id),
     version: integer("version").notNull(),
     state: matrixState("state").notNull().default("draft"),
+    kind: text("kind").notNull().default("audit"),
+    resonanceStudyId: uuid("resonance_study_id").references(() => resonanceStudies.id),
     cellCount: integer("cell_count").notNull().default(0),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     supersededAt: timestamp("superseded_at", { withTimezone: true }),
@@ -64,6 +67,8 @@ export const matrixVersions = pgTable(
     ),
     // C-1 structural cap, enforced at the database layer as well.
     check("matrix_versions_cell_cap_ck", sql`${t.cellCount} <= 50`),
+    check("matrix_versions_kind_ck", sql`${t.kind} in ('audit', 'resonance')`),
+    index("matrix_versions_project_kind_idx").on(t.projectId, t.kind),
   ],
 );
 
@@ -77,6 +82,8 @@ export const promptCells = pgTable(
     intent: intent("intent").notNull(),
     personaId: uuid("persona_id").references(() => personas.id),
     marketId: uuid("market_id").references(() => markets.id),
+    stimulusId: uuid("stimulus_id").references(() => resonanceStimuli.id),
+    panelPersonaKey: text("panel_persona_key"),
     variantKey: text("variant_key").notNull(),
     resolvedText: text("resolved_text").notNull(),
     competitorOrderJson: jsonb("competitor_order_json").notNull().default([]),

@@ -13,6 +13,7 @@ import {
   personas,
   promptCells,
   responses,
+  matrixVersions,
 } from "../schema";
 import {
   getBrandMentionsForExtractions,
@@ -30,13 +31,46 @@ export async function listCompletedRuns(projectId: string) {
       createdAt: auditRuns.createdAt,
     })
     .from(auditRuns)
-    .where(and(eq(auditRuns.projectId, projectId), inArray(auditRuns.state, ["completed", "paused"])))
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        eq(auditRuns.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+        inArray(auditRuns.state, ["completed", "paused"]),
+      ),
+    )
     .orderBy(desc(auditRuns.createdAt));
 }
 
 export async function getRunForDashboard(runId: string) {
-  const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
-  return run ?? null;
+  const [run] = await db
+    .select({ run: auditRuns })
+    .from(auditRuns)
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(and(eq(auditRuns.id, runId), eq(matrixVersions.kind, "audit")));
+  return run?.run ?? null;
+}
+
+export async function listCompletedResonanceRuns(projectId: string) {
+  return db
+    .select({
+      id: auditRuns.id,
+      state: auditRuns.state,
+      runMode: auditRuns.runMode,
+      failureRate: auditRuns.failureRate,
+      createdAt: auditRuns.createdAt,
+      resonanceStudyId: matrixVersions.resonanceStudyId,
+    })
+    .from(auditRuns)
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        eq(auditRuns.projectId, projectId),
+        eq(matrixVersions.kind, "resonance"),
+        inArray(auditRuns.state, ["completed", "paused"]),
+      ),
+    )
+    .orderBy(desc(auditRuns.createdAt));
 }
 
 export async function getProjectBrandNames(projectId: string) {

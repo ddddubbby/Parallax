@@ -1,0 +1,69 @@
+[
+  {
+    "version": "purchase_intent.v1",
+    "construct": "purchase_intent",
+    "calibrated": false,
+    "sets": [
+      {
+        "score": 1,
+        "sentences": [
+          "I would not consider buying this.",
+          "This makes the product feel wrong for me.",
+          "I would remove this from my shortlist.",
+          "This framing reduces my interest a lot.",
+          "I see no reason to take the next step."
+        ]
+      },
+      {
+        "score": 2,
+        "sentences": [
+          "I am unlikely to buy based on this.",
+          "This leaves me skeptical about fit.",
+          "I would need a much stronger reason to continue.",
+          "This does not address what I care about.",
+          "I would probably look at alternatives first."
+        ]
+      },
+      {
+        "score": 3,
+        "sentences": [
+          "I might consider it, but I am not convinced.",
+          "This sounds relevant but not compelling yet.",
+          "I would need more evidence before deciding.",
+          "This keeps the product in the maybe pile.",
+          "I am neutral about taking the next step."
+        ]
+      },
+      {
+        "score": 4,
+        "sentences": [
+          "I would be interested in learning more.",
+          "This makes the product feel relevant to me.",
+          "I would keep this on my shortlist.",
+          "This gives me a good reason to consider it.",
+          "I can imagine taking the next step."
+        ]
+      },
+      {
+        "score": 5,
+        "sentences": [
+          "I would strongly consider buying this.",
+          "This feels like a very good fit for me.",
+          "I would prioritize this over alternatives.",
+          "This framing makes me want to act soon.",
+          "I am ready to take the next step."
+        ]
+      },
+      {
+        "score": 3,
+        "sentences": [
+          "I need to compare details before choosing.",
+          "This could work, but it depends on proof.",
+          "I am interested enough to keep evaluating.",
+          "This creates curiosity without commitment.",
+          "I would ask follow-up questions before buying."
+        ]
+      }
+    ]
+  }
+]

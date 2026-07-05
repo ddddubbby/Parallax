@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
 import { getProjectSummary, listRunsWithProgress } from "@/db/repositories/runner";
 
@@ -71,6 +72,7 @@ export default async function RunsIndexPage({
                   Run {run.id.slice(0, 8)}
                 </span>
                 {run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+                {run.matrixKind === "resonance" && <SimulatedBadge />}
                 {run.runMode === "live_validation" && (
                   <Stamp tone="warn">VALIDATION-ONLY</Stamp>
                 )}

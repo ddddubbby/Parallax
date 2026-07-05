@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Stamp } from "@/components/ui";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 
@@ -17,6 +18,8 @@ interface RunDetail {
     plannedCalls: number;
     costCapUsd: string;
     actualCostUsd: string;
+    matrixKind?: "audit" | "resonance";
+    resonanceStudyId?: string | null;
   };
   progress: Record<string, number>;
   failureCounts: { succeeded: number; deadLettered: number; cancelled: number };
@@ -70,6 +73,7 @@ export function RunProgress({
   const finished = (detail.progress.succeeded ?? 0) + (detail.progress.dead_lettered ?? 0) + (detail.progress.cancelled ?? 0) + (detail.progress.skipped ?? 0);
   const pct = total > 0 ? Math.round((finished / total) * 100) : 0;
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
+  const isResonance = detail.run.matrixKind === "resonance";
   // A bare "paused" stamp with no reason is an anxiety generator — the
   // breaker's own event message says exactly why (cost cap, failure rate,
   // daily budget) and is already in the fetched events. Surface it.
@@ -83,6 +87,7 @@ export function RunProgress({
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Run</h1>
         {detail.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+        {isResonance && <SimulatedBadge />}
         {detail.run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
         <Stamp
           tone={
@@ -100,10 +105,10 @@ export function RunProgress({
         {isPartial && <Stamp tone="warn">PARTIAL</Stamp>}
         {detail.run.state === "completed" && (
           <Link
-            href={`/projects/${projectId}/dashboard`}
+            href={isResonance ? `/projects/${projectId}/resonance` : `/projects/${projectId}/dashboard`}
             className="label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
           >
-            View dashboard →
+            {isResonance ? "Back to study →" : "View dashboard →"}
           </Link>
         )}
       </div>

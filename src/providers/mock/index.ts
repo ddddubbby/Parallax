@@ -1,6 +1,6 @@
 import { stableIndex } from "@/core/hash";
 import type { GenerationRequest, GenerationResult, LLMProvider } from "../types";
-import { loadMockFixtures } from "./fixtures";
+import { loadMockFixtures, loadMockResonanceFixtures } from "./fixtures";
 
 // Mock is provider #0 (D-002): always available, zero-cost, permanently
 // registered. It never fails — fixture archetypes like "refusal" and
@@ -23,14 +23,17 @@ export const mockProvider: LLMProvider = {
   concurrency: 8,
 
   async generate(req: GenerationRequest): Promise<GenerationResult> {
-    const fixtures = loadMockFixtures();
+    const resonance = req.promptText.includes("Resonance lower-funnel study");
+    const auditFixtures = resonance ? null : loadMockFixtures();
+    const resonanceFixtures = resonance ? loadMockResonanceFixtures() : null;
+    const fixtures = resonanceFixtures ?? auditFixtures ?? [];
     const key = buildFixtureSelectionKey(req.promptText, "mock", req.repIndex ?? 0);
     const idx = stableIndex(key, fixtures.length);
     const fixture = fixtures[idx];
     await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
     return {
       text: fixture.text,
-      citations: req.mode === "grounded" ? fixture.citations : [],
+      citations: auditFixtures && req.mode === "grounded" ? auditFixtures[idx].citations : [],
       modelVersion: MOCK_MODEL_VERSION,
       tokensIn: Math.ceil(req.promptText.length / 4),
       tokensOut: Math.ceil(fixture.text.length / 4),

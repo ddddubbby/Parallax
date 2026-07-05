@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
-import { getRun } from "@/db/repositories/runner";
+import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 
 // EX-3, D-013: synchronous download, one file, four datasets — every
 // reported number traces to stored raw text (C-3).
@@ -11,6 +11,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind !== "audit") {
+    return Response.json({ error: "Audit evidence exports do not support Resonance simulation runs" }, { status: 400 });
+  }
 
   const [respRows, extRows, metricRows, citationRows] = await Promise.all([
     getExportResponses(runId),

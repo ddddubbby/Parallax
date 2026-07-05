@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getReportSections } from "@/db/repositories/report";
-import { getRun } from "@/db/repositories/runner";
+import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 import { computeFindings, editSection, generateReport, regenerateOneSection } from "./service";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -11,6 +11,10 @@ type RegenerateResult = { ok: true; generatedMd: string } | { ok: false; error: 
 /** Generates findings + report sections. Idempotent: never overwrites an existing (possibly edited) section. */
 export async function generateReportForRun(runId: string): Promise<ActionResult> {
   try {
+    const kind = await getRunMatrixKind(runId);
+    if (kind?.kind === "resonance") {
+      return { ok: false, error: "Audit reports cannot be generated from Resonance simulation runs (C-12)" };
+    }
     await computeFindings(runId);
     const result = await generateReport(runId);
     if (!result.ok) return result;

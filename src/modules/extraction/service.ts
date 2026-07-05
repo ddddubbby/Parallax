@@ -20,7 +20,7 @@ import {
   recordExtractionAttemptCost,
   requeueExtraction as createRequeuedExtraction,
 } from "@/db/repositories/extraction";
-import { appendRunEvent, getRun } from "@/db/repositories/runner";
+import { appendRunEvent, getRun, getRunMatrixKind, hasRunEvent } from "@/db/repositories/runner";
 import { resolveExtractionCredentials } from "@/modules/runner/provider-resolver";
 import { callDeepSeekExtraction } from "@/providers/deepseek/extraction";
 import { MOCK_EXTRACTION_MODEL, extractViaMockEngine } from "@/providers/mock/extraction-engine";
@@ -64,7 +64,7 @@ function matchFactClaim(
 }
 
 export interface ExtractionRunResult {
-  outcome: "valid" | "dead_lettered";
+  outcome: "valid" | "dead_lettered" | "skipped";
   attempts: number;
 }
 
@@ -72,6 +72,7 @@ interface PipelineContext {
   responseId: string;
   runId: string;
   runMode: string;
+  matrixKind: "audit" | "resonance";
   rawText: string;
   trackedBrands: TrackedBrand[];
   clientBrandId: string | null;
@@ -257,6 +258,7 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
   if (!response) throw new Error(`response ${responseId} not found`);
   const run = await getRun(response.runId);
   if (!run) throw new Error(`run ${response.runId} not found`);
+  const kind = await getRunMatrixKind(response.runId);
 
   const [projectBrandRows, factClaimRows, desiredAttributes] = await Promise.all([
     getProjectBrandsForRun(run.projectId),
@@ -273,6 +275,7 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
     responseId,
     runId: response.runId,
     runMode: run.runMode,
+    matrixKind: kind?.kind === "resonance" ? "resonance" : "audit",
     rawText: response.rawText,
     trackedBrands,
     clientBrandId: projectBrandRows.find((b) => b.role === "client")?.id ?? null,
@@ -285,6 +288,18 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
 /** Called by the worker right after a response is recorded (first extraction attempt, version 1). */
 export async function extractResponse(responseId: string): Promise<ExtractionRunResult> {
   const ctx = await buildContext(responseId);
+  if (ctx.matrixKind === "resonance") {
+    const alreadyLogged = await hasRunEvent(ctx.runId, "resonance_audit_extraction_skipped");
+    if (!alreadyLogged) {
+      await appendRunEvent({
+        runId: ctx.runId,
+        level: "info",
+        eventType: "resonance_audit_extraction_skipped",
+        message: "Resonance response stored; audit extraction skipped for this simulation run (C-12/M17)",
+      });
+    }
+    return { outcome: "skipped", attempts: 0 };
+  }
   const extractionId = await createPendingExtraction(responseId, 1);
   return runExtractionPipeline(extractionId, ctx);
 }
@@ -292,6 +307,9 @@ export async function extractResponse(responseId: string): Promise<ExtractionRun
 /** AD-2: Debug "re-extract" — a fresh attempt as a new extraction_version, never overwriting the prior one (C-3). */
 export async function reExtractResponse(responseId: string): Promise<ExtractionRunResult> {
   const ctx = await buildContext(responseId);
+  if (ctx.matrixKind === "resonance") {
+    return { outcome: "skipped", attempts: 0 };
+  }
   const extractionId = await createRequeuedExtraction(responseId);
   return runExtractionPipeline(extractionId, ctx);
 }

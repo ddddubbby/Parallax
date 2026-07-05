@@ -7,6 +7,7 @@ import {
   jobs,
   matrixVersions,
   projects,
+  resonanceStudies,
   promptCells,
   responses,
   runEvents,
@@ -50,6 +51,21 @@ export async function createRun(
   capabilities: ProviderCapability[],
   plannedCalls: number,
 ) {
+  const [version] = await db
+    .select({
+      id: matrixVersions.id,
+      projectId: matrixVersions.projectId,
+      kind: matrixVersions.kind,
+    })
+    .from(matrixVersions)
+    .where(eq(matrixVersions.id, input.matrixVersionId));
+  if (!version || version.projectId !== input.projectId) {
+    throw new Error("Matrix version not found for this project");
+  }
+  if (version.kind === "resonance" && (input.providers.length !== 1 || input.modes.length !== 1)) {
+    throw new Error("A Resonance run must select exactly one provider and one generation mode (D-067)");
+  }
+
   const cells = await db
     .select({ id: promptCells.id })
     .from(promptCells)
@@ -140,13 +156,16 @@ export async function listRunsWithProgress(projectId: string) {
       runMode: auditRuns.runMode,
       state: auditRuns.state,
       createdAt: auditRuns.createdAt,
+      matrixKind: matrixVersions.kind,
+      resonanceStudyId: matrixVersions.resonanceStudyId,
       total: sql<number>`count(${jobs.id})::int`,
       succeeded: sql<number>`count(${jobs.id}) filter (where ${jobs.state} = 'succeeded')::int`,
     })
     .from(auditRuns)
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
     .leftJoin(jobs, eq(jobs.runId, auditRuns.id))
     .where(eq(auditRuns.projectId, projectId))
-    .groupBy(auditRuns.id)
+    .groupBy(auditRuns.id, matrixVersions.kind, matrixVersions.resonanceStudyId)
     .orderBy(desc(auditRuns.createdAt));
 }
 
@@ -186,6 +205,15 @@ export async function appendRunEvent(input: {
     message: input.message,
     metadataJson: input.metadata ?? {},
   });
+}
+
+export async function hasRunEvent(runId: string, eventType: string): Promise<boolean> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(runEvents)
+    .where(and(eq(runEvents.runId, runId), eq(runEvents.eventType, eventType)))
+    .limit(1);
+  return (row?.n ?? 0) > 0;
 }
 
 /**
@@ -511,19 +539,57 @@ export async function getApprovedVersionForRun(projectId: string) {
   const [version] = await db
     .select()
     .from(matrixVersions)
-    .where(and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.state, "approved")));
+    .where(
+      and(
+        eq(matrixVersions.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+        eq(matrixVersions.state, "approved"),
+      ),
+    );
   return version ?? null;
+}
+
+export async function getMatrixVersionForRun(projectId: string, matrixVersionId: string) {
+  const [version] = await db
+    .select()
+    .from(matrixVersions)
+    .where(and(eq(matrixVersions.id, matrixVersionId), eq(matrixVersions.projectId, projectId)));
+  return version ?? null;
+}
+
+export async function getRunMatrixKind(runId: string) {
+  const [row] = await db
+    .select({
+      kind: matrixVersions.kind,
+      projectId: auditRuns.projectId,
+      resonanceStudyId: matrixVersions.resonanceStudyId,
+    })
+    .from(auditRuns)
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(eq(auditRuns.id, runId));
+  return row ?? null;
 }
 
 export async function getRunDetail(runId: string) {
   const run = await getRun(runId);
   if (!run) return null;
-  const [progress, failureCounts, events] = await Promise.all([
+  const [progress, failureCounts, events, kind] = await Promise.all([
     getRunProgress(runId),
     getRunFailureCounts(runId),
     listRunEvents(runId, 30),
+    getRunMatrixKind(runId),
   ]);
-  return { run, progress, failureCounts, events };
+  const matrixKind: "audit" | "resonance" = kind?.kind === "resonance" ? "resonance" : "audit";
+  return {
+    run: {
+      ...run,
+      matrixKind,
+      resonanceStudyId: kind?.resonanceStudyId ?? null,
+    },
+    progress,
+    failureCounts,
+    events,
+  };
 }
 
 /** RN-9: run ids currently eligible for worker processing. */
@@ -589,21 +655,39 @@ export async function getProjectSummary(projectId: string) {
 
 /** OX-2: the booleans resolveProjectStage needs to pick a project's next action. */
 export async function getProjectPipelineState(projectId: string) {
-  const [statusRow, versionRow, runRows] = await Promise.all([
+  const [statusRow, versionRow, runRows, resonanceStudyRows, resonanceRunRows] = await Promise.all([
     db.select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)),
     db
       .select({ state: matrixVersions.state })
       .from(matrixVersions)
-      .where(eq(matrixVersions.projectId, projectId)),
-    db.select({ state: auditRuns.state }).from(auditRuns).where(eq(auditRuns.projectId, projectId)),
+      .where(and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.kind, "audit"))),
+    db
+      .select({ state: auditRuns.state })
+      .from(auditRuns)
+      .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+      .where(and(eq(auditRuns.projectId, projectId), eq(matrixVersions.kind, "audit"))),
+    db
+      .select({ state: resonanceStudies.state })
+      .from(resonanceStudies)
+      .where(eq(resonanceStudies.projectId, projectId)),
+    db
+      .select({ state: auditRuns.state })
+      .from(auditRuns)
+      .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+      .where(and(eq(auditRuns.projectId, projectId), eq(matrixVersions.kind, "resonance"))),
   ]);
   const versionStates = versionRow.map((v) => v.state);
   const runStates = runRows.map((r) => r.state);
+  const resonanceStudyStates = resonanceStudyRows.map((s) => s.state);
+  const resonanceRunStates = resonanceRunRows.map((r) => r.state);
   return {
     intakeComplete: (statusRow[0]?.status ?? null) === "active",
     hasMatrix: versionStates.length > 0,
     hasApprovedMatrix: versionStates.includes("approved"),
     hasActiveRun: runStates.some((s) => s === "queued" || s === "running"),
     hasCompletedRun: runStates.includes("completed"),
+    hasApprovedResonanceStudy: resonanceStudyStates.includes("approved"),
+    hasActiveResonanceRun: resonanceRunStates.some((s) => s === "queued" || s === "running"),
+    hasCompletedResonanceRun: resonanceRunStates.includes("completed"),
   };
 }

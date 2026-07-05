@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { toCsv } from "@/core/csv";
 import { getExportBrandMetrics, getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
-import { getRun } from "@/db/repositories/runner";
+import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 
 // EX-3, D-013: synchronous download, one CSV per dataset (each has a
 // different shape — responses/extractions/metrics/citations don't share
@@ -51,6 +51,10 @@ export async function GET(
 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind !== "audit") {
+    return Response.json({ error: "Audit CSV exports do not support Resonance simulation runs" }, { status: 400 });
+  }
 
   const csv = await buildCsv(dataset, runId);
   if (csv === null) return Response.json({ error: "unknown dataset" }, { status: 404 });

@@ -18,6 +18,7 @@ import {
   getApprovedMatrixCellCount,
   getApprovedVersionForRun,
   getAverageCellTextLength,
+  getMatrixVersionForRun,
   getProjectStatus,
   getProviderSpendToday,
   getRunDetail,
@@ -33,6 +34,7 @@ import { getProvider, listRegisteredProviders } from "@/providers/registry";
 type ActionResult = { ok: true; runId?: string } | { ok: false; error: string };
 
 export interface RunCreationInput {
+  matrixVersionId?: string;
   runMode: RunMode;
   providers: ProviderId[];
   modes: GenerationMode[];
@@ -74,8 +76,14 @@ export async function listProviderOptions() {
 
 /** RN-1/RN-2: plan and validate before touching the database. */
 export async function projectRunCost(projectId: string, input: RunCreationInput) {
-  const version = await getApprovedVersionForRun(projectId);
+  const version = input.matrixVersionId
+    ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
+    : await getApprovedVersionForRun(projectId);
   if (!version) return { ok: false as const, error: "No approved matrix version" };
+  if (version.state !== "approved") return { ok: false as const, error: "Runs require an approved matrix version" };
+  if (version.kind === "resonance" && (input.providers.length !== 1 || input.modes.length !== 1)) {
+    return { ok: false as const, error: "A Resonance run must select exactly one provider and one generation mode (D-067)" };
+  }
   const cellCount = await getApprovedMatrixCellCount(version.id);
   const plannedCalls = computePlannedCalls(
     cellCount,
