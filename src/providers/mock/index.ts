@@ -1,4 +1,5 @@
 import { stableIndex } from "@/core/hash";
+import { RESONANCE_PROMPT_MARKER } from "@/core/resonance";
 import type { GenerationRequest, GenerationResult, LLMProvider } from "../types";
 import { loadMockFixtures, loadMockResonanceFixtures } from "./fixtures";
 
@@ -23,7 +24,7 @@ export const mockProvider: LLMProvider = {
   concurrency: 8,
 
   async generate(req: GenerationRequest): Promise<GenerationResult> {
-    const resonance = req.promptText.includes("Resonance lower-funnel study");
+    const resonance = req.promptText.includes(RESONANCE_PROMPT_MARKER);
     const auditFixtures = resonance ? null : loadMockFixtures();
     const resonanceFixtures = resonance ? loadMockResonanceFixtures() : null;
     const fixtures = resonanceFixtures ?? auditFixtures ?? [];

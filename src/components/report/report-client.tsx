@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
-import { REPORT_SECTIONS, RESONANCE_REPORT_SECTIONS } from "@/core/report-templates";
+import { csvDatasetsForKind, reportSectionsForKind } from "@/core/report-templates";
+import { SimulatedBadge } from "@/components/simulated-badge";
 import { generateReportForRun, regenerateSectionAction, saveSectionEdit } from "@/modules/report/actions";
 
 interface SectionRow {
@@ -85,14 +86,16 @@ export function ReportClient({
 
   const ordered = [...sections].sort((a, b) => a.position - b.position);
   const exportBase = `/projects/${projectId}/report/export`;
-  const reportSections = kind === "resonance" ? RESONANCE_REPORT_SECTIONS : REPORT_SECTIONS;
-  const csvDatasets =
-    kind === "resonance"
-      ? (["resonance_responses", "resonance_metrics"] as const)
-      : (["responses", "extractions", "metrics", "brand_metrics", "citations"] as const);
+  const reportSections = reportSectionsForKind(kind);
+  const csvDatasets = csvDatasetsForKind(kind);
 
   return (
     <div>
+      {kind === "resonance" && (
+        <div className="mb-4">
+          <SimulatedBadge />
+        </div>
+      )}
       <div className="mb-6 flex flex-wrap gap-2">
         <a href={`${exportBase}/markdown?runId=${runId}`} className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink">
           Download Markdown

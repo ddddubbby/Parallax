@@ -1,4 +1,4 @@
-import { type LiveCredentials, postProviderJson, ProviderCallError } from "../shared";
+import { type LiveCredentials, postProviderJson } from "../shared";
 import type { EmbeddingProvider } from "../types";
 
 // Verified against official OpenAI API docs 2026-07-05:
@@ -35,20 +35,19 @@ export function createOpenAIEmbeddingProvider(credentials: LiveCredentials): Emb
         req.signal,
       )) as EmbeddingsApiResponse;
 
+      // Return the raw vectors and cost WITHOUT throwing on a wrong count /
+      // invalid shape: a 200 response is already billed, so the caller must
+      // record its cost before validating (D-022, mirroring the audit
+      // extraction adapter which returns raw payload for the service to
+      // validate). Shape validation lives in liveSsrScore.
       const rows = parsed.data ?? [];
-      if (rows.length !== req.texts.length) {
-        throw new ProviderCallError("malformed_output", "OpenAI embeddings response returned the wrong vector count");
-      }
       const vectors = [...rows]
         .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-        .map((row) => row.embedding);
-      if (vectors.some((vector) => !Array.isArray(vector) || vector.length === 0)) {
-        throw new ProviderCallError("malformed_output", "OpenAI embeddings response contained an invalid vector");
-      }
+        .map((row) => row.embedding) as number[][];
 
       const tokens = parsed.usage?.total_tokens ?? parsed.usage?.prompt_tokens ?? 0;
       return {
-        vectors: vectors as number[][],
+        vectors,
         model: parsed.model ?? model,
         tokens,
         costUsd: (tokens / 1_000_000) * PRICE_PER_1M_TOKENS_USD,

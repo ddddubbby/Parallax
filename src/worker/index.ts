@@ -30,7 +30,7 @@ import {
 } from "@/db/repositories/runner";
 import { listResponsesMissingExtraction, listResponsesWithStaleExtraction } from "@/db/repositories/extraction";
 import { extractResponse, reExtractResponse } from "@/modules/extraction/service";
-import { embeddingProviderId, extractionProviderId, findExceededDailyBudget } from "@/modules/runner/budget";
+import { findExceededDailyBudget, secondaryProviderIdForKind } from "@/modules/runner/budget";
 import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation";
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
 import { listRegisteredProviders } from "@/providers/registry";
@@ -150,7 +150,7 @@ async function afterJobFinished(runId: string) {
   const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
   if (run.runMode !== "mock") {
     const kind = await getRunMatrixKind(runId);
-    budgetProviders.push(kind?.kind === "resonance" ? embeddingProviderId() : extractionProviderId());
+    budgetProviders.push(secondaryProviderIdForKind(kind?.kind));
   }
   const budgetTrip = await findExceededDailyBudget(budgetProviders);
   if (budgetTrip) {

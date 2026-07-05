@@ -60,6 +60,13 @@ export function validateResonanceCellCount(panelCount: number, stimulusCount: nu
   return cellCount;
 }
 
+// Single source of truth for detecting a resonance prompt. The mock provider
+// imports this exact constant to select resonance fixtures, so editing the
+// prompt wording can never silently route resonance runs to audit fixtures
+// (the detection is coupled to the string the renderer actually emits).
+export const RESONANCE_PROMPT_MARKER =
+  "You are simulating one buyer's free-text reaction for a Resonance lower-funnel study.";
+
 export function renderResonancePrompt(input: {
   persona: PanelPersona;
   stimulus: ResonanceStimulusInput;
@@ -69,7 +76,7 @@ export function renderResonancePrompt(input: {
     ? "This is a generic, unconditioned simulation without stored AI-channel evidence."
     : "This simulation is conditioned on stored AI-channel evidence from this project.";
   return [
-    "You are simulating one buyer's free-text reaction for a Resonance lower-funnel study.",
+    RESONANCE_PROMPT_MARKER,
     conditioning,
     `Buyer profile: ${input.persona.label}. Age band: ${input.persona.ageBand}. Income band: ${input.persona.incomeBand}. Location context: ${input.persona.locationContext}. Behavioral profile: ${input.persona.behavioralProfile}.`,
     `Stimulus variant (${input.stimulus.kind}): ${input.stimulus.label}`,

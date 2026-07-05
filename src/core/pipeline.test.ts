@@ -24,4 +24,18 @@ describe("resolveProjectStage (OX-2)", () => {
     expect(stage.nextPath).toBe("dashboard");
     expect(stage.stageLabel).toBe("Results ready");
   });
+
+  it("surfaces the lower funnel once it has state (was previously blind — the banner ignored resonance)", () => {
+    const done = { ...base, hasCompletedRun: true };
+    // Audit complete, no resonance yet → unchanged.
+    expect(resolveProjectStage(done).nextPath).toBe("dashboard");
+    // Approved study, active run, completed run each route to the resonance surface.
+    expect(resolveProjectStage({ ...done, hasApprovedResonanceStudy: true }).nextPath).toBe("resonance");
+    expect(resolveProjectStage({ ...done, hasActiveResonanceRun: true }).nextPath).toBe("resonance");
+    expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).stageLabel).toBe(
+      "Simulation results ready",
+    );
+    // A GENERIC study can run before any audit run completes.
+    expect(resolveProjectStage({ ...base, hasActiveResonanceRun: true }).nextPath).toBe("resonance");
+  });
 });

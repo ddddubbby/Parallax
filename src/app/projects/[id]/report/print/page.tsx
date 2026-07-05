@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import { notFound } from "next/navigation";
-import { REPORT_SECTIONS, RESONANCE_REPORT_SECTIONS } from "@/core/report-templates";
+import { reportSectionsForKind } from "@/core/report-templates";
 import { getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 import { getProjectBrandNames } from "@/db/repositories/dashboard";
@@ -39,7 +39,7 @@ export default async function ReportPrintPage({
   const run = await getRun(runId);
   if (!run || run.projectId !== id) notFound();
   const kind = await getRunMatrixKind(runId);
-  const reportSections = kind?.kind === "resonance" ? RESONANCE_REPORT_SECTIONS : REPORT_SECTIONS;
+  const reportSections = reportSectionsForKind(kind?.kind);
 
   const [sections, brands] = await Promise.all([getReportSections(runId), getProjectBrandNames(id)]);
   const byKey = new Map(sections.map((s) => [s.sectionKey, s]));

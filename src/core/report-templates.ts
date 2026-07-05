@@ -34,6 +34,21 @@ export const RESONANCE_REPORT_SECTIONS = [
 
 export type ResonanceSectionKey = (typeof RESONANCE_REPORT_SECTIONS)[number]["key"];
 
+export const AUDIT_CSV_DATASETS = ["responses", "extractions", "metrics", "brand_metrics", "citations"] as const;
+export const RESONANCE_CSV_DATASETS = ["resonance_responses", "resonance_metrics"] as const;
+
+/** Single source of truth for the kind -> report-section-list mapping. Every
+ *  surface (in-app report, print, markdown export) selects sections through
+ *  this, so a new kind can't render the wrong section set (the D-068 leak). */
+export function reportSectionsForKind(kind: string | null | undefined) {
+  return kind === "resonance" ? RESONANCE_REPORT_SECTIONS : REPORT_SECTIONS;
+}
+
+/** Kind -> exportable CSV dataset names, paired with reportSectionsForKind. */
+export function csvDatasetsForKind(kind: string | null | undefined) {
+  return kind === "resonance" ? RESONANCE_CSV_DATASETS : AUDIT_CSV_DATASETS;
+}
+
 interface MetricLike {
   scopeType: string;
   metricKey: string;

@@ -421,6 +421,21 @@ export async function updateResonanceStudy(projectId: string, studyId: string, p
   return updated.length;
 }
 
+// C-4: a study's stimuli compile into a frozen matrix version at approval;
+// once the study leaves 'draft' its stimuli are immutable. Server actions are
+// RPC endpoints (the form's disabled inputs are UI-only), so the freeze must
+// be enforced here, not just in the UI.
+async function assertStudyIsDraft(studyId: string) {
+  const [study] = await db
+    .select({ state: resonanceStudies.state })
+    .from(resonanceStudies)
+    .where(eq(resonanceStudies.id, studyId));
+  if (!study) throw new Error("Study not found");
+  if (study.state !== "draft") {
+    throw new Error("This study is approved and frozen (C-4); create a new study to change stimuli");
+  }
+}
+
 export async function addResonanceStimulus(input: {
   studyId: string;
   kind: StimulusKind;
@@ -428,6 +443,7 @@ export async function addResonanceStimulus(input: {
   body: string;
   evidenceResponseIds: string[];
 }) {
+  await assertStudyIsDraft(input.studyId);
   const [{ latest }] = await db
     .select({ latest: max(resonanceStimuli.position) })
     .from(resonanceStimuli)
@@ -454,6 +470,7 @@ export async function updateResonanceStimulus(input: {
   body: string;
   evidenceResponseIds: string[];
 }) {
+  await assertStudyIsDraft(input.studyId);
   const updated = await db
     .update(resonanceStimuli)
     .set({
@@ -469,11 +486,20 @@ export async function updateResonanceStimulus(input: {
 }
 
 export async function deleteResonanceStimulus(studyId: string, stimulusId: string) {
+  await assertStudyIsDraft(studyId);
   const deleted = await db
     .delete(resonanceStimuli)
     .where(and(eq(resonanceStimuli.id, stimulusId), eq(resonanceStimuli.studyId, studyId)))
     .returning({ id: resonanceStimuli.id });
   return deleted.length;
+}
+
+export async function getResonanceStudyAnchorSetVersion(studyId: string): Promise<string | null> {
+  const [study] = await db
+    .select({ anchorSetVersion: resonanceStudies.anchorSetVersion })
+    .from(resonanceStudies)
+    .where(eq(resonanceStudies.id, studyId));
+  return study?.anchorSetVersion ?? null;
 }
 
 export async function listAuditEvidenceResponses(projectId: string, limit = 20) {

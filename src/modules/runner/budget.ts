@@ -1,16 +1,14 @@
 import { checkCostCap } from "@/core/runner";
 import { getProviderSpendToday } from "@/db/repositories/runner";
 
-// D-041: the one extraction engine for all live runs. Its spend (and thus
-// its daily budget) is a distinct concern from the generation providers'
-// even though it may not appear in a run's selected-providers list.
-export function extractionProviderId(): string {
-  return process.env.EXTRACTION_PROVIDER || "deepseek";
-}
-
-export function embeddingProviderId(): string {
-  return process.env.EMBEDDING_PROVIDER || "openai";
-}
+// The paid-engine id helpers live in a leaf module (provider-ids) so the
+// repository layer can share them without an import cycle; re-exported here so
+// existing `@/modules/runner/budget` importers are unaffected.
+export {
+  extractionProviderId,
+  embeddingProviderId,
+  secondaryProviderIdForKind,
+} from "./provider-ids";
 
 // C-2/D-012: global PROVIDER_DAILY_BUDGET_USD default, optional
 // <PROVIDER>_DAILY_BUDGET_USD override — env-configured, not DB-editable

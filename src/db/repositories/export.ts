@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "../client";
 import { brands, extractions, metrics, responses } from "../schema";
 
@@ -37,7 +37,11 @@ export async function getExportExtractions(runId: string) {
     })
     .from(extractions)
     .innerJoin(responses, eq(responses.id, extractions.responseId))
-    .where(eq(responses.runId, runId));
+    .where(eq(responses.runId, runId))
+    // Deterministic order: report generation picks embeddingModel via .find()
+    // over this result, so an unordered scan could make regenerated reports
+    // differ on identical data (D-061 byte-stability).
+    .orderBy(asc(extractions.responseId), asc(extractions.extractionVersion));
   return rows;
 }
 

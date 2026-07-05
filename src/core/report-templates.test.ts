@@ -7,6 +7,9 @@ import {
   type ReportContext,
   type ResonanceReportContext,
 } from "./report-templates";
+// One C-14 forbidden-phrase list, shared with the study-pack copy test, so a
+// newly banned phrase strengthens both surfaces at once (no drift).
+import { RESONANCE_TEMPLATE_FORBIDDEN_PHRASES } from "./resonance-templates";
 
 const BASE_CTX: ReportContext = {
   clientBrandName: "LedgerFox",
@@ -40,7 +43,7 @@ const BASE_CTX: ReportContext = {
 // promissory phrasing specifically — a disclaimer like "not a guarantee of
 // future behavior" is exactly what RB-5 wants and must not trip this check.
 const FORBIDDEN_PHRASES = ["#1", "ranked first", "will rank", "will improve", "we promise", "is guaranteed", "we guarantee"];
-const RESONANCE_FORBIDDEN_PHRASES = ["will increase sales", "predicted revenue", "guaranteed uplift", "roi of"];
+const RESONANCE_FORBIDDEN_PHRASES = RESONANCE_TEMPLATE_FORBIDDEN_PHRASES;
 
 const RESONANCE_CTX: ResonanceReportContext = {
   studyName: "AI framing repair",

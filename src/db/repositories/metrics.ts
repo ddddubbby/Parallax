@@ -360,7 +360,7 @@ export async function recomputeMetrics(runId: string) {
 
   await db.transaction(async (tx) => {
     await tx.delete(metrics).where(eq(metrics.runId, runId));
-    for (const row of rows) await tx.insert(metrics).values(row);
+    if (rows.length > 0) await tx.insert(metrics).values(rows);
   });
 
   return rows.length;
@@ -377,6 +377,11 @@ function readSsrPayload(payload: unknown): { pmf: number[]; meanScore: number } 
   if (!parsed || parsed.kind !== "ssr") return null;
   if (!Array.isArray(parsed.pmf) || parsed.pmf.length !== 5) return null;
   if (parsed.pmf.some((value) => typeof value !== "number" || !Number.isFinite(value))) return null;
+  // Match the results-surface eligibility in repositories/resonance.ts: an
+  // all-zero PMF is not a real distribution. Without this, recompute counted
+  // it in the variant's n/mean while the evidence list excluded it, so a
+  // variant card's n could disagree with its evidence count.
+  if (parsed.pmf.every((value) => value === 0)) return null;
   if (typeof parsed.meanScore !== "number" || !Number.isFinite(parsed.meanScore)) return null;
   return { pmf: parsed.pmf, meanScore: parsed.meanScore };
 }
@@ -390,9 +395,10 @@ function averagePmf(pmfs: number[][]): number[] {
   return totals.map((value) => value / pmfs.length);
 }
 
+// Route the resonance pi_mean point estimate through the shared, tested core
+// primitive so it can't drift from every other point-estimate metric (D-023).
 function mean(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  return meanValue(values).value;
 }
 
 async function recomputeResonanceMetrics(runId: string) {
@@ -520,7 +526,7 @@ async function recomputeResonanceMetrics(runId: string) {
 
   await db.transaction(async (tx) => {
     await tx.delete(metrics).where(eq(metrics.runId, runId));
-    for (const row of rows) await tx.insert(metrics).values(row);
+    if (rows.length > 0) await tx.insert(metrics).values(rows);
   });
 
   return rows.length;

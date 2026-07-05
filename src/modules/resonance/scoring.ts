@@ -92,45 +92,61 @@ function mockFixturePmf(rawText: string) {
   };
 }
 
-async function liveSsrScore(ctx: ResonanceScoreContext, provider: EmbeddingProvider) {
+async function liveSsrScore(
+  ctx: ResonanceScoreContext,
+  provider: EmbeddingProvider,
+  extractionId: string,
+) {
   const anchorSet = getSsrAnchorSet(ctx.anchorSetVersion);
   const statementSets = anchorStatementSets(anchorSet);
   const flatAnchorTexts = statementSets.flat();
   const cacheKey = `${ctx.anchorSetVersion}|${provider.defaultModel}`;
+  const cached = anchorEmbeddingCache.get(cacheKey);
 
-  let responseVector: number[];
-  let anchorVectorSets = anchorEmbeddingCache.get(cacheKey);
-  let model = provider.defaultModel;
-  let tokens = 0;
-  let costUsd = 0;
+  // When anchor vectors are cached we only embed the response; otherwise we
+  // embed the response plus every anchor statement in one call.
+  const texts = cached ? [ctx.rawText] : [ctx.rawText, ...flatAnchorTexts];
+  const embedded = await provider.embed({
+    texts,
+    signal: AbortSignal.timeout(SSR_CALL_TIMEOUT_MS),
+  });
 
+  // D-022: a 200 response is billed regardless of whether the vectors below
+  // validate. Record the attempt cost BEFORE any shape check can throw, so a
+  // malformed-but-billed embedding still counts against the daily budget —
+  // exactly how the audit extraction path records cost before validating.
+  await recordExtractionAttemptCost(ctx.runId, extractionId, {
+    costUsd: embedded.costUsd,
+    tokensIn: embedded.tokens,
+    tokensOut: 0,
+  });
+
+  if (
+    embedded.vectors.length !== texts.length ||
+    embedded.vectors.some((vector) => !Array.isArray(vector) || vector.length === 0)
+  ) {
+    throw new ProviderCallError(
+      "malformed_output",
+      "Embeddings response returned the wrong vector count or an invalid vector",
+    );
+  }
+
+  const [responseVector, ...anchorVectors] = embedded.vectors;
+  let anchorVectorSets = cached;
   if (!anchorVectorSets) {
-    const embedded = await provider.embed({
-      texts: [ctx.rawText, ...flatAnchorTexts],
-      signal: AbortSignal.timeout(SSR_CALL_TIMEOUT_MS),
-    });
-    [responseVector] = embedded.vectors;
-    const anchorVectors = embedded.vectors.slice(1);
     anchorVectorSets = [];
     for (let i = 0; i < statementSets.length; i++) {
       anchorVectorSets.push(anchorVectors.slice(i * 5, i * 5 + 5));
     }
     anchorEmbeddingCache.set(cacheKey, anchorVectorSets);
-    model = embedded.model;
-    tokens = embedded.tokens;
-    costUsd = embedded.costUsd;
-  } else {
-    const embedded = await provider.embed({
-      texts: [ctx.rawText],
-      signal: AbortSignal.timeout(SSR_CALL_TIMEOUT_MS),
-    });
-    [responseVector] = embedded.vectors;
-    model = embedded.model;
-    tokens = embedded.tokens;
-    costUsd = embedded.costUsd;
   }
 
-  return { ...scoreSsrResponse(responseVector!, anchorVectorSets), model, tokens, costUsd };
+  return {
+    ...scoreSsrResponse(responseVector, anchorVectorSets),
+    model: embedded.model,
+    tokens: embedded.tokens,
+    costUsd: embedded.costUsd,
+  };
 }
 
 function ssrPayload(input: {
@@ -158,15 +174,31 @@ async function runScoringPipeline(
   providerOverride?: EmbeddingProvider,
 ): Promise<SsrScoringResult> {
   if (ctx.runMode === "mock") {
-    const scored = mockFixturePmf(ctx.rawText);
-    await commitValidExtraction(
-      extractionId,
-      ssrPayload({ ...scored, anchorSetVersion: ctx.anchorSetVersion }),
-      MOCK_SSR_MODEL,
-      [],
-      [],
-    );
-    return { outcome: "valid", attempts: 1 };
+    // A mock resonance response with no mapped fixture PMF is a deterministic
+    // failure — retrying cannot help — so dead-letter it immediately rather
+    // than letting the throw escape uncaught (which left the row 'pending'
+    // forever, re-picked by the stale-extraction sweep every cycle).
+    try {
+      const scored = mockFixturePmf(ctx.rawText);
+      await commitValidExtraction(
+        extractionId,
+        ssrPayload({ ...scored, anchorSetVersion: ctx.anchorSetVersion }),
+        MOCK_SSR_MODEL,
+        [],
+        [],
+      );
+      return { outcome: "valid", attempts: 1 };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await markExtractionDeadLettered(extractionId, message);
+      await appendRunEvent({
+        runId: ctx.runId,
+        level: "error",
+        eventType: "ssr_dead_lettered",
+        message: `Mock SSR scoring dead-lettered for response ${ctx.responseId}: ${message}`,
+      });
+      return { outcome: "dead_lettered", attempts: 1 };
+    }
   }
 
   let attempts = 0;
@@ -175,12 +207,7 @@ async function runScoringPipeline(
     attempts++;
     try {
       const provider = providerOverride ?? (await resolveEmbeddingProvider());
-      const scored = await liveSsrScore(ctx, provider);
-      await recordExtractionAttemptCost(ctx.runId, extractionId, {
-        costUsd: scored.costUsd,
-        tokensIn: scored.tokens,
-        tokensOut: 0,
-      });
+      const scored = await liveSsrScore(ctx, provider, extractionId);
       await commitValidExtraction(
         extractionId,
         ssrPayload({ ...scored, anchorSetVersion: ctx.anchorSetVersion }),

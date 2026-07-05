@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { REPORT_SECTIONS, RESONANCE_REPORT_SECTIONS } from "@/core/report-templates";
+import { reportSectionsForKind } from "@/core/report-templates";
 import { getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
   const kind = await getRunMatrixKind(runId);
-  const reportSections = kind?.kind === "resonance" ? RESONANCE_REPORT_SECTIONS : REPORT_SECTIONS;
+  const reportSections = reportSectionsForKind(kind?.kind);
   const title = kind?.kind === "resonance" ? "Resonance Simulation Report" : "Audit Report";
 
   const sections = await getReportSections(runId);

@@ -115,9 +115,18 @@ export async function updateStimulusAction(
   return { ok: true };
 }
 
-export async function deleteStimulusAction(projectId: string, studyId: string, stimulusId: string) {
-  await deleteResonanceStimulus(studyId, stimulusId);
+export async function deleteStimulusAction(
+  projectId: string,
+  studyId: string,
+  stimulusId: string,
+): Promise<ActionResult> {
+  try {
+    await deleteResonanceStimulus(studyId, stimulusId);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Stimulus delete failed" };
+  }
   revalidatePath(`/projects/${projectId}/resonance`);
+  return { ok: true };
 }
 
 export async function approveStudyAction(projectId: string, studyId: string): Promise<ActionResult> {
@@ -126,7 +135,14 @@ export async function approveStudyAction(projectId: string, studyId: string): Pr
     revalidatePath(`/projects/${projectId}/resonance`);
     return { ok: true, id: version.id };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Study approval failed" };
+    const message = err instanceof Error ? err.message : "Study approval failed";
+    // A concurrent audit-matrix draft or study approval for the same project
+    // can grab the same next version number under READ COMMITTED; surface a
+    // retry hint instead of the raw Postgres unique-constraint text.
+    if (/matrix_versions_project_version|duplicate key/i.test(message)) {
+      return { ok: false, error: "Another matrix version was created at the same time — reload and approve again." };
+    }
+    return { ok: false, error: message };
   }
 }
 
@@ -157,6 +173,10 @@ export async function updateStimulusFormAction(
   formData: FormData,
 ) {
   unwrap(await updateStimulusAction(projectId, studyId, stimulusId, formData));
+}
+
+export async function deleteStimulusFormAction(projectId: string, studyId: string, stimulusId: string) {
+  unwrap(await deleteStimulusAction(projectId, studyId, stimulusId));
 }
 
 export async function approveStudyFormAction(projectId: string, studyId: string) {

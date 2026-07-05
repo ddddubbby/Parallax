@@ -6,6 +6,8 @@ import {
   addResonanceStimulus,
   approveAndCompileResonanceStudy,
   createResonanceStudy,
+  deleteResonanceStimulus,
+  updateResonanceStimulus,
   updateResonanceStudy,
 } from "@/db/repositories/resonance";
 import {
@@ -114,6 +116,29 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     });
 
     await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/stored audit responses/);
+  });
+
+  it("freezes stimuli once a study is approved (C-4)", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 C4 Freeze");
+    createdStudyIds.push(study.id);
+    await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
+    const [{ id: stimulusId }] = [
+      await addResonanceStimulus({ studyId: study.id, kind: "custom", label: "A", body: "First variant.", evidenceResponseIds: [] }),
+    ];
+    await addResonanceStimulus({ studyId: study.id, kind: "custom", label: "B", body: "Second variant.", evidenceResponseIds: [] });
+
+    const version = await approveAndCompileResonanceStudy(projectId, study.id);
+    createdVersionIds.push(version.id);
+
+    // Server actions are RPC endpoints; the UI 'disabled' is not the guard.
+    await expect(
+      updateResonanceStimulus({ studyId: study.id, stimulusId, kind: "custom", label: "Edited", body: "Rewritten after freeze.", evidenceResponseIds: [] }),
+    ).rejects.toThrow(/frozen/i);
+    await expect(deleteResonanceStimulus(study.id, stimulusId)).rejects.toThrow(/frozen/i);
+    await expect(
+      addResonanceStimulus({ studyId: study.id, kind: "custom", label: "C", body: "Sneaked in after freeze.", evidenceResponseIds: [] }),
+    ).rejects.toThrow(/frozen/i);
   });
 
   it("blocks unconditioned measured_ai by default, then compiles GENERIC studies into simulation cells", async () => {

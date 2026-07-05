@@ -27,7 +27,8 @@ import {
   requeueJob as requeueJobRepo,
   resumeRun as resumeRunRepo,
 } from "@/db/repositories/runner";
-import { embeddingProviderId, extractionProviderId, findExceededDailyBudget, readDailyBudgetUsd } from "@/modules/runner/budget";
+import { findExceededDailyBudget, readDailyBudgetUsd, secondaryProviderIdForKind } from "@/modules/runner/budget";
+import { getResonanceStudyAnchorSetVersion } from "@/db/repositories/resonance";
 import { anchorStatementSets, getSsrAnchorSet } from "@/core/ssr-anchors";
 import { estimateExtractionCostUsd } from "@/providers/deepseek";
 import { estimateOpenAIEmbeddingCostUsd } from "@/providers/openai/embeddings";
@@ -108,12 +109,19 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   const isResonance = version.kind === "resonance";
   const extractionCostPerCall =
     input.runMode === "mock" || isResonance ? EXTRACTION_ENGINE_MOCK_COST_USD : estimateExtractionCostUsd();
+  // Use the study's PINNED anchor set (D-066: future sets differ in statement
+  // count/length) rather than hardcoding v1, so the embedding-cost estimate
+  // tracks the run's real anchor set.
+  const anchorSetVersion =
+    isResonance && version.resonanceStudyId
+      ? (await getResonanceStudyAnchorSetVersion(version.resonanceStudyId)) ?? "purchase_intent.v1"
+      : "purchase_intent.v1";
   const embeddingCostPerCall =
     input.runMode === "mock" || !isResonance
       ? 0
       : estimateOpenAIEmbeddingCostUsd([
           "x".repeat(2_000),
-          ...anchorStatementSets(getSsrAnchorSet("purchase_intent.v1")).flat(),
+          ...anchorStatementSets(getSsrAnchorSet(anchorSetVersion)).flat(),
         ]);
   let projectedCostUsd = 0;
   for (const providerId of input.providers) {
@@ -133,7 +141,7 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   // run paused mid-flight. Providers with no configured budget are omitted.
   const budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number }> = [];
   if (input.runMode !== "mock") {
-    const secondaryProvider = isResonance ? embeddingProviderId() : extractionProviderId();
+    const secondaryProvider = secondaryProviderIdForKind(version.kind);
     for (const providerId of new Set<string>([...input.providers, secondaryProvider])) {
       if (providerId === "mock") continue;
       const budgetUsd = readDailyBudgetUsd(providerId);
@@ -186,11 +194,18 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
   // generation provider AND the extraction engine (D-041) — the latter is
   // the subtle one: without its key, generation succeeds and spends, then
   // every extraction dead-letters and the run yields no usable metrics.
+  // Resolve the run's matrix kind ONCE (was fetched three times across the two
+  // preflights and the cost projection) so the secondary-engine decision can't
+  // desync between the credential and budget checks.
+  const runMatrixVersion =
+    input.runMode !== "mock"
+      ? input.matrixVersionId
+        ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
+        : await getApprovedVersionForRun(projectId)
+      : null;
+  const secondaryProvider = secondaryProviderIdForKind(runMatrixVersion?.kind);
+
   if (input.runMode !== "mock") {
-    const projectionVersion = input.matrixVersionId
-      ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
-      : await getApprovedVersionForRun(projectId);
-    const secondaryProvider = projectionVersion?.kind === "resonance" ? embeddingProviderId() : extractionProviderId();
     const needed = new Set<string>([...input.providers, secondaryProvider]);
     const missing: string[] = [];
     for (const providerId of needed) {
@@ -201,7 +216,7 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
     if (missing.length > 0) {
       return {
         ok: false,
-        error: `No active credential in Settings for: ${missing.join(", ")} — a live run needs a key for every selected provider and the ${projectionVersion?.kind === "resonance" ? "embedding provider" : "extraction engine"} (${secondaryProvider}) before it can spend.`,
+        error: `No active credential in Settings for: ${missing.join(", ")} — a live run needs a key for every selected provider and the ${runMatrixVersion?.kind === "resonance" ? "embedding provider" : "extraction engine"} (${secondaryProvider}) before it can spend.`,
       };
     }
   }
@@ -226,11 +241,6 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
   // over the same provider set the worker checks (selected + extraction
   // engine, D-041).
   if (input.runMode !== "mock") {
-    const secondaryProvider = projection.versionId
-      ? (await getMatrixVersionForRun(projectId, projection.versionId))?.kind === "resonance"
-        ? embeddingProviderId()
-        : extractionProviderId()
-      : extractionProviderId();
     const trip = await findExceededDailyBudget([...input.providers, secondaryProvider]);
     if (trip) {
       return {

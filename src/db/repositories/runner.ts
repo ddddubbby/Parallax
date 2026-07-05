@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import type { EngineModePair } from "@/core/runner";
+import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
 import { db } from "../client";
 import {
   auditRuns,
@@ -617,8 +618,8 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const pid = providerId as (typeof responses.$inferInsert)["providerId"];
-  const extractionEngine = process.env.EXTRACTION_PROVIDER || "deepseek";
-  const embeddingEngine = process.env.EMBEDDING_PROVIDER || "openai";
+  const extractionEngine = extractionProviderId();
+  const embeddingEngine = embeddingProviderId();
 
   const [genRow] = await db
     .select({ total: sql<string>`coalesce(sum(${responses.costUsd}), 0)` })

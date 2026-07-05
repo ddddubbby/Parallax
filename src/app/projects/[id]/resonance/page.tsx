@@ -16,7 +16,7 @@ import {
   createStudyFromTemplateFormAction,
   approveStudyFormAction,
   createStudyFormAction,
-  deleteStimulusAction,
+  deleteStimulusFormAction,
   updateStimulusFormAction,
   updateStudyFormAction,
 } from "@/modules/resonance/actions";
@@ -463,6 +463,11 @@ export default async function ResonancePage({
                             Resolve before approval: {unresolved.join(", ")}
                           </p>
                         )}
+                        {stimulus.kind === "measured_ai" && !study.genericUnconditioned && selected.size === 0 && (
+                          <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
+                            Attach at least one evidence response before approval (C-13), or enable GENERIC on the study.
+                          </p>
+                        )}
                         {evidence.length > 0 && (
                           <div className="mt-3">
                             <span className="label-mono text-xs text-ink/60">Evidence responses</span>
@@ -488,7 +493,7 @@ export default async function ResonancePage({
                             <Button
                               type="submit"
                               variant="danger"
-                              formAction={deleteStimulusAction.bind(null, id, study.id, stimulus.id)}
+                              formAction={deleteStimulusFormAction.bind(null, id, study.id, stimulus.id)}
                             >
                               Delete
                             </Button>
