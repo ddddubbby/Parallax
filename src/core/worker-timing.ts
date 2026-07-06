@@ -1,3 +1,19 @@
+// RN-9: the worker writes a heartbeat run_event on an interval; no heartbeat
+// within 3x that interval while a run needs progressing means the worker
+// process is not running or is hung.
+export const HEARTBEAT_STALE_MS = 90_000;
+
+/**
+ * True when a run is in a state that needs the worker (queued/running) but no
+ * heartbeat has arrived recently — surfaced on the run page so a run that just
+ * sits at 0/N reads as "worker offline" instead of a silent mystery.
+ */
+export function isWorkerLikelyOffline(runState: string, heartbeatAgeMs: number | null): boolean {
+  const needsWorker = runState === "queued" || runState === "running";
+  if (!needsWorker) return false;
+  return heartbeatAgeMs === null || heartbeatAgeMs > HEARTBEAT_STALE_MS;
+}
+
 export interface WorkerTimingConfig {
   staleLockMs: number;
   staleReclaimIntervalMs: number;

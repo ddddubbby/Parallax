@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { resolveWorkerTiming } from "./worker-timing";
+import { HEARTBEAT_STALE_MS, isWorkerLikelyOffline, resolveWorkerTiming } from "./worker-timing";
+
+describe("isWorkerLikelyOffline (RN-9)", () => {
+  it("flags a queued or running run with no recent heartbeat", () => {
+    expect(isWorkerLikelyOffline("queued", null)).toBe(true);
+    expect(isWorkerLikelyOffline("running", null)).toBe(true);
+    expect(isWorkerLikelyOffline("queued", HEARTBEAT_STALE_MS + 1)).toBe(true);
+  });
+
+  it("stays quiet when a heartbeat is recent", () => {
+    expect(isWorkerLikelyOffline("queued", 1_000)).toBe(false);
+    expect(isWorkerLikelyOffline("running", HEARTBEAT_STALE_MS - 1)).toBe(false);
+  });
+
+  it("never flags runs that do not need a worker", () => {
+    for (const state of ["completed", "paused", "failed", "cancelled", "draft"]) {
+      expect(isWorkerLikelyOffline(state, null)).toBe(false);
+    }
+  });
+});
 
 describe("worker timing config (D-039)", () => {
   it("keeps the default provider timeout below the stale-lock window", () => {

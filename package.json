@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:all": "sh scripts/dev-all.sh",
     "build": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static",
     "start": "node .next/standalone/server.js",
     "worker": "tsx src/worker/index.ts",

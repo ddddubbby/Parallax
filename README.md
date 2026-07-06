@@ -36,9 +36,15 @@ pnpm db:seed
 pnpm lint
 pnpm typecheck
 pnpm test
-pnpm dev                     # app, in one terminal
-pnpm worker                  # polling worker, in another — required to process any run
+pnpm dev:all                 # app + polling worker together (what you usually want)
 ```
+
+`pnpm dev:all` runs the Next app and the background worker in one command, so a run
+started in the UI actually executes. On Render these are two always-on services, so
+production behaves the same way. If you only want the UI (no run processing), use
+`pnpm dev` and `pnpm worker` in separate terminals instead — the worker is required
+to process any run. A run started with no worker running shows a WORKER OFFLINE
+banner on its run page.
 
 `pnpm db:migrate` needs a running Postgres at `DATABASE_URL` and applies the tracked migrations in `src/db/migrations`.
 

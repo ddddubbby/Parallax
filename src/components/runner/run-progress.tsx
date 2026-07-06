@@ -23,6 +23,7 @@ interface RunDetail {
   };
   progress: Record<string, number>;
   failureCounts: { succeeded: number; deadLettered: number; cancelled: number };
+  workerOffline?: boolean;
   events: Array<{
     id: string;
     level: string;
@@ -112,6 +113,14 @@ export function RunProgress({
           </Link>
         )}
       </div>
+
+      {detail.workerOffline && (
+        <p className="mb-4 rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
+          WORKER OFFLINE — this run is queued but no worker is processing jobs. Start it with{" "}
+          <code className="font-semibold">pnpm dev:all</code> (app + worker) or run{" "}
+          <code className="font-semibold">pnpm worker</code> in a second terminal. This clears once the worker sends a heartbeat.
+        </p>
+      )}
 
       {pauseReason && (
         <p className="mb-4 rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">

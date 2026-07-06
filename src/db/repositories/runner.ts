@@ -10,6 +10,7 @@ import {
   validateDebugFailureInjection,
 } from "@/core/runner";
 import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
+import { isWorkerLikelyOffline } from "@/core/worker-timing";
 import { db } from "../client";
 import {
   auditRuns,
@@ -838,13 +839,22 @@ export async function getRunMatrixKind(runId: string) {
 export async function getRunDetail(runId: string) {
   const run = await getRun(runId);
   if (!run) return null;
-  const [progress, failureCounts, events, kind] = await Promise.all([
+  const [progress, failureCounts, events, kind, heartbeatRow] = await Promise.all([
     getRunProgress(runId),
     getRunFailureCounts(runId),
     listRunEvents(runId, 30),
     getRunMatrixKind(runId),
+    // RN-9: latest worker heartbeat across all runs — a run that needs the
+    // worker but has no recent heartbeat means the worker process is down.
+    db
+      .select({ at: runEvents.createdAt })
+      .from(runEvents)
+      .where(eq(runEvents.eventType, "worker_heartbeat"))
+      .orderBy(desc(runEvents.createdAt))
+      .limit(1),
   ]);
   const matrixKind: "audit" | "resonance" = kind?.kind === "resonance" ? "resonance" : "audit";
+  const heartbeatAgeMs = heartbeatRow[0] ? Date.now() - new Date(heartbeatRow[0].at).getTime() : null;
   return {
     run: {
       ...run,
@@ -854,6 +864,7 @@ export async function getRunDetail(runId: string) {
     progress,
     failureCounts,
     events,
+    workerOffline: isWorkerLikelyOffline(run.state, heartbeatAgeMs),
   };
 }
 

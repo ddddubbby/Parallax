@@ -8,12 +8,12 @@ import {
   listRecentRunEvents,
 } from "@/db/repositories/debug";
 import { listDeadLetteredExtractions } from "@/db/repositories/extraction";
+import { HEARTBEAT_STALE_MS } from "@/core/worker-timing";
 
 export const dynamic = "force-dynamic";
 
-// RN-9: a run is active but no heartbeat in 3x the interval means the
-// worker process itself is hung or dead (distinct from stale job locks).
-const HEARTBEAT_STALE_MS = 90_000;
+// RN-9 staleness window is shared with the run-page worker-offline banner
+// via src/core/worker-timing.ts (single source of truth).
 
 // AD-1 (jobs + requeue), AD-2 (extraction dead-letters + re-extract), AD-3
 // (run_events tail). AD-4's recompute/fixture-reload live on the run detail
