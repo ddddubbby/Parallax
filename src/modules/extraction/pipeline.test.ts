@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
-import { getEligibleExtractionsForRun, listDeadLetteredExtractions } from "@/db/repositories/extraction";
+import { getEligibleExtractionsForRun, getExtractionProgress, listDeadLetteredExtractions } from "@/db/repositories/extraction";
 import { recomputeMetrics, listMetrics } from "@/db/repositories/metrics";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
 import { claimJobs, createRun, listRunEvents, recordSuccess } from "@/db/repositories/runner";
@@ -20,7 +20,7 @@ import {
   runEvents,
 } from "@/db/schema";
 import { mockProvider } from "@/providers/mock";
-import { extractResponse } from "./service";
+import { extractResponse, reExtractResponse } from "./service";
 
 // M5 acceptance (DEVELOPMENT_GUIDELINES.md F): extraction retry/dead-letter
 // tests, metric recompute idempotency test. DB-backed; self-skips without
@@ -155,6 +155,56 @@ async function processRunToCompletion(runId: string) {
 }
 
 describe.skipIf(!dbUp)("extraction pipeline against the dev database", () => {
+  it("counts only the latest extraction version in progress totals (C-3)", async () => {
+    const projectId = await ensureProject();
+    await ensureFactClaims(projectId);
+    const version = await ensureApprovedVersion(projectId);
+
+    const run = await createRun(
+      {
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        repetitions: 1,
+        providers: ["mock"],
+        modes: ["ungrounded"],
+        costCapUsd: 25,
+        debugFailureInjection: null,
+      },
+      [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }],
+      version.cellCount,
+    );
+    createdRunIds.push(run.id);
+
+    const [job] = await claimJobs("mock", 1);
+    const result = await mockProvider.generate({
+      promptText: job.resolvedText,
+      mode: job.generationMode as "grounded" | "ungrounded",
+      repIndex: job.repIndex,
+    });
+    const responseId = await recordSuccess(job, {
+      modelVersion: result.modelVersion,
+      rawText: result.text,
+      citations: result.citations,
+      tokensIn: result.tokensIn,
+      tokensOut: result.tokensOut,
+      costUsd: result.costUsd,
+      latencyMs: result.latencyMs,
+    });
+    await extractResponse(responseId);
+
+    await db.insert(extractions).values({
+      responseId,
+      extractionVersion: 2,
+      state: "dead_lettered",
+      validationError: "regression latest-version marker",
+    });
+
+    const progress = await getExtractionProgress(run.id);
+    expect(progress.valid ?? 0).toBe(0);
+    expect(progress.dead_lettered).toBe(1);
+  }, 60_000);
+
   it("retries once on validation failure and dead-letters after two failures (SM-2, SM-3)", async () => {
     const projectId = await ensureProject();
     await ensureFactClaims(projectId);
@@ -196,6 +246,45 @@ describe.skipIf(!dbUp)("extraction pipeline against the dev database", () => {
     const eligible = await getEligibleExtractionsForRun(run.id);
     const eligibleIds = new Set(eligible.map((e) => e.extractionId));
     for (const dl of thisRunDeadLetters) expect(eligibleIds.has(dl.id)).toBe(false);
+  }, 60_000);
+
+  it("lists only latest dead-lettered extraction versions in the debug repair table", async () => {
+    const projectId = await ensureProject();
+    await ensureFactClaims(projectId);
+    const version = await ensureApprovedVersion(projectId);
+
+    const run = await createRun(
+      {
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        repetitions: 1,
+        providers: ["mock"],
+        modes: ["ungrounded"],
+        costCapUsd: 25,
+        debugFailureInjection: null,
+      },
+      [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }],
+      version.cellCount,
+    );
+    createdRunIds.push(run.id);
+    await processRunToCompletion(run.id);
+
+    const [response] = await db.select({ id: responses.id }).from(responses).where(eq(responses.runId, run.id)).limit(1);
+    const [current] = await db.select().from(extractions).where(eq(extractions.responseId, response.id)).limit(1);
+    await db
+      .update(extractions)
+      .set({ state: "dead_lettered", validationError: "old failure after repair" })
+      .where(eq(extractions.id, current.id));
+    await db.insert(extractions).values({
+      responseId: response.id,
+      extractionVersion: current.extractionVersion + 1,
+      state: "valid",
+      extractedJson: current.extractedJson,
+    });
+
+    const deadLetters = await listDeadLetteredExtractions(500);
+    expect(deadLetters.filter((row) => row.responseId === response.id)).toEqual([]);
   }, 60_000);
 
   it("recompute is idempotent: same run, same metric rows on repeat (C-3)", async () => {
@@ -240,5 +329,37 @@ describe.skipIf(!dbUp)("extraction pipeline against the dev database", () => {
       expect(secondSorted[i].value).toBeCloseTo(firstSorted[i].value, 6);
       expect(secondSorted[i].n).toBe(firstSorted[i].n);
     }
+  }, 60_000);
+
+  it("rejects debug re-extract when the latest extraction is not dead-lettered", async () => {
+    const projectId = await ensureProject();
+    await ensureFactClaims(projectId);
+    const version = await ensureApprovedVersion(projectId);
+
+    const run = await createRun(
+      {
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        repetitions: 1,
+        providers: ["mock"],
+        modes: ["ungrounded"],
+        costCapUsd: 25,
+        debugFailureInjection: null,
+      },
+      [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }],
+      version.cellCount,
+    );
+    createdRunIds.push(run.id);
+    await processRunToCompletion(run.id);
+
+    const [response] = await db.select({ id: responses.id }).from(responses).where(eq(responses.runId, run.id)).limit(1);
+    expect(response).toBeDefined();
+    const before = await db.select({ id: extractions.id }).from(extractions).where(eq(extractions.responseId, response.id));
+
+    await expect(reExtractResponse(response.id)).rejects.toThrow(/dead-lettered/i);
+
+    const after = await db.select({ id: extractions.id }).from(extractions).where(eq(extractions.responseId, response.id));
+    expect(after).toHaveLength(before.length);
   }, 60_000);
 });

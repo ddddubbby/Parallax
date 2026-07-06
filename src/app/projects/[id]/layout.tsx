@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isUuid } from "@/core/id";
 import { ProjectNextAction } from "@/components/project-next-action";
 import { ProjectSubnav } from "@/components/project-subnav";
 import { getProjectPipelineState, getProjectSummary } from "@/db/repositories/runner";
@@ -11,6 +12,7 @@ export default async function ProjectLayout({
   children: React.ReactNode;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const [project, pipeline] = await Promise.all([getProjectSummary(id), getProjectPipelineState(id)]);
   if (!project) notFound();
 

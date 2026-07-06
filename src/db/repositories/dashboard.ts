@@ -18,10 +18,13 @@ import {
 import {
   getBrandMentionsForExtractions,
   getClaimsForExtractions,
+  getEligibleExtractionForResponse,
   getEligibleExtractionsForRun,
 } from "./extraction";
 
-export async function listCompletedRuns(projectId: string) {
+export async function listCompletedRuns(projectId: string, options: { includePaused?: boolean } = {}) {
+  const states: Array<(typeof auditRuns.$inferSelect)["state"]> =
+    options.includePaused === false ? ["completed"] : ["completed", "paused"];
   return db
     .select({
       id: auditRuns.id,
@@ -36,7 +39,7 @@ export async function listCompletedRuns(projectId: string) {
       and(
         eq(auditRuns.projectId, projectId),
         eq(matrixVersions.kind, "audit"),
-        inArray(auditRuns.state, ["completed", "paused"]),
+        inArray(auditRuns.state, states),
       ),
     )
     .orderBy(desc(auditRuns.createdAt));
@@ -47,11 +50,19 @@ export async function getRunForDashboard(runId: string) {
     .select({ run: auditRuns })
     .from(auditRuns)
     .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
-    .where(and(eq(auditRuns.id, runId), eq(matrixVersions.kind, "audit")));
+    .where(
+      and(
+        eq(auditRuns.id, runId),
+        eq(matrixVersions.kind, "audit"),
+        inArray(auditRuns.state, ["completed", "paused"]),
+      ),
+    );
   return run?.run ?? null;
 }
 
-export async function listCompletedResonanceRuns(projectId: string) {
+export async function listCompletedResonanceRuns(projectId: string, options: { includePaused?: boolean } = {}) {
+  const states: Array<(typeof auditRuns.$inferSelect)["state"]> =
+    options.includePaused === false ? ["completed"] : ["completed", "paused"];
   return db
     .select({
       id: auditRuns.id,
@@ -67,7 +78,7 @@ export async function listCompletedResonanceRuns(projectId: string) {
       and(
         eq(auditRuns.projectId, projectId),
         eq(matrixVersions.kind, "resonance"),
-        inArray(auditRuns.state, ["completed", "paused"]),
+        inArray(auditRuns.state, states),
       ),
     )
     .orderBy(desc(auditRuns.createdAt));
@@ -87,6 +98,10 @@ export async function getProjectBrandNames(projectId: string) {
  * but the original extracted values are always preserved alongside.
  */
 export async function getMisinformationRegister(runId: string) {
+  const eligible = await getEligibleExtractionsForRun(runId);
+  const eligibleExtractionIds = eligible.map((row) => row.extractionId);
+  if (eligibleExtractionIds.length === 0) return [];
+
   const rows = await db
     .select({
       id: claimsFound.id,
@@ -104,9 +119,8 @@ export async function getMisinformationRegister(runId: string) {
     })
     .from(claimsFound)
     .innerJoin(extractions, eq(extractions.id, claimsFound.extractionId))
-    .innerJoin(responses, eq(responses.id, extractions.responseId))
     .leftJoin(factClaims, eq(factClaims.id, claimsFound.factClaimId))
-    .where(eq(responses.runId, runId));
+    .where(inArray(claimsFound.extractionId, eligibleExtractionIds));
 
   return rows.filter((r) => {
     const verdict = r.operatorVerdict ?? r.extractedVerdict;
@@ -127,12 +141,17 @@ type ClaimSeverity = (typeof claimsFound.$inferInsert)["extractedSeverity"];
  * re-extract resets review, which is correct: it produces a new claim.)
  */
 export async function reviewClaim(
+  runId: string,
   claimId: string,
   input:
     | { reviewState: "confirmed" }
     | { reviewState: "corrected"; operatorVerdict: ClaimVerdict; operatorSeverity: ClaimSeverity }
     | { reviewState: "unreviewed" },
 ): Promise<number> {
+  const eligible = await getEligibleExtractionsForRun(runId);
+  const eligibleExtractionIds = eligible.map((row) => row.extractionId);
+  if (eligibleExtractionIds.length === 0) return 0;
+
   const patch =
     input.reviewState === "corrected"
       ? {
@@ -157,11 +176,12 @@ export async function reviewClaim(
             reviewedAt: null,
             updatedAt: new Date(),
           };
-  const updated = await db
-    .update(claimsFound)
-    .set(patch)
-    .where(eq(claimsFound.id, claimId))
-    .returning({ id: claimsFound.id });
+  const scopedClaim = db
+    .select({ id: claimsFound.id })
+    .from(claimsFound)
+    .where(and(eq(claimsFound.id, claimId), inArray(claimsFound.extractionId, eligibleExtractionIds)));
+
+  const updated = await db.update(claimsFound).set(patch).where(inArray(claimsFound.id, scopedClaim)).returning({ id: claimsFound.id });
   return updated.length;
 }
 
@@ -171,7 +191,14 @@ export async function reviewClaim(
  * (D-031), so cited_for_brand_ids are real row ids, not observed names.
  */
 export async function getCitedSources(runId: string) {
-  const eligible = await getEligibleExtractionsForRun(runId);
+  const run = await getRunForDashboard(runId);
+  if (!run) return [];
+  const [eligible, projectBrands] = await Promise.all([
+    getEligibleExtractionsForRun(runId),
+    db.select({ id: brands.id, role: brands.role }).from(brands).where(eq(brands.projectId, run.projectId)),
+  ]);
+  const clientBrandId = projectBrands.find((brand) => brand.role === "client")?.id ?? null;
+  const competitorBrandIds = new Set(projectBrands.filter((brand) => brand.role === "competitor").map((brand) => brand.id));
   const domainCounts = new Map<string, { domain: string; total: number; citesClient: number; citesCompetitor: number; responseIds: Set<string> }>();
 
   for (const e of eligible) {
@@ -191,9 +218,10 @@ export async function getCitedSources(runId: string) {
       const entry = domainCounts.get(citation.domain)!;
       entry.total++;
       entry.responseIds.add(e.responseId);
-      if (citation.cited_for_brand_ids.length > 0) {
-        // Caller resolves which id is the client; this repo layer stays
-        // brand-agnostic and just reports ids cited.
+      if (clientBrandId && citation.cited_for_brand_ids.includes(clientBrandId)) {
+        entry.citesClient++;
+      }
+      if (citation.cited_for_brand_ids.some((id) => competitorBrandIds.has(id))) {
         entry.citesCompetitor++;
       }
     }
@@ -225,11 +253,16 @@ interface DrilldownFilter {
 
 /** DB-2 drill-down (click 1): responses matching a dashboard figure's scope. */
 export async function getResponsesForScope(runId: string, filter: DrilldownFilter, limit = 25) {
-  const cellRows = await db
-    .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId })
-    .from(promptCells)
-    .innerJoin(auditRuns, eq(auditRuns.matrixVersionId, promptCells.matrixVersionId))
-    .where(eq(auditRuns.id, runId));
+  const run = await getRunForDashboard(runId);
+  if (!run) return [];
+
+  const [cellRows, eligible] = await Promise.all([
+    db
+      .select({ id: promptCells.id, intent: promptCells.intent, personaId: promptCells.personaId, marketId: promptCells.marketId })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, run.matrixVersionId)),
+    getEligibleExtractionsForRun(runId),
+  ]);
 
   const matchingCellIds = new Set(
     cellRows
@@ -242,8 +275,17 @@ export async function getResponsesForScope(runId: string, filter: DrilldownFilte
       .map((c) => c.id),
   );
   if (matchingCellIds.size === 0) return [];
+  const scopedEligibleResponseIds = eligible
+    .filter((r) => {
+      if (!matchingCellIds.has(r.cellId)) return false;
+      if (filter.providerId && r.providerId !== filter.providerId) return false;
+      if (filter.mode && r.generationMode !== filter.mode) return false;
+      return true;
+    })
+    .map((r) => r.responseId);
+  if (scopedEligibleResponseIds.length === 0) return [];
 
-  const allResponses = await db
+  return db
     .select({
       id: responses.id,
       cellId: responses.cellId,
@@ -253,21 +295,13 @@ export async function getResponsesForScope(runId: string, filter: DrilldownFilte
       createdAt: responses.createdAt,
     })
     .from(responses)
-    .where(eq(responses.runId, runId));
-
-  return allResponses
-    .filter((r) => {
-      if (!matchingCellIds.has(r.cellId)) return false;
-      if (filter.providerId && r.providerId !== filter.providerId) return false;
-      if (filter.mode && r.generationMode !== filter.mode) return false;
-      return true;
-    })
-    .slice(0, limit);
+    .where(and(eq(responses.runId, runId), inArray(responses.id, scopedEligibleResponseIds)))
+    .limit(limit);
 }
 
 /** TP-4: metric-specific drill-through to eligible responses behind a dashboard metric. */
 export async function getResponsesForMetric(runId: string, filter: DrilldownFilter & { metricKey: string }, limit = 25) {
-  const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
+  const run = await getRunForDashboard(runId);
   if (!run) return [];
 
   const [projectBrands, eligible, cellRows] = await Promise.all([
@@ -367,8 +401,12 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
 }
 
 /** DB-2 drill-down (click 1) for cited sources: the specific responses that cited a domain. */
-export async function getResponsesByIds(responseIds: string[]) {
+export async function getResponsesByIds(runId: string, responseIds: string[]) {
   if (responseIds.length === 0) return [];
+  const eligible = await getEligibleExtractionsForRun(runId);
+  const eligibleResponseIds = new Set(eligible.map((row) => row.responseId));
+  const scopedResponseIds = responseIds.filter((id) => eligibleResponseIds.has(id));
+  if (scopedResponseIds.length === 0) return [];
   return db
     .select({
       id: responses.id,
@@ -379,20 +417,32 @@ export async function getResponsesByIds(responseIds: string[]) {
       createdAt: responses.createdAt,
     })
     .from(responses)
-    .where(inArray(responses.id, responseIds));
+    .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(and(eq(responses.runId, runId), inArray(responses.id, scopedResponseIds), eq(matrixVersions.kind, "audit")));
 }
 
 /** DB-2 drill-down (click 2): full raw text + resolved extraction for one response. */
-export async function getResponseDetail(responseId: string) {
-  const [response] = await db.select().from(responses).where(eq(responses.id, responseId));
-  if (!response) return null;
-  const [extraction] = await db
-    .select()
-    .from(extractions)
-    .where(eq(extractions.responseId, responseId))
-    .orderBy(desc(extractions.extractionVersion))
-    .limit(1);
-  return { response, extraction: extraction ?? null };
+export async function getResponseDetail(runId: string, responseId: string) {
+  const [responseRow] = await db
+    .select({ response: responses })
+    .from(responses)
+    .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    // Match getRunForDashboard: dashboard loaders never surface an in-progress
+    // (running/queued) run's data — only completed/paused are inspectable.
+    .where(
+      and(
+        eq(responses.runId, runId),
+        eq(responses.id, responseId),
+        eq(matrixVersions.kind, "audit"),
+        inArray(auditRuns.state, ["completed", "paused"]),
+      ),
+    );
+  if (!responseRow) return null;
+  const extraction = await getEligibleExtractionForResponse(runId, responseId);
+  if (!extraction) return null;
+  return { response: responseRow.response, extraction };
 }
 
 function eligibleMatchesDrilldownScope(

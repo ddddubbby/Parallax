@@ -4,6 +4,7 @@ import { createGoogleProvider } from "./google";
 import { mockProvider } from "./mock";
 import { createOpenAIProvider } from "./openai";
 import { createPerplexityProvider } from "./perplexity";
+import { ProviderCallError } from "./shared";
 import type { LLMProvider, ProviderId } from "./types";
 
 // Plain registry map (A2: no provider strategy factory until a real second
@@ -14,13 +15,25 @@ import type { LLMProvider, ProviderId } from "./types";
 // since none of those touch the network. generate() must never be called
 // on THESE instances; the worker resolves a real, decrypted-credential
 // instance per call via resolveRuntimeProvider (modules/runner/provider-resolver.ts).
+function metadataOnly(provider: LLMProvider): LLMProvider {
+  return {
+    ...provider,
+    async generate() {
+      throw new ProviderCallError(
+        "unsupported_mode",
+        `Provider registry entry "${provider.id}" is metadata-only; use resolveRuntimeProvider for live calls (C-11/C-7)`,
+      );
+    },
+  };
+}
+
 const registry: Partial<Record<ProviderId, LLMProvider>> = {
   mock: mockProvider,
-  deepseek: createDeepSeekProvider({ apiKey: "" }),
-  openai: createOpenAIProvider({ apiKey: "" }),
-  anthropic: createAnthropicProvider({ apiKey: "" }),
-  google: createGoogleProvider({ apiKey: "" }),
-  perplexity: createPerplexityProvider({ apiKey: "" }),
+  deepseek: metadataOnly(createDeepSeekProvider({ apiKey: "" })),
+  openai: metadataOnly(createOpenAIProvider({ apiKey: "" })),
+  anthropic: metadataOnly(createAnthropicProvider({ apiKey: "" })),
+  google: metadataOnly(createGoogleProvider({ apiKey: "" })),
+  perplexity: metadataOnly(createPerplexityProvider({ apiKey: "" })),
 };
 
 export function getProvider(id: ProviderId): LLMProvider | undefined {

@@ -24,7 +24,7 @@ async function ensureApprovedVersion(projectId: string): Promise<string> {
   const [approved] = await db
     .select({ id: matrixVersions.id })
     .from(matrixVersions)
-    .where(and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.state, "approved")));
+    .where(and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.kind, "audit"), eq(matrixVersions.state, "approved")));
   if (approved) return approved.id;
 
   const inputs = await getMatrixInputs(projectId);
@@ -75,26 +75,44 @@ async function main() {
   const [existing] = await db
     .select({ id: auditRuns.id })
     .from(auditRuns)
-    .where(and(eq(auditRuns.projectId, demo.id), eq(auditRuns.runMode, "mock"), eq(auditRuns.state, "completed")));
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        eq(auditRuns.projectId, demo.id),
+        eq(auditRuns.runMode, "mock"),
+        eq(auditRuns.state, "completed"),
+        eq(matrixVersions.kind, "audit"),
+        eq(matrixVersions.id, versionId),
+      ),
+    );
 
   let runId: string;
   if (existing) {
     runId = existing.id;
     console.log(`[demo] reusing completed mock run ${runId.slice(0, 8)}`);
   } else {
+    const [version] = await db
+      .select({ cellCount: matrixVersions.cellCount })
+      .from(matrixVersions)
+      .where(eq(matrixVersions.id, versionId));
+    if (!version) throw new Error(`matrix version ${versionId} not found`);
+    const repetitions = 5;
+    const providers = ["mock"];
+    const modes: ("ungrounded")[] = ["ungrounded"];
+    const plannedCalls = version.cellCount * providers.length * modes.length * repetitions;
     const created = await createRun(
       {
         projectId: demo.id,
         matrixVersionId: versionId,
         runMode: "mock",
-        repetitions: 5,
-        providers: ["mock"],
-        modes: ["ungrounded"],
+        repetitions,
+        providers,
+        modes,
         costCapUsd: 25,
         debugFailureInjection: null,
       },
       [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }],
-      0,
+      plannedCalls,
     );
     runId = created.id;
     console.log(`[demo] created mock run ${runId.slice(0, 8)} — spawning worker ($0)`);

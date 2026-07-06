@@ -84,9 +84,10 @@ describe("OpenAI adapter (Responses API)", () => {
   });
 
   it("maps a 401 through the shared HTTP classifier", async () => {
-    stubFetch({ error: "bad key" }, 401);
+    stubFetch({ error: "debug echo Authorization: Bearer sk-test" }, 401);
     await expect(createOpenAIProvider(CREDS).generate({ promptText: "x", mode: "ungrounded" })).rejects.toMatchObject({
       errorType: "auth_error",
+      message: "OpenAI returned HTTP 401 (auth_error)",
     });
   });
 });
@@ -115,6 +116,21 @@ describe("OpenAI embedding adapter", () => {
     expect(url).toBe("https://api.openai.com/v1/embeddings");
     const requestBody = JSON.parse((spy.mock.calls[0][1] as RequestInit).body as string);
     expect(requestBody).toMatchObject({ model: "text-embedding-3-small", input: ["buyer reaction", "anchor sentence"] });
+  });
+
+  it("does not reuse the OpenAI generation model override for embeddings", async () => {
+    const spy = stubFetch({
+      data: [{ index: 0, embedding: [1, 0, 0] }],
+      usage: { total_tokens: 4 },
+      model: "text-embedding-3-small",
+    });
+    const provider = createOpenAIEmbeddingProvider({ ...CREDS, defaultModel: "gpt-5.5" });
+    expect(provider.defaultModel).toBe("text-embedding-3-small");
+
+    await provider.embed({ texts: ["buyer reaction"] });
+
+    const requestBody = JSON.parse((spy.mock.calls[0][1] as RequestInit).body as string);
+    expect(requestBody.model).toBe("text-embedding-3-small");
   });
 });
 

@@ -1,5 +1,5 @@
 import "../../env-bootstrap";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, max } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { db, pool } from "@/db/client";
 import {
@@ -7,6 +7,7 @@ import {
   approveAndCompileResonanceStudy,
   createResonanceStudy,
   deleteResonanceStimulus,
+  getResonanceStudyResults,
   updateResonanceStimulus,
   updateResonanceStudy,
 } from "@/db/repositories/resonance";
@@ -24,10 +25,15 @@ import {
   runEvents,
 } from "@/db/schema";
 import { extractResponse } from "@/modules/extraction/service";
+import { deleteStimulusAction } from "@/modules/resonance/actions";
+import { computeFindings, generateReport } from "@/modules/report/service";
 import { createRun, projectRunCost } from "@/modules/runner/actions";
-import { completeRun, getRun, isRunFinished, recordSuccess } from "@/db/repositories/runner";
+import { completeRun, getRun, isRunFinished, listRunEvents, recordSuccess } from "@/db/repositories/runner";
 import { listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import { mockProvider } from "@/providers/mock";
+import { scoreResponse } from "@/modules/resonance/scoring";
+import { CredentialConfigError } from "@/modules/settings/crypto";
+import type { EmbeddingProvider } from "@/providers/types";
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
@@ -78,7 +84,18 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const study = await createResonanceStudy(projectId, "M20 Placeholder Rejection");
     createdStudyIds.push(study.id);
     await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
+    await expect(
+      addResonanceStimulus({
+        projectId: "00000000-0000-4000-8000-000000000000",
+        studyId: study.id,
+        kind: "custom",
+        label: "Wrong project",
+        body: "This must not attach across projects.",
+        evidenceResponseIds: [],
+      }),
+    ).rejects.toThrow(/not found/i);
     await addResonanceStimulus({
+      projectId,
       studyId: study.id,
       kind: "custom",
       label: "Variant A",
@@ -86,6 +103,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       evidenceResponseIds: [],
     });
     await addResonanceStimulus({
+      projectId,
       studyId: study.id,
       kind: "custom",
       label: "Variant B",
@@ -101,6 +119,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const study = await createResonanceStudy(projectId, "M20 C13 Missing Evidence");
     createdStudyIds.push(study.id);
     await addResonanceStimulus({
+      projectId,
       studyId: study.id,
       kind: "measured_ai",
       label: "Measured AI framing",
@@ -108,10 +127,147 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       evidenceResponseIds: ["00000000-0000-4000-8000-000000000000"],
     });
     await addResonanceStimulus({
+      projectId,
       studyId: study.id,
       kind: "corrected",
       label: "Corrected framing",
       body: "LedgerFox is described with clearer proof.",
+      evidenceResponseIds: [],
+    });
+
+    await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/stored audit responses/);
+  });
+
+  it("rejects malformed measured_ai evidence ids at the repository boundary (C-13)", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 C13 Malformed Evidence");
+    createdStudyIds.push(study.id);
+
+    await expect(
+      addResonanceStimulus({
+        projectId,
+        studyId: study.id,
+        kind: "measured_ai",
+        label: "Measured AI framing",
+        body: "LedgerFox is described as easy to implement.",
+        evidenceResponseIds: ["not-a-response-id"],
+      }),
+    ).rejects.toThrow(/UUID strings/);
+  });
+
+  it("rejects corrupted stored evidence id JSON before compiling a study (C-13)", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 C13 Corrupted Evidence JSON");
+    createdStudyIds.push(study.id);
+    const stimulus = await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "measured_ai",
+      label: "Measured AI framing",
+      body: "LedgerFox is described as easy to implement.",
+      evidenceResponseIds: [],
+    });
+    await db
+      .update(resonanceStimuli)
+      .set({ evidenceResponseIdsJson: { bad: "json-shape" } })
+      .where(eq(resonanceStimuli.id, stimulus.id));
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "corrected",
+      label: "Corrected framing",
+      body: "LedgerFox is described with clearer proof.",
+      evidenceResponseIds: [],
+    });
+
+    await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/stored as an array/);
+  });
+
+  it("rejects measured_ai evidence ids from incomplete audit runs (C-13)", async () => {
+    const projectId = await demoProjectId();
+    const [{ latest }] = await db
+      .select({ latest: max(matrixVersions.version) })
+      .from(matrixVersions)
+      .where(eq(matrixVersions.projectId, projectId));
+    const [version] = await db
+      .insert(matrixVersions)
+      .values({
+        projectId,
+        version: (latest ?? 0) + 1,
+        state: "approved",
+        kind: "audit",
+        cellCount: 1,
+        approvedAt: new Date(),
+      })
+      .returning({ id: matrixVersions.id });
+    createdVersionIds.push(version.id);
+    const [cell] = await db
+      .insert(promptCells)
+      .values({
+        matrixVersionId: version.id,
+        intent: "discovery",
+        variantKey: "c13-incomplete",
+        resolvedText: "What AI tools are recommended for finance operations?",
+        competitorOrderJson: [],
+      })
+      .returning({ id: promptCells.id });
+
+    const [run] = await db
+      .insert(auditRuns)
+      .values({
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        state: "running",
+        repetitions: 1,
+        selectedProvidersJson: ["mock"],
+        selectedModesJson: ["ungrounded"],
+        plannedCalls: 1,
+        costCapUsd: "1",
+      })
+      .returning({ id: auditRuns.id });
+    createdRunIds.push(run.id);
+
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        runId: run.id,
+        cellId: cell.id,
+        providerId: "mock",
+        generationMode: "ungrounded",
+        repIndex: 0,
+        state: "succeeded",
+      })
+      .returning({ id: jobs.id });
+    const [response] = await db
+      .insert(responses)
+      .values({
+        jobId: job.id,
+        runId: run.id,
+        cellId: cell.id,
+        providerId: "mock",
+        generationMode: "ungrounded",
+        modelVersion: "mock-incomplete-audit",
+        rawText: "Draft evidence from an audit run that has not completed.",
+      })
+      .returning({ id: responses.id });
+
+    const study = await createResonanceStudy(projectId, "M20 C13 Incomplete Evidence");
+    createdStudyIds.push(study.id);
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "measured_ai",
+      label: "Measured AI framing",
+      body: "LedgerFox is described before the run is complete.",
+      evidenceResponseIds: [response.id],
+    });
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "corrected",
+      label: "Corrected framing",
+      body: "LedgerFox is described with completed evidence only.",
       evidenceResponseIds: [],
     });
 
@@ -124,21 +280,61 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     createdStudyIds.push(study.id);
     await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
     const [{ id: stimulusId }] = [
-      await addResonanceStimulus({ studyId: study.id, kind: "custom", label: "A", body: "First variant.", evidenceResponseIds: [] }),
+      await addResonanceStimulus({ projectId, studyId: study.id, kind: "custom", label: "A", body: "First variant.", evidenceResponseIds: [] }),
     ];
-    await addResonanceStimulus({ studyId: study.id, kind: "custom", label: "B", body: "Second variant.", evidenceResponseIds: [] });
+    await addResonanceStimulus({ projectId, studyId: study.id, kind: "custom", label: "B", body: "Second variant.", evidenceResponseIds: [] });
 
     const version = await approveAndCompileResonanceStudy(projectId, study.id);
     createdVersionIds.push(version.id);
 
     // Server actions are RPC endpoints; the UI 'disabled' is not the guard.
     await expect(
-      updateResonanceStimulus({ studyId: study.id, stimulusId, kind: "custom", label: "Edited", body: "Rewritten after freeze.", evidenceResponseIds: [] }),
+      updateResonanceStimulus({ projectId, studyId: study.id, stimulusId, kind: "custom", label: "Edited", body: "Rewritten after freeze.", evidenceResponseIds: [] }),
     ).rejects.toThrow(/frozen/i);
-    await expect(deleteResonanceStimulus(study.id, stimulusId)).rejects.toThrow(/frozen/i);
+    await expect(deleteResonanceStimulus(projectId, study.id, stimulusId)).rejects.toThrow(/frozen/i);
     await expect(
-      addResonanceStimulus({ studyId: study.id, kind: "custom", label: "C", body: "Sneaked in after freeze.", evidenceResponseIds: [] }),
+      addResonanceStimulus({ projectId, studyId: study.id, kind: "custom", label: "C", body: "Sneaked in after freeze.", evidenceResponseIds: [] }),
     ).rejects.toThrow(/frozen/i);
+  });
+
+  it("rejects duplicate panel persona keys before compile because persona metric scopes use the key", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 Duplicate Persona Keys");
+    createdStudyIds.push(study.id);
+
+    await expect(
+      updateResonanceStudy(projectId, study.id, {
+        genericUnconditioned: true,
+        panelPersonas: [
+          {
+            key: "p1",
+            label: "Primary buyer",
+            ageBand: "35-44",
+            incomeBand: "$100k-$150k",
+            locationContext: "United States",
+            behavioralProfile: "researches carefully",
+          },
+          {
+            key: "p1",
+            label: "Duplicate buyer",
+            ageBand: "45-54",
+            incomeBand: "$150k-$200k",
+            locationContext: "United States",
+            behavioralProfile: "compares vendors",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/unique/i);
+  });
+
+  it("reports a missing stimulus delete as an action error", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 Delete Missing Stimulus");
+    createdStudyIds.push(study.id);
+
+    const result = await deleteStimulusAction(projectId, study.id, "00000000-0000-4000-8000-000000000000");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("not found");
   });
 
   it("blocks unconditioned measured_ai by default, then compiles GENERIC studies into simulation cells", async () => {
@@ -146,6 +342,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const study = await createResonanceStudy(projectId, "M17 Compiler E2E");
     createdStudyIds.push(study.id);
     await addResonanceStimulus({
+      projectId,
       studyId: study.id,
       kind: "measured_ai",
       label: "Measured AI framing",
@@ -153,6 +350,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       evidenceResponseIds: [],
     });
     await addResonanceStimulus({
+      projectId,
       studyId: study.id,
       kind: "corrected",
       label: "Corrected framing",
@@ -178,8 +376,8 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
 
     const multi = await projectRunCost(projectId, {
       matrixVersionId: version.id,
-      runMode: "mock",
-      providers: ["mock", "deepseek"],
+      runMode: "live_validation",
+      providers: ["deepseek", "openai"],
       modes: ["ungrounded"],
       repetitions: 1,
       costCapUsd: 1,
@@ -256,11 +454,72 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       expect(payload.meanScore).toBeLessThanOrEqual(5);
     }
 
+    const refreshedResults = await getResonanceStudyResults(projectId, study.id, run.runId, { refreshMetrics: true });
+    expect(refreshedResults?.variants.length).toBeGreaterThan(0);
+    expect(refreshedResults?.variants.every((variant) => variant.pmf.reduce((sum, value) => sum + value, 0) > 0.999)).toBe(true);
+
     const rowCount = await recomputeMetrics(run.runId);
     expect(rowCount).toBe(5);
     const first = await listMetrics(run.runId);
     expect(first.every((row) => row.scopeType.startsWith("resonance_"))).toBe(true);
     expect(first.some((row) => row.scopeType === "resonance_delta" && row.metricKey === "delta_pi_mean")).toBe(true);
+    const deltaMetric = first.find((row) => row.scopeType === "resonance_delta" && row.metricKey === "delta_pi_mean");
+    if (!deltaMetric) throw new Error("expected resonance delta metric");
+    expect(deltaMetric.metadataJson).toMatchObject({ baselineStimulusId: expect.any(String), directionalOnly: true });
+    const results = await getResonanceStudyResults(projectId, study.id, run.runId);
+    expect(results?.deltas[0]?.directionalOnly).toBe(true);
+    await db
+      .update(metrics)
+      .set({ metadataJson: { ...(deltaMetric.metadataJson as Record<string, unknown>), directionalOnly: false } })
+      .where(eq(metrics.id, deltaMetric.id));
+    const overriddenResults = await getResonanceStudyResults(projectId, study.id, run.runId);
+    expect(overriddenResults?.deltas[0]?.directionalOnly).toBe(false);
+    const personaMetric = first.find(
+      (row) => row.scopeType === "resonance_variant_persona" && row.metricKey === "pi_mean",
+    );
+    if (!personaMetric) throw new Error("expected resonance persona metric");
+    await db
+      .update(metrics)
+      .set({ metadataJson: { ...(personaMetric.metadataJson as Record<string, unknown>), directionalOnly: false } })
+      .where(eq(metrics.id, personaMetric.id));
+    const personaResults = await getResonanceStudyResults(projectId, study.id, run.runId);
+    expect(personaResults?.personaRows.every((row) => row.directionalOnly)).toBe(true);
+    const variantMetric = first.find(
+      (row) => row.scopeType === "resonance_variant" && row.metricKey === "pi_mean" && row.scopeKey === deltaMetric.scopeKey,
+    );
+    if (!variantMetric) throw new Error("expected resonance variant metric");
+    await db
+      .update(metrics)
+      .set({ metadataJson: { ...(variantMetric.metadataJson as Record<string, unknown>), pmf: [1, 1, 1, 1, 1] } })
+      .where(eq(metrics.id, variantMetric.id));
+    const invalidPmfResults = await getResonanceStudyResults(projectId, study.id, run.runId);
+    expect(invalidPmfResults?.variants.some((variant) => variant.stimulusId === variantMetric.scopeKey)).toBe(false);
+    expect(invalidPmfResults?.deltas.some((delta) => delta.stimulusId === variantMetric.scopeKey)).toBe(false);
+
+    const [variantResponse] = responseRows.filter((response) => response.cellId === jobRows.find((job) => job.cellId)?.cellId);
+    const [variantExtraction] = await db
+      .select()
+      .from(extractions)
+      .where(eq(extractions.responseId, variantResponse.id))
+      .limit(1);
+    const originalExtractedJson = variantExtraction.extractedJson;
+    await db
+      .update(extractions)
+      .set({ extractedJson: { ...(variantExtraction.extractedJson as Record<string, unknown>), meanScore: 99 } })
+      .where(eq(extractions.id, variantExtraction.id));
+    await recomputeMetrics(run.runId);
+    const inconsistentMeanMetrics = await listMetrics(run.runId);
+    expect(inconsistentMeanMetrics.every((row) => row.n < responseRows.length)).toBe(true);
+
+    const inconsistentMeanResults = await getResonanceStudyResults(projectId, study.id, run.runId);
+    const responseIdsInResults = inconsistentMeanResults?.variants.flatMap((variant) =>
+      variant.responses.map((response) => response.responseId),
+    ) ?? [];
+    expect(responseIdsInResults).not.toContain(variantResponse.id);
+    await db
+      .update(extractions)
+      .set({ extractedJson: originalExtractedJson })
+      .where(eq(extractions.id, variantExtraction.id));
     await recomputeMetrics(run.runId);
     const second = await listMetrics(run.runId);
     const stableShape = (row: (typeof first)[number]) => ({
@@ -274,6 +533,96 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       metadataJson: row.metadataJson,
     });
     expect(second.map(stableShape).sort(sortMetric)).toEqual(first.map(stableShape).sort(sortMetric));
+    await expect(computeFindings(run.runId)).rejects.toThrow(/resonance run/i);
+    await expect(generateReport(run.runId)).resolves.toMatchObject({ ok: false });
+  });
+
+  it("pauses live SSR scoring on credential encryption config errors instead of dead-lettering", async () => {
+    const projectId = await demoProjectId();
+    const study = await createResonanceStudy(projectId, "M20 SSR Config Pause");
+    createdStudyIds.push(study.id);
+    await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "custom",
+      label: "Baseline",
+      body: "Baseline framing.",
+      evidenceResponseIds: [],
+    });
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "corrected",
+      label: "Variant",
+      body: "Improved framing.",
+      evidenceResponseIds: [],
+    });
+    const version = await approveAndCompileResonanceStudy(projectId, study.id);
+    createdVersionIds.push(version.id);
+    const [cell] = await db.select({ id: promptCells.id }).from(promptCells).where(eq(promptCells.matrixVersionId, version.id)).limit(1);
+
+    const [run] = await db
+      .insert(auditRuns)
+      .values({
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "live_validation",
+        state: "running",
+        repetitions: 1,
+        selectedProvidersJson: ["openai"],
+        selectedModesJson: ["ungrounded"],
+        plannedCalls: 1,
+        costCapUsd: "1",
+      })
+      .returning({ id: auditRuns.id });
+    createdRunIds.push(run.id);
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        runId: run.id,
+        cellId: cell.id,
+        providerId: "openai",
+        generationMode: "ungrounded",
+        repIndex: 0,
+        state: "running",
+      })
+      .returning({
+        id: jobs.id,
+        runId: jobs.runId,
+        cellId: jobs.cellId,
+        providerId: jobs.providerId,
+        generationMode: jobs.generationMode,
+      });
+    const responseId = await recordSuccess(job, {
+      modelVersion: "openai-test",
+      rawText: "Synthetic panel reaction text.",
+      citations: [],
+      tokensIn: 10,
+      tokensOut: 5,
+      costUsd: 0.001,
+      latencyMs: 5,
+    });
+
+    const brokenProvider: EmbeddingProvider = {
+      providerId: "openai",
+      displayName: "OpenAI",
+      defaultModel: "text-embedding-3-small",
+      embed: async () => {
+        throw new CredentialConfigError("CREDENTIALS_ENCRYPTION_KEY is not set");
+      },
+      estimateCostUsd: () => 0,
+    };
+
+    const result = await scoreResponse(responseId, brokenProvider);
+    expect(result).toMatchObject({ outcome: "skipped", attempts: 1 });
+    const [extraction] = await db.select().from(extractions).where(eq(extractions.responseId, responseId)).limit(1);
+    expect(extraction.state).toBe("retrying");
+    expect(extraction.validationError).toContain("CREDENTIALS_ENCRYPTION_KEY");
+    const paused = await getRun(run.id);
+    expect(paused?.state).toBe("paused");
+    const events = await listRunEvents(run.id, 50);
+    expect(events.some((event) => event.eventType === "worker_config_error")).toBe(true);
   });
 });
 

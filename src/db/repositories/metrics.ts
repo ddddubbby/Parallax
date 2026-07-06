@@ -15,6 +15,7 @@ import {
   type Sentiment,
   shareOfVoice,
 } from "@/core/metrics";
+import { pmfMean } from "@/core/ssr";
 import { stabilityIndex, topTrackedBrandSet, type ExtractedBrand } from "@/core/extraction";
 import { containsPhrase, normalizePhrase } from "@/core/intake";
 import type { Intent } from "@/core/matrix";
@@ -376,14 +377,17 @@ function readSsrPayload(payload: unknown): { pmf: number[]; meanScore: number } 
   const parsed = payload as SsrPayload | null;
   if (!parsed || parsed.kind !== "ssr") return null;
   if (!Array.isArray(parsed.pmf) || parsed.pmf.length !== 5) return null;
-  if (parsed.pmf.some((value) => typeof value !== "number" || !Number.isFinite(value))) return null;
+  if (parsed.pmf.some((value) => typeof value !== "number" || !Number.isFinite(value) || value < 0)) return null;
+  const pmfSum = parsed.pmf.reduce((sum, value) => sum + value, 0);
   // Match the results-surface eligibility in repositories/resonance.ts: an
-  // all-zero PMF is not a real distribution. Without this, recompute counted
-  // it in the variant's n/mean while the evidence list excluded it, so a
-  // variant card's n could disagree with its evidence count.
-  if (parsed.pmf.every((value) => value === 0)) return null;
+  // invalid PMF is not a real distribution. Without this, recompute can count
+  // a row that the result reader later suppresses, so a variant card's n could
+  // disagree with its evidence count.
+  if (pmfSum <= 0 || Math.abs(pmfSum - 1) > 1e-6) return null;
   if (typeof parsed.meanScore !== "number" || !Number.isFinite(parsed.meanScore)) return null;
-  return { pmf: parsed.pmf, meanScore: parsed.meanScore };
+  const expectedMean = pmfMean(parsed.pmf);
+  if (Math.abs(parsed.meanScore - expectedMean) > 1e-6) return null;
+  return { pmf: parsed.pmf, meanScore: expectedMean };
 }
 
 function averagePmf(pmfs: number[][]): number[] {
@@ -508,18 +512,24 @@ async function recomputeResonanceMetrics(runId: string) {
   const baselineStimulusId = studyRow?.baselineStimulusId ?? measuredBaseline ?? fallbackBaseline ?? null;
   const baselineMean = baselineStimulusId ? stimulusMeans.get(baselineStimulusId) : undefined;
   if (baselineStimulusId && baselineMean !== undefined) {
+    const baselineN = byStimulus.get(baselineStimulusId)?.length ?? 0;
+    const baselineSufficientN = baselineN >= 30;
     for (const [stimulusId, value] of stimulusMeans) {
       if (stimulusId === baselineStimulusId) continue;
+      const variantN = byStimulus.get(stimulusId)?.length ?? 0;
       rows.push({
         runId,
         scopeType: "resonance_delta",
         scopeKey: stimulusId,
         metricKey: "delta_pi_mean",
-        n: byStimulus.get(stimulusId)?.length ?? 0,
+        n: variantN,
         value: value - baselineMean,
         ciLow: null,
         ciHigh: null,
-        metadataJson: { baselineStimulusId },
+        metadataJson: {
+          baselineStimulusId,
+          directionalOnly: !(variantN >= 30 && baselineSufficientN),
+        },
       });
     }
   }

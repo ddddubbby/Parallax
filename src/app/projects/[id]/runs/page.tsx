@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
+import { isUuid } from "@/core/id";
 import { getProjectSummary, listRunsWithProgress } from "@/db/repositories/runner";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function RunsIndexPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const project = await getProjectSummary(id);
   if (!project) notFound();
   const runs = await listRunsWithProgress(id);

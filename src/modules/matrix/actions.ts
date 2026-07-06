@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
+import { isUuid } from "@/core/id";
+import { findAliasOverlaps } from "@/core/intake";
 import {
   allocateMatrix,
   type BrandTerms,
   type Intent,
+  isAuditIntent,
   type MatrixContext,
   renderTemplate,
   scanUnbrandedCells,
@@ -27,6 +30,10 @@ type ActionResult =
   | { ok: true; versionId?: string }
   | { ok: false; error: string };
 
+function validIds(...ids: string[]) {
+  return ids.every(isUuid);
+}
+
 async function loadContext(projectId: string) {
   const inputs = await getMatrixInputs(projectId);
   if (!inputs || !inputs.client) return null;
@@ -46,7 +53,15 @@ async function loadContext(projectId: string) {
   return { ...inputs, ctx };
 }
 
+function aliasOverlapError(brands: BrandTerms[]) {
+  const overlaps = findAliasOverlaps(brands);
+  if (overlaps.length === 0) return null;
+  const first = overlaps[0];
+  return `BC-3 alias overlap — "${first.value}" is tracked on both ${first.brands[0]} and ${first.brands[1]}${overlaps.length > 1 ? ` (+${overlaps.length - 1} more)` : ""}`;
+}
+
 export async function generateMatrix(projectId: string): Promise<ActionResult> {
+  if (!validIds(projectId)) return { ok: false, error: "Invalid id" };
   const loaded = await loadContext(projectId);
   if (!loaded) return { ok: false, error: "Project intake is not complete" };
   if (loaded.project.status !== "active")
@@ -55,6 +70,8 @@ export async function generateMatrix(projectId: string): Promise<ActionResult> {
     return { ok: false, error: "Personas and markets are required" };
   if (loaded.templates.length === 0)
     return { ok: false, error: "No active prompt templates seeded" };
+  const overlapError = aliasOverlapError([loaded.ctx.clientBrand, ...loaded.ctx.competitors]);
+  if (overlapError) return { ok: false, error: overlapError };
 
   const cells = allocateMatrix(
     loaded.templates as Parameters<typeof allocateMatrix>[0],
@@ -63,7 +80,12 @@ export async function generateMatrix(projectId: string): Promise<ActionResult> {
     loaded.ctx,
   );
   if (cells.length === 0) return { ok: false, error: "Allocator produced no cells" };
-  const version = await createDraftVersion(projectId, cells);
+  let version: Awaited<ReturnType<typeof createDraftVersion>>;
+  try {
+    version = await createDraftVersion(projectId, cells);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Matrix generation failed" };
+  }
   revalidatePath(`/projects/${projectId}/matrix`);
   return { ok: true, versionId: version.id };
 }
@@ -74,8 +96,10 @@ export async function addCell(
   versionId: string,
   intent: Intent,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, versionId)) return { ok: false, error: "Invalid id" };
+  if (!isAuditIntent(intent)) return { ok: false, error: "Unknown audit intent" };
   const loaded = await loadContext(projectId);
-  const existing = await getVersionWithCells(versionId);
+  const existing = await getVersionWithCells(versionId, projectId);
   if (!loaded || !existing) return { ok: false, error: "Not found" };
   if (existing.cells.length >= MAX_CELLS_PER_RUN)
     return { ok: false, error: `Cap reached: a run processes at most ${MAX_CELLS_PER_RUN} cells (C-1)` };
@@ -97,19 +121,23 @@ export async function addCell(
           intent === "comparison"
             ? shuffle(loaded.ctx.competitors.map((c) => c.name), Math.random)
             : [];
-        await insertCell(versionId, {
-          intent,
-          personaId: persona.id,
-          marketId: market.id,
-          variantKey: template.variantKey,
-          resolvedText: renderTemplate(template.templateText, {
-            persona,
-            market,
-            ctx: loaded.ctx,
+        try {
+          await insertCell(versionId, {
+            intent,
+            personaId: persona.id,
+            marketId: market.id,
+            variantKey: template.variantKey,
+            resolvedText: renderTemplate(template.templateText, {
+              persona,
+              market,
+              ctx: loaded.ctx,
+              competitorOrder,
+            }),
             competitorOrder,
-          }),
-          competitorOrder,
-        });
+          }, projectId);
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Add cell failed" };
+        }
         revalidatePath(`/projects/${projectId}/matrix`);
         return { ok: true };
       }
@@ -124,10 +152,11 @@ export async function saveCellText(
   cellId: string,
   resolvedText: string,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, versionId, cellId)) return { ok: false, error: "Invalid id" };
   const text = resolvedText.trim();
   if (!text) return { ok: false, error: "Prompt text cannot be empty" };
   try {
-    const updated = await updateCellText(versionId, cellId, text);
+    const updated = await updateCellText(versionId, cellId, text, projectId);
     if (updated === 0) return { ok: false, error: "Cell not found in this version" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Update failed" };
@@ -142,8 +171,9 @@ export async function regenerateCell(
   versionId: string,
   cellId: string,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, versionId, cellId)) return { ok: false, error: "Invalid id" };
   const loaded = await loadContext(projectId);
-  const existing = await getVersionWithCells(versionId);
+  const existing = await getVersionWithCells(versionId, projectId);
   const cell = existing?.cells.find((c) => c.id === cellId);
   if (!loaded || !existing || !cell) return { ok: false, error: "Not found" };
 
@@ -163,7 +193,7 @@ export async function regenerateCell(
       ? shuffle(loaded.ctx.competitors.map((c) => c.name), Math.random)
       : [];
   try {
-    await replaceCell(versionId, cellId, {
+    const updated = await replaceCell(versionId, cellId, {
       variantKey: next.variantKey,
       resolvedText: renderTemplate(next.templateText, {
         persona,
@@ -172,7 +202,8 @@ export async function regenerateCell(
         competitorOrder,
       }),
       competitorOrder,
-    });
+    }, projectId);
+    if (updated === 0) return { ok: false, error: "Cell not found in this version" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Regenerate failed" };
   }
@@ -185,8 +216,10 @@ export async function removeCell(
   versionId: string,
   cellId: string,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, versionId, cellId)) return { ok: false, error: "Invalid id" };
   try {
-    await deleteCell(versionId, cellId);
+    const deleted = await deleteCell(versionId, cellId, projectId);
+    if (deleted === 0) return { ok: false, error: "Cell not found in this version" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Delete failed" };
   }
@@ -202,8 +235,9 @@ export async function approveMatrix(
   projectId: string,
   versionId: string,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, versionId)) return { ok: false, error: "Invalid id" };
   const loaded = await loadContext(projectId);
-  const existing = await getVersionWithCells(versionId);
+  const existing = await getVersionWithCells(versionId, projectId);
   if (!loaded || !existing) return { ok: false, error: "Not found" };
 
   if (existing.cells.length === 0)
@@ -212,6 +246,8 @@ export async function approveMatrix(
     return { ok: false, error: `Cap exceeded: ${existing.cells.length} > ${MAX_CELLS_PER_RUN} (PM-6)` };
 
   const allBrands: BrandTerms[] = [loaded.ctx.clientBrand, ...loaded.ctx.competitors];
+  const overlapError = aliasOverlapError(allBrands);
+  if (overlapError) return { ok: false, error: overlapError };
   const violations = scanUnbrandedCells(existing.cells, allBrands);
   if (violations.length > 0) {
     const first = `${violations[0].intent} cell contains tracked brand terms: ${violations[0].terms.join(", ")}`;
@@ -232,6 +268,7 @@ export async function newDraftFromVersion(
   projectId: string,
   versionId: string,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, versionId)) return { ok: false, error: "Invalid id" };
   try {
     const version = await copyToNewDraft(projectId, versionId);
     revalidatePath(`/projects/${projectId}/matrix`);

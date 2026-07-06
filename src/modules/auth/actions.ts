@@ -13,6 +13,10 @@ async function clientIdentifier(): Promise<string> {
   return h.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
 }
 
+function isProductionRuntime() {
+  return process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
 export type LoginResult = { ok: true } | { ok: false; error: string };
 
 /** ST-6: rate-limited, constant-time, session cookie <=7 days, never in a URL. */
@@ -39,7 +43,7 @@ export async function login(password: string): Promise<LoginResult> {
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.APP_ENV === "production",
+    secure: isProductionRuntime(),
     sameSite: "lax",
     path: "/",
     maxAge: 7 * 24 * 60 * 60,

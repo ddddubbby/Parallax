@@ -5,34 +5,44 @@
 // Must be the first import: loads .env.local/.env before any module whose
 // top-level body reads process.env (db client, crypto KEK).
 import "@/env-bootstrap";
+import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import {
   computeFailureRate,
   decideRetry,
   isProviderAllowedForRunMode,
   type RunMode,
   shouldTripBreaker,
+  validateDebugFailureInjection,
 } from "@/core/runner";
+import { resolveWorkerTiming } from "@/core/worker-timing";
 import {
   appendRunEvent,
   claimJobs,
   completeRun,
   getBreakerCounts,
   getRun,
+  getRunMatrixCellCount,
   getRunMatrixKind,
   getRunFailureCounts,
   isRunFinished,
+  JobNoLongerRunningError,
   listActiveRunIds,
+  pauseActiveRunsExceedingCellCap,
   pauseRun,
+  pauseRunForWorkerConfigError,
+  pauseRunBeforeProviderSpend,
+  recordCancelledProviderResult,
   reclaimStaleLocks,
   recordDeadLetter,
   recordRetry,
   recordSuccess,
 } from "@/db/repositories/runner";
 import { listResponsesMissingExtraction, listResponsesWithStaleExtraction } from "@/db/repositories/extraction";
-import { extractResponse, reExtractResponse } from "@/modules/extraction/service";
+import { extractResponse, recoverStaleExtraction } from "@/modules/extraction/service";
 import { findExceededDailyBudget, secondaryProviderIdForKind } from "@/modules/runner/budget";
 import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation";
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
+import { CredentialConfigError } from "@/modules/settings/crypto";
 import { listRegisteredProviders } from "@/providers/registry";
 import { ProviderCallError } from "@/providers/shared";
 import type { GenerationMode, GenerationResult, ProviderId } from "@/providers/types";
@@ -42,20 +52,21 @@ const HEARTBEAT_MS = 30_000;
 // Test-only overrides (scripts/test-mock-e2e.ts): a genuinely crashed
 // worker's stuck jobs shouldn't wait a full production-scale window to be
 // proven reclaimable. Defaults are conservative for real deploys.
-const STALE_LOCK_MS = Number(process.env.WORKER_STALE_LOCK_MS ?? 60_000);
-const STALE_RECLAIM_INTERVAL_MS = Number(process.env.WORKER_STALE_RECLAIM_INTERVAL_MS ?? 15_000);
+const WORKER_TIMING = resolveWorkerTiming();
+const STALE_LOCK_MS = WORKER_TIMING.staleLockMs;
+const STALE_RECLAIM_INTERVAL_MS = WORKER_TIMING.staleReclaimIntervalMs;
 // Extraction reconcile sweep: backfills responses that missed their
 // synchronous extraction (worker crash between response commit and
 // extraction commit, an unexpected extraction throw, or responses that
 // predate the extraction pipeline). Age threshold avoids racing an
 // in-flight extraction that's about to commit.
-const EXTRACTION_SWEEP_AGE_MS = Number(process.env.WORKER_EXTRACTION_SWEEP_AGE_MS ?? 60_000);
-const EXTRACTION_SWEEP_BATCH = 25;
+const EXTRACTION_SWEEP_AGE_MS = WORKER_TIMING.extractionSweepAgeMs;
+const EXTRACTION_SWEEP_BATCH = WORKER_TIMING.extractionSweepBatch;
 // Hard per-call deadline, passed as AbortSignal.timeout to the provider.
 // Must stay comfortably under STALE_LOCK_MS: a call that outlives the
 // stale-lock window gets its still-running job reclaimed and re-claimed,
 // duplicating a paid call.
-const PROVIDER_CALL_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
+const PROVIDER_CALL_TIMEOUT_MS = WORKER_TIMING.providerCallTimeoutMs;
 
 interface FailureInjection {
   rate: number;
@@ -65,6 +76,7 @@ interface FailureInjection {
 interface RunConfig {
   runMode: string;
   injection: FailureInjection | null;
+  cellCount: number;
 }
 
 const runConfigCache = new Map<string, RunConfig | null>();
@@ -75,9 +87,16 @@ const runConfigCache = new Map<string, RunConfig | null>();
 async function getRunConfig(runId: string): Promise<RunConfig | null> {
   if (runConfigCache.has(runId)) return runConfigCache.get(runId) ?? null;
   const run = await getRun(runId);
-  const injectionConfig = run?.debugFailureInjectionJson as { generation?: FailureInjection } | null;
+  const injectionConfig =
+    run && validateDebugFailureInjection(run.debugFailureInjectionJson) === null
+      ? (run.debugFailureInjectionJson as { generation?: FailureInjection } | null)
+      : null;
   const config: RunConfig | null = run
-    ? { runMode: run.runMode, injection: injectionConfig?.generation ?? null }
+    ? {
+        runMode: run.runMode,
+        injection: injectionConfig?.generation ?? null,
+        cellCount: await getRunMatrixCellCount(runId),
+      }
     : null;
   runConfigCache.set(runId, config);
   return config;
@@ -147,12 +166,24 @@ async function afterJobFinished(runId: string) {
   // a selected generation provider — include it so its budget is guarded
   // (C-2). Mock runs pass only their mock provider, so no live budget can
   // pause them.
-  const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
-  if (run.runMode !== "mock") {
-    const kind = await getRunMatrixKind(runId);
-    budgetProviders.push(secondaryProviderIdForKind(kind?.kind));
+  let budgetTrip: Awaited<ReturnType<typeof findExceededDailyBudget>>;
+  try {
+    const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
+    if (run.runMode !== "mock") {
+      const kind = await getRunMatrixKind(runId);
+      budgetProviders.push(secondaryProviderIdForKind(kind?.kind));
+    }
+    budgetTrip = await findExceededDailyBudget(budgetProviders);
+  } catch (err) {
+    await pauseRun(runId);
+    await appendRunEvent({
+      runId,
+      level: "warn",
+      eventType: "circuit_breaker_paused",
+      message: `Run paused by circuit breaker (budget_config_error): ${err instanceof Error ? err.message : String(err)}`,
+    });
+    return;
   }
-  const budgetTrip = await findExceededDailyBudget(budgetProviders);
   if (budgetTrip) {
     await pauseRun(runId);
     await appendRunEvent({
@@ -166,6 +197,29 @@ async function afterJobFinished(runId: string) {
 
 async function processJob(job: ClaimedJob) {
   const config = await getRunConfig(job.runId);
+
+  // C-1 worker-side guard: run creation and the matrix repository enforce
+  // this too, but direct scripts/tests can insert job rows. Stop before any
+  // provider call so an over-cap run cannot spend because it bypassed the
+  // normal approval path.
+  if (config && config.cellCount > MAX_CELLS_PER_RUN) {
+    await recordDeadLetter(
+      job.id,
+      job.attemptCount + 1,
+      "unsupported_mode",
+      `${config.cellCount} prompt cells exceeds the ${MAX_CELLS_PER_RUN}-cell cap (C-1)`,
+    );
+    await pauseRun(job.runId);
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "error",
+      eventType: "cell_cap_violation",
+      message: `Run paused before provider call: ${config.cellCount} prompt cells exceeds the ${MAX_CELLS_PER_RUN}-cell cap (C-1)`,
+      metadata: { cellCount: config.cellCount, maxCells: MAX_CELLS_PER_RUN },
+    });
+    return;
+  }
 
   // C-9 guard, both directions: never spend real money under a MOCK label,
   // never mix fixture output into live aggregates. Run creation validates
@@ -188,6 +242,9 @@ async function processJob(job: ClaimedJob) {
     await afterJobFinished(job.runId);
     return;
   }
+
+  const pausedBeforeSpend = await pauseIfSpendGuardAlreadyTripped(job);
+  if (pausedBeforeSpend) return;
 
   const injection = config?.injection ?? null;
   const injected = injection && Math.random() < injection.rate;
@@ -218,6 +275,18 @@ async function processJob(job: ClaimedJob) {
       AbortSignal.timeout(PROVIDER_CALL_TIMEOUT_MS),
     );
   } catch (err) {
+    if (err instanceof CredentialConfigError) {
+      const message = err.message;
+      await pauseRunForWorkerConfigError(job.runId, job.id, "server_error", message);
+      await appendRunEvent({
+        runId: job.runId,
+        jobId: job.id,
+        level: "error",
+        eventType: "worker_config_error",
+        message: `Run paused before provider call because worker credential configuration is invalid: ${message}`,
+      });
+      return;
+    }
     const errorType = err instanceof ProviderCallError ? err.errorType : "server_error";
     await handleFailure(job, errorType, err instanceof Error ? err.message : String(err));
     await afterJobFinished(job.runId);
@@ -245,6 +314,28 @@ async function processJob(job: ClaimedJob) {
       latencyMs: result.latencyMs,
     });
   } catch (err) {
+    if (err instanceof JobNoLongerRunningError && err.state === "cancelled") {
+      const recordedResponseId = await recordCancelledProviderResult(job, {
+        modelVersion: result.modelVersion,
+        rawText: result.text,
+        citations: result.citations,
+        tokensIn: result.tokensIn,
+        tokensOut: result.tokensOut,
+        costUsd: result.costUsd,
+        latencyMs: result.latencyMs,
+      });
+      await appendRunEvent({
+        runId: job.runId,
+        jobId: job.id,
+        level: "warn",
+        eventType: "late_cancelled_provider_result",
+        message: recordedResponseId
+          ? "Provider call returned after cancellation; stored raw response and cost for evidence/spend accounting, but left the job cancelled."
+          : "Provider call returned after cancellation; late result was already recorded or the job was no longer cancellable.",
+      });
+      await afterJobFinished(job.runId);
+      return;
+    }
     await recordDeadLetter(
       job.id,
       job.attemptCount + 1,
@@ -283,6 +374,55 @@ async function processJob(job: ClaimedJob) {
   }
 }
 
+async function pauseIfSpendGuardAlreadyTripped(job: ClaimedJob): Promise<boolean> {
+  const run = await getRun(job.runId);
+  if (!run || run.state !== "running") return true;
+  if (run.runMode === "mock") return false;
+
+  if (Number(run.actualCostUsd) >= Number(run.costCapUsd)) {
+    const message = `Run paused before provider call because actual cost $${Number(run.actualCostUsd).toFixed(4)} has already reached the run cap $${Number(run.costCapUsd).toFixed(4)} (C-2)`;
+    await pauseRunBeforeProviderSpend(job.runId, job.id, message);
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "warn",
+      eventType: "circuit_breaker_paused",
+      message,
+    });
+    return true;
+  }
+
+  try {
+    const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
+    const kind = await getRunMatrixKind(job.runId);
+    budgetProviders.push(secondaryProviderIdForKind(kind?.kind));
+    const budgetTrip = await findExceededDailyBudget(budgetProviders);
+    if (!budgetTrip) return false;
+
+    const message = `Run paused before provider call because ${budgetTrip.providerId} has already spent $${budgetTrip.spentUsd.toFixed(4)}/$${budgetTrip.budgetUsd.toFixed(4)} daily budget (C-2)`;
+    await pauseRunBeforeProviderSpend(job.runId, job.id, message);
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "warn",
+      eventType: "circuit_breaker_paused",
+      message,
+    });
+    return true;
+  } catch (err) {
+    const message = `Run paused before provider call because budget configuration is invalid: ${err instanceof Error ? err.message : String(err)}`;
+    await pauseRunBeforeProviderSpend(job.runId, job.id, message);
+    await appendRunEvent({
+      runId: job.runId,
+      jobId: job.id,
+      level: "warn",
+      eventType: "circuit_breaker_paused",
+      message,
+    });
+    return true;
+  }
+}
+
 async function handleFailure(job: ClaimedJob, errorType: string, message: string) {
   const attemptCount = job.attemptCount + 1;
   const decision = decideRetry(attemptCount);
@@ -313,6 +453,7 @@ async function handleFailure(job: ClaimedJob, errorType: string, message: string
 const inFlight = new Map<ProviderId, Set<Promise<void>>>();
 
 async function tick() {
+  await pauseActiveRunsExceedingCellCap();
   for (const provider of listRegisteredProviders()) {
     const set = inFlight.get(provider.id) ?? new Set<Promise<void>>();
     inFlight.set(provider.id, set);
@@ -382,13 +523,22 @@ async function main() {
       }
       for (const responseId of stale) {
         try {
-          await reExtractResponse(responseId);
+          await recoverStaleExtraction(responseId);
         } catch (err) {
           console.error(
             `[worker] extraction sweep (stale) failed for response ${responseId}:`,
             err instanceof Error ? err.message : err,
           );
         }
+      }
+
+      // A worker can crash after recordSuccess marks the final job succeeded
+      // but before processJob reaches afterJobFinished. At that point no
+      // queued/running job remains to trigger the normal completion path, so
+      // sweep the active run set and finalize any stranded run here.
+      const activeRunIds = await listActiveRunIds();
+      for (const runId of activeRunIds) {
+        await afterJobFinished(runId);
       }
     } finally {
       sweepInFlight = false;

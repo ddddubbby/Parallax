@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ReportClient } from "@/components/report/report-client";
 import { ReportRunSwitcher } from "@/components/report/report-run-switcher";
+import { isUuid } from "@/core/id";
 import { listCompletedResonanceRuns, listCompletedRuns } from "@/db/repositories/dashboard";
-import { getReportSections } from "@/db/repositories/report";
+import { getReportFreshness, getReportSections } from "@/db/repositories/report";
 import { getProjectSummary } from "@/db/repositories/runner";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +18,13 @@ export default async function ReportPage({
 }) {
   const { id } = await params;
   const { runId: requestedRunId } = await searchParams;
+  if (!isUuid(id)) notFound();
   const project = await getProjectSummary(id);
   if (project === null) notFound();
 
   const [auditRuns, resonanceRuns] = await Promise.all([
-    listCompletedRuns(id),
-    listCompletedResonanceRuns(id),
+    listCompletedRuns(id, { includePaused: false }),
+    listCompletedResonanceRuns(id, { includePaused: false }),
   ]);
   const runs = [
     ...auditRuns.map((run) => ({ ...run, matrixKind: "audit" as const })),
@@ -35,7 +37,7 @@ export default async function ReportPage({
     : runs[0];
   const selectedRun = requestedRunId ? runs.find((r) => r.id === requestedRunId) ?? defaultRun : defaultRun;
   const runId = selectedRun.id;
-  const sections = await getReportSections(runId);
+  const [sections, freshness] = await Promise.all([getReportSections(runId), getReportFreshness(runId)]);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
@@ -55,7 +57,13 @@ export default async function ReportPage({
       </div>
       <h1 className="label-mono mb-4 text-lg font-semibold">Report</h1>
       <ReportRunSwitcher projectId={id} runId={runId} runs={runs} />
-      <ReportClient projectId={id} runId={runId} initialSections={sections} kind={selectedRun.matrixKind} />
+      <ReportClient
+        projectId={id}
+        runId={runId}
+        initialSections={sections}
+        kind={selectedRun.matrixKind}
+        initialIsStale={freshness.stale}
+      />
     </main>
   );
 }

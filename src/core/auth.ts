@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 // Auth domain (ST-6, D-024). Pure functions over provided secrets — no env
 // or DB access here, so every path is testable with a fixed key. No
@@ -6,15 +6,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Constant-time comparison — never use `===` for password checks (timing side-channel). */
 export function constantTimeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  // timingSafeEqual throws on length mismatch; compare against a
-  // same-length dummy first so the length check itself isn't a timing leak.
-  if (bufA.length !== bufB.length) {
-    timingSafeEqual(bufA, bufA);
-    return false;
-  }
-  return timingSafeEqual(bufA, bufB);
+  const digestA = createHash("sha256").update(a).digest();
+  const digestB = createHash("sha256").update(b).digest();
+  return timingSafeEqual(digestA, digestB) && Buffer.byteLength(a) === Buffer.byteLength(b);
 }
 
 export interface SessionPayload {

@@ -43,6 +43,7 @@ describe("toCsv (EX-3)", () => {
       ["@", "@SUM(1,2)"],
       ["tab", "\tmalicious"],
       ["CR", "\rmalicious"],
+      ["LF", "\nmalicious"],
     ])("prefixes a leading %s with a single quote so it renders as text, not a formula", (_label, dangerous) => {
       const csv = toCsv([{ text: dangerous }], ["text"]);
       expect(csv).toContain(`'${dangerous}`);

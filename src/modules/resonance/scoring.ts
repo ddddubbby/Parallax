@@ -1,6 +1,7 @@
 import fixturePmfs from "../../../fixtures/ssr/fixture-pmfs.json";
 import { pmfMean, scoreSsrResponse } from "@/core/ssr";
 import { anchorStatementSets, getSsrAnchorSet } from "@/core/ssr-anchors";
+import { resolveWorkerTiming } from "@/core/worker-timing";
 import {
   commitValidExtraction,
   createPendingExtraction,
@@ -10,7 +11,7 @@ import {
   recordExtractionAttemptCost,
   requeueExtraction,
 } from "@/db/repositories/extraction";
-import { appendRunEvent, getRun, getRunMatrixKind } from "@/db/repositories/runner";
+import { appendRunEvent, getRun, getRunMatrixKind, pauseRun } from "@/db/repositories/runner";
 import { db } from "@/db/client";
 import { resonanceStudies } from "@/db/schema";
 import { EXTRACTION_ATTEMPTS } from "@/core/constants";
@@ -19,10 +20,11 @@ import { loadMockResonanceFixtures } from "@/providers/mock/fixtures";
 import { ProviderCallError } from "@/providers/shared";
 import type { EmbeddingProvider } from "@/providers/types";
 import { resolveEmbeddingProvider } from "@/modules/runner/provider-resolver";
+import { CredentialConfigError } from "@/modules/settings/crypto";
 
 const SSR_VERSION = "ssr-v1";
 const MOCK_SSR_MODEL = "mock-fixture";
-const SSR_CALL_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
+const SSR_CALL_TIMEOUT_MS = resolveWorkerTiming().providerCallTimeoutMs;
 
 interface ResonanceScoreContext {
   responseId: string;
@@ -41,7 +43,7 @@ const FIXTURE_PMFS = new Map((fixturePmfs as FixturePmf[]).map((row) => [row.fix
 const anchorEmbeddingCache = new Map<string, number[][][]>();
 
 export interface SsrScoringResult {
-  outcome: "valid" | "dead_lettered";
+  outcome: "valid" | "dead_lettered" | "skipped";
   attempts: number;
 }
 
@@ -76,6 +78,18 @@ function assertPmf(pmf: number[], label: string) {
   }
   const sum = pmf.reduce((total, value) => total + value, 0);
   if (Math.abs(sum - 1) > 1e-6) throw new Error(`${label} must sum to 1`);
+}
+
+export function embeddingVectorsAreValid(vectors: unknown, expectedCount: number): vectors is number[][] {
+  if (!Array.isArray(vectors) || vectors.length !== expectedCount) return false;
+  const dimension = Array.isArray(vectors[0]) ? vectors[0].length : 0;
+  if (dimension === 0) return false;
+  return vectors.every(
+    (vector) =>
+      Array.isArray(vector) &&
+      vector.length === dimension &&
+      vector.every((value) => typeof value === "number" && Number.isFinite(value)),
+  );
 }
 
 function mockFixturePmf(rawText: string) {
@@ -121,13 +135,10 @@ async function liveSsrScore(
     tokensOut: 0,
   });
 
-  if (
-    embedded.vectors.length !== texts.length ||
-    embedded.vectors.some((vector) => !Array.isArray(vector) || vector.length === 0)
-  ) {
+  if (!embeddingVectorsAreValid(embedded.vectors, texts.length)) {
     throw new ProviderCallError(
       "malformed_output",
-      "Embeddings response returned the wrong vector count or an invalid vector",
+      "Embeddings response returned the wrong vector count, invalid dimensions, or non-numeric vector values",
     );
   }
 
@@ -226,6 +237,17 @@ async function runScoringPipeline(
       return { outcome: "valid", attempts };
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
+      if (err instanceof CredentialConfigError) {
+        await markExtractionRetrying(extractionId, lastError);
+        await pauseRun(ctx.runId);
+        await appendRunEvent({
+          runId: ctx.runId,
+          level: "error",
+          eventType: "worker_config_error",
+          message: `Run paused before SSR scoring because worker credential configuration is invalid: ${lastError}`,
+        });
+        return { outcome: "skipped", attempts };
+      }
       const unsupported = err instanceof ProviderCallError && err.errorType === "unsupported_mode";
       if (attempts < EXTRACTION_ATTEMPTS && !unsupported) {
         await markExtractionRetrying(extractionId, lastError);
@@ -250,8 +272,12 @@ export async function scoreResponse(responseId: string, providerOverride?: Embed
   return runScoringPipeline(extractionId, ctx, providerOverride);
 }
 
-export async function reScoreResponse(responseId: string, providerOverride?: EmbeddingProvider): Promise<SsrScoringResult> {
+export async function reScoreResponse(
+  responseId: string,
+  providerOverride?: EmbeddingProvider,
+  allowedLatestStates: string[] = ["dead_lettered"],
+): Promise<SsrScoringResult> {
   const ctx = await buildContext(responseId);
-  const extractionId = await requeueExtraction(responseId);
+  const extractionId = await requeueExtraction(responseId, allowedLatestStates);
   return runScoringPipeline(extractionId, ctx, providerOverride);
 }

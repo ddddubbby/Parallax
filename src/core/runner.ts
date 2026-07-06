@@ -16,16 +16,32 @@ import {
 // UI imports them from here rather than from /src/providers (C-7's "UI
 // never imports providers", now also lint-enforced).
 export type GenerationMode = "grounded" | "ungrounded";
-export type ProviderId =
-  | "mock"
-  | "deepseek"
-  | "minimax"
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "perplexity";
+export const PROVIDER_IDS = [
+  "mock",
+  "deepseek",
+  "minimax",
+  "openai",
+  "anthropic",
+  "google",
+  "perplexity",
+] as const;
+export type ProviderId = (typeof PROVIDER_IDS)[number];
+
+export function isProviderId(value: string): value is ProviderId {
+  return (PROVIDER_IDS as readonly string[]).includes(value);
+}
 
 export type RunMode = "mock" | "live_validation" | "live_audit";
+export const RUN_MODES = ["mock", "live_validation", "live_audit"] as const;
+
+export function isRunMode(value: string): value is RunMode {
+  return (RUN_MODES as readonly string[]).includes(value);
+}
+
+/** Report/export deliverables are built only from terminal completed runs. */
+export function isReportableRunState(state: string): boolean {
+  return state === "completed";
+}
 
 /**
  * C-9 in both directions: a mock run must use only the mock provider
@@ -144,10 +160,79 @@ export interface EngineModePair {
   mode: GenerationMode;
 }
 
+export interface ProviderModeCapability {
+  id: string;
+  supportsGrounded: boolean;
+  supportsUngrounded: boolean;
+}
+
 /** Cartesian product of selected providers x selected modes (an "engine-mode"). */
 export function engineModePairs(
   providerIds: string[],
   modes: GenerationMode[],
 ): EngineModePair[] {
   return providerIds.flatMap((providerId) => modes.map((mode) => ({ providerId, mode })));
+}
+
+/**
+ * C-10/PV-5: a selected engine-mode must be a real provider path, not a
+ * silently skipped placeholder. Skips are still useful as a worker backstop
+ * for legacy/scripted rows, but interactive run creation blocks them.
+ */
+export function findUnsupportedEngineModePairs(
+  providerIds: string[],
+  modes: GenerationMode[],
+  capabilities: ProviderModeCapability[],
+): EngineModePair[] {
+  return engineModePairs(providerIds, modes).filter(({ providerId, mode }) => {
+    const cap = capabilities.find((c) => c.id === providerId);
+    if (!cap) return true;
+    return mode === "grounded" ? !cap.supportsGrounded : !cap.supportsUngrounded;
+  });
+}
+
+export const DEBUG_GENERATION_ERROR_TYPES = [
+  "rate_limit",
+  "timeout",
+  "server_error",
+  "auth_error",
+  "malformed_output",
+] as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isRate(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+export function validateDebugFailureInjection(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value)) return "Failure injection must be an object";
+  const topLevelKeys = Object.keys(value);
+  const unknownTopLevel = topLevelKeys.filter((key) => key !== "generation" && key !== "extraction");
+  if (unknownTopLevel.length > 0) return `Unknown failure-injection key: ${unknownTopLevel.join(", ")}`;
+
+  if (value.generation !== undefined) {
+    if (!isRecord(value.generation)) return "Generation failure injection must be an object";
+    const unknownGeneration = Object.keys(value.generation).filter((key) => key !== "rate" && key !== "errorType");
+    if (unknownGeneration.length > 0) return `Unknown generation failure-injection key: ${unknownGeneration.join(", ")}`;
+    if (!isRate(value.generation.rate)) return "Generation failure injection rate must be a finite number from 0 to 1";
+    if (
+      typeof value.generation.errorType !== "string" ||
+      !(DEBUG_GENERATION_ERROR_TYPES as readonly string[]).includes(value.generation.errorType)
+    ) {
+      return `Generation failure injection errorType must be one of: ${DEBUG_GENERATION_ERROR_TYPES.join(", ")}`;
+    }
+  }
+
+  if (value.extraction !== undefined) {
+    if (!isRecord(value.extraction)) return "Extraction failure injection must be an object";
+    const unknownExtraction = Object.keys(value.extraction).filter((key) => key !== "invalidRate");
+    if (unknownExtraction.length > 0) return `Unknown extraction failure-injection key: ${unknownExtraction.join(", ")}`;
+    if (!isRate(value.extraction.invalidRate)) return "Extraction failure injection invalidRate must be a finite number from 0 to 1";
+  }
+
+  return null;
 }

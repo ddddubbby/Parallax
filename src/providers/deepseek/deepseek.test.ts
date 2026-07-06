@@ -33,6 +33,18 @@ describe("DeepSeek adapter error mapping (RN-6)", () => {
     }
   });
 
+  it("does not include provider error bodies in operator-visible errors (C-11)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("debug echo Authorization: Bearer sk-test", { status: 401 })),
+    );
+
+    await expect(callDeepSeekChat(CREDS, BODY)).rejects.toMatchObject({
+      errorType: "auth_error",
+      message: "DeepSeek returned HTTP 401 (auth_error)",
+    });
+  });
+
   it("maps AbortSignal.timeout's TimeoutError (not just AbortError) to the timeout error type", async () => {
     // AbortSignal.timeout() rejects fetch with a DOMException named
     // "TimeoutError" — the worker's per-call deadline produces exactly this.

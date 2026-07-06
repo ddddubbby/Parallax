@@ -4,6 +4,7 @@ import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import {
   createPendingExtraction,
+  listResponsesMissingExtraction,
   listResponsesWithStaleExtraction,
   markExtractionRetrying,
 } from "@/db/repositories/extraction";
@@ -21,7 +22,7 @@ import {
   responses,
   runEvents,
 } from "@/db/schema";
-import { reExtractResponse } from "@/modules/extraction/service";
+import { recoverStaleExtraction } from "@/modules/extraction/service";
 import { mockProvider } from "@/providers/mock";
 
 // Fix B (post-M10-prep audit round 2): listResponsesMissingExtraction only
@@ -163,9 +164,9 @@ describe.skipIf(!dbUp)("stale pending/retrying extraction sweep (Fix B)", () => 
     const found = await listResponsesWithStaleExtraction(60_000, 25);
     expect(found).toContain(responseId);
 
-    // Re-extracting clears it: a fresh version replaces the torn one, and
+    // Recovering clears it: a fresh version replaces the torn one, and
     // the response is no longer stuck.
-    const result = await reExtractResponse(responseId);
+    const result = await recoverStaleExtraction(responseId);
     expect(["valid", "dead_lettered"]).toContain(result.outcome);
     const stillStale = await listResponsesWithStaleExtraction(60_000, 25);
     expect(stillStale).not.toContain(responseId);
@@ -195,5 +196,23 @@ describe.skipIf(!dbUp)("stale pending/retrying extraction sweep (Fix B)", () => 
     await db.update(extractions).set({ state: "valid", updatedAt: new Date(Date.now() - 5 * 60_000) }).where(eq(extractions.id, extractionId));
     const found = await listResponsesWithStaleExtraction(60_000, 25);
     expect(found).not.toContain(responseId);
+  });
+
+  it("does not sweep paused runs, so credential/config pauses cannot keep spending in the background", async () => {
+    const responseId = await createFabricatedResponse();
+    const [response] = await db.select({ runId: responses.runId }).from(responses).where(eq(responses.id, responseId));
+    expect(response).toBeDefined();
+    await db.update(auditRuns).set({ state: "paused" }).where(eq(auditRuns.id, response.runId));
+
+    const extractionId = await createPendingExtraction(responseId, 1);
+    await ageExtraction(extractionId, 5 * 60_000);
+
+    const stale = await listResponsesWithStaleExtraction(60_000, 25);
+    expect(stale).not.toContain(responseId);
+
+    await db.delete(extractions).where(eq(extractions.id, extractionId));
+    await db.update(responses).set({ createdAt: new Date(Date.now() - 5 * 60_000) }).where(eq(responses.id, responseId));
+    const missing = await listResponsesMissingExtraction(60_000, 25);
+    expect(missing).not.toContain(responseId);
   });
 });

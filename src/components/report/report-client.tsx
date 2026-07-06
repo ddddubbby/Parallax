@@ -24,33 +24,43 @@ export function ReportClient({
   runId,
   initialSections,
   kind = "audit",
+  initialIsStale = false,
 }: {
   projectId: string;
   runId: string;
   initialSections: SectionRow[];
   kind?: "audit" | "resonance";
+  initialIsStale?: boolean;
 }) {
   const [sections, setSections] = useState(initialSections);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function startEdit(s: SectionRow) {
+    setError(null);
     setEditingKey(s.sectionKey);
     setDraft(displayMd(s));
   }
 
   function saveEdit(s: SectionRow) {
+    setError(null);
     startTransition(async () => {
-      await saveSectionEdit(runId, s.id, draft);
+      const result = await saveSectionEdit(projectId, runId, s.id, draft);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setSections((prev) => prev.map((x) => (x.id === s.id ? { ...x, editedMd: draft, state: "edited" } : x)));
       setEditingKey(null);
     });
   }
 
   function regenerate(s: SectionRow) {
+    setError(null);
     startTransition(async () => {
-      const result = await regenerateSectionAction(runId, s.id, s.sectionKey);
+      const result = await regenerateSectionAction(projectId, runId, s.id, s.sectionKey);
       if (result.ok) {
         // Update THIS section's generatedMd with the freshly-returned markdown
         // and clear its edit (RB-3: never touch siblings). Previously only
@@ -61,6 +71,8 @@ export function ReportClient({
             x.id === s.id ? { ...x, generatedMd: result.generatedMd, editedMd: null, state: "regenerated" } : x,
           ),
         );
+      } else {
+        setError(result.error);
       }
     });
   }
@@ -73,13 +85,18 @@ export function ReportClient({
           disabled={pending}
           onClick={() =>
             startTransition(async () => {
-              await generateReportForRun(runId);
+              const result = await generateReportForRun(projectId, runId);
+              if (!result.ok) {
+                setError(result.error);
+                return;
+              }
               window.location.reload();
             })
           }
         >
           {pending ? "Generating…" : "Generate report"}
         </Button>
+        {error && <p className="mt-3 font-mono text-xs text-danger">{error}</p>}
       </div>
     );
   }
@@ -94,6 +111,12 @@ export function ReportClient({
       {kind === "resonance" && (
         <div className="mb-4">
           <SimulatedBadge />
+        </div>
+      )}
+      {initialIsStale && (
+        <div className="mb-4 rounded-lg border border-danger/25 bg-danger/5 p-3 font-mono text-xs text-danger">
+          Report sections predate the latest computed metrics. Regenerate affected sections before exporting final
+          client deliverables.
         </div>
       )}
       <div className="mb-6 flex flex-wrap gap-2">
@@ -112,6 +135,7 @@ export function ReportClient({
           </a>
         ))}
       </div>
+      {error && <p className="mb-4 font-mono text-xs text-danger">{error}</p>}
 
       <div className="flex flex-col gap-6">
         {reportSections.map(({ key, title }) => {

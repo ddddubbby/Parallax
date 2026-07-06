@@ -60,8 +60,9 @@ export async function callDeepSeekChat(
 
   if (!response.ok) {
     const errorType = classifyHttpStatus(response.status);
-    const bodyText = await response.text().catch(() => "");
-    throw new ProviderCallError(errorType, `DeepSeek returned ${response.status}: ${bodyText.slice(0, 500)}`);
+    // C-11: provider/proxy error bodies are untrusted and may echo request
+    // headers. Keep operator-visible logs/statuses free of bearer-key text.
+    throw new ProviderCallError(errorType, `DeepSeek returned HTTP ${response.status} (${errorType})`);
   }
 
   let json: unknown;

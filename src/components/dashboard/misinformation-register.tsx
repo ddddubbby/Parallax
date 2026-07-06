@@ -31,10 +31,14 @@ function severityTone(severity: string): "danger" | "warn" | "ink" {
 /** One reviewable row: claim text drills to evidence; the controls set reviewed_at (D-024). */
 function MisinfoRowCard({
   row,
+  projectId,
+  runId,
   onRowClick,
   onReviewed,
 }: {
   row: MisinfoRow;
+  projectId: string;
+  runId: string;
   onRowClick: (responseId: string, claimText: string) => void;
   onReviewed: () => void;
 }) {
@@ -111,7 +115,7 @@ function MisinfoRowCard({
             disabled={pending}
             onClick={() =>
               run(() =>
-                reviewClaim(row.id, {
+                reviewClaim(projectId, runId, row.id, {
                   reviewState: "corrected",
                   operatorVerdict: verdict as (typeof VERDICTS)[number],
                   operatorSeverity: severity as (typeof SEVERITIES)[number],
@@ -130,7 +134,7 @@ function MisinfoRowCard({
           <Button
             variant="secondary"
             disabled={pending}
-            onClick={() => run(() => reviewClaim(row.id, { reviewState: "confirmed" }))}
+            onClick={() => run(() => reviewClaim(projectId, runId, row.id, { reviewState: "confirmed" }))}
           >
             {reviewed ? "Re-confirm" : "Confirm"}
           </Button>
@@ -141,7 +145,7 @@ function MisinfoRowCard({
             <Button
               variant="ghost"
               disabled={pending}
-              onClick={() => run(() => reviewClaim(row.id, { reviewState: "unreviewed" }))}
+              onClick={() => run(() => reviewClaim(projectId, runId, row.id, { reviewState: "unreviewed" }))}
             >
               Re-open
             </Button>
@@ -160,10 +164,14 @@ function MisinfoRowCard({
  * which is what sets claims_found.reviewed_at for the release-checklist gate.
  */
 export function MisinformationRegister({
+  projectId,
+  runId,
   rows,
   onRowClick,
   onReviewed,
 }: {
+  projectId: string;
+  runId: string;
   rows: MisinfoRow[];
   onRowClick: (responseId: string, claimText: string) => void;
   onReviewed: () => void;
@@ -183,7 +191,7 @@ export function MisinformationRegister({
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((r) => (
-            <MisinfoRowCard key={r.id} row={r} onRowClick={onRowClick} onReviewed={onReviewed} />
+            <MisinfoRowCard key={r.id} row={r} projectId={projectId} runId={runId} onRowClick={onRowClick} onReviewed={onReviewed} />
           ))}
         </div>
       )}

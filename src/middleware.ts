@@ -7,7 +7,7 @@ import { SESSION_COOKIE } from "@/modules/auth/constants";
 // 15.2+ supports this opt-in as a stable feature.
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|health).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|health$).*)"],
 };
 
 const PUBLIC_PATHS = new Set(["/login"]);
@@ -19,7 +19,11 @@ const PUBLIC_PATHS = new Set(["/login"]);
 // and DISABLE_AUTH must be explicitly "true" in .env.local (gitignored,
 // never committed). Remove both the flag and this block before any
 // client-facing use.
-const AUTH_DISABLED = process.env.APP_ENV !== "production" && process.env.DISABLE_AUTH === "true";
+function isProductionRuntime() {
+  return process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
+const AUTH_DISABLED = !isProductionRuntime() && process.env.DISABLE_AUTH === "true";
 
 export function middleware(request: NextRequest) {
   if (AUTH_DISABLED || PUBLIC_PATHS.has(request.nextUrl.pathname)) {

@@ -4,6 +4,27 @@ import { MAX_CELLS_PER_RUN } from "./constants";
 export const STIMULUS_KINDS = ["measured_ai", "corrected", "repositioned", "custom"] as const;
 export type StimulusKind = (typeof STIMULUS_KINDS)[number];
 
+export interface ResonanceExportStudyLabel {
+  id: string;
+  name: string;
+  genericUnconditioned: boolean;
+}
+
+export function resonanceExportLabel(genericUnconditioned: boolean) {
+  return genericUnconditioned ? "SIMULATED GENERIC" : "SIMULATED EVIDENCE-CONDITIONED";
+}
+
+export function resonanceExportMetadata(study: ResonanceExportStudyLabel | null) {
+  return study
+    ? {
+        studyId: study.id,
+        studyName: study.name,
+        genericUnconditioned: study.genericUnconditioned,
+        label: resonanceExportLabel(study.genericUnconditioned),
+      }
+    : null;
+}
+
 export const panelPersonaSchema = z.object({
   key: z.string().min(1).regex(/^[a-z0-9_-]+$/),
   label: z.string().min(1),
@@ -13,7 +34,19 @@ export const panelPersonaSchema = z.object({
   behavioralProfile: z.string().min(1),
 });
 
-export const panelPersonasSchema = z.array(panelPersonaSchema).min(1);
+export const panelPersonasSchema = z.array(panelPersonaSchema).min(1).superRefine((personas, ctx) => {
+  const seen = new Set<string>();
+  for (const [index, persona] of personas.entries()) {
+    if (seen.has(persona.key)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Panel persona keys must be unique",
+        path: [index, "key"],
+      });
+    }
+    seen.add(persona.key);
+  }
+});
 export type PanelPersona = z.infer<typeof panelPersonaSchema>;
 
 export interface ResonanceStimulusInput {
@@ -29,7 +62,7 @@ export function parsePanelPersonaLines(text: string): PanelPersona[] {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  return rows.map((row, idx) => {
+  return panelPersonasSchema.parse(rows.map((row, idx) => {
     const [label, ageBand, incomeBand, locationContext, behavioralProfile] = row
       .split("|")
       .map((part) => part.trim());
@@ -41,7 +74,7 @@ export function parsePanelPersonaLines(text: string): PanelPersona[] {
       locationContext,
       behavioralProfile,
     });
-  });
+  }));
 }
 
 export function formatPanelPersonaLines(personas: PanelPersona[]): string {

@@ -327,7 +327,7 @@ Standing rules:
 - Migrations are applied to a scratch DB in CI before production use.
 - Migrations are additive-first: new columns/tables land before code depends on them; destructive changes ship in a later deploy, because the web service migrates in pre-deploy while the worker may still run older code.
 - Production destructive migrations require `pg_dump` first.
-- After each delivered audit, export the EX-3 evidence pack and take a database dump stored off-Render before closing the engagement (D-024). Managed-Postgres backup retention is not the evidence archive.
+- After each delivered audit, export the EX-3 evidence pack and take a redacted database snapshot stored off-Render before closing the engagement (D-024). The evidence archive excludes server-only provider credentials; managed-Postgres backup retention is not the evidence archive.
 
 Manual checklist seeds:
 

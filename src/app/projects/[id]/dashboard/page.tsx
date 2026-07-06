@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
+import { isUuid } from "@/core/id";
 import { fetchDashboardData, fetchRunOptions } from "@/modules/dashboard/actions";
 import { getProjectSummary } from "@/db/repositories/runner";
 
@@ -12,12 +13,13 @@ export default async function DashboardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const project = await getProjectSummary(id);
   if (project === null) notFound();
 
   const runs = await fetchRunOptions(id);
   const initialRunId = runs[0]?.id ?? null;
-  const initialData = initialRunId ? await fetchDashboardData(initialRunId) : null;
+  const initialData = initialRunId ? await fetchDashboardData(id, initialRunId) : null;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
@@ -40,7 +42,7 @@ export default async function DashboardPage({
           Report →
         </Link>
       </div>
-      <DashboardClient initialRuns={runs} initialRunId={initialRunId} initialData={initialData} />
+      <DashboardClient projectId={id} initialRuns={runs} initialRunId={initialRunId} initialData={initialData} />
     </main>
   );
 }

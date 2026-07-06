@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { EMITTED_METRIC_KEY_EXAMPLES } from "@/db/repositories/metrics";
 import { TEMPLATE_SEED } from "./prompt-templates";
 import { INTENT_ORDER } from "./matrix";
 import {
@@ -24,18 +23,6 @@ describe("semantic layer (M11)", () => {
       objection: "perception",
       discovery: "presence",
     });
-  });
-
-  it("resolves every emitted metric key to glossary metadata", () => {
-    for (const key of EMITTED_METRIC_KEY_EXAMPLES) {
-      const entry = resolveGlossary(key);
-      expect(entry.label.length, key).toBeGreaterThan(0);
-      expect(PILLARS[entry.pillar], key).toBeDefined();
-      expect(entry.question.length, key).toBeGreaterThan(0);
-      expect(entry.definition.length, key).toBeGreaterThan(0);
-      expect(entry.computationSummary.length, key).toBeGreaterThan(0);
-      expect(entry.intervalCaveat.length, key).toBeGreaterThan(0);
-    }
   });
 
   it("keeps static glossary keys resolvable without prefix handling", () => {

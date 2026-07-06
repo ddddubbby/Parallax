@@ -5,19 +5,26 @@ import {
   deleteCredential as deleteCredentialRow,
   disableCredential as disableCredentialRow,
   enableCredential as enableCredentialRow,
+  findActiveLiveRunUsingProvider,
   getActiveCredential,
+  getActiveCredentialLifecycleSummary,
+  getCredentialEnableSummary,
+  getCredentialLifecycleSummary,
   markInvalid,
   markVerified,
   saveCredential as saveCredentialRow,
 } from "@/db/repositories/credentials";
-import { decryptApiKey, encryptApiKey } from "@/modules/settings/crypto";
+import { isUuid } from "@/core/id";
+import { CredentialConfigError, decryptApiKey, encryptApiKey } from "@/modules/settings/crypto";
+import { resolveWorkerTiming } from "@/core/worker-timing";
 import { createAnthropicProvider } from "@/providers/anthropic";
 import { createDeepSeekProvider } from "@/providers/deepseek";
 import { createGoogleProvider } from "@/providers/google";
 import { createOpenAIProvider } from "@/providers/openai";
 import { createPerplexityProvider } from "@/providers/perplexity";
-import { type LiveCredentials, ProviderCallError } from "@/providers/shared";
+import { type LiveCredentials, ProviderCallError, validateProviderBaseUrlOverride } from "@/providers/shared";
 import type { LLMProvider, ProviderId } from "@/providers/types";
+import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -26,7 +33,7 @@ const SETTINGS_PATH = "/settings";
 // (WORKER_PROVIDER_TIMEOUT_MS) — a Verify call is a real provider.generate()
 // through this server action, so a hung provider must not tie up the
 // request indefinitely, same as every other call site.
-const VERIFY_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
+const VERIFY_TIMEOUT_MS = resolveWorkerTiming().providerCallTimeoutMs;
 
 // Providers with a live adapter wired up to resolveRuntimeProvider — the
 // only ones Settings can actually accept a key for (MiniMax remains a
@@ -38,6 +45,7 @@ const LIVE_PROVIDER_IDS: readonly ProviderId[] = [
   "google",
   "perplexity",
 ];
+const MIN_API_KEY_LENGTH = 8;
 
 // Duplicated factory map rather than importing the runtime resolver: the
 // resolver reads/mutates credential rows (markUsed/markInvalid) as a side
@@ -50,47 +58,37 @@ const VERIFY_FACTORIES: Partial<Record<ProviderId, (c: LiveCredentials) => LLMPr
   perplexity: createPerplexityProvider,
 };
 
-/**
- * C-11 defense-in-depth: every provider call sends the bearer/API key to
- * the credential's base URL, so an arbitrary override is a one-field
- * key-exfiltration path (e.g. via a hijacked session). Overrides are
- * limited to HTTPS against the provider's official host or the host
- * already configured at the deploy layer (<PROVIDER>_BASE_URL, D-020) —
- * pointing at a proxy is a deploy-config decision, not a form field.
- */
-const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = {
-  deepseek: "api.deepseek.com",
-  openai: "api.openai.com",
-  anthropic: "api.anthropic.com",
-  google: "generativelanguage.googleapis.com",
-  perplexity: "api.perplexity.ai",
-};
+async function destructiveCredentialLifecycleError(credentialId: string): Promise<string | null> {
+  const credential = await getCredentialLifecycleSummary(credentialId);
+  if (!credential) return "Credential not found";
+  if (credential.status !== "active") return null;
 
-function validateBaseUrlOverride(providerId: ProviderId, baseUrl: string): string | null {
-  let parsed: URL;
+  let secondaryProviders: { audit: ProviderId; resonance: ProviderId };
   try {
-    parsed = new URL(baseUrl);
-  } catch {
-    return "Base URL override is not a valid URL";
+    secondaryProviders = { audit: extractionProviderId(), resonance: embeddingProviderId() };
+  } catch (err) {
+    return err instanceof Error ? err.message : "Secondary provider configuration is invalid";
   }
-  if (parsed.protocol !== "https:") {
-    return "Base URL override must use https";
+
+  const activeRun = await findActiveLiveRunUsingProvider(credential.providerId, secondaryProviders);
+  if (!activeRun) return null;
+  return `Credential is in use by ${activeRun.state} live run ${activeRun.id.slice(0, 8)}. Pause or finish the run before disabling or deleting this key.`;
+}
+
+async function credentialRotationLifecycleError(providerId: ProviderId): Promise<string | null> {
+  const activeCredential = await getActiveCredentialLifecycleSummary(providerId);
+  if (!activeCredential) return null;
+
+  let secondaryProviders: { audit: ProviderId; resonance: ProviderId };
+  try {
+    secondaryProviders = { audit: extractionProviderId(), resonance: embeddingProviderId() };
+  } catch (err) {
+    return err instanceof Error ? err.message : "Secondary provider configuration is invalid";
   }
-  const allowedHosts = new Set<string>();
-  const official = OFFICIAL_PROVIDER_HOSTS[providerId];
-  if (official) allowedHosts.add(official);
-  const envBase = process.env[`${providerId.toUpperCase()}_BASE_URL`];
-  if (envBase) {
-    try {
-      allowedHosts.add(new URL(envBase).hostname);
-    } catch {
-      // Malformed deploy config never widens the allowlist.
-    }
-  }
-  if (!allowedHosts.has(parsed.hostname)) {
-    return `Base URL host "${parsed.hostname}" is not allowlisted for ${providerId} — provider keys are only sent to ${[...allowedHosts].join(", ")} (C-11)`;
-  }
-  return null;
+
+  const activeRun = await findActiveLiveRunUsingProvider(providerId, secondaryProviders);
+  if (!activeRun) return null;
+  return `Credential is in use by ${activeRun.state} live run ${activeRun.id.slice(0, 8)}. Pause or finish the run before rotating this key.`;
 }
 
 /**
@@ -106,16 +104,29 @@ export async function saveCredential(
 ): Promise<ActionResult> {
   const trimmed = apiKey.trim();
   if (!trimmed) return { ok: false, error: "API key is required" };
+  if (trimmed.length < MIN_API_KEY_LENGTH) {
+    return { ok: false, error: `API key must be at least ${MIN_API_KEY_LENGTH} characters so Settings never displays the entire secret (C-11)` };
+  }
   if (!LIVE_PROVIDER_IDS.includes(providerId)) {
     return { ok: false, error: `No live adapter for provider "${providerId}" yet` };
   }
   const baseUrlOverride = options?.baseUrl?.trim();
   if (baseUrlOverride) {
-    const baseUrlError = validateBaseUrlOverride(providerId, baseUrlOverride);
+    const baseUrlError = validateProviderBaseUrlOverride(providerId, baseUrlOverride);
     if (baseUrlError) return { ok: false, error: baseUrlError };
   }
+  const lifecycleError = await credentialRotationLifecycleError(providerId);
+  if (lifecycleError) return { ok: false, error: lifecycleError };
 
-  const encrypted = encryptApiKey(trimmed);
+  let encrypted: ReturnType<typeof encryptApiKey>;
+  try {
+    encrypted = encryptApiKey(trimmed);
+  } catch (err) {
+    if (err instanceof CredentialConfigError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Credential encryption failed" };
+  }
   try {
     await saveCredentialRow({
       providerId,
@@ -145,12 +156,27 @@ export async function verifyCredential(
   credentialId: string,
   providerId: ProviderId,
 ): Promise<ActionResult> {
+  if (!LIVE_PROVIDER_IDS.includes(providerId)) {
+    return { ok: false, error: `No live adapter for provider "${providerId}"` };
+  }
   const credential = await getActiveCredential(providerId);
   if (!credential || credential.id !== credentialId) {
     return { ok: false, error: "Credential not found or not active" };
   }
+  if (credential.baseUrl) {
+    const baseUrlError = validateProviderBaseUrlOverride(providerId, credential.baseUrl);
+    if (baseUrlError) return { ok: false, error: baseUrlError };
+  }
 
-  const apiKey = decryptApiKey(credential.encryptedApiKey);
+  let apiKey: string | null;
+  try {
+    apiKey = decryptApiKey(credential.encryptedApiKey);
+  } catch (err) {
+    if (err instanceof CredentialConfigError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Stored key could not be decrypted — re-enter it" };
+  }
   if (apiKey === null) {
     await markInvalid(credentialId);
     revalidatePath(SETTINGS_PATH);
@@ -188,12 +214,32 @@ export async function verifyCredential(
 }
 
 export async function disableCredential(credentialId: string): Promise<ActionResult> {
-  await disableCredentialRow(credentialId);
+  if (!isUuid(credentialId)) return { ok: false, error: "Invalid credential id" };
+  const lifecycleError = await destructiveCredentialLifecycleError(credentialId);
+  if (lifecycleError) return { ok: false, error: lifecycleError };
+  const updated = await disableCredentialRow(credentialId);
+  if (updated === 0) {
+    return { ok: false, error: "Credential not found" };
+  }
   revalidatePath(SETTINGS_PATH);
   return { ok: true };
 }
 
 export async function enableCredential(credentialId: string): Promise<ActionResult> {
+  if (!isUuid(credentialId)) return { ok: false, error: "Invalid credential id" };
+  const credential = await getCredentialEnableSummary(credentialId);
+  if (!credential || credential.status !== "disabled") {
+    return { ok: false, error: "Credential must be disabled before it can be enabled" };
+  }
+  if (!LIVE_PROVIDER_IDS.includes(credential.providerId)) {
+    return { ok: false, error: `No live adapter for provider "${credential.providerId}" yet` };
+  }
+  if (credential.baseUrl) {
+    const baseUrlError = validateProviderBaseUrlOverride(credential.providerId, credential.baseUrl);
+    if (baseUrlError) return { ok: false, error: baseUrlError };
+  }
+  const lifecycleError = await credentialRotationLifecycleError(credential.providerId);
+  if (lifecycleError) return { ok: false, error: lifecycleError };
   const updated = await enableCredentialRow(credentialId);
   if (updated === 0) {
     return { ok: false, error: "Credential must be disabled before it can be enabled" };
@@ -203,7 +249,13 @@ export async function enableCredential(credentialId: string): Promise<ActionResu
 }
 
 export async function deleteCredential(credentialId: string): Promise<ActionResult> {
-  await deleteCredentialRow(credentialId);
+  if (!isUuid(credentialId)) return { ok: false, error: "Invalid credential id" };
+  const lifecycleError = await destructiveCredentialLifecycleError(credentialId);
+  if (lifecycleError) return { ok: false, error: lifecycleError };
+  const deleted = await deleteCredentialRow(credentialId);
+  if (deleted === 0) {
+    return { ok: false, error: "Credential not found" };
+  }
   revalidatePath(SETTINGS_PATH);
   return { ok: true };
 }

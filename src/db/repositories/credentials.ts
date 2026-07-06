@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "../client";
-import { providerCredentials } from "../schema";
+import { auditRuns, matrixVersions, providerCredentials } from "../schema";
 
 export type ProviderIdValue = (typeof providerCredentials.$inferSelect)["providerId"];
 
@@ -30,6 +30,74 @@ export async function getActiveCredential(providerId: ProviderIdValue) {
     .from(providerCredentials)
     .where(and(eq(providerCredentials.providerId, providerId), eq(providerCredentials.status, "active")));
   return row ?? null;
+}
+
+export async function getActiveCredentialLifecycleSummary(providerId: ProviderIdValue) {
+  const [row] = await db
+    .select({
+      id: providerCredentials.id,
+      providerId: providerCredentials.providerId,
+      status: providerCredentials.status,
+      baseUrl: providerCredentials.baseUrl,
+    })
+    .from(providerCredentials)
+    .where(and(eq(providerCredentials.providerId, providerId), eq(providerCredentials.status, "active")));
+  return row ?? null;
+}
+
+/** Non-secret row data used before re-enabling a disabled credential. */
+export async function getCredentialEnableSummary(credentialId: string) {
+  const [row] = await db
+    .select({
+      id: providerCredentials.id,
+      providerId: providerCredentials.providerId,
+      status: providerCredentials.status,
+      baseUrl: providerCredentials.baseUrl,
+    })
+    .from(providerCredentials)
+    .where(eq(providerCredentials.id, credentialId));
+  return row ?? null;
+}
+
+export async function getCredentialLifecycleSummary(credentialId: string) {
+  const [row] = await db
+    .select({
+      id: providerCredentials.id,
+      providerId: providerCredentials.providerId,
+      status: providerCredentials.status,
+      baseUrl: providerCredentials.baseUrl,
+    })
+    .from(providerCredentials)
+    .where(eq(providerCredentials.id, credentialId));
+  return row ?? null;
+}
+
+export async function findActiveLiveRunUsingProvider(
+  providerId: ProviderIdValue,
+  secondaryProviders: { audit: ProviderIdValue; resonance: ProviderIdValue },
+) {
+  const rows = await db
+    .select({
+      id: auditRuns.id,
+      state: auditRuns.state,
+      runMode: auditRuns.runMode,
+      selectedProvidersJson: auditRuns.selectedProvidersJson,
+      matrixKind: matrixVersions.kind,
+    })
+    .from(auditRuns)
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        inArray(auditRuns.state, ["queued", "running"]),
+        ne(auditRuns.runMode, "mock"),
+      ),
+    );
+
+  return rows.find((run) => {
+    const selectedProviders = Array.isArray(run.selectedProvidersJson) ? run.selectedProvidersJson : [];
+    const secondary = run.matrixKind === "resonance" ? secondaryProviders.resonance : secondaryProviders.audit;
+    return selectedProviders.includes(providerId) || secondary === providerId;
+  }) ?? null;
 }
 
 /** D-020: at most one active credential per provider — disable any existing active row first. */
@@ -85,10 +153,12 @@ export async function markUsed(credentialId: string) {
 }
 
 export async function disableCredential(credentialId: string) {
-  await db
+  const updated = await db
     .update(providerCredentials)
     .set({ status: "disabled", updatedAt: new Date() })
-    .where(eq(providerCredentials.id, credentialId));
+    .where(eq(providerCredentials.id, credentialId))
+    .returning({ id: providerCredentials.id });
+  return updated.length;
 }
 
 /**
@@ -132,5 +202,9 @@ export async function enableCredential(credentialId: string): Promise<number> {
 }
 
 export async function deleteCredential(credentialId: string) {
-  await db.delete(providerCredentials).where(eq(providerCredentials.id, credentialId));
+  const deleted = await db
+    .delete(providerCredentials)
+    .where(eq(providerCredentials.id, credentialId))
+    .returning({ id: providerCredentials.id });
+  return deleted.length;
 }

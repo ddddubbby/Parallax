@@ -12,6 +12,7 @@ import {
   generateSection,
   REPORT_SECTIONS,
   RESONANCE_REPORT_SECTIONS,
+  type SectionKey,
   type ReportContext,
   type ResonanceReportContext,
   type ResonanceSectionKey,
@@ -33,6 +34,10 @@ import { getRun, getRunFailureCounts, getRunMatrixKind } from "@/db/repositories
 
 /** RB-1: compute every finding type and persist (disposable, C-5 — same pattern as metrics recompute). */
 export async function computeFindings(runId: string): Promise<number> {
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind === "resonance") {
+    throw new Error("Audit findings cannot be computed for a resonance run (C-12)");
+  }
   const [metrics, cellPresence] = await Promise.all([listMetrics(runId), getCellBrandPresence(runId)]);
 
   const attributeRows = metrics.filter((m) => m.scopeType === "overall" && m.metricKey.startsWith("attribute_"));
@@ -76,6 +81,8 @@ export async function computeFindings(runId: string): Promise<number> {
 async function buildReportContext(runId: string): Promise<ReportContext | null> {
   const run = await getRun(runId);
   if (!run) return null;
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind === "resonance") return null;
 
   const [metrics, findingRows, misinformation, citedSources, projectBrands, failureCounts] = await Promise.all([
     listMetrics(runId),
@@ -237,19 +244,30 @@ export async function generateResonanceReport(runId: string): Promise<{ ok: true
   return { ok: true, created };
 }
 
+function isAuditSectionKey(key: string): key is SectionKey {
+  return REPORT_SECTIONS.some((section) => section.key === key);
+}
+
+export function isKnownReportSectionKey(key: string) {
+  return isAuditSectionKey(key) || isResonanceSectionKey(key);
+}
+
 /** RB-3: regenerate exactly one section from fresh data — siblings are never touched. */
 export async function regenerateOneSection(runId: string, sectionId: string, sectionKey: string): Promise<string> {
   if (isResonanceSectionKey(sectionKey)) {
     const ctx = await buildResonanceReportContext(runId);
     if (!ctx) throw new Error("Resonance run not found");
     const md = generateResonanceSection(sectionKey, ctx);
-    await regenerateSection(sectionId, md);
+    const updated = await regenerateSection(runId, sectionId, sectionKey, md);
+    if (updated === 0) throw new Error("Report section not found for run");
     return md;
   }
+  if (!isAuditSectionKey(sectionKey)) throw new Error("Unknown report section key");
   const ctx = await buildReportContext(runId);
   if (!ctx) throw new Error("Run not found");
-  const md = generateSection(sectionKey as Parameters<typeof generateSection>[0], ctx);
-  await regenerateSection(sectionId, md);
+  const md = generateSection(sectionKey, ctx);
+  const updated = await regenerateSection(runId, sectionId, sectionKey, md);
+  if (updated === 0) throw new Error("Report section not found for run");
   return md;
 }
 
@@ -257,6 +275,7 @@ function isResonanceSectionKey(key: string): key is ResonanceSectionKey {
   return RESONANCE_REPORT_SECTIONS.some((section) => section.key === key);
 }
 
-export async function editSection(sectionId: string, editedMd: string) {
-  await saveEdit(sectionId, editedMd);
+export async function editSection(runId: string, sectionId: string, editedMd: string) {
+  const updated = await saveEdit(runId, sectionId, editedMd);
+  if (updated === 0) throw new Error("Report section not found for run");
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { IntakeWizard } from "@/components/intake/wizard";
+import { isUuid } from "@/core/id";
 import type { IntakeDraft } from "@/core/intake";
 import { getProjectIntake } from "@/db/repositories/intake";
 
@@ -17,6 +18,7 @@ export default async function NewProjectPage({
   let draft: IntakeDraft = {};
 
   if (id) {
+    if (!isUuid(id)) redirect("/projects/new");
     const project = await getProjectIntake(id);
     if (!project) redirect("/projects/new");
     // Post-completion intake editing is out of MVP scope.

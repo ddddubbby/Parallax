@@ -16,6 +16,11 @@ export const INTAKE_STEPS = [
 
 export type IntakeStepKey = (typeof INTAKE_STEPS)[number]["key"];
 export const REVIEW_STEP = 8;
+const INTAKE_STEP_KEYS = new Set<string>(INTAKE_STEPS.map((step) => step.key));
+
+export function isIntakeStepKey(value: string): value is IntakeStepKey {
+  return INTAKE_STEP_KEYS.has(value);
+}
 
 const nonEmpty = z.string().trim().min(1, "Required");
 const optionalText = z
@@ -154,9 +159,12 @@ export type FieldErrors = Record<string, string[]>;
 
 /** Validate one step's payload, returning field-level errors keyed by path. */
 export function validateStep(
-  key: IntakeStepKey,
+  key: string,
   payload: unknown,
 ): { ok: true; data: unknown } | { ok: false; fieldErrors: FieldErrors } {
+  if (!isIntakeStepKey(key)) {
+    return { ok: false, fieldErrors: { _root: ["Unknown intake step"] } };
+  }
   const result = STEP_SCHEMAS[key].safeParse(payload);
   if (result.success) return { ok: true, data: result.data };
   const fieldErrors: FieldErrors = {};

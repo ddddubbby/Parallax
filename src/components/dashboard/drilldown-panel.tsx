@@ -28,10 +28,12 @@ interface ResponseRow {
  * single response (e.g. one misinformation register row).
  */
 export function DrilldownPanel({
+  projectId,
   runId,
   request,
   onClose,
 }: {
+  projectId: string;
   runId: string;
   request: DrilldownRequest;
   onClose: () => void;
@@ -49,7 +51,7 @@ export function DrilldownPanel({
     setLoading(true);
     async function load() {
       if (request.kind === "response") {
-        const detail = await fetchResponseDetail(request.responseId);
+        const detail = await fetchResponseDetail(projectId, runId, request.responseId);
         if (detail) {
           setSelected({
             response: detail.response as ResponseRow,
@@ -61,22 +63,22 @@ export function DrilldownPanel({
       }
       const list =
         request.kind === "scope"
-          ? await fetchDrilldown(runId, { intent: request.intent, personaId: request.personaId })
+          ? await fetchDrilldown(projectId, runId, { intent: request.intent, personaId: request.personaId })
           : request.kind === "metric"
-            ? await fetchMetricDrilldown(runId, {
+            ? await fetchMetricDrilldown(projectId, runId, {
                 metricKey: request.metricKey,
                 scopeType: request.scopeType,
                 scopeKey: request.scopeKey,
               })
-          : await fetchResponsesByIds(request.responseIds);
+          : await fetchResponsesByIds(projectId, runId, request.responseIds);
       setRows(list as ResponseRow[]);
       setLoading(false);
     }
     load();
-  }, [runId, request]);
+  }, [projectId, runId, request]);
 
   async function selectResponse(row: ResponseRow) {
-    const detail = await fetchResponseDetail(row.id);
+    const detail = await fetchResponseDetail(projectId, runId, row.id);
     setSelected({
       response: row,
       extraction: detail?.extraction as { state: string; extractedJson: unknown } | null,

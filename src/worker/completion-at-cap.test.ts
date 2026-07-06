@@ -1,10 +1,10 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
-import { createRun, getRun, listRunEvents } from "@/db/repositories/runner";
+import { createRun, getRun, listRunEvents, recordSuccess } from "@/db/repositories/runner";
 import {
   auditRuns,
   brandMentions,
@@ -17,6 +17,7 @@ import {
   responses,
   runEvents,
 } from "@/db/schema";
+import { mockProvider } from "@/providers/mock";
 
 // Fix A (post-M10-prep audit round 2): afterJobFinished used to check the
 // cost-cap/budget breaker BEFORE checking whether the run had any
@@ -130,11 +131,83 @@ async function ensureApprovedVersion(projectId: string) {
   return version;
 }
 
+async function createOversizeRun(projectId: string) {
+  const [{ nextVersion }] = await db
+    .select({ nextVersion: sql<number>`coalesce(max(${matrixVersions.version}), 0)::int + 1` })
+    .from(matrixVersions)
+    .where(eq(matrixVersions.projectId, projectId));
+
+  // matrix_versions.cell_count has a DB check at <= 50, so this simulates
+  // the only remaining bypass class: actual prompt_cells were hand-mutated
+  // past the cap while the cached count stayed valid.
+  const [version] = await db
+    .insert(matrixVersions)
+    .values({
+      projectId,
+      version: nextVersion,
+      state: "approved",
+      kind: "audit",
+      cellCount: 50,
+      approvedAt: new Date(),
+    })
+    .returning();
+  createdVersionIds.push(version.id);
+
+  const cells = await db
+    .insert(promptCells)
+    .values(
+      Array.from({ length: 51 }, (_, index) => ({
+        matrixVersionId: version.id,
+        intent: "discovery" as const,
+        variantKey: `oversize-${index}`,
+        resolvedText: `Oversize cap regression prompt ${index}`,
+        competitorOrderJson: [],
+      })),
+    )
+    .returning({ id: promptCells.id });
+
+  const [run] = await db
+    .insert(auditRuns)
+    .values({
+      projectId,
+      matrixVersionId: version.id,
+      runMode: "mock",
+      state: "queued",
+      repetitions: 1,
+      selectedProvidersJson: ["mock"],
+      selectedModesJson: ["ungrounded"],
+      plannedCalls: 51,
+      costCapUsd: "25",
+    })
+    .returning({ id: auditRuns.id });
+  createdRunIds.push(run.id);
+
+  await db.insert(jobs).values({
+    runId: run.id,
+    cellId: cells[0].id,
+    providerId: "mock",
+    generationMode: "ungrounded",
+    repIndex: 0,
+    state: "queued",
+  });
+
+  return run;
+}
+
 function spawnWorker(): ChildProcess {
   const nodeBin = process.execPath;
   const tsxLoader = new URL("../../node_modules/tsx/dist/loader.mjs", import.meta.url).href;
   const workerEntry = new URL("./index.ts", import.meta.url).pathname;
-  return spawn(nodeBin, ["--import", tsxLoader, workerEntry], { stdio: ["ignore", "pipe", "pipe"] });
+  return spawn(nodeBin, ["--import", tsxLoader, workerEntry], {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      WORKER_STALE_RECLAIM_INTERVAL_MS: "500",
+      WORKER_EXTRACTION_SWEEP_AGE_MS: "500",
+      WORKER_STALE_LOCK_MS: "5000",
+      WORKER_PROVIDER_TIMEOUT_MS: "1000",
+    },
+  });
 }
 
 function sleep(ms: number) {
@@ -183,5 +256,83 @@ describe.skipIf(!dbUp)("run completes when its final job crosses the cost cap (F
     const events = await listRunEvents(run.id, 50);
     expect(events.some((e) => e.eventType === "run_completed")).toBe(true);
     expect(events.some((e) => e.eventType === "circuit_breaker_paused")).toBe(false);
+  }, 40_000);
+
+  it("pauses an over-50-cell run before the worker spends on queued jobs (C-1 backstop)", async () => {
+    const projectId = await ensureProject();
+    const run = await createOversizeRun(projectId);
+
+    const worker = spawnWorker();
+    const finalRun = await waitForTerminal(run.id, 30_000);
+    worker.kill("SIGTERM");
+
+    expect(finalRun.state).toBe("paused");
+    expect(Number(finalRun.actualCostUsd)).toBe(0);
+
+    const responseRows = await db.select({ id: responses.id }).from(responses).where(eq(responses.runId, run.id));
+    expect(responseRows).toHaveLength(0);
+
+    const events = await listRunEvents(run.id, 50);
+    expect(events.some((e) => e.eventType === "cell_cap_violation")).toBe(true);
+  }, 40_000);
+
+  it("finalizes a running run with no queued/running jobs after a worker crash before completion check", async () => {
+    const projectId = await ensureProject();
+    const version = await ensureApprovedVersion(projectId);
+    const run = await createRun(
+      {
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        repetitions: 1,
+        providers: ["mock"],
+        modes: ["ungrounded"],
+        costCapUsd: 25,
+        debugFailureInjection: null,
+      },
+      [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }],
+      version.cellCount,
+    );
+    createdRunIds.push(run.id);
+
+    const [job] = await db
+      .select({
+        id: jobs.id,
+        runId: jobs.runId,
+        cellId: jobs.cellId,
+        providerId: jobs.providerId,
+        generationMode: jobs.generationMode,
+        repIndex: jobs.repIndex,
+        attemptCount: jobs.attemptCount,
+        resolvedText: promptCells.resolvedText,
+      })
+      .from(jobs)
+      .innerJoin(promptCells, eq(promptCells.id, jobs.cellId))
+      .where(eq(jobs.runId, run.id))
+      .limit(1);
+    await db.update(auditRuns).set({ state: "running", startedAt: new Date() }).where(eq(auditRuns.id, run.id));
+    await db.update(jobs).set({ state: "running", lockedAt: new Date() }).where(eq(jobs.id, job.id));
+    const generated = await mockProvider.generate({
+      promptText: job.resolvedText,
+      mode: job.generationMode,
+      repIndex: job.repIndex,
+    });
+    await recordSuccess(job, {
+      modelVersion: generated.modelVersion,
+      rawText: generated.text,
+      citations: generated.citations,
+      tokensIn: generated.tokensIn,
+      tokensOut: generated.tokensOut,
+      costUsd: generated.costUsd,
+      latencyMs: generated.latencyMs,
+    });
+
+    const worker = spawnWorker();
+    const finalRun = await waitForTerminal(run.id, 30_000);
+    worker.kill("SIGTERM");
+
+    expect(finalRun.state).toBe("completed");
+    const events = await listRunEvents(run.id, 50);
+    expect(events.some((e) => e.eventType === "run_completed")).toBe(true);
   }, 40_000);
 });

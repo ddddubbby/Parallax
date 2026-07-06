@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, max, sql } from "drizzle-orm";
+import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { isAuditIntent, type CellPlan } from "@/core/matrix";
 import { db } from "../client";
 import {
@@ -84,11 +85,18 @@ export async function listVersions(projectId: string) {
     .orderBy(desc(matrixVersions.version));
 }
 
-export async function getVersionWithCells(versionId: string) {
+export async function getVersionWithCells(versionId: string, projectId?: string) {
+  const versionWhere = projectId
+    ? and(
+        eq(matrixVersions.id, versionId),
+        eq(matrixVersions.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+      )
+    : and(eq(matrixVersions.id, versionId), eq(matrixVersions.kind, "audit"));
   const [version] = await db
     .select()
     .from(matrixVersions)
-    .where(and(eq(matrixVersions.id, versionId), eq(matrixVersions.kind, "audit")));
+    .where(versionWhere);
   if (!version) return null;
   const cells = await db
     .select({
@@ -121,6 +129,9 @@ export type CellInput = Omit<CellPlan, "personaId" | "marketId"> & {
 
 /** Create the next draft version for a project with the given cells. */
 export async function createDraftVersion(projectId: string, cells: CellInput[]) {
+  if (cells.length > MAX_CELLS_PER_RUN) {
+    throw new Error(`Cap exceeded: ${cells.length} > ${MAX_CELLS_PER_RUN} (C-1)`);
+  }
   return db.transaction(async (tx) => {
     const [{ latest }] = await tx
       .select({ latest: max(matrixVersions.version) })
@@ -150,11 +161,18 @@ export async function createDraftVersion(projectId: string, cells: CellInput[]) 
   });
 }
 
-async function assertDraft(versionId: string) {
+async function assertDraft(versionId: string, projectId?: string) {
+  const versionWhere = projectId
+    ? and(
+        eq(matrixVersions.id, versionId),
+        eq(matrixVersions.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+      )
+    : and(eq(matrixVersions.id, versionId), eq(matrixVersions.kind, "audit"));
   const [version] = await db
       .select({ state: matrixVersions.state })
       .from(matrixVersions)
-      .where(and(eq(matrixVersions.id, versionId), eq(matrixVersions.kind, "audit")));
+      .where(versionWhere);
   if (!version || version.state !== "draft") {
     throw new Error("Matrix version is not a draft; approved versions are frozen (C-4)");
   }
@@ -171,8 +189,8 @@ async function syncCellCount(versionId: string) {
 }
 
 /** Draft-only cell text edit (PM-7); approved cells never match (C-4). */
-export async function updateCellText(versionId: string, cellId: string, resolvedText: string) {
-  await assertDraft(versionId);
+export async function updateCellText(versionId: string, cellId: string, resolvedText: string, projectId?: string) {
+  await assertDraft(versionId, projectId);
   const updated = await db
     .update(promptCells)
     .set({ resolvedText })
@@ -185,8 +203,9 @@ export async function replaceCell(
   versionId: string,
   cellId: string,
   cell: { variantKey: string; resolvedText: string; competitorOrder: string[] },
+  projectId?: string,
 ) {
-  await assertDraft(versionId);
+  await assertDraft(versionId, projectId);
   const updated = await db
     .update(promptCells)
     .set({
@@ -199,8 +218,15 @@ export async function replaceCell(
   return updated.length;
 }
 
-export async function insertCell(versionId: string, cell: CellPlan) {
-  await assertDraft(versionId);
+export async function insertCell(versionId: string, cell: CellPlan, projectId?: string) {
+  await assertDraft(versionId, projectId);
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(promptCells)
+    .where(eq(promptCells.matrixVersionId, versionId));
+  if (n >= MAX_CELLS_PER_RUN) {
+    throw new Error(`Cap reached: a run processes at most ${MAX_CELLS_PER_RUN} cells (C-1)`);
+  }
   await db.insert(promptCells).values({
     matrixVersionId: versionId,
     intent: cell.intent,
@@ -213,17 +239,28 @@ export async function insertCell(versionId: string, cell: CellPlan) {
   await syncCellCount(versionId);
 }
 
-export async function deleteCell(versionId: string, cellId: string) {
-  await assertDraft(versionId);
-  await db
+export async function deleteCell(versionId: string, cellId: string, projectId?: string) {
+  await assertDraft(versionId, projectId);
+  const deleted = await db
     .delete(promptCells)
-    .where(and(eq(promptCells.id, cellId), eq(promptCells.matrixVersionId, versionId)));
+    .where(and(eq(promptCells.id, cellId), eq(promptCells.matrixVersionId, versionId)))
+    .returning({ id: promptCells.id });
+  if (deleted.length === 0) return 0;
   await syncCellCount(versionId);
+  return deleted.length;
 }
 
 /** PM-10 / C-4: freeze the draft; supersede any previously approved version. */
 export async function approveVersion(projectId: string, versionId: string) {
   await db.transaction(async (tx) => {
+    const [{ n }] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, versionId));
+    if (n > MAX_CELLS_PER_RUN) {
+      throw new Error(`Cap exceeded: ${n} > ${MAX_CELLS_PER_RUN} (C-1)`);
+    }
+
     await tx
       .update(matrixVersions)
       .set({ state: "superseded", supersededAt: new Date(), updatedAt: new Date() })
@@ -237,7 +274,14 @@ export async function approveVersion(projectId: string, versionId: string) {
     const approved = await tx
       .update(matrixVersions)
       .set({ state: "approved", approvedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(matrixVersions.id, versionId), eq(matrixVersions.state, "draft")))
+      .where(
+        and(
+          eq(matrixVersions.id, versionId),
+          eq(matrixVersions.projectId, projectId),
+          eq(matrixVersions.kind, "audit"),
+          eq(matrixVersions.state, "draft"),
+        ),
+      )
       .returning({ id: matrixVersions.id });
     if (approved.length === 0) {
       throw new Error("Only draft versions can be approved");
@@ -247,7 +291,7 @@ export async function approveVersion(projectId: string, versionId: string) {
 
 /** PM-10: editing after approval means copying cells into a new draft. */
 export async function copyToNewDraft(projectId: string, sourceVersionId: string) {
-  const source = await getVersionWithCells(sourceVersionId);
+  const source = await getVersionWithCells(sourceVersionId, projectId);
   if (!source) throw new Error("Source version not found");
   return createDraftVersion(
     projectId,

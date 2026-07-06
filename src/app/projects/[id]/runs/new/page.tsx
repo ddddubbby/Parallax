@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { RunCreationForm } from "@/components/runner/run-creation-form";
 import { DEFAULT_AUDIT_RUN_CAP_USD, DEFAULT_VALIDATION_RUN_CAP_USD } from "@/core/constants";
+import { isUuid } from "@/core/id";
 import { getApprovedVersionForRun, getMatrixVersionForRun, getProjectSummary } from "@/db/repositories/runner";
 import { listProviderOptions } from "@/modules/runner/actions";
 
@@ -16,8 +17,10 @@ export default async function NewRunPage({
 }) {
   const { id } = await params;
   const { matrixVersionId } = await searchParams;
+  if (!isUuid(id)) notFound();
   const project = await getProjectSummary(id);
   if (project === null) notFound();
+  if (matrixVersionId && !isUuid(matrixVersionId)) redirect(`/projects/${id}/matrix`);
 
   const version = matrixVersionId
     ? await getMatrixVersionForRun(id, matrixVersionId)

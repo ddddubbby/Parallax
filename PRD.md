@@ -382,7 +382,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 8. Every dashboard figure traces to raw text; report numbers match dashboard.
 9. One pilot audit is delivered after target provider coverage is available; retro is logged in `MASTER_CONTEXT.md`.
 10. Manual checklists in `DEVELOPMENT_GUIDELINES.md` are executed on the release commit.
-11. Every delivered audit has an archived evidence pack: the EX-3 export plus a database dump stored off-Render, recorded in the release checklist (D-024).
+11. Every delivered audit has an archived evidence pack: the EX-3 export plus a redacted database snapshot stored off-Render, recorded in the release checklist (D-024).
 
 ## 11. Milestones and progress tracker
 

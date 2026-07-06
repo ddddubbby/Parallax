@@ -28,19 +28,19 @@ function formatMetric(m: MetricRow): string {
   return `${value}${ci}`;
 }
 
-export function ExtractionPanel({ runId, terminal }: { runId: string; terminal: boolean }) {
+export function ExtractionPanel({ projectId, runId, terminal }: { projectId: string; runId: string; terminal: boolean }) {
   const [data, setData] = useState<{ progress: Record<string, number>; metrics: MetricRow[]; plannedResponses: number } | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     function poll() {
-      fetchExtractionAndMetrics(runId).then(setData);
+      fetchExtractionAndMetrics(projectId, runId).then(setData);
     }
     poll();
     if (terminal) return;
     const timer = setInterval(poll, POLL_MS);
     return () => clearInterval(timer);
-  }, [runId, terminal]);
+  }, [projectId, runId, terminal]);
 
   if (!data) return null;
 
@@ -75,8 +75,8 @@ export function ExtractionPanel({ runId, terminal }: { runId: string; terminal: 
           disabled={pending || extracted === 0}
           onClick={() =>
             startTransition(async () => {
-              await recomputeMetrics(runId);
-              fetchExtractionAndMetrics(runId).then(setData);
+              await recomputeMetrics(projectId, runId);
+              fetchExtractionAndMetrics(projectId, runId).then(setData);
             })
           }
         >

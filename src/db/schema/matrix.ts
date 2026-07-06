@@ -68,6 +68,10 @@ export const matrixVersions = pgTable(
     // C-1 structural cap, enforced at the database layer as well.
     check("matrix_versions_cell_cap_ck", sql`${t.cellCount} <= 50`),
     check("matrix_versions_kind_ck", sql`${t.kind} in ('audit', 'resonance')`),
+    check(
+      "matrix_versions_kind_study_ck",
+      sql`(${t.kind} = 'audit' and ${t.resonanceStudyId} is null) or (${t.kind} = 'resonance' and ${t.resonanceStudyId} is not null)`,
+    ),
     index("matrix_versions_project_kind_idx").on(t.projectId, t.kind),
   ],
 );
@@ -92,5 +96,11 @@ export const promptCells = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("prompt_cells_version_intent_idx").on(t.matrixVersionId, t.intent)],
+  (t) => [
+    index("prompt_cells_version_intent_idx").on(t.matrixVersionId, t.intent),
+    check(
+      "prompt_cells_audit_resonance_shape_ck",
+      sql`(${t.intent} = 'simulation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is not null and ${t.panelPersonaKey} is not null) or (${t.intent} <> 'simulation' and ${t.stimulusId} is null and ${t.panelPersonaKey} is null)`,
+    ),
+  ],
 );

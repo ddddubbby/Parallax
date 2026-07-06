@@ -1,7 +1,7 @@
 import type { ReportEvidenceExcerpt } from "@/core/report-templates";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../client";
-import { reportSections, responses } from "../schema";
+import { extractions, metrics, reportSections, responses } from "../schema";
 import {
   getBrandMentionsForExtractions,
   getClaimsForExtractions,
@@ -10,6 +10,44 @@ import {
 
 export async function getReportSections(runId: string) {
   return db.select().from(reportSections).where(eq(reportSections.runId, runId)).orderBy(reportSections.position);
+}
+
+export async function getReportFreshness(runId: string) {
+  const [[metricRow], [extractionRow], [sectionRow]] = await Promise.all([
+    db
+      .select({ latestMetricComputedAt: sql<Date | null>`max(${metrics.computedAt})` })
+      .from(metrics)
+      .where(eq(metrics.runId, runId)),
+    db
+      .select({ latestExtractionUpdatedAt: sql<Date | null>`max(${extractions.updatedAt})` })
+      .from(extractions)
+      .innerJoin(responses, eq(responses.id, extractions.responseId))
+      .where(eq(responses.runId, runId)),
+    db
+      .select({ oldestSectionUpdatedAt: sql<Date | null>`min(${reportSections.updatedAt})` })
+      .from(reportSections)
+      .where(eq(reportSections.runId, runId)),
+  ]);
+  const latestMetricComputedAt = metricRow?.latestMetricComputedAt ?? null;
+  const latestExtractionUpdatedAt = extractionRow?.latestExtractionUpdatedAt ?? null;
+  const oldestSectionUpdatedAt = sectionRow?.oldestSectionUpdatedAt ?? null;
+  const latestInputUpdatedAt = maxDate(latestMetricComputedAt, latestExtractionUpdatedAt);
+  return {
+    latestMetricComputedAt,
+    latestExtractionUpdatedAt,
+    oldestSectionUpdatedAt,
+    stale: Boolean(
+      latestInputUpdatedAt &&
+        oldestSectionUpdatedAt &&
+        oldestSectionUpdatedAt.getTime() < latestInputUpdatedAt.getTime(),
+    ),
+  };
+}
+
+function maxDate(...dates: Array<Date | null>): Date | null {
+  const present = dates.filter((date): date is Date => date !== null);
+  if (present.length === 0) return null;
+  return new Date(Math.max(...present.map((date) => date.getTime())));
 }
 
 /** Report generation: only creates rows that don't already exist — never overwrites an edited section (RB-2/RB-3). */
@@ -32,19 +70,29 @@ export async function ensureSection(
 }
 
 /** RB-2: an operator edit always wins over generated_md going forward. */
-export async function saveEdit(sectionId: string, editedMd: string) {
-  await db
+export async function saveEdit(runId: string, sectionId: string, editedMd: string) {
+  const updated = await db
     .update(reportSections)
     .set({ editedMd, state: "edited", updatedAt: new Date() })
-    .where(eq(reportSections.id, sectionId));
+    .where(and(eq(reportSections.id, sectionId), eq(reportSections.runId, runId)))
+    .returning({ id: reportSections.id });
+  return updated.length;
 }
 
 /** RB-3: regenerating a section replaces generated_md and clears the edit — this section only, never siblings. */
-export async function regenerateSection(sectionId: string, generatedMd: string) {
-  await db
+export async function regenerateSection(runId: string, sectionId: string, sectionKey: string, generatedMd: string) {
+  const updated = await db
     .update(reportSections)
     .set({ generatedMd, editedMd: null, state: "regenerated", updatedAt: new Date() })
-    .where(eq(reportSections.id, sectionId));
+    .where(
+      and(
+        eq(reportSections.id, sectionId),
+        eq(reportSections.runId, runId),
+        eq(reportSections.sectionKey, sectionKey),
+      ),
+    )
+    .returning({ id: reportSections.id });
+  return updated.length;
 }
 
 export async function getSection(sectionId: string) {

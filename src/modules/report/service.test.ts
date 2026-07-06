@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { db, pool } from "@/db/client";
 import { getReportSections, saveEdit } from "@/db/repositories/report";
 import { auditRuns, projects } from "@/db/schema";
-import { computeFindings, generateReport, regenerateOneSection } from "./service";
+import { computeFindings, editSection, generateReport, regenerateOneSection } from "./service";
 
 // M7 acceptance (DEVELOPMENT_GUIDELINES.md F manual checklist row):
 // "Report: edit section A, regenerate section B, A intact." Automated
@@ -17,6 +17,18 @@ try {
 } catch {
   dbUp = false;
 }
+
+describe("report section key validation", () => {
+  it("rejects unknown section keys before loading report data", async () => {
+    await expect(
+      regenerateOneSection(
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "not_a_section",
+      ),
+    ).rejects.toThrow(/Unknown report section key/);
+  });
+});
 
 describe.skipIf(!dbUp)("report generation against the dev database", () => {
   it("computes findings with real evidence from the M4 e2e run", async () => {
@@ -58,10 +70,15 @@ describe.skipIf(!dbUp)("report generation against the dev database", () => {
     const untouchedControl = sections.find((s) => s.sectionKey === "sources")!;
 
     const customEdit = `CUSTOM OPERATOR EDIT ${Date.now()}`;
-    await saveEdit(sectionA.id, customEdit);
+    await expect(
+      editSection("00000000-0000-4000-8000-000000000000", sectionA.id, "wrong run edit"),
+    ).rejects.toThrow(/not found/i);
+    await saveEdit(run.id, sectionA.id, customEdit);
 
     const beforeRegenerate = await getReportSections(run.id);
     const controlBefore = beforeRegenerate.find((s) => s.id === untouchedControl.id)!;
+
+    await expect(regenerateOneSection(run.id, sectionB.id, "sources")).rejects.toThrow(/not found/i);
 
     // RB-3: regenerating B must only touch B.
     await regenerateOneSection(run.id, sectionB.id, "visibility");

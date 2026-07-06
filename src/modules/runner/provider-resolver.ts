@@ -7,8 +7,9 @@ import { mockProvider } from "@/providers/mock";
 import { createOpenAIProvider } from "@/providers/openai";
 import { createOpenAIEmbeddingProvider } from "@/providers/openai/embeddings";
 import { createPerplexityProvider } from "@/providers/perplexity";
-import { type LiveCredentials, ProviderCallError } from "@/providers/shared";
+import { type LiveCredentials, ProviderCallError, validateProviderBaseUrlOverride } from "@/providers/shared";
 import type { EmbeddingProvider, LLMProvider, ProviderId } from "@/providers/types";
+import { embeddingProviderId, extractionProviderId } from "./provider-ids";
 
 // Credential-aware runtime resolution — distinct from the static,
 // metadata-only registry (src/providers/registry.ts), which run creation
@@ -32,6 +33,10 @@ async function resolveLiveCredentials(providerId: ProviderId): Promise<LiveCrede
   const credential = await getActiveCredential(providerId);
   if (!credential) {
     throw new ProviderCallError("auth_error", `No active ${providerId} credential configured in Settings`);
+  }
+  if (credential.baseUrl) {
+    const baseUrlError = validateProviderBaseUrlOverride(providerId, credential.baseUrl);
+    if (baseUrlError) throw new ProviderCallError("auth_error", baseUrlError);
   }
   const apiKey = decryptApiKey(credential.encryptedApiKey);
   if (apiKey === null) {
@@ -66,7 +71,12 @@ export async function resolveRuntimeProvider(providerId: ProviderId): Promise<LL
  * first extraction attempt, not silently.
  */
 export async function resolveExtractionCredentials(): Promise<LiveCredentials> {
-  const engineId = (process.env.EXTRACTION_PROVIDER || "deepseek") as ProviderId;
+  let engineId: ProviderId;
+  try {
+    engineId = extractionProviderId();
+  } catch (err) {
+    throw new ProviderCallError("unsupported_mode", err instanceof Error ? err.message : String(err));
+  }
   if (engineId !== "deepseek") {
     throw new ProviderCallError(
       "unsupported_mode",
@@ -76,12 +86,13 @@ export async function resolveExtractionCredentials(): Promise<LiveCredentials> {
   return resolveLiveCredentials(engineId);
 }
 
-export function embeddingProviderId(): ProviderId {
-  return (process.env.EMBEDDING_PROVIDER || "openai") as ProviderId;
-}
-
 export async function resolveEmbeddingProvider(): Promise<EmbeddingProvider> {
-  const providerId = embeddingProviderId();
+  let providerId: ProviderId;
+  try {
+    providerId = embeddingProviderId();
+  } catch (err) {
+    throw new ProviderCallError("unsupported_mode", err instanceof Error ? err.message : String(err));
+  }
   if (providerId !== "openai") {
     throw new ProviderCallError(
       "unsupported_mode",

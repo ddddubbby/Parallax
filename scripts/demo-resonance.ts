@@ -140,19 +140,29 @@ async function ensureCompletedRun(input: { projectId: string; matrixVersionId: s
     .limit(1);
   if (existing) return existing.id;
 
+  const [version] = await db
+    .select({ cellCount: matrixVersions.cellCount })
+    .from(matrixVersions)
+    .where(eq(matrixVersions.id, input.matrixVersionId));
+  if (!version) throw new Error(`matrix version ${input.matrixVersionId} not found`);
+  const repetitions = 5;
+  const providers = ["mock"];
+  const modes: ("ungrounded")[] = ["ungrounded"];
+  const plannedCalls = version.cellCount * providers.length * modes.length * repetitions;
+
   const created = await createRun(
     {
       projectId: input.projectId,
       matrixVersionId: input.matrixVersionId,
       runMode: "mock",
-      repetitions: 5,
-      providers: ["mock"],
-      modes: ["ungrounded"],
+      repetitions,
+      providers,
+      modes,
       costCapUsd: 25,
       debugFailureInjection: null,
     },
     [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }],
-    0,
+    plannedCalls,
   );
   const worker = spawnWorker();
   try {
@@ -199,7 +209,7 @@ async function ensureResonanceStudy(projectId: string, evidenceResponseIds: stri
   ];
   for (const stimulus of stimuli) {
     if (existingLabels.has(stimulus.label)) continue;
-    await addResonanceStimulus({ studyId, ...stimulus });
+    await addResonanceStimulus({ projectId, studyId, ...stimulus });
   }
 
   const version = await approveAndCompileResonanceStudy(projectId, studyId);

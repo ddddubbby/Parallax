@@ -1,5 +1,14 @@
-import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
-import type { EngineModePair } from "@/core/runner";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { MAX_CELLS_PER_RUN } from "@/core/constants";
+import {
+  findUnsupportedEngineModePairs,
+  isProviderAllowedForRunMode,
+  isProviderId,
+  isRunMode,
+  type EngineModePair,
+  type GenerationMode,
+  validateDebugFailureInjection,
+} from "@/core/runner";
 import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
 import { db } from "../client";
 import {
@@ -42,8 +51,47 @@ export interface ProviderCapability {
   supportsUngrounded: boolean;
 }
 
+export class JobNoLongerRunningError extends Error {
+  constructor(jobId: string, readonly state: string | null) {
+    super(`Job ${jobId} is no longer running; late provider result ignored`);
+    this.name = "JobNoLongerRunningError";
+  }
+}
+
 function supportsMode(cap: ProviderCapability, mode: "grounded" | "ungrounded"): boolean {
   return mode === "grounded" ? cap.supportsGrounded : cap.supportsUngrounded;
+}
+
+function validateCreateRunInput(input: CreateRunInput): string | null {
+  if (!isRunMode(input.runMode)) return `Unknown run mode: ${String(input.runMode)}`;
+  if (!Array.isArray(input.providers) || input.providers.length === 0) return "Select at least one provider";
+  if (!Array.isArray(input.modes) || input.modes.length === 0) return "Select at least one generation mode";
+  if (!Number.isInteger(input.repetitions) || input.repetitions < 1 || input.repetitions > 5) {
+    return "Repetitions must be an integer from 1 to 5";
+  }
+  if (!Number.isFinite(input.costCapUsd) || input.costCapUsd < 0) {
+    return "Run dollar cap must be a finite non-negative number";
+  }
+  const unknownProviders = input.providers.filter((providerId) => !isProviderId(providerId));
+  if (unknownProviders.length > 0) return `Unknown provider selection: ${unknownProviders.join(", ")}`;
+  const validModes = new Set<GenerationMode>(["grounded", "ungrounded"]);
+  const unknownModes = input.modes.filter((mode) => !validModes.has(mode));
+  if (unknownModes.length > 0) return `Unknown generation mode selection: ${unknownModes.join(", ")}`;
+  if (new Set(input.providers).size !== input.providers.length) return "Provider selections must be unique";
+  if (new Set(input.modes).size !== input.modes.length) return "Generation mode selections must be unique";
+  const disallowed = input.providers.filter((providerId) => !isProviderAllowedForRunMode(input.runMode, providerId));
+  if (disallowed.length > 0) {
+    return input.runMode === "mock"
+      ? `A mock run can only use the mock provider — ${disallowed.join(", ")} would spend real money under a MOCK label (C-9)`
+      : `A live run cannot include the mock provider — fixture output must never mix into live aggregates (C-9)`;
+  }
+  if (input.runMode === "live_audit" && input.repetitions !== 5) {
+    return "Audit-grade runs are locked to k=5 repetitions (C-1)";
+  }
+  if (input.runMode !== "mock" && input.debugFailureInjection) {
+    return "Failure injection is a mock-run test tool (D-027) — not available on runs that spend real money";
+  }
+  return validateDebugFailureInjection(input.debugFailureInjection);
 }
 
 /** RN-1/RN-3: create the run and every job row (queued, or skipped per PV-5/unsupported-mode) in one transaction. */
@@ -52,16 +100,23 @@ export async function createRun(
   capabilities: ProviderCapability[],
   plannedCalls: number,
 ) {
+  const inputError = validateCreateRunInput(input);
+  if (inputError) throw new Error(inputError);
+
   const [version] = await db
     .select({
       id: matrixVersions.id,
       projectId: matrixVersions.projectId,
       kind: matrixVersions.kind,
+      state: matrixVersions.state,
     })
     .from(matrixVersions)
     .where(eq(matrixVersions.id, input.matrixVersionId));
   if (!version || version.projectId !== input.projectId) {
     throw new Error("Matrix version not found for this project");
+  }
+  if (version.state !== "approved") {
+    throw new Error("Runs require an approved matrix version");
   }
   if (version.kind === "resonance" && (input.providers.length !== 1 || input.modes.length !== 1)) {
     throw new Error("A Resonance run must select exactly one provider and one generation mode (D-067)");
@@ -79,15 +134,13 @@ export async function createRun(
   if (cells.length === 0) {
     throw new Error("Matrix version has no cells — cannot create a run");
   }
-  const anySupportedPair = input.providers.some((providerId) =>
-    input.modes.some((mode) => {
-      const cap = capabilities.find((c) => c.id === providerId);
-      return cap !== undefined && supportsMode(cap, mode);
-    }),
-  );
-  if (!anySupportedPair) {
+  if (cells.length > MAX_CELLS_PER_RUN) {
+    throw new Error(`Matrix version exceeds the ${MAX_CELLS_PER_RUN}-cell run cap (C-1)`);
+  }
+  const unsupportedPairs = findUnsupportedEngineModePairs(input.providers, input.modes, capabilities);
+  if (unsupportedPairs.length > 0) {
     throw new Error(
-      "No selected provider supports any selected generation mode (PV-5) — every job would be skipped and the run could never finish",
+      `Unsupported provider/mode selection (C-10/PV-5): ${unsupportedPairs.map((pair) => `${pair.providerId}+${pair.mode}`).join(", ")}`,
     );
   }
 
@@ -294,6 +347,17 @@ export async function recordSuccess(
   },
 ): Promise<string> {
   return db.transaction(async (tx) => {
+    const locked = await tx.execute<{ state: string }>(sql`
+      select state
+      from ${jobs}
+      where id = ${job.id}
+      for update
+    `);
+    const row = locked.rows[0];
+    if (!row || row.state !== "running") {
+      throw new JobNoLongerRunningError(job.id, row?.state ?? null);
+    }
+
     const [response] = await tx
       .insert(responses)
       .values({
@@ -315,6 +379,68 @@ export async function recordSuccess(
       .update(jobs)
       .set({ state: "succeeded", updatedAt: new Date() })
       .where(eq(jobs.id, job.id));
+    await tx
+      .update(auditRuns)
+      .set({
+        actualCostUsd: sql`${auditRuns.actualCostUsd} + ${result.costUsd}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(auditRuns.id, job.runId));
+    return response.id;
+  });
+}
+
+/**
+ * C-2/D-011: if a live provider call returns after the operator cancelled
+ * the run, the job must stay cancelled and must not feed extraction/metrics.
+ * The paid call still happened, so store the raw response as immutable
+ * evidence and count its cost in the same generation-spend ledger used by
+ * daily budgets. The unique job_id keeps this idempotent under duplicate
+ * late completions.
+ */
+export async function recordCancelledProviderResult(
+  job: { id: string; runId: string; cellId: string; providerId: string; generationMode: string },
+  result: {
+    modelVersion: string;
+    rawText: string;
+    citations: unknown[];
+    tokensIn: number;
+    tokensOut: number;
+    costUsd: number;
+    latencyMs: number;
+  },
+): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const locked = await tx.execute<{ state: string }>(sql`
+      select state
+      from ${jobs}
+      where id = ${job.id}
+      for update
+    `);
+    const row = locked.rows[0];
+    if (!row || row.state !== "cancelled") return null;
+
+    const inserted = await tx
+      .insert(responses)
+      .values({
+        jobId: job.id,
+        runId: job.runId,
+        cellId: job.cellId,
+        providerId: job.providerId as (typeof responses.$inferInsert)["providerId"],
+        generationMode: job.generationMode as (typeof responses.$inferInsert)["generationMode"],
+        modelVersion: result.modelVersion,
+        rawText: result.rawText,
+        citationsJson: result.citations,
+        tokensIn: result.tokensIn,
+        tokensOut: result.tokensOut,
+        costUsd: String(result.costUsd),
+        latencyMs: result.latencyMs,
+      })
+      .onConflictDoNothing()
+      .returning({ id: responses.id });
+    const response = inserted[0];
+    if (!response) return null;
+
     await tx
       .update(auditRuns)
       .set({
@@ -370,19 +496,31 @@ export async function recordDeadLetter(
     .where(and(eq(jobs.id, jobId), eq(jobs.state, "running")));
 }
 
-export async function requeueJob(jobId: string) {
-  await db
-    .update(jobs)
-    .set({
-      state: "queued",
-      attemptCount: 0,
-      lastErrorType: null,
-      lastErrorMessage: null,
-      nextAttemptAt: null,
-      lockedAt: null,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(jobs.id, jobId), ne(jobs.state, "succeeded")));
+export async function requeueJob(runId: string, jobId: string) {
+  return db.transaction(async (tx) => {
+    const [run] = await tx
+      .select({ state: auditRuns.state })
+      .from(auditRuns)
+      .where(and(eq(auditRuns.id, runId), inArray(auditRuns.state, ["queued", "running", "paused"])))
+      .for("update");
+    if (!run) return 0;
+
+    const updated = await tx
+      .update(jobs)
+      .set({
+        state: "queued",
+        attemptCount: 0,
+        lastErrorType: null,
+        lastErrorMessage: null,
+        nextAttemptAt: null,
+        lockedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(jobs.id, jobId), eq(jobs.runId, runId), inArray(jobs.state, ["dead_lettered", "retryable_failed"])))
+      .returning({ id: jobs.id });
+
+    return updated.length;
+  });
 }
 
 /** True once no queued/running jobs remain for the run. */
@@ -402,22 +540,96 @@ export async function completeRun(runId: string) {
 }
 
 export async function pauseRun(runId: string) {
-  await db
+  const updated = await db
     .update(auditRuns)
     .set({ state: "paused", updatedAt: new Date() })
-    .where(and(eq(auditRuns.id, runId), inArray(auditRuns.state, ["queued", "running"])));
+    .where(and(eq(auditRuns.id, runId), inArray(auditRuns.state, ["queued", "running"])))
+    .returning({ id: auditRuns.id });
+  return updated.length;
+}
+
+/**
+ * Environment/configuration faults are not provider failures and should not
+ * burn job attempts. Release the currently claimed job back to queued while
+ * atomically pausing the run so an operator can repair config, then resume.
+ */
+export async function pauseRunForWorkerConfigError(
+  runId: string,
+  jobId: string,
+  errorType: string,
+  errorMessage: string,
+) {
+  return db.transaction(async (tx) => {
+    const released = await tx
+      .update(jobs)
+      .set({
+        state: "queued",
+        lockedAt: null,
+        lastErrorType: errorType as (typeof jobs.$inferInsert)["lastErrorType"],
+        lastErrorMessage: errorMessage,
+        nextAttemptAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(jobs.id, jobId), eq(jobs.runId, runId), eq(jobs.state, "running")))
+      .returning({ id: jobs.id });
+
+    const paused = await tx
+      .update(auditRuns)
+      .set({ state: "paused", updatedAt: new Date() })
+      .where(and(eq(auditRuns.id, runId), inArray(auditRuns.state, ["queued", "running"])))
+      .returning({ id: auditRuns.id });
+
+    return { released: released.length, paused: paused.length };
+  });
+}
+
+/**
+ * C-2 worker-side pre-spend guard: if a queued/resumed run is already over
+ * its run cap or provider daily budget before a provider call starts, release
+ * the claimed job and pause the run atomically. This prevents another paid
+ * call after a cap/budget condition that was already true before the claim.
+ */
+export async function pauseRunBeforeProviderSpend(
+  runId: string,
+  jobId: string,
+  errorMessage: string,
+) {
+  return db.transaction(async (tx) => {
+    const released = await tx
+      .update(jobs)
+      .set({
+        state: "queued",
+        lockedAt: null,
+        lastErrorType: "server_error",
+        lastErrorMessage: errorMessage,
+        nextAttemptAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(jobs.id, jobId), eq(jobs.runId, runId), eq(jobs.state, "running")))
+      .returning({ id: jobs.id });
+
+    const paused = await tx
+      .update(auditRuns)
+      .set({ state: "paused", updatedAt: new Date() })
+      .where(and(eq(auditRuns.id, runId), inArray(auditRuns.state, ["queued", "running"])))
+      .returning({ id: auditRuns.id });
+
+    return { released: released.length, paused: paused.length };
+  });
 }
 
 export async function resumeRun(runId: string) {
-  await db
+  const updated = await db
     .update(auditRuns)
     .set({ state: "queued", updatedAt: new Date() })
-    .where(and(eq(auditRuns.id, runId), eq(auditRuns.state, "paused")));
+    .where(and(eq(auditRuns.id, runId), eq(auditRuns.state, "paused")))
+    .returning({ id: auditRuns.id });
+  return updated.length;
 }
 
 export async function cancelRun(runId: string) {
-  await db.transaction(async (tx) => {
-    await tx
+  return db.transaction(async (tx) => {
+    const updated = await tx
       .update(auditRuns)
       .set({ state: "cancelled", completedAt: new Date(), updatedAt: new Date() })
       .where(
@@ -425,11 +637,14 @@ export async function cancelRun(runId: string) {
           eq(auditRuns.id, runId),
           inArray(auditRuns.state, ["queued", "running", "paused"]),
         ),
-      );
+      )
+      .returning({ id: auditRuns.id });
+    if (updated.length === 0) return 0;
     await tx
       .update(jobs)
       .set({ state: "cancelled", updatedAt: new Date() })
       .where(and(eq(jobs.runId, runId), inArray(jobs.state, ["queued", "running", "retryable_failed"])));
+    return updated.length;
   });
 }
 
@@ -523,6 +738,54 @@ export async function getApprovedMatrixCellCount(matrixVersionId: string) {
   return row?.n ?? 0;
 }
 
+export async function getRunMatrixCellCount(runId: string) {
+  const [row] = await db
+    .select({ n: sql<number>`count(${promptCells.id})::int` })
+    .from(auditRuns)
+    .innerJoin(promptCells, eq(promptCells.matrixVersionId, auditRuns.matrixVersionId))
+    .where(eq(auditRuns.id, runId));
+  return row?.n ?? 0;
+}
+
+/**
+ * C-1 worker-side backstop: if scripts or manual DB writes bypass matrix
+ * approval/run creation and create an active run over the prompt-cell cap,
+ * pause it before the worker claims and spends on any jobs. Count actual
+ * prompt_cells instead of trusting matrix_versions.cell_count, which is only
+ * a cached repository-maintained value.
+ */
+export async function pauseActiveRunsExceedingCellCap(maxCells = MAX_CELLS_PER_RUN): Promise<string[]> {
+  const oversize = await db.execute<{ id: string; cell_count: number }>(sql`
+    select r.id, count(pc.id)::int as cell_count
+    from ${auditRuns} r
+    join ${promptCells} pc on pc.matrix_version_id = r.matrix_version_id
+    where r.state in ('queued', 'running')
+    group by r.id
+    having count(pc.id) > ${maxCells}
+  `);
+  const ids = oversize.rows.map((row) => row.id);
+  if (ids.length === 0) return [];
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(auditRuns)
+      .set({ state: "paused", updatedAt: new Date() })
+      .where(inArray(auditRuns.id, ids));
+
+    for (const row of oversize.rows) {
+      await tx.insert(runEvents).values({
+        runId: row.id,
+        level: "error",
+        eventType: "cell_cap_violation",
+        message: `Run paused before worker spend: ${row.cell_count} prompt cells exceeds the ${maxCells}-cell cap (C-1)`,
+        metadataJson: { cellCount: row.cell_count, maxCells },
+      });
+    }
+  });
+
+  return ids;
+}
+
 /**
  * RN-2 honesty: cost projection estimates token counts from the actual
  * average prompt length of the version's cells, not an empty string
@@ -546,7 +809,8 @@ export async function getApprovedVersionForRun(projectId: string) {
         eq(matrixVersions.kind, "audit"),
         eq(matrixVersions.state, "approved"),
       ),
-    );
+    )
+    .orderBy(desc(matrixVersions.version));
   return version ?? null;
 }
 
@@ -605,21 +869,41 @@ export async function listActiveRunIds() {
 /**
  * C-2/D-012 per-provider daily budget, summed since UTC midnight:
  *  - generation cost = responses where this provider generated them;
- *  - extraction cost = attributed to the CONFIGURED EXTRACTION ENGINE
- *    (D-041), not the generation provider. Under D-041 one engine (default
- *    DeepSeek) extracts every live run regardless of who generated the
- *    answer, so its spend belongs to that engine's budget — attributing it
- *    to the generation provider both under-guarded the extraction engine
- *    (an OpenAI run's DeepSeek extraction evaded DeepSeek's budget) and
- *    over-charged the generation provider. Extraction rows carry no
- *    provider column, so "all of today's extraction cost" is the engine's.
+ *  - audit extraction cost = attributed to the CONFIGURED EXTRACTION ENGINE
+ *    (D-041), not the generation provider;
+ *  - resonance SSR cost = attributed to the CONFIGURED EMBEDDING ENGINE
+ *    (D-064/D-069).
+ *
+ * Extraction rows carry no provider column and no separate billed_at column,
+ * so attribution follows the run's matrix kind and the row's updated_at. The
+ * updated_at filter matters because the row is created before the paid
+ * extraction/SSR call returns; a call that crosses UTC midnight must count
+ * against the day the cost was recorded, not the day the pending row was
+ * opened.
  */
 export async function getProviderSpendToday(providerId: string): Promise<number> {
+  if (!isProviderId(providerId)) {
+    throw new Error(`Cannot compute spend for unknown provider id "${providerId}"`);
+  }
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const pid = providerId as (typeof responses.$inferInsert)["providerId"];
-  const extractionEngine = extractionProviderId();
-  const embeddingEngine = embeddingProviderId();
+  let extractionEngine: string | null = null;
+  try {
+    extractionEngine = extractionProviderId();
+  } catch {
+    // Spend reads are used by Settings and projection surfaces too; an
+    // invalid extraction env must not break unrelated generation/SSR spend
+    // reads. Run creation/worker budget checks validate the relevant
+    // secondary provider for the matrix kind before spending.
+  }
+  let embeddingEngine: string | null = null;
+  try {
+    embeddingEngine = embeddingProviderId();
+  } catch {
+    // Same isolation as extractionEngine above: a bad Resonance embedding
+    // env should not make audit spend unreadable.
+  }
 
   const [genRow] = await db
     .select({ total: sql<string>`coalesce(sum(${responses.costUsd}), 0)` })
@@ -631,10 +915,13 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
     const [extRow] = await db
       .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
       .from(extractions)
+      .innerJoin(responses, eq(responses.id, extractions.responseId))
+      .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
+      .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
       .where(
         and(
-          gte(extractions.createdAt, todayStart),
-          sql`coalesce(${extractions.extractedJson}->>'kind', '') <> 'ssr'`,
+          gte(extractions.updatedAt, todayStart),
+          eq(matrixVersions.kind, "audit"),
         ),
       );
     extractionTotal = Number(extRow?.total ?? 0);
@@ -645,7 +932,10 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
     const [ssrRow] = await db
       .select({ total: sql<string>`coalesce(sum(${extractions.costUsd}), 0)` })
       .from(extractions)
-      .where(and(gte(extractions.createdAt, todayStart), sql`${extractions.extractedJson}->>'kind' = 'ssr'`));
+      .innerJoin(responses, eq(responses.id, extractions.responseId))
+      .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
+      .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+      .where(and(gte(extractions.updatedAt, todayStart), eq(matrixVersions.kind, "resonance")));
     embeddingTotal = Number(ssrRow?.total ?? 0);
   }
 

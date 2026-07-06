@@ -54,9 +54,13 @@ Copy this block into the log below for each delivered audit.
 - [ ] Exports delivered to client: report (Markdown and/or print-PDF) +
   agreed evidence pack subset.
 - [ ] **Evidence archived (D-024): `pnpm archive:evidence <runId>` exits 0.
-  Preferred dump mode is native `pg_dump` custom format; if local Postgres
-  client tools are unavailable, the script writes a marked SQL data snapshot
-  plus dump manifest through the existing DB connection. Set
+  The run must be completed or paused; queued/running/failed/cancelled runs
+  fail closed unless `ARCHIVE_ALLOW_PARTIAL=true` is explicitly set for a
+  debug/partial archive that will not be treated as final delivery evidence.
+  Preferred dump mode is native `pg_dump` custom format redacted to exclude
+  server-only provider credentials; if local Postgres client tools are
+  unavailable, the script writes a marked SQL data snapshot plus dump manifest
+  through the existing DB connection with the same exclusion. Set
   `ARCHIVE_REQUIRE_PG_DUMP=true` when a native custom dump is mandatory.
   Archive directory moved OFF Render (external drive / cloud storage).**
 - [ ] Archive recorded in the log below.

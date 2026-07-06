@@ -185,31 +185,52 @@ export async function getExtractionForResponse(responseId: string) {
 
 /** AD-2: dead-lettered extractions across recent runs, for the Debug console. */
 export async function listDeadLetteredExtractions(limit = 50) {
-  return db
-    .select({
-      id: extractions.id,
-      responseId: extractions.responseId,
-      extractionVersion: extractions.extractionVersion,
-      validationError: extractions.validationError,
-      updatedAt: extractions.updatedAt,
-      runId: responses.runId,
-      providerId: responses.providerId,
-    })
-    .from(extractions)
-    .innerJoin(responses, eq(responses.id, extractions.responseId))
-    .where(eq(extractions.state, "dead_lettered"))
-    .orderBy(desc(extractions.updatedAt))
-    .limit(limit);
+  const rows = await db.execute<{
+    id: string;
+    responseId: string;
+    extractionVersion: number;
+    validationError: string | null;
+    updatedAt: Date;
+    runId: string;
+    providerId: string;
+  }>(
+    sql`
+      select e.id,
+        e.response_id as "responseId",
+        e.extraction_version as "extractionVersion",
+        e.validation_error as "validationError",
+        e.updated_at as "updatedAt",
+        r.run_id as "runId",
+        r.provider_id as "providerId"
+      from ${extractions} e
+      inner join ${responses} r on r.id = e.response_id
+      where e.state = 'dead_lettered'
+        and e.extraction_version = (
+          select max(e2.extraction_version) from ${extractions} e2 where e2.response_id = e.response_id
+        )
+      order by e.updated_at desc
+      limit ${limit}
+    `,
+  );
+  return rows.rows;
 }
 
 export async function getExtractionProgress(runId: string) {
-  const rows = await db
-    .select({ state: extractions.state })
-    .from(extractions)
-    .innerJoin(responses, eq(responses.id, extractions.responseId))
-    .where(eq(responses.runId, runId));
+  const rows = await db.execute<{ state: string; n: number }>(
+    sql`
+      select latest.state, count(*)::int as n
+      from (
+        select distinct on (e.response_id) e.state
+        from ${extractions} e
+        inner join ${responses} r on r.id = e.response_id
+        where r.run_id = ${runId}
+        order by e.response_id, e.extraction_version desc
+      ) latest
+      group by latest.state
+    `,
+  );
   const counts: Record<string, number> = {};
-  for (const row of rows) counts[row.state] = (counts[row.state] ?? 0) + 1;
+  for (const row of rows.rows) counts[row.state] = row.n;
   return counts;
 }
 
@@ -266,6 +287,14 @@ export async function getEligibleExtractionsForRun(runId: string) {
   return eligible;
 }
 
+export async function getEligibleExtractionForResponse(runId: string, responseId: string) {
+  const eligible = await getEligibleExtractionsForRun(runId);
+  const match = eligible.find((row) => row.responseId === responseId);
+  if (!match) return null;
+  const [row] = await db.select().from(extractions).where(eq(extractions.id, match.extractionId));
+  return row ?? null;
+}
+
 export async function getBrandMentionsForExtractions(extractionIds: string[]) {
   if (extractionIds.length === 0) return [];
   return db.select().from(brandMentions).where(inArray(brandMentions.extractionId, extractionIds));
@@ -276,10 +305,31 @@ export async function getClaimsForExtractions(extractionIds: string[]) {
   return db.select().from(claimsFound).where(inArray(claimsFound.extractionId, extractionIds));
 }
 
-/** AD-2: requeue a dead-lettered extraction for another attempt (new version). */
-export async function requeueExtraction(responseId: string) {
-  const nextVersion = (await getLatestExtractionVersion(responseId)) + 1;
-  return createPendingExtraction(responseId, nextVersion);
+/** AD-2/C-3: requeue an allowed latest extraction state as a new version. */
+export async function requeueExtraction(responseId: string, allowedStates: string[] = ["dead_lettered"]) {
+  return db.transaction(async (tx) => {
+    const latest = await tx.execute<{ id: string; extractionVersion: number; state: string }>(
+      sql`
+        select id, extraction_version as "extractionVersion", state
+        from ${extractions}
+        where response_id = ${responseId}
+        order by extraction_version desc
+        limit 1
+        for update
+      `,
+    );
+    const row = latest.rows[0];
+    if (!row) throw new Error("No extraction exists for this response");
+    if (!allowedStates.includes(row.state)) {
+      throw new Error(`Only ${allowedStates.map((state) => state.replaceAll("_", "-")).join("/")} extractions can be re-extracted`);
+    }
+
+    const [created] = await tx
+      .insert(extractions)
+      .values({ responseId, extractionVersion: row.extractionVersion + 1, state: "pending" })
+      .returning({ id: extractions.id });
+    return created.id;
+  });
 }
 
 /**
@@ -296,8 +346,10 @@ export async function listResponsesMissingExtraction(olderThanMs: number, limit:
     sql`
       select r.id
       from ${responses} r
+      join ${auditRuns} ar on ar.id = r.run_id
       left join ${extractions} e on e.response_id = r.id
       where e.id is null and r.created_at < ${threshold}
+        and ar.state in ('queued', 'running', 'completed')
       order by r.created_at asc
       limit ${limit}
     `,
@@ -321,7 +373,10 @@ export async function listResponsesWithStaleExtraction(olderThanMs: number, limi
     sql`
       select distinct on (e.response_id) e.response_id as id
       from ${extractions} e
+      join ${responses} r on r.id = e.response_id
+      join ${auditRuns} ar on ar.id = r.run_id
       where e.state in ('pending', 'retrying') and e.updated_at < ${threshold}
+        and ar.state in ('queued', 'running', 'completed')
         and e.extraction_version = (
           select max(e2.extraction_version) from ${extractions} e2 where e2.response_id = e.response_id
         )

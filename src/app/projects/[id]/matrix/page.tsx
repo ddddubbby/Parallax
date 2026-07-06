@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MatrixBoard } from "@/components/matrix/board";
+import { isUuid } from "@/core/id";
 import { scanUnbrandedCells } from "@/core/matrix";
 import {
   getMatrixInputs,
@@ -19,6 +20,7 @@ export default async function MatrixPage({
 }) {
   const { id } = await params;
   const { v } = await searchParams;
+  if (!isUuid(id)) notFound();
 
   const inputs = await getMatrixInputs(id);
   if (!inputs) notFound();
@@ -30,7 +32,7 @@ export default async function MatrixPage({
     versions.find((x) => x.state === "draft")?.id ??
     versions[0]?.id ??
     null;
-  const focus = focusId ? await getVersionWithCells(focusId) : null;
+  const focus = focusId ? await getVersionWithCells(focusId, id) : null;
 
   const personaLabels = Object.fromEntries(inputs.personas.map((p) => [p.id, p.title]));
   const marketLabels = Object.fromEntries(inputs.markets.map((m) => [m.id, m.name]));

@@ -59,7 +59,7 @@ export function RunCreationForm({
   const [projection, setProjection] = useState<{
     plannedCalls: number;
     projectedCostUsd: number;
-    budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number }>;
+    budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number; projectedUsd: number }>;
   } | null>(null);
 
   const visibleProviders = providers.filter((p) =>
@@ -258,7 +258,10 @@ export function RunCreationForm({
           <div
             className={`flex items-center justify-between font-mono text-sm ${overCap ? "text-danger" : ""}`}
           >
-            <span>Projected cost{isLive ? " (generation + extraction, D-022)" : ""}</span>
+            <span>
+              Projected cost
+              {isLive ? (singleEngine ? " (generation + SSR scoring, D-022)" : " (generation + extraction, D-022)") : ""}
+            </span>
             <span>${projection.projectedCostUsd.toFixed(4)}</span>
           </div>
           {overCap && (
@@ -273,7 +276,7 @@ export function RunCreationForm({
               </span>
               {projection.budgets.map((b) => {
                 const already = b.spentUsd >= b.budgetUsd;
-                const wouldExceed = b.spentUsd + projection.projectedCostUsd > b.budgetUsd;
+                const wouldExceed = b.spentUsd + b.projectedUsd > b.budgetUsd;
                 return (
                   <div
                     key={b.providerId}
@@ -283,11 +286,11 @@ export function RunCreationForm({
                   >
                     <span>{b.providerId}</span>
                     <span>
-                      ${b.spentUsd.toFixed(4)} / ${b.budgetUsd.toFixed(2)}
+                      ${b.spentUsd.toFixed(4)} + ${b.projectedUsd.toFixed(4)} projected / ${b.budgetUsd.toFixed(2)}
                       {already
                         ? " — already over; run blocked server-side"
                         : wouldExceed
-                          ? " — projected spend may pause the run mid-way"
+                          ? " — projected spend will be blocked server-side"
                           : ""}
                     </span>
                   </div>

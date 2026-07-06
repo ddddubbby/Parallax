@@ -163,7 +163,7 @@ function findingsByType(ctx: ReportContext, type: string): Finding[] {
 
 function runProvenance(ctx: ReportContext, n: number | null | undefined): string {
   const sample = typeof n === "number" ? `n=${n}` : "n=not available";
-  return `${sample}; providers: ${ctx.providers.join(", ") || "none"}; modes: ${ctx.modes.join(", ") || "none"}; run date: ${ctx.runDate}`;
+  return `${sample}; providers: ${escapedList(ctx.providers)}; modes: ${escapedList(ctx.modes)}; run date: ${escapeModelText(ctx.runDate)}`;
 }
 
 function metricProvenance(ctx: ReportContext, metric: MetricLike | undefined): string {
@@ -176,7 +176,27 @@ function findingProvenance(ctx: ReportContext, finding: Finding): string {
 }
 
 function countProvenance(ctx: ReportContext, count: number, unit: string): string {
-  return `(n=${count} ${unit}; providers: ${ctx.providers.join(", ") || "none"}; modes: ${ctx.modes.join(", ") || "none"}; run date: ${ctx.runDate})`;
+  return `(n=${count} ${unit}; providers: ${escapedList(ctx.providers)}; modes: ${escapedList(ctx.modes)}; run date: ${escapeModelText(ctx.runDate)})`;
+}
+
+function clientName(ctx: ReportContext): string {
+  return escapeModelText(ctx.clientBrandName);
+}
+
+function competitorList(ctx: ReportContext): string {
+  return ctx.competitorNames.map(escapeModelText).join(", ");
+}
+
+function escapedList(values: string[]): string {
+  return values.length > 0 ? values.map(escapeModelText).join(", ") : "none";
+}
+
+function findingTitle(finding: ReportFinding | Finding): string {
+  return escapeModelText(finding.title);
+}
+
+function findingBody(finding: ReportFinding | Finding): string {
+  return escapeModelText(finding.bodyMd);
 }
 
 function metricRowsByPillar(ctx: ReportContext): Array<{ pillar: Pillar; rows: MetricLike[] }> {
@@ -217,10 +237,11 @@ function generateExecutiveSummary(ctx: ReportContext): string {
   const rec = overall(ctx, "recommendation_rate");
   const sov = overall(ctx, "share_of_voice");
   const highFindings = ctx.findings.filter((f) => f.severity === "high").length;
+  const client = clientName(ctx);
 
-  return `${badgeLine(ctx)}This report summarizes how AI assistants described **${ctx.clientBrandName}** across this run's eligible sampled answers (${runProvenance(ctx, mention?.n)}), compared against ${ctx.competitorNames.length} tracked competitors.
+  return `${badgeLine(ctx)}This report summarizes how AI assistants described **${client}** across this run's eligible sampled answers (${runProvenance(ctx, mention?.n)}), compared against ${ctx.competitorNames.length} tracked competitors.
 
-In the sampled answers, ${ctx.clientBrandName} was mentioned in ${pct(mention?.value)} of eligible responses${ci(mention)} ${metricProvenance(ctx, mention)} and recommended in ${pct(rec?.value)}${ci(rec)} ${metricProvenance(ctx, rec)}. Its share of voice against tracked competitors was ${pct(sov?.value)} ${metricProvenance(ctx, sov)}.
+In the sampled answers, ${client} was mentioned in ${pct(mention?.value)} of eligible responses${ci(mention)} ${metricProvenance(ctx, mention)} and recommended in ${pct(rec?.value)}${ci(rec)} ${metricProvenance(ctx, rec)}. Its share of voice against tracked competitors was ${pct(sov?.value)} ${metricProvenance(ctx, sov)}.
 
 ${highFindings > 0 ? `${highFindings} high-severity finding${highFindings === 1 ? "" : "s"} ${highFindings === 1 ? "requires" : "require"} attention — see the sections below.` : "No high-severity findings were flagged in this run."} These figures describe what was observed in this specific sample and should be read alongside the confidence intervals and sample sizes noted throughout this report, not as a guarantee of future AI behavior.`;
 }
@@ -239,12 +260,12 @@ function generateMethodConfidence(ctx: ReportContext): string {
 
 | Field | Value |
 |---|---|
-| Run date | ${ctx.runDate} |
-| Run mode | ${ctx.runMode} |
+| Run date | ${escapeModelText(ctx.runDate)} |
+| Run mode | ${escapeModelText(ctx.runMode)} |
 | Planned calls | ${ctx.plannedCalls} |
 | Repetitions per approved prompt | ${ctx.repetitions} |
-| Providers | ${ctx.providers.join(", ") || "none"} |
-| Grounding modes | ${ctx.modes.join(", ") || "none"} |
+| Providers | ${escapedList(ctx.providers)} |
+| Grounding modes | ${escapedList(ctx.modes)} |
 | Run cost cap | $${ctx.costCapUsd.toFixed(2)} |
 
 ## Eligibility
@@ -283,6 +304,7 @@ ${lowStability.length > 0 ? `${lowStability.length} cell${lowStability.length ==
 
 function generatePerception(ctx: ReportContext): string {
   const positioningGaps = findingsByType(ctx, "positioning_gap");
+  const client = clientName(ctx);
   const sentimentLines = ctx.metrics
     .filter((m) => m.scopeType === "overall" && m.metricKey.startsWith("sentiment_"))
     .sort((a, b) => resolveGlossary(a.metricKey).label.localeCompare(resolveGlossary(b.metricKey).label))
@@ -291,13 +313,13 @@ function generatePerception(ctx: ReportContext): string {
 
   return `${PILLARS.perception.clientQuestion}
 
-Sentiment is reported in two separate groups that are never pooled (D-054): organic (how AI talks about ${ctx.clientBrandName} when AI brings it up in unbranded answers) and solicited (how AI answers a direct fit question). Objection-cell answers are excluded from sentiment entirely — those prompts ask for concerns, so their negative skew is by design; their content feeds the findings below instead.
+Sentiment is reported in two separate groups that are never pooled (D-054): organic (how AI talks about ${client} when AI brings it up in unbranded answers) and solicited (how AI answers a direct fit question). Objection-cell answers are excluded from sentiment entirely — those prompts ask for concerns, so their negative skew is by design; their content feeds the findings below instead.
 
 ${sentimentLines || "No sentiment data available."}
 
   ${
   positioningGaps.length > 0
-    ? `${positioningGaps.length} desired attribute${positioningGaps.length === 1 ? "" : "s"} showed a low association rate with ${ctx.clientBrandName} in sampled answers ${countProvenance(ctx, positioningGaps.length, "flagged attributes")}:\n\n${positioningGaps.map((f) => `- ${f.title}: ${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n")}`
+    ? `${positioningGaps.length} desired attribute${positioningGaps.length === 1 ? "" : "s"} showed a low association rate with ${client} in sampled answers ${countProvenance(ctx, positioningGaps.length, "flagged attributes")}:\n\n${positioningGaps.map((f) => `- ${findingTitle(f)}: ${findingBody(f)} ${findingProvenance(ctx, f)}`).join("\n")}`
     : "No positioning gaps were flagged against the desired attribute list in this run."
   }`;
 }
@@ -321,10 +343,10 @@ function brandRankingTable(ctx: ReportContext): string {
     .sort((a, b) => (b.win ?? -1) - (a.win ?? -1));
 
   const rows = ranked
-    .map((r) => `| ${r.name}${r.isClient ? " (client)" : ""} | ${pct(r.win)} | ${pct(r.share)} |`)
+    .map((r) => `| ${escapeModelText(r.name)}${r.isClient ? " (client)" : ""} | ${pct(r.win)} | ${pct(r.share)} |`)
     .join("\n");
 
-  return `Where ${ctx.clientBrandName} ranks across the full competitor spectrum — head-to-head win rate (comparison prompts, n=${winN ?? "n/a"}) and organic share of voice (unbranded prompts, n=${shareN ?? "n/a"}), D-054 frames:
+  return `Where ${clientName(ctx)} ranks across the full competitor spectrum — head-to-head win rate (comparison prompts, n=${winN ?? "n/a"}) and organic share of voice (unbranded prompts, n=${shareN ?? "n/a"}), D-054 frames:
 
 | Brand | Comparative Win Rate | Share of Voice |
 |---|---|---|
@@ -337,10 +359,12 @@ function generateCompetitiveDynamics(ctx: ReportContext): string {
   const compWin = overall(ctx, "comparative_win_rate");
   const lostShortlist = findingsByType(ctx, "lost_shortlist");
   const groundedSplit = findingsByType(ctx, "grounded_ungrounded_split");
+  const client = clientName(ctx);
+  const competitors = competitorList(ctx) || "the tracked competitor set";
 
   return `${PILLARS.position.clientQuestion}
 
-Two distinct winning conditions are measured separately and never pooled (D-054): the organic recommendation rate counts only unbranded prompts (does AI recommend ${ctx.clientBrandName} when nobody asked about it), while the comparative win rate counts only head-to-head prompts against ${ctx.competitorNames.join(", ") || "the tracked competitor set"} (when forced to compare, does AI pick ${ctx.clientBrandName}).
+Two distinct winning conditions are measured separately and never pooled (D-054): the organic recommendation rate counts only unbranded prompts (does AI recommend ${client} when nobody asked about it), while the comparative win rate counts only head-to-head prompts against ${competitors} (when forced to compare, does AI pick ${client}).
 
 | Metric | Value | Provenance |
 |---|---|---|
@@ -350,11 +374,11 @@ Two distinct winning conditions are measured separately and never pooled (D-054)
 ${brandRankingTable(ctx)}
 ${
   lostShortlist.length > 0
-    ? `${lostShortlist.length} cell${lostShortlist.length === 1 ? "" : "s"} showed a competitor dominating a high-intent comparison while ${ctx.clientBrandName} was nearly absent (directional, cell-level observations, not aggregate claims) ${countProvenance(ctx, lostShortlist.length, "flagged cells")}:\n\n${lostShortlist.map((f) => `- ${f.title}: ${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n")}`
+    ? `${lostShortlist.length} cell${lostShortlist.length === 1 ? "" : "s"} showed a competitor dominating a high-intent comparison while ${client} was nearly absent (directional, cell-level observations, not aggregate claims) ${countProvenance(ctx, lostShortlist.length, "flagged cells")}:\n\n${lostShortlist.map((f) => `- ${findingTitle(f)}: ${findingBody(f)} ${findingProvenance(ctx, f)}`).join("\n")}`
     : "No lost-shortlist cells were flagged in this run."
 }
 
-${groundedSplit.length > 0 ? groundedSplit.map((f) => `${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n\n") : ""}`;
+${groundedSplit.length > 0 ? groundedSplit.map((f) => `${findingBody(f)} ${findingProvenance(ctx, f)}`).join("\n\n") : ""}`;
 }
 
 function generateSources(ctx: ReportContext): string {
@@ -371,7 +395,7 @@ ${table}
 
 Citation counts are drawn from eligible responses in this run (${runProvenance(ctx, overall(ctx, "citation_share")?.n)}).
 
-${concentration.length > 0 ? concentration.map((f) => `${f.bodyMd} ${findingProvenance(ctx, f)}`).join("\n\n") : ""}`;
+${concentration.length > 0 ? concentration.map((f) => `${findingBody(f)} ${findingProvenance(ctx, f)}`).join("\n\n") : ""}`;
 }
 
 function generateMisinformationRegister(ctx: ReportContext): string {
@@ -386,7 +410,7 @@ No contradicted, unsupported, or outdated claims about the client brand were fou
   const rows = ctx.misinformation
     .map(
       (m) =>
-        `### ${m.verdict} (${m.severity} severity)\n\n> ${escapeModelText(m.claimText)}\n\n${m.evidenceQuote ? `Evidence: "${escapeModelText(m.evidenceQuote)}"\n\n` : ""}${m.factStatement ? `Fact sheet: ${m.factStatement}` : "Not checked against a specific fact-sheet entry."}`,
+        `### ${m.verdict} (${m.severity} severity)\n\n> ${escapeModelText(m.claimText)}\n\n${m.evidenceQuote ? `Evidence: "${escapeModelText(m.evidenceQuote)}"\n\n` : ""}${m.factStatement ? `Fact sheet: ${escapeModelText(m.factStatement)}` : "Not checked against a specific fact-sheet entry."}`,
     )
     .join("\n\n---\n\n");
   return `${PILLARS.proof.clientQuestion}
@@ -395,7 +419,7 @@ ${ctx.misinformation.length} claim${ctx.misinformation.length === 1 ? "" : "s"} 
 }
 
 function generateRecommendations(ctx: ReportContext): string {
-  const talkingPoints = ctx.findings.map((f) => `- ${f.title}`).join("\n");
+  const talkingPoints = ctx.findings.map((f) => `- ${findingTitle(f)}`).join("\n");
   return `_This section is a starting scaffold, not a finished deliverable — the operator is responsible for final recommendations based on professional judgment, client context, and claim confirmation._
 
 Findings from this run worth discussing with the client:
@@ -431,7 +455,7 @@ No findings were generated for this run. Full raw response text, structured extr
               )
               .join("\n\n")
           : "No eligible raw-response excerpt was available for this finding.";
-      return `### ${finding.title}\n\n${quoteLines}`;
+      return `### ${findingTitle(finding)}\n\n${quoteLines}`;
     })
     .join("\n\n---\n\n");
 
@@ -466,14 +490,14 @@ function generateResonanceMethod(ctx: ResonanceReportContext): string {
 | Field | Value |
 |---|---|
 | Study | ${escapeModelText(ctx.studyName)} |
-| Run date | ${ctx.runDate} |
-| Run mode | ${ctx.runMode} |
+| Run date | ${escapeModelText(ctx.runDate)} |
+| Run mode | ${escapeModelText(ctx.runMode)} |
 | Repetitions per cell | ${ctx.repetitions} |
-| Providers | ${ctx.providers.join(", ") || "none"} |
-| Modes | ${ctx.modes.join(", ") || "none"} |
-| SSR anchor version | ${ctx.anchorSetVersion} |
+| Providers | ${escapedList(ctx.providers)} |
+| Modes | ${escapedList(ctx.modes)} |
+| SSR anchor version | ${escapeModelText(ctx.anchorSetVersion)} |
 | Anchor calibration | ${ctx.anchorSetCalibrated ? "calibrated" : "uncalibrated anchor sets"} |
-| Embedding model | ${ctx.embeddingModel} |
+| Embedding model | ${escapeModelText(ctx.embeddingModel)} |
 
 Respondents saw text-only stimulus variants. This limitation matters: the reference SSR method also studies image stimuli, and text-only stimuli should be read as a narrower proxy. Means are point estimates with no confidence interval; per-persona slices are always directional-only. Panel personas use age and income as validated conditioning axes, with location and behavioral profile as prompt context.`;
 }

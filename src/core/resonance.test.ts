@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  panelPersonasSchema,
   parsePanelPersonaLines,
+  resonanceExportLabel,
+  resonanceExportMetadata,
   renderResonancePrompt,
   validateResonanceCellCount,
 } from "./resonance";
@@ -19,6 +22,18 @@ describe("Resonance core (M17)", () => {
     });
     expect(persona).not.toHaveProperty("gender");
     expect(persona).not.toHaveProperty("ethnicity");
+  });
+
+  it("rejects duplicate panel persona keys before compile-time metric scopes can collapse", () => {
+    const persona = {
+      key: "p1",
+      label: "Primary buyer",
+      ageBand: "35-44",
+      incomeBand: "$100k-$150k",
+      locationContext: "United States",
+      behavioralProfile: "researches carefully",
+    };
+    expect(() => panelPersonasSchema.parse([persona, { ...persona, label: "Duplicate key" }])).toThrow(/unique/i);
   });
 
   it("renders free-text prompts without numeric ratings", () => {
@@ -47,5 +62,22 @@ describe("Resonance core (M17)", () => {
   it("enforces the 50-cell cap at compile planning", () => {
     expect(validateResonanceCellCount(5, 10)).toBe(50);
     expect(() => validateResonanceCellCount(6, 10)).toThrow(/run cap/);
+  });
+
+  it("uses stable export labels for C-13 generic disclosure", () => {
+    expect(resonanceExportLabel(true)).toBe("SIMULATED GENERIC");
+    expect(resonanceExportLabel(false)).toBe("SIMULATED EVIDENCE-CONDITIONED");
+    expect(
+      resonanceExportMetadata({
+        id: "study-1",
+        name: "Generic simulation",
+        genericUnconditioned: true,
+      }),
+    ).toEqual({
+      studyId: "study-1",
+      studyName: "Generic simulation",
+      genericUnconditioned: true,
+      label: "SIMULATED GENERIC",
+    });
   });
 });

@@ -1,4 +1,6 @@
 import { EXTRACTION_ATTEMPTS } from "@/core/constants";
+import { validateDebugFailureInjection } from "@/core/runner";
+import { resolveWorkerTiming } from "@/core/worker-timing";
 import {
   collapseDuplicateBrandMentions,
   type ExtractedBrand,
@@ -20,8 +22,9 @@ import {
   recordExtractionAttemptCost,
   requeueExtraction as createRequeuedExtraction,
 } from "@/db/repositories/extraction";
-import { appendRunEvent, getRun, getRunMatrixKind, hasRunEvent } from "@/db/repositories/runner";
+import { appendRunEvent, getRun, getRunMatrixKind, hasRunEvent, pauseRun } from "@/db/repositories/runner";
 import { resolveExtractionCredentials } from "@/modules/runner/provider-resolver";
+import { CredentialConfigError } from "@/modules/settings/crypto";
 import { scoreResponse, reScoreResponse } from "@/modules/resonance/scoring";
 import { callDeepSeekExtraction } from "@/providers/deepseek/extraction";
 import { MOCK_EXTRACTION_MODEL, extractViaMockEngine } from "@/providers/mock/extraction-engine";
@@ -36,6 +39,7 @@ interface ExtractionInjection {
 }
 
 function readExtractionInjection(debugConfig: unknown): ExtractionInjection | null {
+  if (validateDebugFailureInjection(debugConfig) !== null) return null;
   const config = debugConfig as { extraction?: ExtractionInjection } | null;
   return config?.extraction ?? null;
 }
@@ -92,7 +96,7 @@ interface PipelineContext {
 // extraction call must fail as a normal retryable attempt, not hang the
 // pipeline (though unlike generation, the job is already succeeded by now,
 // so no stale-lock duplication risk — just liveness).
-const EXTRACTION_CALL_TIMEOUT_MS = Number(process.env.WORKER_PROVIDER_TIMEOUT_MS ?? 45_000);
+const EXTRACTION_CALL_TIMEOUT_MS = resolveWorkerTiming().providerCallTimeoutMs;
 
 async function runLiveExtraction(ctx: PipelineContext) {
   const credentials = await resolveExtractionCredentials();
@@ -145,6 +149,17 @@ async function runExtractionPipeline(
         });
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
+        if (err instanceof CredentialConfigError) {
+          await markExtractionRetrying(extractionId, lastError);
+          await pauseRun(ctx.runId);
+          await appendRunEvent({
+            runId: ctx.runId,
+            level: "error",
+            eventType: "worker_config_error",
+            message: `Run paused before extraction because worker credential configuration is invalid: ${lastError}`,
+          });
+          return { outcome: "skipped", attempts: attempt };
+        }
         if (attempt < EXTRACTION_ATTEMPTS) {
           await markExtractionRetrying(extractionId, lastError);
           await appendRunEvent({
@@ -312,6 +327,16 @@ export async function reExtractResponse(responseId: string): Promise<ExtractionR
   if (ctx.matrixKind === "resonance") {
     return reScoreResponse(responseId);
   }
-  const extractionId = await createRequeuedExtraction(responseId);
+  const extractionId = await createRequeuedExtraction(responseId, ["dead_lettered"]);
+  return runExtractionPipeline(extractionId, ctx);
+}
+
+/** Worker-only stale recovery: latest row must be an old pending/retrying extraction. */
+export async function recoverStaleExtraction(responseId: string): Promise<ExtractionRunResult> {
+  const ctx = await buildContext(responseId);
+  if (ctx.matrixKind === "resonance") {
+    return reScoreResponse(responseId, undefined, ["pending", "retrying"]);
+  }
+  const extractionId = await createRequeuedExtraction(responseId, ["pending", "retrying"]);
   return runExtractionPipeline(extractionId, ctx);
 }

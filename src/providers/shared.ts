@@ -36,6 +36,47 @@ export interface LiveCredentials {
   defaultModel?: string | null;
 }
 
+const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = {
+  deepseek: "api.deepseek.com",
+  openai: "api.openai.com",
+  anthropic: "api.anthropic.com",
+  google: "generativelanguage.googleapis.com",
+  perplexity: "api.perplexity.ai",
+};
+
+/**
+ * C-11 defense-in-depth: every live provider call sends the bearer/API key to
+ * the credential's base URL. Stored overrides, including legacy rows saved
+ * before validation existed, must only target HTTPS provider hosts or an
+ * explicitly configured deploy-layer proxy host.
+ */
+export function validateProviderBaseUrlOverride(providerId: string, baseUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    return "Base URL override is not a valid URL";
+  }
+  if (parsed.protocol !== "https:") {
+    return "Base URL override must use https";
+  }
+  const allowedHosts = new Set<string>();
+  const official = OFFICIAL_PROVIDER_HOSTS[providerId];
+  if (official) allowedHosts.add(official);
+  const envBase = process.env[`${providerId.toUpperCase()}_BASE_URL`];
+  if (envBase) {
+    try {
+      allowedHosts.add(new URL(envBase).hostname);
+    } catch {
+      // Malformed deploy config never widens the allowlist.
+    }
+  }
+  if (!allowedHosts.has(parsed.hostname)) {
+    return `Base URL host "${parsed.hostname}" is not allowlisted for ${providerId} — provider keys are only sent to ${[...allowedHosts].join(", ")} (C-11)`;
+  }
+  return null;
+}
+
 /**
  * One fetch wrapper all adapters share: timeout/abort mapping (both
  * AbortError from manual aborts and TimeoutError from AbortSignal.timeout,
@@ -69,8 +110,10 @@ export async function postProviderJson(
 
   if (!response.ok) {
     const errorType = classifyHttpStatus(response.status);
-    const bodyText = await response.text().catch(() => "");
-    throw new ProviderCallError(errorType, `${providerName} returned ${response.status}: ${bodyText.slice(0, 500)}`);
+    // C-11: never propagate provider/proxy error bodies into run events,
+    // job errors, or Settings verification UI. A proxy or upstream could
+    // echo request headers, including bearer/API keys.
+    throw new ProviderCallError(errorType, `${providerName} returned HTTP ${response.status} (${errorType})`);
   }
 
   try {

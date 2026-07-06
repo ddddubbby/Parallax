@@ -64,6 +64,13 @@
       "when": 1783293600000,
       "tag": "0008_resonance_studies",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783297200000,
+      "tag": "0009_resonance_shape_checks",
+      "breakpoints": true
     }
   ]
 }

@@ -91,8 +91,9 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     setError(null);
     setBusyId(id);
     startTransition(async () => {
-      await disableCredential(id);
+      const result = await disableCredential(id);
       setBusyId(null);
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }
@@ -112,8 +113,9 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     setError(null);
     setBusyId(id);
     startTransition(async () => {
-      await deleteCredential(id);
+      const result = await deleteCredential(id);
       setBusyId(null);
+      if (!result.ok) setError(result.error);
       router.refresh();
     });
   }

@@ -59,7 +59,7 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
   });
 
   it("rejects an empty key and an unsupported provider", async () => {
-    const { saveCredential } = await import("./actions");
+    const { saveCredential, verifyCredential } = await import("./actions");
     const empty = await saveCredential("deepseek", "   ", { label: "test-m8-empty" });
     expect(empty.ok).toBe(false);
 
@@ -67,6 +67,23 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     // remaining unsupported id now that M9 added the four audit providers.
     const unsupported = await saveCredential("minimax", "sk-whatever", { label: "test-m8-unsupported" });
     expect(unsupported.ok).toBe(false);
+
+    const invalidVerify = await verifyCredential(
+      "00000000-0000-4000-8000-000000000000",
+      "not-a-provider" as "deepseek",
+    );
+    expect(invalidVerify.ok).toBe(false);
+    if (!invalidVerify.ok) expect(invalidVerify.error).toContain("No live adapter");
+  });
+
+  it("saveCredential returns a controlled error when credential encryption is misconfigured", async () => {
+    const { saveCredential } = await import("./actions");
+    delete process.env.CREDENTIALS_ENCRYPTION_KEY;
+
+    const result = await saveCredential("deepseek", "sk-test-missing-kek", { label: "test-m8-missing-kek" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("CREDENTIALS_ENCRYPTION_KEY");
   });
 
   it("allowlists baseUrl overrides — every provider call sends the bearer key there, so an arbitrary host is a one-field exfiltration path (C-11)", async () => {
@@ -159,6 +176,56 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     expect(afterAuthFail.status).toBe("invalid");
   });
 
+  it("verifyCredential refuses active legacy baseUrl overrides before any provider call (C-11)", async () => {
+    const { verifyCredential } = await import("./actions");
+    await db
+      .update(providerCredentials)
+      .set({ status: "disabled" })
+      .where(eq(providerCredentials.providerId, "google"));
+    const [legacy] = await db
+      .insert(providerCredentials)
+      .values({
+        providerId: "google",
+        label: "test-m8-verify-legacy-evil",
+        encryptedApiKey: "legacy-ciphertext",
+        keyVersion: 1,
+        apiKeyLast4: "evil",
+        apiKeyFingerprint: "legacy-verify-fingerprint",
+        baseUrl: "https://attacker.example/collect",
+        status: "active",
+      })
+      .returning({ id: providerCredentials.id });
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const result = await verifyCredential(legacy.id, "google");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("not allowlisted");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("verifyCredential reports KEK config errors without marking the credential invalid", async () => {
+    const { saveCredential, verifyCredential } = await import("./actions");
+    const saved = await saveCredential("deepseek", "sk-test-verify-kek", { label: "test-m8-verify-kek" });
+    expect(saved.ok).toBe(true);
+    const [row] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.label, "test-m8-verify-kek"));
+
+    delete process.env.CREDENTIALS_ENCRYPTION_KEY;
+    const result = await verifyCredential(row.id, "deepseek");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("CREDENTIALS_ENCRYPTION_KEY");
+    const [after] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.id, row.id));
+    expect(after.status).toBe("active");
+  });
+
   it("verifyCredential passes a real AbortSignal to the provider call — a hung provider must not tie up the request forever (Fix C)", async () => {
     const { saveCredential, verifyCredential } = await import("./actions");
     const saved = await saveCredential("deepseek", "sk-test-timeout", { label: "test-m8-timeout" });
@@ -230,6 +297,33 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
     expect(rows.filter((r) => r.providerId === "deepseek" && r.status === "active")).toHaveLength(1);
   });
 
+  it("enableCredential re-validates legacy disabled baseUrl overrides before reactivation (C-11)", async () => {
+    const { enableCredential } = await import("./actions");
+    const [legacy] = await db
+      .insert(providerCredentials)
+      .values({
+        providerId: "deepseek",
+        label: "test-m8-enable-legacy-evil",
+        encryptedApiKey: "legacy-ciphertext",
+        keyVersion: 1,
+        apiKeyLast4: "evil",
+        apiKeyFingerprint: "legacy-fingerprint",
+        baseUrl: "https://attacker.example/collect",
+        status: "disabled",
+      })
+      .returning({ id: providerCredentials.id });
+
+    const result = await enableCredential(legacy.id);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("not allowlisted");
+    const [after] = await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.id, legacy.id));
+    expect(after.status).toBe("disabled");
+  });
+
   it("enableCredential refuses invalid rows; those require re-entry or rotation", async () => {
     const { saveCredential, enableCredential } = await import("./actions");
     const saved = await saveCredential("deepseek", "sk-test-enable-invalid", { label: "test-m8-enable-invalid" });
@@ -262,18 +356,34 @@ describe.skipIf(!dbUp)("settings actions against the dev database", () => {
       .from(providerCredentials)
       .where(eq(providerCredentials.label, "test-m8-lifecycle"));
 
-    await disableCredential(row.id);
+    const disabledResult = await disableCredential(row.id);
+    expect(disabledResult.ok).toBe(true);
     const [disabled] = await db
       .select()
       .from(providerCredentials)
       .where(eq(providerCredentials.id, row.id));
     expect(disabled.status).toBe("disabled");
+    const missingDisable = await disableCredential("00000000-0000-4000-8000-000000000000");
+    expect(missingDisable.ok).toBe(false);
+    if (!missingDisable.ok) expect(missingDisable.error).toContain("not found");
 
-    await deleteCredential(row.id);
+    const deletedResult = await deleteCredential(row.id);
+    expect(deletedResult.ok).toBe(true);
     const gone = await db
       .select()
       .from(providerCredentials)
       .where(eq(providerCredentials.id, row.id));
     expect(gone).toHaveLength(0);
+    const missingDelete = await deleteCredential(row.id);
+    expect(missingDelete.ok).toBe(false);
+    if (!missingDelete.ok) expect(missingDelete.error).toContain("not found");
+  });
+
+  it("credential lifecycle actions reject malformed ids before DB UUID casts", async () => {
+    const { disableCredential, enableCredential, deleteCredential } = await import("./actions");
+
+    await expect(disableCredential("not-a-uuid")).resolves.toEqual({ ok: false, error: "Invalid credential id" });
+    await expect(enableCredential("not-a-uuid")).resolves.toEqual({ ok: false, error: "Invalid credential id" });
+    await expect(deleteCredential("not-a-uuid")).resolves.toEqual({ ok: false, error: "Invalid credential id" });
   });
 });

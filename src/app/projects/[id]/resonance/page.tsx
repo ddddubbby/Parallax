@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, Input, Select, Stamp, Textarea } from "@/components/ui";
+import { isUuid } from "@/core/id";
 import { formatPanelPersonaLines, STIMULUS_KINDS, type PanelPersona } from "@/core/resonance";
 import { RESONANCE_STUDY_TEMPLATES, unresolvedStimulusPlaceholders } from "@/core/resonance-templates";
 import {
@@ -102,6 +103,9 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
           Report →
         </Link>
       </div>
+      <p className="font-mono text-xs leading-5 text-ink/55">
+        Mean PI and ΔPI are simulated Likert-scale survey-construct scores. They compare stimulus variants within this study; they are not forecasts of buying behavior or business outcomes.
+      </p>
 
       <section>
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -217,7 +221,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
                       <a className="text-ink/70 underline-offset-2 hover:underline" href={`#responses-${row.key}`}>
                         responses
                       </a>{" "}
-                      <Stamp tone="warn">DIRECTIONAL</Stamp>
+                      {row.directionalOnly ? <Stamp tone="warn">DIRECTIONAL</Stamp> : <Stamp tone="ok">AGGREGATE</Stamp>}
                     </td>
                   </tr>
                 ))}
@@ -284,6 +288,7 @@ export default async function ResonancePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const [project, studies, evidence] = await Promise.all([
     getProjectSummary(id),
     listResonanceStudies(id),
@@ -291,7 +296,7 @@ export default async function ResonancePage({
   ]);
   if (project === null) notFound();
   const resultEntries = await Promise.all(
-    studies.map(async ({ study }) => [study.id, await getResonanceStudyResults(id, study.id)] as const),
+    studies.map(async ({ study }) => [study.id, await getResonanceStudyResults(id, study.id, undefined, { refreshMetrics: true })] as const),
   );
   const resultsByStudy = new Map(resultEntries);
 

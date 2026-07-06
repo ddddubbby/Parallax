@@ -1,0 +1,2 @@
+ALTER TABLE "matrix_versions" ADD CONSTRAINT "matrix_versions_kind_study_ck" CHECK (("kind" = 'audit' and "resonance_study_id" is null) or ("kind" = 'resonance' and "resonance_study_id" is not null));--> statement-breakpoint
+ALTER TABLE "prompt_cells" ADD CONSTRAINT "prompt_cells_audit_resonance_shape_ck" CHECK (("intent" = 'simulation' and "persona_id" is null and "market_id" is null and "stimulus_id" is not null and "panel_persona_key" is not null) or ("intent" <> 'simulation' and "stimulus_id" is null and "panel_persona_key" is null));

@@ -5,7 +5,18 @@ import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
 import { createPendingExtraction, recordExtractionAttemptCost } from "@/db/repositories/extraction";
 import { claimJobs, createRun, getProviderSpendToday, recordSuccess } from "@/db/repositories/runner";
-import { auditRuns, extractions, jobs, matrixVersions, projects, promptCells, responses, runEvents } from "@/db/schema";
+import {
+  auditRuns,
+  extractions,
+  jobs,
+  matrixVersions,
+  projects,
+  promptCells,
+  resonanceStimuli,
+  resonanceStudies,
+  responses,
+  runEvents,
+} from "@/db/schema";
 
 // C-2/D-012: no live DeepSeek call here — recordSuccess is a plain DB write,
 // so spend is fabricated directly to prove the query/threshold logic without
@@ -24,6 +35,8 @@ try {
 
 const createdVersionIds: string[] = [];
 const createdRunIds: string[] = [];
+const createdResonanceStudyIds: string[] = [];
+const createdResonanceStimulusIds: string[] = [];
 
 afterAll(async () => {
   // Per-run try/catch: one run's cleanup throwing (e.g. an FK ordering miss)
@@ -48,6 +61,12 @@ afterAll(async () => {
   for (const versionId of createdVersionIds) {
     await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
     await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
+  }
+  for (const stimulusId of createdResonanceStimulusIds) {
+    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.id, stimulusId));
+  }
+  for (const studyId of createdResonanceStudyIds) {
+    await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId));
   }
   await pool.end().catch(() => {});
 });
@@ -97,6 +116,11 @@ async function ensureApprovedVersion(projectId: string) {
   return version;
 }
 
+async function nextVersionNumber(projectId: string) {
+  const rows = await db.select({ version: matrixVersions.version }).from(matrixVersions).where(eq(matrixVersions.projectId, projectId));
+  return Math.max(0, ...rows.map((r) => r.version)) + 1;
+}
+
 /** Fabricates a real `deepseek` response row with a given cost — a plain DB write, no network call. */
 async function recordFabricatedSpend(runId: string, costUsd: number) {
   const [job] = await claimJobs("deepseek", 1);
@@ -117,12 +141,14 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
     delete process.env.DEEPSEEK_DAILY_BUDGET_USD;
     delete process.env.OPENAI_DAILY_BUDGET_USD;
     delete process.env.PROVIDER_DAILY_BUDGET_USD;
+    delete process.env.EXTRACTION_PROVIDER;
     delete process.env.EMBEDDING_PROVIDER;
   });
   afterEach(() => {
     delete process.env.DEEPSEEK_DAILY_BUDGET_USD;
     delete process.env.OPENAI_DAILY_BUDGET_USD;
     delete process.env.PROVIDER_DAILY_BUDGET_USD;
+    delete process.env.EXTRACTION_PROVIDER;
     delete process.env.EMBEDDING_PROVIDER;
   });
 
@@ -145,6 +171,28 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
     expect(readDailyBudgetUsd("deepseek")).toBe(0);
   });
 
+  it("findProjectedDailyBudgetTrip blocks runs that would exceed a provider budget before spending", async () => {
+    const { findProjectedDailyBudgetTrip } = await import("./budget");
+    expect(
+      findProjectedDailyBudgetTrip([
+        { providerId: "deepseek", spentUsd: 0.25, projectedUsd: 0.2, budgetUsd: 1 },
+        { providerId: "openai", spentUsd: 0.1, projectedUsd: 0.05, budgetUsd: 0.2 },
+      ]),
+    ).toBeNull();
+
+    const trip = findProjectedDailyBudgetTrip([
+      { providerId: "deepseek", spentUsd: 0.25, projectedUsd: 0.8, budgetUsd: 1 },
+      { providerId: "openai", spentUsd: 0.1, projectedUsd: 0.05, budgetUsd: 0.2 },
+    ]);
+    expect(trip).toMatchObject({
+      providerId: "deepseek",
+      spentUsd: 0.25,
+      projectedUsd: 0.8,
+      budgetUsd: 1,
+      projectedTotalUsd: 1.05,
+    });
+  });
+
   it("embedding provider daily budget env follows the same fail-closed parser (M20 budget chaos)", async () => {
     const { embeddingProviderId, readDailyBudgetUsd } = await import("./budget");
     process.env.EMBEDDING_PROVIDER = "openai";
@@ -153,6 +201,33 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
     expect(readDailyBudgetUsd(embeddingProviderId())).toBe(0.000001);
     process.env.OPENAI_DAILY_BUDGET_USD = "one dollar";
     expect(readDailyBudgetUsd(embeddingProviderId())).toBe(0);
+  });
+
+  it("validates configured secondary provider ids before they can reach DB enum queries", async () => {
+    const { embeddingProviderId, extractionProviderId, validateSecondaryProviderConfig } = await import("./budget");
+
+    process.env.EXTRACTION_PROVIDER = "not-a-provider";
+    expect(() => extractionProviderId()).toThrow(/not a registered provider id/);
+    expect(validateSecondaryProviderConfig("audit")).toContain("not a registered provider id");
+
+    process.env.EXTRACTION_PROVIDER = "openai";
+    expect(validateSecondaryProviderConfig("audit")).toContain("only deepseek");
+
+    process.env.EMBEDDING_PROVIDER = "not-a-provider";
+    expect(() => embeddingProviderId()).toThrow(/not a registered provider id/);
+    expect(validateSecondaryProviderConfig("resonance")).toContain("not a registered provider id");
+
+    process.env.EMBEDDING_PROVIDER = "deepseek";
+    expect(validateSecondaryProviderConfig("resonance")).toContain("only openai");
+  });
+
+  it("getProviderSpendToday keeps unrelated secondary-provider env errors from breaking spend reads", async () => {
+    process.env.EMBEDDING_PROVIDER = "not-a-provider";
+    await expect(getProviderSpendToday("deepseek")).resolves.toEqual(expect.any(Number));
+
+    delete process.env.EMBEDDING_PROVIDER;
+    process.env.EXTRACTION_PROVIDER = "not-a-provider";
+    await expect(getProviderSpendToday("openai")).resolves.toEqual(expect.any(Number));
   });
 
   it("getProviderSpendToday sums today's response cost for the provider and excludes other providers", async () => {
@@ -209,6 +284,11 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
 
     // Fabricate a DeepSeek extraction cost against that response.
     const extractionId = await createPendingExtraction(responseId, 1);
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await db
+      .update(extractions)
+      .set({ createdAt: yesterday, updatedAt: yesterday })
+      .where(eq(extractions.id, extractionId));
     await recordExtractionAttemptCost(run.id, extractionId, { costUsd: 0.5, tokensIn: 200, tokensOut: 60 });
 
     const openaiAfter = await getProviderSpendToday("openai");
@@ -217,8 +297,133 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
     // OpenAI's budget carries ONLY its generation cost — extraction excluded.
     expect(openaiAfter - openaiBefore).toBeCloseTo(2.0, 6);
     // DeepSeek's budget carries the extraction cost, though no DeepSeek
-    // generation happened on this run.
+    // generation happened on this run. The pending row was opened yesterday,
+    // but the paid attempt was recorded today, so daily spend keys off
+    // updated_at rather than created_at.
     expect(deepseekAfter - deepseekBefore).toBeCloseTo(0.5, 6);
+  });
+
+  it("attributes malformed resonance SSR spend to the embedding engine by matrix kind, not extracted_json.kind", async () => {
+    const projectId = await ensureProject();
+    const [study] = await db
+      .insert(resonanceStudies)
+      .values({
+        projectId,
+        name: "Budget SSR wall",
+        state: "approved",
+        panelPersonasJson: [
+          {
+            key: "budget_owner",
+            label: "Budget owner",
+            ageBand: "35-44",
+            incomeBand: "$150k-$250k",
+            location: "US",
+            behavioralProfile: "Owns software budget",
+          },
+        ],
+        anchorSetVersion: "purchase_intent.v1",
+        genericUnconditioned: true,
+        approvedAt: new Date(),
+      })
+      .returning();
+    createdResonanceStudyIds.push(study.id);
+    const [stimulus] = await db
+      .insert(resonanceStimuli)
+      .values({
+        studyId: study.id,
+        kind: "custom",
+        label: "Budget variant",
+        body: "LedgerFox is framed as easy to buy.",
+        evidenceResponseIdsJson: [],
+        position: 0,
+      })
+      .returning();
+    createdResonanceStimulusIds.push(stimulus.id);
+    const [version] = await db
+      .insert(matrixVersions)
+      .values({
+        projectId,
+        version: await nextVersionNumber(projectId),
+        state: "approved",
+        kind: "resonance",
+        resonanceStudyId: study.id,
+        cellCount: 1,
+        approvedAt: new Date(),
+      })
+      .returning();
+    createdVersionIds.push(version.id);
+
+    const [cell] = await db
+      .insert(promptCells)
+      .values({
+        matrixVersionId: version.id,
+        intent: "simulation",
+        stimulusId: stimulus.id,
+        panelPersonaKey: "budget_owner",
+        variantKey: "budget-ssr-wall",
+        resolvedText: "Simulated buyer reaction prompt",
+      })
+      .returning();
+
+    const [run] = await db
+      .insert(auditRuns)
+      .values({
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "live_validation",
+        state: "completed",
+        repetitions: 1,
+        selectedProvidersJson: ["mock"],
+        selectedModesJson: ["ungrounded"],
+        plannedCalls: 1,
+        costCapUsd: "25",
+      })
+      .returning();
+    createdRunIds.push(run.id);
+
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        runId: run.id,
+        cellId: cell.id,
+        providerId: "mock",
+        generationMode: "ungrounded",
+        repIndex: 0,
+        state: "succeeded",
+      })
+      .returning();
+
+    const [response] = await db
+      .insert(responses)
+      .values({
+        jobId: job.id,
+        runId: run.id,
+        cellId: cell.id,
+        providerId: "mock",
+        generationMode: "ungrounded",
+        modelVersion: "mock",
+        rawText: "buyer reaction",
+      })
+      .returning();
+
+    const embeddingBefore = await getProviderSpendToday("openai");
+    const extractionBefore = await getProviderSpendToday("deepseek");
+    const extractionId = await createPendingExtraction(response.id, 1);
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await db
+      .update(extractions)
+      .set({ createdAt: yesterday, updatedAt: yesterday })
+      .where(eq(extractions.id, extractionId));
+
+    // This is the M20 failure shape: embeddings have spent money, then the
+    // SSR payload fails validation before `extracted_json.kind = "ssr"` exists.
+    await recordExtractionAttemptCost(run.id, extractionId, { costUsd: 0.75, tokensIn: 50, tokensOut: 0 });
+
+    const embeddingAfter = await getProviderSpendToday("openai");
+    const extractionAfter = await getProviderSpendToday("deepseek");
+
+    expect(embeddingAfter - embeddingBefore).toBeCloseTo(0.75, 6);
+    expect(extractionAfter - extractionBefore).toBeCloseTo(0, 6);
   });
 
   it("findExceededDailyBudget trips once cumulative spend reaches the budget, skips mock, and reports null under budget", async () => {

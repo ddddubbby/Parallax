@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isUuid } from "@/core/id";
 import { parsePanelPersonaLines, STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import { getResonanceStudyTemplate } from "@/core/resonance-templates";
 import {
@@ -14,6 +15,10 @@ import {
 } from "@/db/repositories/resonance";
 
 type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
+
+function validIds(...ids: string[]) {
+  return ids.every(isUuid);
+}
 
 function textField(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -32,20 +37,30 @@ function evidenceIds(formData: FormData) {
 }
 
 export async function createStudyAction(projectId: string, formData: FormData): Promise<ActionResult> {
-  const name = textField(formData, "name");
-  if (!name) return { ok: false, error: "Study name is required" };
-  const study = await createResonanceStudy(projectId, name);
-  revalidatePath(`/projects/${projectId}/resonance`);
-  return { ok: true, id: study.id };
+  if (!validIds(projectId)) return { ok: false, error: "Invalid id" };
+  try {
+    const name = textField(formData, "name");
+    if (!name) return { ok: false, error: "Study name is required" };
+    const study = await createResonanceStudy(projectId, name);
+    revalidatePath(`/projects/${projectId}/resonance`);
+    return { ok: true, id: study.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Study create failed" };
+  }
 }
 
 export async function createStudyFromTemplateAction(projectId: string, formData: FormData): Promise<ActionResult> {
-  const templateId = textField(formData, "templateId");
-  const template = getResonanceStudyTemplate(templateId);
-  if (!template) return { ok: false, error: "Unknown Resonance study template" };
-  const study = await createResonanceStudyFromTemplate(projectId, template);
-  revalidatePath(`/projects/${projectId}/resonance`);
-  return { ok: true, id: study.id };
+  if (!validIds(projectId)) return { ok: false, error: "Invalid id" };
+  try {
+    const templateId = textField(formData, "templateId");
+    const template = getResonanceStudyTemplate(templateId);
+    if (!template) return { ok: false, error: "Unknown Resonance study template" };
+    const study = await createResonanceStudyFromTemplate(projectId, template);
+    revalidatePath(`/projects/${projectId}/resonance`);
+    return { ok: true, id: study.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Study template create failed" };
+  }
 }
 
 export async function updateStudyAction(
@@ -53,8 +68,10 @@ export async function updateStudyAction(
   studyId: string,
   formData: FormData,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, studyId)) return { ok: false, error: "Invalid id" };
   try {
     const name = textField(formData, "name");
+    if (!name) return { ok: false, error: "Study name is required" };
     const panelPersonas = parsePanelPersonaLines(textField(formData, "panelPersonas"));
     const updated = await updateResonanceStudy(projectId, studyId, {
       name,
@@ -74,16 +91,20 @@ export async function addStimulusAction(
   studyId: string,
   formData: FormData,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, studyId)) return { ok: false, error: "Invalid id" };
   try {
     const label = textField(formData, "label");
     const body = textField(formData, "body");
     if (!label || !body) return { ok: false, error: "Stimulus label and body are required" };
+    const evidenceResponseIds = evidenceIds(formData);
+    if (!validIds(...evidenceResponseIds)) return { ok: false, error: "Invalid evidence response id" };
     const stimulus = await addResonanceStimulus({
+      projectId,
       studyId,
       kind: parseKind(textField(formData, "kind")),
       label,
       body,
-      evidenceResponseIds: evidenceIds(formData),
+      evidenceResponseIds,
     });
     revalidatePath(`/projects/${projectId}/resonance`);
     return { ok: true, id: stimulus.id };
@@ -98,14 +119,21 @@ export async function updateStimulusAction(
   stimulusId: string,
   formData: FormData,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, studyId, stimulusId)) return { ok: false, error: "Invalid id" };
   try {
+    const label = textField(formData, "label");
+    const body = textField(formData, "body");
+    if (!label || !body) return { ok: false, error: "Stimulus label and body are required" };
+    const evidenceResponseIds = evidenceIds(formData);
+    if (!validIds(...evidenceResponseIds)) return { ok: false, error: "Invalid evidence response id" };
     const updated = await updateResonanceStimulus({
+      projectId,
       studyId,
       stimulusId,
       kind: parseKind(textField(formData, "kind")),
-      label: textField(formData, "label"),
-      body: textField(formData, "body"),
-      evidenceResponseIds: evidenceIds(formData),
+      label,
+      body,
+      evidenceResponseIds,
     });
     if (updated === 0) return { ok: false, error: "Stimulus not found" };
   } catch (err) {
@@ -120,8 +148,10 @@ export async function deleteStimulusAction(
   studyId: string,
   stimulusId: string,
 ): Promise<ActionResult> {
+  if (!validIds(projectId, studyId, stimulusId)) return { ok: false, error: "Invalid id" };
   try {
-    await deleteResonanceStimulus(studyId, stimulusId);
+    const deleted = await deleteResonanceStimulus(projectId, studyId, stimulusId);
+    if (deleted === 0) return { ok: false, error: "Stimulus not found" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Stimulus delete failed" };
   }
@@ -130,6 +160,7 @@ export async function deleteStimulusAction(
 }
 
 export async function approveStudyAction(projectId: string, studyId: string): Promise<ActionResult> {
+  if (!validIds(projectId, studyId)) return { ok: false, error: "Invalid id" };
   try {
     const version = await approveAndCompileResonanceStudy(projectId, studyId);
     revalidatePath(`/projects/${projectId}/resonance`);

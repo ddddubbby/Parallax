@@ -7,6 +7,7 @@ import {
   decideRetry,
   engineModePairs,
   estimateRunCostUsd,
+  findUnsupportedEngineModePairs,
   isPartial,
   isProviderAllowedForRunMode,
   shouldTripBreaker,
@@ -89,6 +90,27 @@ describe("engineModePairs", () => {
       { providerId: "mock", mode: "grounded" },
       { providerId: "mock", mode: "ungrounded" },
     ]);
+  });
+});
+
+describe("findUnsupportedEngineModePairs (C-10/PV-5)", () => {
+  const capabilities = [
+    { id: "deepseek", supportsGrounded: false, supportsUngrounded: true },
+    { id: "openai", supportsGrounded: true, supportsUngrounded: true },
+    { id: "perplexity", supportsGrounded: true, supportsUngrounded: false },
+  ];
+
+  it("returns selected provider/mode pairs with no real provider path", () => {
+    expect(findUnsupportedEngineModePairs(["deepseek", "openai"], ["grounded"], capabilities)).toEqual([
+      { providerId: "deepseek", mode: "grounded" },
+    ]);
+    expect(findUnsupportedEngineModePairs(["perplexity"], ["ungrounded"], capabilities)).toEqual([
+      { providerId: "perplexity", mode: "ungrounded" },
+    ]);
+  });
+
+  it("allows only fully supported selections", () => {
+    expect(findUnsupportedEngineModePairs(["openai"], ["grounded", "ungrounded"], capabilities)).toEqual([]);
   });
 });
 

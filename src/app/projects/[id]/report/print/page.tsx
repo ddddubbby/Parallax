@@ -1,7 +1,11 @@
 import { marked } from "marked";
 import { notFound } from "next/navigation";
+import { isUuid } from "@/core/id";
+import { resonanceExportLabel } from "@/core/resonance";
 import { reportSectionsForKind } from "@/core/report-templates";
-import { getReportSections } from "@/db/repositories/report";
+import { isReportableRunState } from "@/core/runner";
+import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
+import { getReportFreshness, getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 import { getProjectBrandNames } from "@/db/repositories/dashboard";
 
@@ -17,14 +21,12 @@ export const dynamic = "force-dynamic";
 // it for navigation.
 //
 // Markdown -> HTML is rendered server-side without a sanitizer library.
-// That is only safe because generated sections escape every MODEL-DERIVED
-// string (claim text, evidence quotes, citation domains) at the template
-// source — src/core/md.ts escapeModelText — so provider/web-origin text
-// can never smuggle raw HTML through marked into this
+// That is only safe because generated sections escape untrusted strings
+// (provider text, citation domains, project names, fact-sheet statements)
+// at the template source — src/core/md.ts escapeModelText — so data-origin
+// text can never smuggle raw HTML through marked into this
 // dangerouslySetInnerHTML. What remains unescaped is the operator's own
-// content (their edits, brand names, fact sheet), which the operator
-// already fully controls (single shared-password operator, same trust
-// boundary as Debug's raw SQL access).
+// section edits, which are a deliberate markdown-authoring trust boundary.
 export default async function ReportPrintPage({
   params,
   searchParams,
@@ -34,14 +36,26 @@ export default async function ReportPrintPage({
 }) {
   const { id } = await params;
   const { runId } = await searchParams;
+  if (!isUuid(id)) notFound();
   if (!runId) notFound();
+  if (!isUuid(runId)) notFound();
 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) notFound();
+  if (!isReportableRunState(run.state)) notFound();
   const kind = await getRunMatrixKind(runId);
   const reportSections = reportSectionsForKind(kind?.kind);
+  const resonanceStudy =
+    kind?.kind === "resonance" && kind.resonanceStudyId
+      ? await getResonanceStudyExportLabel(id, kind.resonanceStudyId)
+      : null;
+  const resonanceLabel = resonanceStudy ? resonanceExportLabel(resonanceStudy.genericUnconditioned) : null;
 
-  const [sections, brands] = await Promise.all([getReportSections(runId), getProjectBrandNames(id)]);
+  const [sections, brands, freshness] = await Promise.all([
+    getReportSections(runId),
+    getProjectBrandNames(id),
+    getReportFreshness(runId),
+  ]);
   const byKey = new Map(sections.map((s) => [s.sectionKey, s]));
   const client = brands.find((b) => b.role === "client");
 
@@ -77,8 +91,26 @@ export default async function ReportPrintPage({
         {new Date().toISOString().slice(0, 10).replaceAll("-", ".")} · RUN {runId.slice(0, 8)}
       </div>
       <h1 style={{ fontSize: "2rem", marginBottom: "2rem" }}>
-        {kind?.kind === "resonance" ? "Resonance Simulation Report" : "AI Visibility Audit"}{client ? ` — ${client.name}` : ""}
+        {kind?.kind === "resonance"
+          ? `Resonance Simulation Report${resonanceLabel ? ` — ${resonanceLabel}` : ""}`
+          : "AI Visibility Audit"}{client ? ` — ${client.name}` : ""}
       </h1>
+
+      {freshness.stale && (
+        <div
+          style={{
+            border: "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)",
+            color: "var(--color-danger)",
+            padding: "0.75rem",
+            marginBottom: "2rem",
+            fontFamily: "ui-monospace, monospace",
+            fontSize: "0.75rem",
+          }}
+        >
+          Stale report warning: these report sections predate the latest computed metrics. Regenerate affected
+          sections before using this as a final client deliverable.
+        </div>
+      )}
 
       {reportSections.map(({ key, title }) => {
         const section = byKey.get(key);

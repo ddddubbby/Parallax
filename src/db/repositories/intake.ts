@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type {
   Basics,
   ClientBrand,
@@ -67,7 +67,7 @@ export async function updateDraft(
   id: string,
   input: { draft: IntakeDraft; intakeStep?: number; name?: string },
 ) {
-  await db
+  const updated = await db
     .update(projects)
     .set({
       intakeDraftJson: input.draft,
@@ -75,7 +75,9 @@ export async function updateDraft(
       ...(input.name !== undefined && { name: input.name }),
       updatedAt: new Date(),
     })
-    .where(eq(projects.id, id));
+    .where(and(eq(projects.id, id), eq(projects.status, "draft")))
+    .returning({ id: projects.id });
+  return updated.length;
 }
 
 export interface NormalizedIntake {
@@ -95,6 +97,16 @@ export interface NormalizedIntake {
  */
 export async function completeIntake(id: string, data: NormalizedIntake) {
   await db.transaction(async (tx) => {
+    const [project] = await tx
+      .select({ status: projects.status })
+      .from(projects)
+      .where(eq(projects.id, id))
+      .for("update");
+    if (!project) throw new Error("Project not found");
+    if (project.status !== "draft") {
+      throw new Error("Intake is already complete; completed projects cannot be edited through intake");
+    }
+
     await tx
       .update(projects)
       .set({

@@ -7,9 +7,11 @@ import {
   type IntakeDraft,
   type IntakeStepKey,
   REVIEW_STEP,
+  isIntakeStepKey,
   slugify,
   validateStep,
 } from "@/core/intake";
+import { isUuid } from "@/core/id";
 import type { NormalizedIntake } from "@/db/repositories/intake";
 import {
   completeIntake as completeIntakeRepo,
@@ -23,9 +25,26 @@ interface SaveResult {
   savedAt: string | null;
 }
 
+const CREATE_DRAFT_ATTEMPTS = 3;
+
 function draftName(draft: IntakeDraft): string {
   const basics = draft.basics as { name?: string } | undefined;
   return basics?.name?.trim() ?? "";
+}
+
+async function createDraftProjectWithRetry(input: { name: string; draft: IntakeDraft; intakeStep: number }) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < CREATE_DRAFT_ATTEMPTS; attempt++) {
+    try {
+      return await createDraftProject({
+        ...input,
+        slug: slugify(input.name, randomBytes(6).toString("hex")),
+      });
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Could not create draft project");
 }
 
 /**
@@ -34,27 +53,30 @@ function draftName(draft: IntakeDraft): string {
  */
 export async function autosaveStep(
   projectId: string | null,
-  stepKey: IntakeStepKey,
+  stepKey: IntakeStepKey | string,
   payload: unknown,
 ): Promise<SaveResult> {
+  if (!isIntakeStepKey(stepKey)) return { projectId: null, savedAt: null };
+  if (projectId && !isUuid(projectId)) return { projectId: null, savedAt: null };
   if (projectId) {
     const project = await getProjectIntake(projectId);
     if (!project) return { projectId: null, savedAt: null };
+    if (project.status !== "draft") return { projectId: null, savedAt: null };
     const draft = { ...(project.intakeDraftJson as IntakeDraft), [stepKey]: payload };
     const name = draftName(draft);
-    await updateDraft(projectId, { draft, ...(name && { name }) });
+    const updated = await updateDraft(projectId, { draft, ...(name && { name }) });
+    if (updated === 0) return { projectId: null, savedAt: null };
     return { projectId, savedAt: new Date().toISOString() };
   }
   const draft: IntakeDraft = { [stepKey]: payload };
   const name = draftName(draft);
   if (!name) return { projectId: null, savedAt: null };
-  const id = await createDraftProject({
-    name,
-    slug: slugify(name, randomBytes(2).toString("hex")),
-    draft,
-    intakeStep: 1,
-  });
-  return { projectId: id, savedAt: new Date().toISOString() };
+  try {
+    const id = await createDraftProjectWithRetry({ name, draft, intakeStep: 1 });
+    return { projectId: id, savedAt: new Date().toISOString() };
+  } catch {
+    return { projectId: null, savedAt: null };
+  }
 }
 
 export type StepResult =
@@ -67,7 +89,7 @@ export type StepResult =
  */
 export async function completeStep(
   projectId: string | null,
-  stepKey: IntakeStepKey,
+  stepKey: IntakeStepKey | string,
   payload: unknown,
 ): Promise<StepResult> {
   const result = validateStep(stepKey, payload);
@@ -78,18 +100,24 @@ export async function completeStep(
     return { ok: false, fieldErrors: { _root: ["Could not save draft"] } };
   }
   const project = await getProjectIntake(saved.projectId);
+  if (!project || project.status !== "draft") {
+    return { ok: false, fieldErrors: { _root: ["Could not save draft"] } };
+  }
   const stepNumber = INTAKE_STEPS.find((s) => s.key === stepKey)?.step ?? 1;
   const nextStep = Math.min(
-    Math.max(project?.intakeStep ?? 1, stepNumber + 1),
+    Math.max(project.intakeStep, stepNumber + 1),
     REVIEW_STEP,
   );
-  await updateDraft(saved.projectId, {
+  const updated = await updateDraft(saved.projectId, {
     draft: {
-      ...((project?.intakeDraftJson as IntakeDraft) ?? {}),
+      ...(project.intakeDraftJson as IntakeDraft),
       [stepKey]: result.data,
     },
     intakeStep: nextStep,
   });
+  if (updated === 0) {
+    return { ok: false, fieldErrors: { _root: ["Could not save draft"] } };
+  }
   return { ok: true, projectId: saved.projectId };
 }
 
@@ -101,8 +129,10 @@ export type CompleteIntakeResult =
 export async function finishIntake(
   projectId: string,
 ): Promise<CompleteIntakeResult> {
+  if (!isUuid(projectId)) return { ok: false, stepErrors: {} };
   const project = await getProjectIntake(projectId);
   if (!project) return { ok: false, stepErrors: {} };
+  if (project.status !== "draft") return { ok: false, stepErrors: {} };
   const draft = (project.intakeDraftJson as IntakeDraft) ?? {};
 
   const stepErrors: Partial<Record<IntakeStepKey, FieldErrors>> = {};

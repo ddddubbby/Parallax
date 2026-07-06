@@ -49,7 +49,7 @@ export function RunProgress({
 
   useEffect(() => {
     function poll() {
-      fetchRunDetail(runId).then((next) => {
+      fetchRunDetail(projectId, runId).then((next) => {
         if (next) setDetail(next as RunDetail);
       });
     }
@@ -59,12 +59,12 @@ export function RunProgress({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [runId, detail.run.state]);
+  }, [projectId, runId, detail.run.state]);
 
   function run(action: () => Promise<unknown>) {
     startTransition(async () => {
       await action();
-      const next = await fetchRunDetail(runId);
+      const next = await fetchRunDetail(projectId, runId);
       if (next) setDetail(next as RunDetail);
     });
   }
@@ -76,10 +76,10 @@ export function RunProgress({
   const isResonance = detail.run.matrixKind === "resonance";
   // A bare "paused" stamp with no reason is an anxiety generator — the
   // breaker's own event message says exactly why (cost cap, failure rate,
-  // daily budget) and is already in the fetched events. Surface it.
+  // daily budget) and the C-1 worker cap backstop has its own event. Surface it.
   const pauseReason =
     detail.run.state === "paused"
-      ? detail.events.find((e) => e.eventType === "circuit_breaker_paused")?.message ?? null
+      ? detail.events.find((e) => e.eventType === "circuit_breaker_paused" || e.eventType === "cell_cap_violation")?.message ?? null
       : null;
 
   return (

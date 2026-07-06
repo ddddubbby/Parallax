@@ -1,5 +1,10 @@
 import { NextRequest } from "next/server";
+import { isUuid } from "@/core/id";
+import { resonanceExportMetadata } from "@/core/resonance";
+import { isReportableRunState } from "@/core/runner";
 import { getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
+import { recomputeMetrics } from "@/db/repositories/metrics";
+import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 
 // EX-3, D-013: synchronous download, one file, four datasets — every
@@ -7,11 +12,19 @@ import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const runId = request.nextUrl.searchParams.get("runId");
+  if (!isUuid(id)) return Response.json({ error: "invalid project id" }, { status: 400 });
   if (!runId) return Response.json({ error: "runId required" }, { status: 400 });
+  if (!isUuid(runId)) return Response.json({ error: "invalid runId" }, { status: 400 });
 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
+  if (!isReportableRunState(run.state)) return Response.json({ error: "run must be completed before export" }, { status: 409 });
   const kind = await getRunMatrixKind(runId);
+  const resonanceStudy =
+    kind?.kind === "resonance" && kind.resonanceStudyId
+      ? await getResonanceStudyExportLabel(id, kind.resonanceStudyId)
+      : null;
+  await recomputeMetrics(runId);
 
   const [respRows, extRows, metricRows, citationRows] = await Promise.all([
     getExportResponses(runId),
@@ -21,7 +34,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   ]);
 
   const body = JSON.stringify(
-    { runId, kind: kind?.kind ?? "audit", responses: respRows, extractions: extRows, metrics: metricRows, citations: citationRows },
+    {
+      runId,
+      kind: kind?.kind ?? "audit",
+      resonance: resonanceExportMetadata(resonanceStudy),
+      responses: respRows,
+      extractions: extRows,
+      metrics: metricRows,
+      citations: citationRows,
+    },
     null,
     2,
   );

@@ -22,11 +22,17 @@ export function createOpenAIEmbeddingProvider(credentials: LiveCredentials): Emb
   return {
     providerId: "openai",
     displayName: "OpenAI embeddings",
-    defaultModel: credentials.defaultModel || process.env.OPENAI_EMBEDDING_MODEL || DEFAULT_MODEL,
+    // D-020's per-credential `default_model` override is DELIBERATELY excluded
+    // here (the embedding model comes from OPENAI_EMBEDDING_MODEL env, not the
+    // credential): the OpenAI credential is shared with generation, whose
+    // default_model is a chat model (e.g. gpt-5.5) that is invalid at
+    // /v1/embeddings. D-020 governs the generation model; the embedding model
+    // is its own deploy-config knob. `credentials.baseUrl` still applies.
+    defaultModel: process.env.OPENAI_EMBEDDING_MODEL || DEFAULT_MODEL,
 
     async embed(req) {
       const baseUrl = credentials.baseUrl || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL;
-      const model = req.model || credentials.defaultModel || process.env.OPENAI_EMBEDDING_MODEL || DEFAULT_MODEL;
+      const model = req.model || process.env.OPENAI_EMBEDDING_MODEL || DEFAULT_MODEL;
       const parsed = (await postProviderJson(
         "OpenAI embeddings",
         `${baseUrl}/v1/embeddings`,

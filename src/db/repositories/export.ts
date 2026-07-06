@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { db } from "../client";
 import { brands, extractions, metrics, responses } from "../schema";
+import { getEligibleExtractionsForRun } from "./extraction";
 
 /** EX-3: raw responses for a run — the base evidence every other export trace back to (C-3). */
 export async function getExportResponses(runId: string) {
@@ -59,7 +60,8 @@ export async function getExportMetrics(runId: string) {
       computedAt: metrics.computedAt,
     })
     .from(metrics)
-    .where(eq(metrics.runId, runId));
+    .where(eq(metrics.runId, runId))
+    .orderBy(asc(metrics.scopeType), asc(metrics.scopeKey), asc(metrics.metricKey), asc(metrics.computedAt));
 }
 
 /**
@@ -86,7 +88,7 @@ export async function getExportBrandMetrics(runId: string) {
 
 /** Citations are embedded per-extraction JSON, not a separate table — flatten them for export. */
 export async function getExportCitations(runId: string) {
-  const extractionRows = await getExportExtractions(runId);
+  const extractionRows = await getEligibleExtractionsForRun(runId);
   const rows: Array<{ responseId: string; url: string; domain: string; title: string | null; citedForBrandIds: string }> = [];
   for (const ext of extractionRows) {
     const payload = ext.extractedJson as { citations?: Array<{ url: string; domain: string; title: string | null; cited_for_brand_ids: string[] }> } | null;

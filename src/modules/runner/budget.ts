@@ -8,6 +8,7 @@ export {
   extractionProviderId,
   embeddingProviderId,
   secondaryProviderIdForKind,
+  validateSecondaryProviderConfig,
 } from "./provider-ids";
 
 // C-2/D-012: global PROVIDER_DAILY_BUDGET_USD default, optional
@@ -38,6 +39,27 @@ export interface BudgetTrip {
   providerId: string;
   spentUsd: number;
   budgetUsd: number;
+}
+
+export interface ProjectedBudget {
+  providerId: string;
+  spentUsd: number;
+  budgetUsd: number;
+  projectedUsd: number;
+}
+
+export interface ProjectedBudgetTrip extends ProjectedBudget {
+  projectedTotalUsd: number;
+}
+
+export function findProjectedDailyBudgetTrip(budgets: ProjectedBudget[]): ProjectedBudgetTrip | null {
+  for (const budget of budgets) {
+    const projectedTotalUsd = budget.spentUsd + budget.projectedUsd;
+    if (!checkCostCap(projectedTotalUsd, budget.budgetUsd).ok) {
+      return { ...budget, projectedTotalUsd };
+    }
+  }
+  return null;
 }
 
 /**

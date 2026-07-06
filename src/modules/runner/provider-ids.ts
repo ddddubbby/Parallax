@@ -4,15 +4,22 @@
 // kind -> engine decision was re-derived at five call sites and the env
 // defaults were re-typed as literals inside getProviderSpendToday — a missed
 // site silently reintroduces the D-050/D-037 wrong-budget bug class.
+import { isProviderId, type ProviderId } from "@/core/runner";
+
+function providerIdFromEnv(envName: string, fallback: ProviderId): ProviderId {
+  const raw = process.env[envName] || fallback;
+  if (isProviderId(raw)) return raw;
+  throw new Error(`${envName}="${raw}" is not a registered provider id`);
+}
 
 /** D-041: the one extraction engine for all live audit runs. */
-export function extractionProviderId(): string {
-  return process.env.EXTRACTION_PROVIDER || "deepseek";
+export function extractionProviderId(): ProviderId {
+  return providerIdFromEnv("EXTRACTION_PROVIDER", "deepseek");
 }
 
 /** D-064: the one embedding engine for all live resonance (SSR) runs. */
-export function embeddingProviderId(): string {
-  return process.env.EMBEDDING_PROVIDER || "openai";
+export function embeddingProviderId(): ProviderId {
+  return providerIdFromEnv("EMBEDDING_PROVIDER", "openai");
 }
 
 /**
@@ -21,6 +28,23 @@ export function embeddingProviderId(): string {
  * single source of truth for cost projection, credential preflight, and
  * daily-budget enforcement.
  */
-export function secondaryProviderIdForKind(kind: string | null | undefined): string {
+export function secondaryProviderIdForKind(kind: string | null | undefined): ProviderId {
   return kind === "resonance" ? embeddingProviderId() : extractionProviderId();
+}
+
+export function validateSecondaryProviderConfig(kind: string | null | undefined): string | null {
+  try {
+    if (kind === "resonance") {
+      const embedding = embeddingProviderId();
+      return embedding === "openai"
+        ? null
+        : `No live embedding adapter for EMBEDDING_PROVIDER="${embedding}" — only openai is supported in M18`;
+    }
+    const extraction = extractionProviderId();
+    return extraction === "deepseek"
+      ? null
+      : `No live extraction adapter for EXTRACTION_PROVIDER="${extraction}" — only deepseek is supported in M9`;
+  } catch (err) {
+    return err instanceof Error ? err.message : "Secondary provider configuration is invalid";
+  }
 }

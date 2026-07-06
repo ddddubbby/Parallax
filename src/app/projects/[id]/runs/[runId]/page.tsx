@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExtractionPanel } from "@/components/analysis/extraction-panel";
 import { RunProgress } from "@/components/runner/run-progress";
+import { isUuid } from "@/core/id";
 import { getProjectSummary, getRunDetail } from "@/db/repositories/runner";
 
 const TERMINAL_STATES = new Set(["completed", "failed", "cancelled"]);
@@ -14,6 +15,8 @@ export default async function RunDetailPage({
   params: Promise<{ id: string; runId: string }>;
 }) {
   const { id, runId } = await params;
+  if (!isUuid(id)) notFound();
+  if (!isUuid(runId)) notFound();
   const detail = await getRunDetail(runId);
   if (!detail || detail.run.projectId !== id) notFound();
   const project = await getProjectSummary(id);
@@ -36,7 +39,7 @@ export default async function RunDetailPage({
       </div>
       <RunProgress projectId={id} runId={runId} initial={detail} />
       {detail.run.matrixKind !== "resonance" && (
-        <ExtractionPanel runId={runId} terminal={TERMINAL_STATES.has(detail.run.state)} />
+        <ExtractionPanel projectId={id} runId={runId} terminal={TERMINAL_STATES.has(detail.run.state)} />
       )}
     </main>
   );

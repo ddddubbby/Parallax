@@ -52,8 +52,8 @@ export function findLostShortlistCells(cells: CellBrandPresence[]): Finding[] {
     .map((c) => ({
       findingType: "lost_shortlist",
       severity: "high" as const,
-      title: `Lost shortlist: ${c.topCompetitorName} dominates a ${c.intent} cell`,
-      bodyMd: `In a ${c.intent} cell (n=${c.n} samples), ${c.topCompetitorName} appeared in ${Math.round(c.topCompetitorRate * 100)}% of answers while the client brand appeared in only ${Math.round(c.clientRate * 100)}%.`,
+      title: `Lost shortlist: ${escapeModelText(c.topCompetitorName)} dominates a ${c.intent} cell`,
+      bodyMd: `In a ${c.intent} cell (n=${c.n} samples), ${escapeModelText(c.topCompetitorName)} appeared in ${Math.round(c.topCompetitorRate * 100)}% of answers while the client brand appeared in only ${Math.round(c.clientRate * 100)}%.`,
       evidence: { cellId: c.cellId, intent: c.intent, clientRate: c.clientRate, topCompetitorName: c.topCompetitorName, topCompetitorRate: c.topCompetitorRate, n: c.n },
       directionalOnly: true,
     }));
@@ -72,8 +72,8 @@ export function findPositioningGaps(attributes: AttributeRate[]): Finding[] {
     .map((a) => ({
       findingType: "positioning_gap",
       severity: a.rate < POSITIONING_GAP_RATE / 2 ? ("medium" as const) : ("low" as const),
-      title: `Positioning gap: "${a.attribute}"`,
-      bodyMd: `The client brand was associated with "${a.attribute}" in only ${Math.round(a.rate * 100)}% of eligible samples (n=${a.n}), despite it being a desired positioning attribute.`,
+      title: `Positioning gap: "${escapeModelText(a.attribute)}"`,
+      bodyMd: `The client brand was associated with "${escapeModelText(a.attribute)}" in only ${Math.round(a.rate * 100)}% of eligible samples (n=${a.n}), despite it being a desired positioning attribute.`,
       evidence: { attribute: a.attribute, rate: a.rate, n: a.n },
       directionalOnly: false,
     }));

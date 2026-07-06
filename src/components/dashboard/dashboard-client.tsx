@@ -24,10 +24,12 @@ interface RunOption {
 type DashboardData = Awaited<ReturnType<typeof fetchDashboardData>>;
 
 export function DashboardClient({
+  projectId,
   initialRuns,
   initialRunId,
   initialData,
 }: {
+  projectId: string;
   initialRuns: RunOption[];
   initialRunId: string | null;
   initialData: DashboardData;
@@ -41,11 +43,11 @@ export function DashboardClient({
   useEffect(() => {
     if (!runId || runId === initialRunId) return;
     setLoading(true);
-    fetchDashboardData(runId).then((d) => {
+    fetchDashboardData(projectId, runId).then((d) => {
       setData(d);
       setLoading(false);
     });
-  }, [runId, initialRunId]);
+  }, [projectId, runId, initialRunId]);
 
   if (runs.length === 0) {
     return (
@@ -136,7 +138,13 @@ export function DashboardClient({
                 metrics={metrics}
                 personas={data.personasMarkets.personas}
                 onCellClick={(intent, personaId) =>
-                  setDrilldown({ kind: "scope", label: `${intent} × persona evidence`, intent, personaId })
+                  setDrilldown({
+                    kind: "metric",
+                    label: `${intent} x persona mention evidence`,
+                    metricKey: "mention_rate",
+                    scopeType: "intent_persona",
+                    scopeKey: `${intent}|${personaId}`,
+                  })
                 }
               />
               <CompetitiveSpectrumSection
@@ -189,12 +197,14 @@ export function DashboardClient({
                 }
               />
               <MisinformationRegister
+                runId={data.run.id}
+                projectId={projectId}
                 rows={data.misinformation}
                 onRowClick={(responseId, claimText) =>
                   setDrilldown({ kind: "response", label: claimText.slice(0, 60), responseId })
                 }
                 onReviewed={() => {
-                  if (runId) fetchDashboardData(runId).then((d) => d && setData(d));
+                  if (runId) fetchDashboardData(projectId, runId).then((d) => d && setData(d));
                 }}
               />
             </div>
@@ -229,7 +239,7 @@ export function DashboardClient({
       )}
 
       {drilldown && runId && (
-        <DrilldownPanel runId={runId} request={drilldown} onClose={() => setDrilldown(null)} />
+        <DrilldownPanel projectId={projectId} runId={runId} request={drilldown} onClose={() => setDrilldown(null)} />
       )}
     </div>
   );

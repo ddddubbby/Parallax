@@ -6,7 +6,7 @@ import { db, pool } from "@/db/client";
 import { saveCredential } from "@/db/repositories/credentials";
 import { getExtractionForResponse } from "@/db/repositories/extraction";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
-import { claimJobs, createRun, getRun, recordSuccess } from "@/db/repositories/runner";
+import { claimJobs, createRun, getRun, listRunEvents, recordSuccess } from "@/db/repositories/runner";
 import {
   auditRuns,
   brandMentions,
@@ -269,6 +269,24 @@ describe.skipIf(!dbUp)("live extraction pipeline against the dev database (D-022
     const ext = await getExtractionForResponse(responseId);
     expect(ext?.state).toBe("dead_lettered");
     expect(ext?.validationError).toContain("401");
+  });
+
+  it("a missing credential encryption key pauses the run and leaves extraction retryable, not dead-lettered", async () => {
+    await seedActiveCredential();
+    const { run, responseId } = await startLiveRunAndResponse("Answer needing extraction after config repair.");
+
+    delete process.env.CREDENTIALS_ENCRYPTION_KEY;
+    const result = await extractResponse(responseId);
+    expect(result.outcome).toBe("skipped");
+
+    const ext = await getExtractionForResponse(responseId);
+    expect(ext?.state).toBe("retrying");
+    expect(ext?.validationError).toContain("CREDENTIALS_ENCRYPTION_KEY");
+
+    const paused = await getRun(run.id);
+    expect(paused?.state).toBe("paused");
+    const events = await listRunEvents(run.id, 50);
+    expect(events.some((event) => event.eventType === "worker_config_error")).toBe(true);
   });
 
   it("a misconfigured EXTRACTION_PROVIDER fails loudly at the first attempt, never silently (D-041)", async () => {

@@ -223,6 +223,14 @@ describe("resonance report templates (RR-3)", () => {
     expect(md).toContain("&lt;script&gt;");
     expect(md).not.toContain("<script>");
   });
+
+  it("renders persona-slice gate flags from the resonance result contract", () => {
+    const md = generateResonanceSection("resonance_results", {
+      ...RESONANCE_CTX,
+      personaRows: [{ ...RESONANCE_CTX.personaRows[0], directionalOnly: false }],
+    });
+    expect(md).toContain("| Primary buyer | Corrected proof framing | 3.80 | 5 | directional |");
+  });
 });
 
 // Model-derived text (claim text, evidence quotes, citation domains) comes
@@ -275,5 +283,117 @@ describe("model-derived text is escaped in generated markdown", () => {
     });
     expect(md).not.toContain("\n### injected heading");
     expect(md).not.toContain("<div>");
+  });
+
+  it("neutralizes HTML in project-origin report text before print rendering", () => {
+    const ctx: ReportContext = {
+      ...BASE_CTX,
+      clientBrandName: 'LedgerFox <script>alert("client")</script>',
+      competitorNames: ['SpendPilot <img src=x onerror="alert(1)">'],
+      brandMetrics: [
+        {
+          brandName: 'LedgerFox <script>alert("brand")</script>',
+          isClient: true,
+          metricKey: "comparative_win_rate",
+          value: 0.5,
+          n: 30,
+        },
+      ],
+      misinformation: [
+        {
+          claimText: "Claim text",
+          verdict: "unsupported",
+          severity: "medium",
+          evidenceQuote: null,
+          factStatement: 'Fact sheet <img src=x onerror="alert(2)">',
+        },
+      ],
+    };
+
+    const md = [
+      generateSection("executive_summary", ctx),
+      generateSection("competitive_dynamics", ctx),
+      generateSection("misinformation_register", ctx),
+    ].join("\n\n");
+
+    expect(md).not.toContain("<script>");
+    expect(md).not.toContain("<img");
+    expect(md).toContain("&lt;script&gt;");
+    expect(md).toContain("&lt;img");
+  });
+
+  it("neutralizes HTML and table breakers in run metadata before print rendering", () => {
+    const md = generateSection("method_confidence", {
+      ...BASE_CTX,
+      runMode: 'mock <script>alert("mode")</script>',
+      runDate: "2026-07-04\n### injected",
+      providers: ['mock | injected | <img src=x onerror="alert(1)">'],
+      modes: ['ungrounded <script>alert("mode")</script>'],
+    });
+
+    expect(md).not.toContain("<script>");
+    expect(md).not.toContain("<img");
+    expect(md).not.toContain("\n### injected");
+    expect(md).toContain("&lt;script&gt;");
+    expect(md).toContain("&lt;img");
+    expect(md).toContain("\\|");
+  });
+
+  it("neutralizes HTML and table breakers in resonance method metadata", () => {
+    const md = generateResonanceSection("resonance_method", {
+      ...RESONANCE_CTX,
+      studyName: 'Study <script>alert("study")</script>',
+      anchorSetVersion: 'purchase_intent.v1 | injected | <img src=x onerror="alert(1)">',
+      embeddingModel: 'text-embedding <script>alert("model")</script>',
+      providers: ['mock | injected | <script>alert("provider")</script>'],
+      modes: ["ungrounded\n### injected heading"],
+    });
+
+    expect(md).not.toContain("<script>");
+    expect(md).not.toContain("<img");
+    expect(md).not.toContain("\n### injected heading");
+    expect(md).toContain("&lt;script&gt;");
+    expect(md).toContain("&lt;img");
+    expect(md).toContain("\\|");
+  });
+
+  it("neutralizes HTML in finding titles and bodies before print rendering", () => {
+    const ctx: ReportContext = {
+      ...BASE_CTX,
+      findings: [
+        {
+          id: "finding-xss",
+          findingType: "source_concentration",
+          severity: "low",
+          title: 'Finding <script>alert("title")</script>',
+          bodyMd: 'Body <img src=x onerror="alert(1)"> | injected column',
+          evidence: { domain: "evil.example", n: 10 },
+          directionalOnly: false,
+        },
+      ],
+      evidenceExcerpts: [
+        {
+          findingId: "finding-xss",
+          findingType: "source_concentration",
+          findingTitle: "Finding",
+          responseId: "response-001",
+          providerId: "mock",
+          generationMode: "grounded",
+          quote: "supporting quote",
+        },
+      ],
+    };
+
+    const md = [
+      generateSection("sources", ctx),
+      generateSection("recommendations", ctx),
+      generateSection("raw_answer_appendix", ctx),
+    ].join("\n\n");
+
+    expect(md).not.toContain("<script>");
+    expect(md).not.toContain("<img");
+    expect(md).toContain("&lt;script&gt;");
+    expect(md).toContain("&lt;img");
+    expect(md).toContain("\\|");
   });
 });

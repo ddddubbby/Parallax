@@ -82,7 +82,7 @@ export const RESONANCE_STUDY_TEMPLATES: ResonanceStudyTemplate[] = [
     name: "Price presentation",
     summary: "Compare ways to explain the same price or package structure.",
     guidance:
-      "Use this for presentation and comprehension of an unchanged price. It does not estimate demand, revenue, or price optimization.",
+      "Use this for presentation and comprehension of an unchanged price. It compares wording only, not demand forecasting or pricing decisions.",
     default: false,
     stimuli: [
       {
@@ -139,6 +139,8 @@ export const RESONANCE_TEMPLATE_FORBIDDEN_PHRASES = [
   "purchase probability",
   "willingness to pay",
   "ideal price",
+  "revenue",
+  "conversion",
 ];
 
 export function getResonanceStudyTemplate(id: string): ResonanceStudyTemplate | null {
