@@ -6,6 +6,7 @@ import { isReportableRunState } from "@/core/runner";
 import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
 import { getReportFreshness, getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
+import { reportError } from "@/observability";
 
 // EX-1, D-013: synchronous download, no export table/queue.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
   if (!isReportableRunState(run.state)) return Response.json({ error: "run must be completed before export" }, { status: 409 });
+
+  try {
   const kind = await getRunMatrixKind(runId);
   const reportSections = reportSectionsForKind(kind?.kind);
   const resonanceStudy =
@@ -51,4 +54,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       "Content-Disposition": `attachment; filename="report-${runId}.md"`,
     },
   });
+  } catch (err) {
+    reportError(err, { boundary: "export-markdown", projectId: id, runId });
+    return Response.json({ error: "export failed" }, { status: 500 });
+  }
 }

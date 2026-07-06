@@ -99,4 +99,22 @@ describe("GET report markdown export", () => {
     await expect(res.json()).resolves.toEqual({ error: "run must be completed before export" });
     expect(mocks.getRunMatrixKind).not.toHaveBeenCalled();
   });
+
+  it("returns a sanitized 500 when generation throws unexpectedly", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const projectId = "00000000-0000-4000-8000-000000000000";
+    const runId = "11111111-1111-4111-8111-111111111111";
+    mocks.getRun.mockResolvedValueOnce({ id: runId, projectId, state: "completed" });
+    mocks.getRunMatrixKind.mockResolvedValueOnce({ kind: "audit" });
+    mocks.getReportSections.mockRejectedValueOnce(new Error("db down: secret-detail"));
+
+    const request = new NextRequest(`http://localhost/projects/${projectId}/report/export/markdown?runId=${runId}`);
+    const res = await GET(request, { params: Promise.resolve({ id: projectId }) });
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ error: "export failed" });
+    expect(JSON.stringify(body)).not.toContain("secret-detail");
+    errorSpy.mockRestore();
+  });
 });

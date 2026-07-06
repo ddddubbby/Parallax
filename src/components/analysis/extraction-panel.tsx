@@ -5,6 +5,7 @@ import { Button, Stamp } from "@/components/ui";
 import { PILLARS, resolveGlossary, type Pillar } from "@/core/semantic";
 import { fetchExtractionAndMetrics } from "@/modules/extraction/actions";
 import { recomputeMetrics } from "@/modules/analysis/actions";
+import { reportError } from "@/observability";
 
 const POLL_MS = 2000;
 const EXTRACTION_STATES = ["pending", "retrying", "valid", "dead_lettered", "qa_reviewed"];
@@ -30,11 +31,16 @@ function formatMetric(m: MetricRow): string {
 
 export function ExtractionPanel({ projectId, runId, terminal }: { projectId: string; runId: string; terminal: boolean }) {
   const [data, setData] = useState<{ progress: Record<string, number>; metrics: MetricRow[]; plannedResponses: number } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     function poll() {
-      fetchExtractionAndMetrics(projectId, runId).then(setData);
+      // A failed poll keeps the last extraction/metrics snapshot on screen and
+      // lets the interval retry; it never blanks the panel.
+      fetchExtractionAndMetrics(projectId, runId)
+        .then(setData)
+        .catch((err) => reportError(err, { boundary: "extraction-panel-poll", projectId, runId }));
     }
     poll();
     if (terminal) return;
@@ -73,16 +79,26 @@ export function ExtractionPanel({ projectId, runId, terminal }: { projectId: str
         <Button
           variant="secondary"
           disabled={pending || extracted === 0}
-          onClick={() =>
+          onClick={() => {
+            setActionError(null);
             startTransition(async () => {
-              await recomputeMetrics(projectId, runId);
-              fetchExtractionAndMetrics(projectId, runId).then(setData);
-            })
-          }
+              try {
+                await recomputeMetrics(projectId, runId);
+                const next = await fetchExtractionAndMetrics(projectId, runId);
+                setData(next);
+              } catch (err) {
+                reportError(err, { boundary: "extraction-panel-recompute", projectId, runId });
+                setActionError("Recompute failed — the existing metrics are unchanged. Try again.");
+              }
+            });
+          }}
         >
           {pending ? "Recomputing…" : "Recompute metrics"}
         </Button>
       </div>
+      {actionError && (
+        <p className="mb-3 font-mono text-xs text-danger">{actionError}</p>
+      )}
       {overallMetrics.length === 0 ? (
         <p className="font-mono text-xs text-ink/45">No metrics computed yet</p>
       ) : (

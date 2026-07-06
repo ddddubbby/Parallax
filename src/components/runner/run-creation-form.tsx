@@ -7,6 +7,7 @@ import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, Input, Stamp } from "@/components/ui";
 import type { GenerationMode, ProviderId, RunMode } from "@/core/runner";
 import { createRun, projectRunCost, type RunCreationInput } from "@/modules/runner/actions";
+import { reportError } from "@/observability";
 
 interface ProviderOption {
   id: ProviderId;
@@ -56,6 +57,7 @@ export function RunCreationForm({
   const [injectionErrorType, setInjectionErrorType] = useState("rate_limit");
   const [extractionInjectionEnabled, setExtractionInjectionEnabled] = useState(false);
   const [extractionInvalidRate, setExtractionInvalidRate] = useState(0.15);
+  const [projectionFailed, setProjectionFailed] = useState(false);
   const [projection, setProjection] = useState<{
     plannedCalls: number;
     projectedCostUsd: number;
@@ -104,15 +106,29 @@ export function RunCreationForm({
       return;
     }
     let cancelled = false;
-    projectRunCost(projectId, input).then((result) => {
-      if (!cancelled && result.ok) {
-        setProjection({
-          plannedCalls: result.plannedCalls,
-          projectedCostUsd: result.projectedCostUsd,
-          budgets: result.budgets,
-        });
-      }
-    });
+    setProjectionFailed(false);
+    projectRunCost(projectId, input)
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          setProjection({
+            plannedCalls: result.plannedCalls,
+            projectedCostUsd: result.projectedCostUsd,
+            budgets: result.budgets,
+          });
+        } else {
+          setProjection(null);
+          setProjectionFailed(true);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Don't silently drop the projection — the operator needs to know the
+        // cost preview is unavailable before submitting a paid run.
+        reportError(err, { boundary: "run-cost-projection", projectId });
+        setProjection(null);
+        setProjectionFailed(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -248,6 +264,14 @@ export function RunCreationForm({
           />
         </Field>
       </div>
+
+      {projectionFailed && (
+        <p className="rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
+          Cost projection is unavailable right now. You can still submit — the
+          run&rsquo;s cost cap and daily budgets are re-checked server-side before
+          any spend.
+        </p>
+      )}
 
       {projection && (
         <div className="rounded-xl border border-ink/15 p-4">

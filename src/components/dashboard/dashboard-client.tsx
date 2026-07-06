@@ -13,6 +13,7 @@ import { PillarSection } from "@/components/semantic/pillar";
 import { Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
 import { metricLabel, type MetricRow } from "@/components/dashboard/format";
+import { reportError } from "@/observability";
 
 interface RunOption {
   id: string;
@@ -38,16 +39,35 @@ export function DashboardClient({
   const [runId, setRunId] = useState(initialRunId);
   const [data, setData] = useState<DashboardData>(initialData);
   const [loading, setLoading] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [drilldown, setDrilldown] = useState<DrilldownRequest | null>(null);
 
   useEffect(() => {
-    if (!runId || runId === initialRunId) return;
+    // Initial run's data is already server-rendered; only refetch on a run
+    // switch or an explicit retry (reloadNonce bump).
+    if (!runId || (runId === initialRunId && reloadNonce === 0)) return;
+    let cancelled = false;
     setLoading(true);
-    fetchDashboardData(projectId, runId).then((d) => {
-      setData(d);
-      setLoading(false);
-    });
-  }, [projectId, runId, initialRunId]);
+    setFetchFailed(false);
+    fetchDashboardData(projectId, runId)
+      .then((d) => {
+        if (cancelled) return;
+        setData(d);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Keep the previously loaded run's data on screen (aria-busy clears);
+        // surface a retryable inline warning rather than blanking the page.
+        reportError(err, { boundary: "dashboard-client", projectId, runId });
+        setFetchFailed(true);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, runId, initialRunId, reloadNonce]);
 
   if (runs.length === 0) {
     return (
@@ -108,6 +128,18 @@ export function DashboardClient({
           ))}
         </select>
         {loading && <span className="font-mono text-xs text-ink/45">Loading…</span>}
+        {fetchFailed && (
+          <span className="flex items-center gap-2 font-mono text-xs text-danger">
+            Could not load this run — showing the last loaded data.
+            <button
+              type="button"
+              onClick={() => setReloadNonce((n) => n + 1)}
+              className="label-mono text-[11px] text-accent-ink hover:underline"
+            >
+              Retry →
+            </button>
+          </span>
+        )}
         <div className="flex gap-2">
           {data.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
           {data.run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
@@ -204,7 +236,12 @@ export function DashboardClient({
                   setDrilldown({ kind: "response", label: claimText.slice(0, 60), responseId })
                 }
                 onReviewed={() => {
-                  if (runId) fetchDashboardData(projectId, runId).then((d) => d && setData(d));
+                  if (runId)
+                    fetchDashboardData(projectId, runId)
+                      .then((d) => d && setData(d))
+                      .catch((err) =>
+                        reportError(err, { boundary: "dashboard-review-refresh", projectId, runId }),
+                      );
                 }}
               />
             </div>

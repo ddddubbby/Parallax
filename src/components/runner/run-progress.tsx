@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Stamp } from "@/components/ui";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
+import { reportError } from "@/observability";
 
 const POLL_MS = 1500;
 const JOB_STATES = ["queued", "running", "succeeded", "retryable_failed", "dead_lettered", "cancelled", "skipped"];
@@ -45,14 +46,19 @@ export function RunProgress({
   initial: RunDetail;
 }) {
   const [detail, setDetail] = useState<RunDetail>(initial);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     function poll() {
-      fetchRunDetail(projectId, runId).then((next) => {
-        if (next) setDetail(next as RunDetail);
-      });
+      fetchRunDetail(projectId, runId)
+        .then((next) => {
+          if (next) setDetail(next as RunDetail);
+        })
+        // A transient poll failure must not blank the page or stop the loop:
+        // keep the last known detail and try again on the next tick.
+        .catch((err) => reportError(err, { boundary: "run-progress-poll", projectId, runId }));
     }
     if (!TERMINAL_STATES.has(detail.run.state)) {
       timerRef.current = setInterval(poll, POLL_MS);
@@ -63,10 +69,18 @@ export function RunProgress({
   }, [projectId, runId, detail.run.state]);
 
   function run(action: () => Promise<unknown>) {
+    setActionError(null);
     startTransition(async () => {
-      await action();
-      const next = await fetchRunDetail(projectId, runId);
-      if (next) setDetail(next as RunDetail);
+      try {
+        await action();
+        const next = await fetchRunDetail(projectId, runId);
+        if (next) setDetail(next as RunDetail);
+      } catch (err) {
+        // The mutation failed; the button re-enables (transition ends) and the
+        // operator sees why, rather than a stuck spinner.
+        reportError(err, { boundary: "run-progress-action", projectId, runId });
+        setActionError("That action could not be completed. Check the worker and try again.");
+      }
     });
   }
 
@@ -172,6 +186,12 @@ export function RunProgress({
           </Button>
         )}
       </div>
+
+      {actionError && (
+        <p className="mb-6 rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">
+          {actionError}
+        </p>
+      )}
 
       <h2 className="label-mono mb-2 text-xs font-medium text-ink/60">Recent events</h2>
       <div className="flex flex-col gap-1 font-mono text-xs">

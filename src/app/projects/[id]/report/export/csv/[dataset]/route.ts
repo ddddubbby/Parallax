@@ -8,6 +8,7 @@ import { getExportBrandMetrics, getExportCitations, getExportExtractions, getExp
 import { recomputeMetrics } from "@/db/repositories/metrics";
 import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
+import { reportError } from "@/observability";
 
 // EX-3, D-013: synchronous download, one CSV per dataset (each has a
 // different shape — responses/extractions/metrics/citations don't share
@@ -107,23 +108,31 @@ export async function GET(
   const run = await getRun(runId);
   if (!run || run.projectId !== id) return Response.json({ error: "not found" }, { status: 404 });
   if (!isReportableRunState(run.state)) return Response.json({ error: "run must be completed before export" }, { status: 409 });
-  const kind = await getRunMatrixKind(runId);
-  if (!(csvDatasetsForKind(kind?.kind) as readonly string[]).includes(dataset)) {
-    return Response.json({ error: "unknown dataset" }, { status: 404 });
+
+  try {
+    const kind = await getRunMatrixKind(runId);
+    if (!(csvDatasetsForKind(kind?.kind) as readonly string[]).includes(dataset)) {
+      return Response.json({ error: "unknown dataset" }, { status: 404 });
+    }
+    const resonanceStudy =
+      kind?.kind === "resonance" && kind.resonanceStudyId
+        ? await getResonanceStudyExportLabel(id, kind.resonanceStudyId)
+        : null;
+    await recomputeMetrics(runId);
+
+    const csv = await buildCsv(dataset, runId, kind?.kind ?? "audit", resonanceStudy);
+    if (csv === null) return Response.json({ error: "unknown dataset" }, { status: 404 });
+
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${dataset}-${runId}.csv"`,
+      },
+    });
+  } catch (err) {
+    // Unexpected generation failure (DB fault, recompute error). Return a
+    // sanitized 500 rather than leaking a stack/internal detail to the client.
+    reportError(err, { boundary: "export-csv", projectId: id, runId, dataset });
+    return Response.json({ error: "export failed" }, { status: 500 });
   }
-  const resonanceStudy =
-    kind?.kind === "resonance" && kind.resonanceStudyId
-      ? await getResonanceStudyExportLabel(id, kind.resonanceStudyId)
-      : null;
-  await recomputeMetrics(runId);
-
-  const csv = await buildCsv(dataset, runId, kind?.kind ?? "audit", resonanceStudy);
-  if (csv === null) return Response.json({ error: "unknown dataset" }, { status: 404 });
-
-  return new Response(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${dataset}-${runId}.csv"`,
-    },
-  });
 }

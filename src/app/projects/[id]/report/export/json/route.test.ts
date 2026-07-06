@@ -106,4 +106,21 @@ describe("GET report evidence JSON", () => {
     expect(mocks.recomputeMetrics).not.toHaveBeenCalled();
     expect(mocks.getExportResponses).not.toHaveBeenCalled();
   });
+
+  it("returns a sanitized 500 when generation throws unexpectedly", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.getRun.mockResolvedValueOnce({ id: runId, projectId, state: "completed" });
+    mocks.getRunMatrixKind.mockResolvedValueOnce({ kind: "audit" });
+    mocks.recomputeMetrics.mockResolvedValueOnce(1);
+    mocks.getExportResponses.mockRejectedValueOnce(new Error("db down: secret-detail"));
+
+    const request = new NextRequest(`http://localhost/projects/${projectId}/report/export/json?runId=${runId}`);
+    const res = await GET(request, { params: Promise.resolve({ id: projectId }) });
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ error: "export failed" });
+    expect(JSON.stringify(body)).not.toContain("secret-detail");
+    errorSpy.mockRestore();
+  });
 });

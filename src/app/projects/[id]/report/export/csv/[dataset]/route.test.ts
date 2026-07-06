@@ -112,6 +112,25 @@ describe("GET report CSV export", () => {
     expect(csv).toContain("Generic lower funnel");
   });
 
+  it("returns a sanitized 500 when generation throws unexpectedly", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.getRun.mockResolvedValueOnce({ id: RUN_ID, projectId: PROJECT_ID, state: "completed" });
+    mocks.getRunMatrixKind.mockResolvedValueOnce({ kind: "audit" });
+    mocks.recomputeMetrics.mockResolvedValueOnce(1);
+    mocks.getExportMetrics.mockRejectedValueOnce(new Error("db down: secret-connection-string"));
+
+    const res = await GET(request("metrics"), {
+      params: Promise.resolve({ id: PROJECT_ID, dataset: "metrics" }),
+    });
+
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body).toEqual({ error: "export failed" });
+    // The internal detail never reaches the client payload.
+    expect(JSON.stringify(body)).not.toContain("secret-connection-string");
+    errorSpy.mockRestore();
+  });
+
   it("rejects non-completed runs before CSV export", async () => {
     mocks.getRun.mockResolvedValueOnce({ id: RUN_ID, projectId: PROJECT_ID, state: "running" });
 

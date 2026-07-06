@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Stamp } from "@/components/ui";
 import { fetchDrilldown, fetchMetricDrilldown, fetchResponseDetail, fetchResponsesByIds } from "@/modules/dashboard/actions";
+import { reportError } from "@/observability";
 
 export type DrilldownRequest =
   | { kind: "scope"; label: string; intent?: string; personaId?: string }
@@ -44,14 +45,19 @@ export function DrilldownPanel({
     extraction: { state: string; extractedJson: unknown } | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     setSelected(null);
     setRows(null);
     setLoading(true);
+    setFailed(false);
     async function load() {
       if (request.kind === "response") {
         const detail = await fetchResponseDetail(projectId, runId, request.responseId);
+        if (cancelled) return;
         if (detail) {
           setSelected({
             response: detail.response as ResponseRow,
@@ -71,18 +77,32 @@ export function DrilldownPanel({
                 scopeKey: request.scopeKey,
               })
           : await fetchResponsesByIds(projectId, runId, request.responseIds);
+      if (cancelled) return;
       setRows(list as ResponseRow[]);
       setLoading(false);
     }
-    load();
-  }, [projectId, runId, request]);
+    load().catch((err) => {
+      if (cancelled) return;
+      reportError(err, { boundary: "drilldown-load", projectId, runId });
+      setFailed(true);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, runId, request, reloadNonce]);
 
   async function selectResponse(row: ResponseRow) {
-    const detail = await fetchResponseDetail(projectId, runId, row.id);
-    setSelected({
-      response: row,
-      extraction: detail?.extraction as { state: string; extractedJson: unknown } | null,
-    });
+    try {
+      const detail = await fetchResponseDetail(projectId, runId, row.id);
+      setSelected({
+        response: row,
+        extraction: detail?.extraction as { state: string; extractedJson: unknown } | null,
+      });
+    } catch (err) {
+      reportError(err, { boundary: "drilldown-select", projectId, runId });
+      setFailed(true);
+    }
   }
 
   return (
@@ -100,7 +120,31 @@ export function DrilldownPanel({
 
         {loading && <p className="font-mono text-xs text-ink/45">Loading…</p>}
 
-        {!loading && selected && (
+        {!loading && failed && (
+          <div className="flex flex-col items-start gap-3">
+            <p className="font-mono text-xs text-danger">
+              Could not load this evidence. Retry, or close and try again.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setReloadNonce((n) => n + 1)}
+                className="label-mono text-xs text-accent-ink hover:underline"
+              >
+                Retry →
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="label-mono text-xs text-ink/50 hover:text-ink"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !failed && selected && (
           <div>
             {rows && (
               <button
