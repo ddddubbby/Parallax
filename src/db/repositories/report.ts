@@ -13,24 +13,27 @@ export async function getReportSections(runId: string) {
 }
 
 export async function getReportFreshness(runId: string) {
+  // Raw sql`max(...)`/`min(...)` fragments bypass drizzle's per-column decoder
+  // and come back as strings, not Dates (same reality D-074 hit in
+  // areMetricsStale) — type them string and convert before comparing.
   const [[metricRow], [extractionRow], [sectionRow]] = await Promise.all([
     db
-      .select({ latestMetricComputedAt: sql<Date | null>`max(${metrics.computedAt})` })
+      .select({ latestMetricComputedAt: sql<string | null>`max(${metrics.computedAt})` })
       .from(metrics)
       .where(eq(metrics.runId, runId)),
     db
-      .select({ latestExtractionUpdatedAt: sql<Date | null>`max(${extractions.updatedAt})` })
+      .select({ latestExtractionUpdatedAt: sql<string | null>`max(${extractions.updatedAt})` })
       .from(extractions)
       .innerJoin(responses, eq(responses.id, extractions.responseId))
       .where(eq(responses.runId, runId)),
     db
-      .select({ oldestSectionUpdatedAt: sql<Date | null>`min(${reportSections.updatedAt})` })
+      .select({ oldestSectionUpdatedAt: sql<string | null>`min(${reportSections.updatedAt})` })
       .from(reportSections)
       .where(eq(reportSections.runId, runId)),
   ]);
-  const latestMetricComputedAt = metricRow?.latestMetricComputedAt ?? null;
-  const latestExtractionUpdatedAt = extractionRow?.latestExtractionUpdatedAt ?? null;
-  const oldestSectionUpdatedAt = sectionRow?.oldestSectionUpdatedAt ?? null;
+  const latestMetricComputedAt = toDate(metricRow?.latestMetricComputedAt);
+  const latestExtractionUpdatedAt = toDate(extractionRow?.latestExtractionUpdatedAt);
+  const oldestSectionUpdatedAt = toDate(sectionRow?.oldestSectionUpdatedAt);
   const latestInputUpdatedAt = maxDate(latestMetricComputedAt, latestExtractionUpdatedAt);
   return {
     latestMetricComputedAt,
@@ -42,6 +45,11 @@ export async function getReportFreshness(runId: string) {
         oldestSectionUpdatedAt.getTime() < latestInputUpdatedAt.getTime(),
     ),
   };
+}
+
+function toDate(value: string | Date | null | undefined): Date | null {
+  if (value == null) return null;
+  return value instanceof Date ? value : new Date(value);
 }
 
 function maxDate(...dates: Array<Date | null>): Date | null {

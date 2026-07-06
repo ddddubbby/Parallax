@@ -151,23 +151,25 @@ function personaLabel(personas: PanelPersona[], key: string) {
 }
 
 async function resonanceMetricsNeedRefresh(runId: string) {
+  // Raw sql`max(...)` fragments bypass drizzle's per-column decoder and come
+  // back as strings, not Dates (same reality D-074 hit in areMetricsStale) —
+  // type them string and wrap in new Date() before comparing.
   const [[metricRow], [extractionRow]] = await Promise.all([
     db
-      .select({ latestMetricComputedAt: sql<Date | null>`max(${metrics.computedAt})` })
+      .select({ latestMetricComputedAt: sql<string | null>`max(${metrics.computedAt})` })
       .from(metrics)
       .where(and(eq(metrics.runId, runId), eq(metrics.scopeType, "resonance_variant"))),
     db
-      .select({ latestExtractionUpdatedAt: sql<Date | null>`max(${extractions.updatedAt})` })
+      .select({ latestExtractionUpdatedAt: sql<string | null>`max(${extractions.updatedAt})` })
       .from(extractions)
       .innerJoin(responses, eq(responses.id, extractions.responseId))
       .where(eq(responses.runId, runId)),
   ]);
-  const latestMetricComputedAt = metricRow?.latestMetricComputedAt ?? null;
-  const latestExtractionUpdatedAt = extractionRow?.latestExtractionUpdatedAt ?? null;
-  return Boolean(
-    !latestMetricComputedAt ||
-      (latestExtractionUpdatedAt && latestMetricComputedAt.getTime() < latestExtractionUpdatedAt.getTime()),
-  );
+  const latestMetric = metricRow?.latestMetricComputedAt ? new Date(metricRow.latestMetricComputedAt).getTime() : null;
+  const latestExtraction = extractionRow?.latestExtractionUpdatedAt
+    ? new Date(extractionRow.latestExtractionUpdatedAt).getTime()
+    : null;
+  return Boolean(latestMetric === null || (latestExtraction !== null && latestMetric < latestExtraction));
 }
 
 function assertEvidenceResponseIdShape(ids: string[]) {
