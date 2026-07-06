@@ -14,7 +14,7 @@ import {
   listCompletedRuns,
   reviewClaim as reviewClaimRepo,
 } from "@/db/repositories/dashboard";
-import { listMetrics } from "@/db/repositories/metrics";
+import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import { getRunFailureCounts } from "@/db/repositories/runner";
 
 const CLAIM_VERDICTS = ["supported", "contradicted", "outdated", "unsupported", "ambiguous", "not_checked"] as const;
@@ -60,6 +60,13 @@ export async function reviewClaim(projectId: string, runId: string, claimId: str
 export async function fetchDashboardData(projectId: string, runId: string) {
   const run = await getDashboardRunForProject(projectId, runId);
   if (!run) return null;
+
+  // Self-heal stale metrics (C-5 idempotent): a completed run whose metrics
+  // were built mid-extraction otherwise reads a stale/empty dashboard until a
+  // report or the manual recompute button is triggered (D-044).
+  if (await areMetricsStale(runId)) {
+    await recomputeMetrics(runId);
+  }
 
   const [brandRows, metricRows, misinformation, citedSources, failureCounts, personasMarkets] = await Promise.all([
     getProjectBrandNames(run.projectId),

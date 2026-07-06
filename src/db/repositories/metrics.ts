@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   accuracyRate,
   attributeAssociationRate,
@@ -25,9 +25,11 @@ import {
   attributes as attributesTable,
   auditRuns,
   brands,
+  extractions,
   metrics,
   matrixVersions,
   promptCells,
+  responses,
   resonanceStimuli,
   resonanceStudies,
 } from "../schema";
@@ -89,6 +91,33 @@ function frameFilter<T extends { intent: Intent | null }>(
 }
 
 /** C-3: metrics are disposable — recompute deletes and rebuilds for the run. */
+/**
+ * Metrics are computed on demand (D-044: the worker deliberately does not
+ * recompute on completion, to stay decoupled from analysis). A run whose
+ * extractions landed after its metrics were last built therefore reads stale
+ * on the dashboard — e.g. metrics computed while only 2 of 40 unbranded
+ * responses had extracted, then never refreshed. This lets the analysis
+ * surface (dashboard) self-heal: recompute only when an extraction is newer
+ * than the newest metric row, or when there are extractions but no metrics.
+ */
+export async function areMetricsStale(runId: string): Promise<boolean> {
+  const [metricRow] = await db
+    .select({ latest: sql<string | null>`max(${metrics.computedAt})` })
+    .from(metrics)
+    .where(eq(metrics.runId, runId));
+  const [extractionRow] = await db
+    .select({ latest: sql<string | null>`max(${extractions.createdAt})` })
+    .from(extractions)
+    .innerJoin(responses, eq(responses.id, extractions.responseId))
+    .where(eq(responses.runId, runId));
+
+  const latestExtraction = extractionRow?.latest ? new Date(extractionRow.latest).getTime() : null;
+  if (latestExtraction === null) return false; // nothing extracted yet — nothing to compute
+  const latestMetric = metricRow?.latest ? new Date(metricRow.latest).getTime() : null;
+  if (latestMetric === null) return true; // extractions exist but no metrics were ever built
+  return latestExtraction > latestMetric;
+}
+
 export async function recomputeMetrics(runId: string) {
   const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
   if (!run) throw new Error(`run ${runId} not found`);

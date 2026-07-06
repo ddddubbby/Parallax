@@ -15,6 +15,7 @@ import {
   reviewClaim,
 } from "@/db/repositories/dashboard";
 import { getExportCitations } from "@/db/repositories/export";
+import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import {
   auditRuns,
   brands,
@@ -567,5 +568,16 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
     expect((await listCompletedRuns(run.projectId)).map((row) => row.id)).not.toContain(run.id);
     expect(await getResponsesForScope(run.id, {})).toEqual([]);
     expect(await getResponseDetail(run.id, created.responseIds.at(-1) ?? "")).toBeNull();
+  });
+
+  it("flags a completed run with extractions but no metrics as stale, and recompute clears it (D-044 dashboard self-heal)", async () => {
+    const { run } = await createCompletedAuditCitationResponse();
+    // The helper builds a completed run + valid extraction but never computes
+    // metrics — the exact state a fresh run sits in, which used to render an
+    // empty dashboard until a report/manual recompute fired.
+    expect(await areMetricsStale(run.id)).toBe(true);
+    await recomputeMetrics(run.id);
+    expect(await areMetricsStale(run.id)).toBe(false);
+    expect((await listMetrics(run.id)).length).toBeGreaterThan(0);
   });
 });
