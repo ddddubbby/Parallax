@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { isAuditIntent, type CellPlan } from "@/core/matrix";
 import { frameAspectsForTemplate, TEMPLATE_SEED, type FrameAspect } from "@/core/prompt-templates";
@@ -15,7 +15,16 @@ import {
   promptTemplates,
 } from "../schema";
 
-/** Everything the allocator needs, loaded from the completed intake. */
+/**
+ * Everything the allocator needs, loaded from the completed intake. M27
+ * (D-084): brands/personas/markets are filtered to ACTIVE (archived_at is
+ * null) — this is the "generation-input" side of the two-reads rule, since
+ * these lists decide what NEW cells the allocator/addCell/PM-9 scan produce.
+ * Label-resolution for EXISTING cells (which may reference an archived
+ * persona/market/brand) must use the separate archived-inclusive helpers
+ * below (getPersonaLabelsForProject/getMarketLabelsForProject), never this
+ * function's arrays.
+ */
 export async function getMatrixInputs(projectId: string) {
   const [project] = await db
     .select({
@@ -25,6 +34,7 @@ export async function getMatrixInputs(projectId: string) {
       category: projects.category,
       categoryArchetype: projects.categoryArchetype,
       jobToBeDone: projects.jobToBeDone,
+      setupUpdatedAt: projects.setupUpdatedAt,
     })
     .from(projects)
     .where(eq(projects.id, projectId));
@@ -32,16 +42,19 @@ export async function getMatrixInputs(projectId: string) {
 
   const [projectBrands, projectPersonas, projectMarkets, projectAttributes, templates] =
     await Promise.all([
-      db.select().from(brands).where(eq(brands.projectId, projectId)),
+      db
+        .select()
+        .from(brands)
+        .where(and(eq(brands.projectId, projectId), isNull(brands.archivedAt))),
       db
         .select({ id: personas.id, title: personas.title })
         .from(personas)
-        .where(eq(personas.projectId, projectId))
+        .where(and(eq(personas.projectId, projectId), isNull(personas.archivedAt)))
         .orderBy(asc(personas.priority)),
       db
         .select({ id: markets.id, name: markets.name })
         .from(markets)
-        .where(eq(markets.projectId, projectId))
+        .where(and(eq(markets.projectId, projectId), isNull(markets.archivedAt)))
         .orderBy(asc(markets.priority)),
       db
         .select({ name: attributes.name })
@@ -70,6 +83,29 @@ export async function getMatrixInputs(projectId: string) {
     .sort((a, b) => a.priority - b.priority);
 
   return { project, client, competitors, personas: projectPersonas, markets: projectMarkets, attributes: projectAttributes.map((a) => a.name), templates };
+}
+
+/**
+ * Archived-inclusive persona/market label lookups (M27, D-084): the
+ * label-resolution side of the two-reads rule. Used to resolve an EXISTING
+ * `prompt_cells.persona_id`/`market_id` (any historical version, approved or
+ * draft) into a display title/name even after the persona/market has since
+ * been archived in Setup — never used to decide what gets generated.
+ */
+export async function getPersonaLabelsForProject(projectId: string) {
+  return db
+    .select({ id: personas.id, title: personas.title, archivedAt: personas.archivedAt })
+    .from(personas)
+    .where(eq(personas.projectId, projectId))
+    .orderBy(asc(personas.priority));
+}
+
+export async function getMarketLabelsForProject(projectId: string) {
+  return db
+    .select({ id: markets.id, name: markets.name, archivedAt: markets.archivedAt })
+    .from(markets)
+    .where(eq(markets.projectId, projectId))
+    .orderBy(asc(markets.priority));
 }
 
 /**

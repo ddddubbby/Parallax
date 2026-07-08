@@ -85,6 +85,13 @@
       "when": 1783527054594,
       "tag": "0011_fix_prompt_cells_freeze_trigger_return_value",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783528405541,
+      "tag": "0012_setup_archive_columns",
+      "breakpoints": true
     }
   ]
 }

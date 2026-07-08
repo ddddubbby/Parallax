@@ -21,12 +21,24 @@ import {
   copyToNewDraft,
   createDraftVersion,
   deleteCell,
+  getMarketLabelsForProject,
   getMatrixInputs,
+  getPersonaLabelsForProject,
   getVersionWithCells,
   insertCell,
   replaceCell,
   updateCellText,
 } from "@/db/repositories/matrix";
+
+/**
+ * PM-9-adjacent guard (M27/D-084, pinned decision 6a): a comparison-intent
+ * cell's rendered text interpolates {competitor_list}; with zero active
+ * competitors that renders as an empty/broken fragment rather than throwing,
+ * so generation of comparison cells is blocked server-side with a clear
+ * error instead of silently producing malformed prompt text.
+ */
+const NO_ACTIVE_COMPETITORS_ERROR =
+  "At least one active competitor is required for comparison prompts — unarchive a competitor or add a new one in Setup";
 
 type ActionResult =
   | { ok: true; versionId?: string }
@@ -74,6 +86,8 @@ export async function generateMatrix(projectId: string): Promise<ActionResult> {
     return { ok: false, error: "No active prompt templates seeded" };
   const overlapError = aliasOverlapError([loaded.ctx.clientBrand, ...loaded.ctx.competitors]);
   if (overlapError) return { ok: false, error: overlapError };
+  if (loaded.ctx.competitors.length === 0)
+    return { ok: false, error: NO_ACTIVE_COMPETITORS_ERROR };
 
   const cells = allocateMatrix(
     loaded.templates as Parameters<typeof allocateMatrix>[0],
@@ -105,6 +119,8 @@ export async function addCell(
   if (!loaded || !existing) return { ok: false, error: "Not found" };
   if (existing.cells.length >= MAX_CELLS_PER_RUN)
     return { ok: false, error: `Cap reached: a run processes at most ${MAX_CELLS_PER_RUN} cells (C-1)` };
+  if (intent === "comparison" && loaded.ctx.competitors.length === 0)
+    return { ok: false, error: NO_ACTIVE_COMPETITORS_ERROR };
 
   const variants = loaded.templates
     .filter((t) => t.intent === intent)
@@ -179,6 +195,9 @@ export async function regenerateCell(
   const cell = existing?.cells.find((c) => c.id === cellId);
   if (!loaded || !existing || !cell) return { ok: false, error: "Not found" };
 
+  if (cell.intent === "comparison" && loaded.ctx.competitors.length === 0)
+    return { ok: false, error: NO_ACTIVE_COMPETITORS_ERROR };
+
   const variants = loaded.templates
     .filter((t) => t.intent === cell.intent)
     .sort((a, b) => a.variantKey.localeCompare(b.variantKey));
@@ -186,10 +205,20 @@ export async function regenerateCell(
   const currentIdx = variants.findIndex((v) => v.variantKey === cell.variantKey);
   const next = variants[(currentIdx + 1) % variants.length];
 
+  // M27/D-084 two-reads rule: this cell's OWN persona/market may since have
+  // been archived (excluded from loaded.personas/markets, the generation-
+  // input lists) — look it up through the archived-inclusive label source
+  // so regeneration re-renders for the persona/market the cell was actually
+  // built for, never silently substituting an unrelated fallback.
+  const [personaLabels, marketLabels] = await Promise.all([
+    getPersonaLabelsForProject(projectId),
+    getMarketLabelsForProject(projectId),
+  ]);
   const persona =
-    loaded.personas.find((p) => p.id === cell.personaId) ?? loaded.personas[0];
+    personaLabels.find((p) => p.id === cell.personaId) ?? loaded.personas[0];
   const market =
-    loaded.markets.find((m) => m.id === cell.marketId) ?? loaded.markets[0];
+    marketLabels.find((m) => m.id === cell.marketId) ?? loaded.markets[0];
+  if (!persona || !market) return { ok: false, error: "No persona/market available to render this cell" };
   const competitorOrder =
     cell.intent === "comparison"
       ? shuffle(loaded.ctx.competitors.map((c) => c.name), Math.random)

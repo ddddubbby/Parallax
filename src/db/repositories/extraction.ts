@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../client";
 import { attributes, auditRuns, brandMentions, brands, claimsFound, extractions, factClaims, responses } from "../schema";
 
@@ -14,11 +14,19 @@ export async function getProjectBrandsForRun(projectId: string) {
     .where(eq(brands.projectId, projectId));
 }
 
+/**
+ * M27/D-084: only ACTIVE fact claims are offered to the live extractor as
+ * match targets for NEW claims_found rows (generation-input side of the
+ * two-reads rule) — an archived fact-sheet row should stop being matched
+ * against going forward. Historical claims_found.fact_claim_id rows still
+ * resolve via getMisinformationRegister's unfiltered join (dashboard.ts),
+ * which must keep showing archived-fact-claim evidence from past runs.
+ */
 export async function getProjectFactClaims(projectId: string) {
   return db
     .select({ id: factClaims.id, type: factClaims.type, statement: factClaims.statement })
     .from(factClaims)
-    .where(eq(factClaims.projectId, projectId));
+    .where(and(eq(factClaims.projectId, projectId), eq(factClaims.status, "active")));
 }
 
 /** The project's desired-attribute list — given to the live extractor so it

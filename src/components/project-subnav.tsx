@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const SECTIONS = [
+  // M27/D-084: Setup is step zero of the pipeline — leads the subnav.
+  { label: "Setup", segment: "setup" },
   { label: "Matrix", segment: "matrix" },
   { label: "Runs", segment: "runs" },
   { label: "Dashboard", segment: "dashboard" },

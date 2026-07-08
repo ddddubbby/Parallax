@@ -21,8 +21,11 @@ export default async function NewProjectPage({
     if (!isUuid(id)) redirect("/projects/new");
     const project = await getProjectIntake(id);
     if (!project) redirect("/projects/new");
-    // Post-completion intake editing is out of MVP scope.
-    if (project.status !== "draft") redirect("/projects");
+    // M27/D-084: post-intake editing lives on the dedicated Setup page now
+    // (row-level, archive-not-delete) — the wizard's completion path
+    // (D-026) deletes-and-reinserts with new UUIDs, which would orphan
+    // prompt_cells.persona_id/market_id and brand_mentions.brand_id FKs.
+    if (project.status !== "draft") redirect(`/projects/${id}/setup`);
     projectId = project.id;
     intakeStep = project.intakeStep;
     draft = (project.intakeDraftJson as IntakeDraft) ?? {};

@@ -31,6 +31,10 @@ export const projects = pgTable("projects", {
   // Wizard working memory (D-026): step-keyed raw form values. Normalized
   // into the intake tables in one transaction when intake completes.
   intakeDraftJson: jsonb("intake_draft_json").notNull().default({}),
+  // M27 (D-084): touched by every post-intake Setup mutation. Null until the
+  // first Setup edit. Compared against a draft matrix version's createdAt to
+  // detect a stale draft (setup changed since this draft was generated).
+  setupUpdatedAt: timestamp("setup_updated_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -52,6 +56,10 @@ export const brands = pgTable(
     description: text("description"),
     aliasesJson: jsonb("aliases_json").notNull().default([]),
     priority: integer("priority").notNull().default(0),
+    // M27 (D-084): null = active. Archived (not deleted) so historical
+    // brand_mentions/claims_found/prompt_cells FKs never orphan (C-3).
+    // The client brand can never be archived (server-enforced).
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -115,6 +123,8 @@ export const personas = pgTable("personas", {
   painPointsJson: jsonb("pain_points_json").notNull().default([]),
   buyingCriteriaJson: jsonb("buying_criteria_json").notNull().default([]),
   priority: integer("priority").notNull().default(0),
+  // M27 (D-084): null = active; see brands.archivedAt for the rationale.
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -132,6 +142,8 @@ export const markets = pgTable(
       .references(() => projects.id),
     name: text("name").notNull(),
     priority: integer("priority").notNull().default(0),
+    // M27 (D-084): null = active; see brands.archivedAt for the rationale.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

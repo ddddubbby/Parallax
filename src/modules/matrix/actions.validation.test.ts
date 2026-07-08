@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   createDraftVersion: vi.fn(),
   deleteCell: vi.fn(),
   getMatrixInputs: vi.fn(),
+  getMarketLabelsForProject: vi.fn(),
+  getPersonaLabelsForProject: vi.fn(),
   getVersionWithCells: vi.fn(),
   insertCell: vi.fn(),
   replaceCell: vi.fn(),
@@ -19,6 +21,8 @@ vi.mock("@/db/repositories/matrix", () => ({
   createDraftVersion: mocks.createDraftVersion,
   deleteCell: mocks.deleteCell,
   getMatrixInputs: mocks.getMatrixInputs,
+  getMarketLabelsForProject: mocks.getMarketLabelsForProject,
+  getPersonaLabelsForProject: mocks.getPersonaLabelsForProject,
   getVersionWithCells: mocks.getVersionWithCells,
   insertCell: mocks.insertCell,
   replaceCell: mocks.replaceCell,
@@ -74,6 +78,12 @@ function matrixInputs() {
 describe("matrix action validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // M27/D-084: regenerateCell resolves this cell's persona/market through
+    // the archived-inclusive label lookups, not loaded.personas/markets —
+    // default to the same fixture rows so existing regenerate assertions
+    // keep resolving the same persona/market as before.
+    mocks.getPersonaLabelsForProject.mockResolvedValue([{ id: PERSONA_ID, title: "Controller", archivedAt: null }]);
+    mocks.getMarketLabelsForProject.mockResolvedValue([{ id: MARKET_ID, name: "United States", archivedAt: null }]);
   });
 
   it("rejects BC-3 brand alias overlap before creating a matrix draft", async () => {

@@ -57,12 +57,18 @@ export function MatrixBoard({
   versions,
   focus,
   packCoverage,
+  activeCompetitorCount,
+  staleDraft,
 }: {
   projectId: string;
   projectStatus: string;
   versions: VersionListItem[];
   focus: VersionView | null;
   packCoverage: PackCoverageResult[];
+  /** M27/D-084: active (non-archived) competitor count from Setup. */
+  activeCompetitorCount: number;
+  /** M27/D-084: the focused draft was generated before the last Setup edit. */
+  staleDraft: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -119,6 +125,30 @@ export function MatrixBoard({
         <p className="mb-4 rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">
           {error}
         </p>
+      )}
+
+      {/* M27/D-084 pinned decision 6a: comparison prompts need >=1 active
+          competitor; zero renders a broken {competitor_list} and is blocked
+          server-side, so warn here before the operator hits that error. */}
+      {activeCompetitorCount === 0 && (
+        <div className="mb-4 rounded-lg border border-warn px-3 py-2">
+          <span className="font-mono text-xs text-warn">
+            No active competitors — comparison prompts cannot be generated. Unarchive or add a
+            competitor in Setup.
+          </span>
+        </div>
+      )}
+
+      {/* M27/D-084 pinned decision 7: this draft predates the most recent
+          Setup edit. Approved versions are frozen evidence (C-4) and never
+          show this — only drafts, which can still be regenerated. */}
+      {isDraft && staleDraft && (
+        <div className="mb-4 rounded-lg border border-warn px-3 py-2">
+          <span className="font-mono text-xs text-warn">
+            Setup changed since this draft was generated — regenerate to reflect the current
+            competitors, personas, markets, and fact sheet.
+          </span>
+        </div>
       )}
 
       {/* PM-9 early warning: surfaced at render time, not first at approval. */}

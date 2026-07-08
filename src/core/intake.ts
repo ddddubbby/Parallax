@@ -22,8 +22,10 @@ export function isIntakeStepKey(value: string): value is IntakeStepKey {
   return INTAKE_STEP_KEYS.has(value);
 }
 
-const nonEmpty = z.string().trim().min(1, "Required");
-const optionalText = z
+// Exported (M27/D-084): the Setup module's core schemas reuse these exact
+// primitives rather than redefining equivalent-but-drifting regexes.
+export const nonEmpty = z.string().trim().min(1, "Required");
+export const optionalText = z
   .string()
   .trim()
   .transform((v) => (v === "" ? undefined : v))

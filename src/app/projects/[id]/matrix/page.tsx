@@ -6,7 +6,9 @@ import { isUuid } from "@/core/id";
 import { scanUnbrandedCells } from "@/core/matrix";
 import { frameAspectsForCell } from "@/core/prompt-templates";
 import {
+  getMarketLabelsForProject,
   getMatrixInputs,
+  getPersonaLabelsForProject,
   getVersionWithCells,
   listVersions,
 } from "@/db/repositories/matrix";
@@ -36,8 +38,26 @@ export default async function MatrixPage({
     null;
   const focus = focusId ? await getVersionWithCells(focusId, id) : null;
 
-  const personaLabels = Object.fromEntries(inputs.personas.map((p) => [p.id, p.title]));
-  const marketLabels = Object.fromEntries(inputs.markets.map((m) => [m.id, m.name]));
+  // M27/D-084 two-reads rule: label maps must resolve EVERY historical cell,
+  // including ones referencing a persona/market since archived in Setup — so
+  // these come from the archived-inclusive lookups, never inputs.personas/
+  // inputs.markets (which are generation-input, active-only).
+  const [personaLabelRows, marketLabelRows] = await Promise.all([
+    getPersonaLabelsForProject(id),
+    getMarketLabelsForProject(id),
+  ]);
+  const personaLabels = Object.fromEntries(personaLabelRows.map((p) => [p.id, p.title]));
+  const marketLabels = Object.fromEntries(marketLabelRows.map((m) => [m.id, m.name]));
+
+  // M27/D-084 pinned decision 7: warn on a draft generated before the most
+  // recent Setup edit — approved versions are frozen evidence (C-4) and
+  // never get this banner.
+  const staleDraft = Boolean(
+    focus &&
+      focus.version.state === "draft" &&
+      inputs.project.setupUpdatedAt &&
+      inputs.project.setupUpdatedAt > focus.version.createdAt,
+  );
 
   // PM-9 early warning: badge violating unbranded cells on drafts at render
   // time instead of first surfacing the problem at approval.
@@ -81,6 +101,8 @@ export default async function MatrixPage({
         projectStatus={inputs.project.status}
         versions={versions}
         packCoverage={packCoverage}
+        activeCompetitorCount={inputs.competitors.length}
+        staleDraft={staleDraft}
         focus={
           focus
             ? {
