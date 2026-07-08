@@ -16,6 +16,7 @@ import {
 } from "@/core/runner";
 import { getActiveCredential } from "@/db/repositories/credentials";
 import {
+  appendRunEvent,
   cancelRun as cancelRunRepo,
   createRun as createRunRepo,
   type DebugFailureInjection,
@@ -364,6 +365,17 @@ export async function pauseRun(projectId: string, runId: string): Promise<Action
   if (!run || run.projectId !== projectId) return { ok: false, error: "Run not found for project" };
   const updated = await pauseRunRepo(runId);
   if (updated === 0) return { ok: false, error: "Run is not pausable" };
+  // Every AUTOMATED pause path (breaker, budget, cell cap, config error)
+  // logs an explanatory run_event; a manual pause logged nothing, so a
+  // deliberately-paused run was indistinguishable from a silently-broken
+  // one on the run-progress page. Log intent, not a warning — this is a
+  // benign operator action.
+  await appendRunEvent({
+    runId,
+    level: "info",
+    eventType: "operator_paused",
+    message: "Run paused by operator.",
+  });
   revalidatePath(`/projects/${projectId}/runs/${runId}`);
   return { ok: true };
 }
@@ -410,6 +422,14 @@ export async function cancelRun(projectId: string, runId: string): Promise<Actio
   if (!run || run.projectId !== projectId) return { ok: false, error: "Run not found for project" };
   const updated = await cancelRunRepo(runId);
   if (updated === 0) return { ok: false, error: "Run is not cancellable" };
+  // Same rationale as pauseRun above — a manual cancel is a deliberate,
+  // benign operator action, not an error condition.
+  await appendRunEvent({
+    runId,
+    level: "info",
+    eventType: "operator_cancelled",
+    message: "Run cancelled by operator.",
+  });
   revalidatePath(`/projects/${projectId}/runs/${runId}`);
   return { ok: true };
 }

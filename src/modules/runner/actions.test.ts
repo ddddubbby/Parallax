@@ -826,5 +826,66 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
 
     const [runAfter] = await db.select().from(auditRuns).where(eq(auditRuns.id, created.runId));
     expect(runAfter.state).toBe("completed");
+
+    // No-op pause/resume/cancel (run already terminal) must log NOTHING —
+    // a phantom operator_paused/operator_cancelled event on an action that
+    // didn't actually change state would misrepresent what happened.
+    const events = await db.select().from(runEvents).where(eq(runEvents.runId, created.runId));
+    expect(events.some((e) => e.eventType === "operator_paused")).toBe(false);
+    expect(events.some((e) => e.eventType === "operator_cancelled")).toBe(false);
+  });
+
+  it("logs an operator_paused run_event when a manual pause actually changes state (not just returns ok)", async () => {
+    const { createRun, pauseRun } = await import("./actions");
+    const projectId = await ensureProject();
+    await ensureApprovedVersion(projectId);
+
+    const created = await createRun(projectId, {
+      runMode: "mock",
+      providers: ["mock"],
+      modes: ["ungrounded"],
+      repetitions: 1,
+      costCapUsd: 25,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok || !created.runId) throw new Error("expected run id");
+    createdRunIds.push(created.runId);
+
+    const pause = await pauseRun(projectId, created.runId);
+    expect(pause.ok).toBe(true);
+
+    const events = await db.select().from(runEvents).where(eq(runEvents.runId, created.runId));
+    const pausedEvents = events.filter((e) => e.eventType === "operator_paused");
+    expect(pausedEvents).toHaveLength(1);
+    expect(pausedEvents[0].level).toBe("info");
+    expect(pausedEvents[0].message).toContain("paused by operator");
+    expect(pausedEvents[0].runId).toBe(created.runId);
+  });
+
+  it("logs an operator_cancelled run_event when a manual cancel actually changes state (not just returns ok)", async () => {
+    const { createRun, cancelRun } = await import("./actions");
+    const projectId = await ensureProject();
+    await ensureApprovedVersion(projectId);
+
+    const created = await createRun(projectId, {
+      runMode: "mock",
+      providers: ["mock"],
+      modes: ["ungrounded"],
+      repetitions: 1,
+      costCapUsd: 25,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok || !created.runId) throw new Error("expected run id");
+    createdRunIds.push(created.runId);
+
+    const cancel = await cancelRun(projectId, created.runId);
+    expect(cancel.ok).toBe(true);
+
+    const events = await db.select().from(runEvents).where(eq(runEvents.runId, created.runId));
+    const cancelledEvents = events.filter((e) => e.eventType === "operator_cancelled");
+    expect(cancelledEvents).toHaveLength(1);
+    expect(cancelledEvents[0].level).toBe("info");
+    expect(cancelledEvents[0].message).toContain("cancelled by operator");
+    expect(cancelledEvents[0].runId).toBe(created.runId);
   });
 });

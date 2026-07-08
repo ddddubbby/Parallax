@@ -43,6 +43,36 @@ export function isReportableRunState(state: string): boolean {
   return state === "completed";
 }
 
+/** The subset of a run_event the pause-reason banner needs to inspect. */
+export interface PauseReasonEvent {
+  eventType: string;
+  message: string;
+}
+
+/**
+ * A bare "paused" stamp with no reason is indistinguishable from a silently
+ * broken run. Priority order: (a) an automated breaker/cap/config event is
+ * the most specific and actionable — its own message wins unchanged. (b) an
+ * operator_paused event means this was a deliberate manual pause. (c) a
+ * paused run with no explanatory event at all (historical data predating
+ * this logging, or any future gap) still gets a neutral fallback rather than
+ * silence. Returns null when the run isn't paused at all.
+ */
+export function resolvePauseReason(runState: string, events: readonly PauseReasonEvent[]): string | null {
+  if (runState !== "paused") return null;
+  const automated = events.find(
+    (e) =>
+      e.eventType === "circuit_breaker_paused" ||
+      e.eventType === "cell_cap_violation" ||
+      e.eventType === "worker_config_error",
+  );
+  if (automated) return automated.message;
+  if (events.some((e) => e.eventType === "operator_paused")) {
+    return "Paused by operator. Click Resume to continue.";
+  }
+  return "Paused — no reason on record. Click Resume to continue, or Cancel if this run is no longer needed.";
+}
+
 /**
  * C-9 in both directions: a mock run must use only the mock provider
  * (anything else is real spend hidden under a MOCK badge), and a live run

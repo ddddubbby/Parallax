@@ -10,6 +10,7 @@ import {
   findUnsupportedEngineModePairs,
   isPartial,
   isProviderAllowedForRunMode,
+  resolvePauseReason,
   shouldTripBreaker,
 } from "./runner";
 
@@ -125,5 +126,42 @@ describe("isProviderAllowedForRunMode (C-9, both directions)", () => {
     expect(isProviderAllowedForRunMode("live_validation", "mock")).toBe(false);
     expect(isProviderAllowedForRunMode("live_audit", "deepseek")).toBe(true);
     expect(isProviderAllowedForRunMode("live_audit", "mock")).toBe(false);
+  });
+});
+
+describe("resolvePauseReason (manual-pause observability)", () => {
+  it("returns null when the run isn't paused, regardless of events", () => {
+    expect(resolvePauseReason("running", [{ eventType: "operator_paused", message: "x" }])).toBeNull();
+    expect(resolvePauseReason("completed", [])).toBeNull();
+  });
+
+  it("prefers an automated breaker/cap/config event's own message over operator_paused", () => {
+    const events = [
+      { eventType: "operator_paused", message: "Run paused by operator." },
+      { eventType: "circuit_breaker_paused", message: "Run paused by circuit breaker (cost_cap): ..." },
+    ];
+    expect(resolvePauseReason("paused", events)).toBe("Run paused by circuit breaker (cost_cap): ...");
+  });
+
+  it("recognizes all three automated event types as the most specific reason", () => {
+    expect(resolvePauseReason("paused", [{ eventType: "cell_cap_violation", message: "cap msg" }])).toBe("cap msg");
+    expect(resolvePauseReason("paused", [{ eventType: "worker_config_error", message: "config msg" }])).toBe(
+      "config msg",
+    );
+  });
+
+  it("falls back to an operator-pause message when only operator_paused exists", () => {
+    expect(resolvePauseReason("paused", [{ eventType: "operator_paused", message: "Run paused by operator." }])).toBe(
+      "Paused by operator. Click Resume to continue.",
+    );
+  });
+
+  it("falls back to a neutral message when a paused run has no explanatory event at all — the reported bug's exact shape", () => {
+    expect(resolvePauseReason("paused", [])).toBe(
+      "Paused — no reason on record. Click Resume to continue, or Cancel if this run is no longer needed.",
+    );
+    expect(resolvePauseReason("paused", [{ eventType: "worker_heartbeat", message: "beat" }])).toBe(
+      "Paused — no reason on record. Click Resume to continue, or Cancel if this run is no longer needed.",
+    );
   });
 });

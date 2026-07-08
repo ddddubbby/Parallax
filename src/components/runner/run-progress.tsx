@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Stamp } from "@/components/ui";
+import { resolvePauseReason } from "@/core/runner";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
 
@@ -89,13 +90,10 @@ export function RunProgress({
   const pct = total > 0 ? Math.round((finished / total) * 100) : 0;
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
   const isResonance = detail.run.matrixKind === "resonance";
-  // A bare "paused" stamp with no reason is an anxiety generator — the
-  // breaker's own event message says exactly why (cost cap, failure rate,
-  // daily budget) and the C-1 worker cap backstop has its own event. Surface it.
-  const pauseReason =
-    detail.run.state === "paused"
-      ? detail.events.find((e) => e.eventType === "circuit_breaker_paused" || e.eventType === "cell_cap_violation")?.message ?? null
-      : null;
+  // A bare "paused" stamp with no reason is an anxiety generator; the
+  // priority logic (automated event > operator_paused > neutral fallback)
+  // lives in core/runner.ts so it's covered by a pure unit test.
+  const pauseReason = resolvePauseReason(detail.run.state, detail.events);
 
   return (
     <div>
