@@ -17,5 +17,9 @@ export default defineConfig({
     // isolation doesn't protect against this; running files sequentially
     // does, at a small, acceptable cost given the ~4s suite runtime.
     fileParallelism: false,
+    // M22 Part A (D-073 test-isolation hazard): every `pnpm test` run gets
+    // its own ephemeral, migrated, seeded embedded-Postgres instance on
+    // :5433 — never the dev DB on :5432. See scripts/vitest-global-setup.ts.
+    globalSetup: ["./scripts/vitest-global-setup.ts"],
   },
 });

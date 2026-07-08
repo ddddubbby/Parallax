@@ -1,0 +1,142 @@
+// M22 Part A: ephemeral embedded-Postgres test database. Boots a throwaway
+// Postgres cluster on a distinct port (:5433, never the dev DB's :5432),
+// migrates it, seeds it (idempotent D-016 fixtures), and hands back a
+// connection string. Used two ways:
+//
+//   1. Programmatically by `scripts/vitest-global-setup.ts` — every
+//      `pnpm test` run gets its own fresh instance, torn down after.
+//   2. Standalone via `pnpm test:db` — boots the same instance in the
+//      foreground (mirrors `pnpm db:dev`'s UX) for manual poking with
+//      `DATABASE_URL=postgres://postgres:postgres@localhost:5433/parallax_test
+//      pnpm db:studio` or similar. Ctrl+C tears it down (data is NOT
+//      persisted between runs — `persistent: false` deletes the data dir
+//      on stop, unlike the dev DB).
+//
+// Total isolation is the point (D-073's hazard): this DB is never the same
+// process/port/data-dir as the dev DB scripts/dev-db.ts serves, so a test
+// run can never claim/insert/delete against real operator data.
+import { execFileSync } from "node:child_process";
+import { existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import EmbeddedPostgres from "embedded-postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+import { ensureDylibSymlinks } from "./lib/pg-dylib-fix";
+
+const TEST_DB_PORT = 5433;
+const TEST_DB_NAME = "parallax_test";
+const MIGRATIONS_FOLDER = fileURLToPath(new URL("../src/db/migrations", import.meta.url));
+const SEED_SCRIPT = fileURLToPath(new URL("./seed.ts", import.meta.url));
+const TSX_BIN = fileURLToPath(new URL("../node_modules/.bin/tsx", import.meta.url));
+
+export interface TestDbHandle {
+  connectionString: string;
+  stop: () => Promise<void>;
+}
+
+// A connection string that can never resolve — used when the ephemeral PG
+// itself fails to start (bad platform binary, sandboxed environment, etc.)
+// so that dbUp checks in test files fail closed instead of silently
+// falling through to src/db/client.ts's dev-DB fallback on :5432.
+const UNREACHABLE_CONNECTION_STRING = "postgres://postgres:postgres@127.0.0.1:1/parallax_test_unavailable";
+
+/**
+ * Boots a fresh, migrated, seeded, ephemeral Postgres instance. Never
+ * throws — on any failure it logs a warning and returns a handle whose
+ * connectionString is guaranteed unreachable, so DB-backed tests degrade to
+ * `describe.skipIf(!dbUp)` exactly as they do with no Postgres installed at
+ * all (Part A requirement (c)).
+ */
+export async function startEphemeralTestDb(): Promise<TestDbHandle> {
+  const databaseDir = join(tmpdir(), `parallax-test-pg-${process.pid}-${Date.now()}`);
+  const pg = new EmbeddedPostgres({
+    databaseDir,
+    user: "postgres",
+    password: "postgres",
+    port: TEST_DB_PORT,
+    persistent: false,
+  });
+
+  const cleanupDir = () => {
+    if (existsSync(databaseDir)) rmSync(databaseDir, { recursive: true, force: true });
+  };
+
+  try {
+    ensureDylibSymlinks();
+    await pg.initialise();
+    await pg.start();
+    await pg.createDatabase(TEST_DB_NAME);
+
+    const connectionString = `postgres://postgres:postgres@localhost:${TEST_DB_PORT}/${TEST_DB_NAME}`;
+
+    // Migrate via a throwaway pool/drizzle instance — deliberately NOT
+    // src/db/client's singleton, so this script never depends on import
+    // order or leaves a pool open past this function.
+    const migPool = new Pool({ connectionString });
+    try {
+      await migrate(drizzle(migPool), { migrationsFolder: MIGRATIONS_FOLDER });
+    } finally {
+      await migPool.end();
+    }
+
+    // Seed as a child process (not an in-process import) so this script
+    // never shares a module cache / pool with scripts/seed.ts's own
+    // `src/db/client` import — the child only ever sees the test DB via
+    // its own DATABASE_URL env override.
+    execFileSync(TSX_BIN, [SEED_SCRIPT], {
+      env: { ...process.env, DATABASE_URL: connectionString },
+      stdio: "inherit",
+    });
+
+    return {
+      connectionString,
+      stop: async () => {
+        await pg.stop().catch(() => {});
+        cleanupDir();
+      },
+    };
+  } catch (err) {
+    console.warn(
+      "[test-db] ephemeral Postgres failed to start — DB-backed tests will self-skip (describe.skipIf(!dbUp)):",
+      err,
+    );
+    await pg.stop().catch(() => {});
+    cleanupDir();
+    return {
+      connectionString: UNREACHABLE_CONNECTION_STRING,
+      stop: async () => {},
+    };
+  }
+}
+
+// Standalone foreground mode: `pnpm test:db`.
+async function main() {
+  const handle = await startEphemeralTestDb();
+  if (handle.connectionString === UNREACHABLE_CONNECTION_STRING) {
+    console.error("[test-db] failed to start — see warning above");
+    process.exit(1);
+  }
+  console.log(`[test-db] postgres running on :${TEST_DB_PORT} (db: ${TEST_DB_NAME}), migrated + seeded.`);
+  console.log(`[test-db] DATABASE_URL=${handle.connectionString}`);
+  console.log("[test-db] Ctrl+C to stop (ephemeral — data is discarded, unlike pnpm db:dev).");
+
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, async () => {
+      console.log(`[test-db] ${signal} received, stopping postgres`);
+      await handle.stop();
+      process.exit(0);
+    });
+  }
+}
+
+// Only run standalone when invoked directly (`tsx scripts/test-db.ts`), not
+// when imported by the vitest global setup.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((err) => {
+    console.error("[test-db] failed:", err);
+    process.exit(1);
+  });
+}

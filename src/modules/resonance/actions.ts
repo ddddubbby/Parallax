@@ -73,10 +73,13 @@ export async function updateStudyAction(
     const name = textField(formData, "name");
     if (!name) return { ok: false, error: "Study name is required" };
     const panelPersonas = parsePanelPersonaLines(textField(formData, "panelPersonas"));
+    // M22 (D-078): genericUnconditioned is no longer settable through this
+    // RPC endpoint — evidence-only is a hard rule with no toggle escape
+    // (server actions are RPC endpoints; a UI-removed control is not a
+    // guard on its own, D-071's C-4 lesson).
     const updated = await updateResonanceStudy(projectId, studyId, {
       name,
       panelPersonas,
-      genericUnconditioned: formData.get("genericUnconditioned") === "on",
     });
     if (updated === 0) return { ok: false, error: "Draft study not found" };
   } catch (err) {

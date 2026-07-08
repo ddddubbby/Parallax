@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button, Field, Input, Select, Stamp, Textarea } from "@/components/ui";
+import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import {
   addStimulusAction,
@@ -68,7 +68,7 @@ export function StudyWizard({
   evidenceOptions,
 }: {
   projectId: string;
-  study: { id: string; name: string; genericUnconditioned: boolean };
+  study: { id: string; name: string };
   initialPersonas: PersonaRow[];
   stimuli: StimulusRow[];
   evidenceOptions: Array<{ id: string; excerpt: string }>;
@@ -79,17 +79,17 @@ export function StudyWizard({
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState(study.name);
-  const [generic, setGeneric] = useState(study.genericUnconditioned);
   const [personas, setPersonas] = useState<PersonaRow[]>(
     initialPersonas.length > 0 ? initialPersonas : [{ ...EMPTY_PERSONA }],
   );
 
-  // Persist name + panel + generic together (updateStudyAction sets all three).
+  // Persist name + panel together (updateStudyAction sets both). M22
+  // (D-078): no genericUnconditioned field — evidence-only is a hard rule,
+  // there is no toggle to escape it with.
   async function saveStudy(): Promise<boolean> {
     const fd = new FormData();
     fd.set("name", name.trim());
     fd.set("panelPersonas", personasToLines(personas));
-    if (generic) fd.set("genericUnconditioned", "on");
     const res = await updateStudyAction(projectId, study.id, fd);
     if (!res.ok) {
       setError(res.error);
@@ -166,9 +166,19 @@ export function StudyWizard({
   if (name.trim().length === 0) readiness.push("This study needs a name (step 1).");
   if (!personas.some(personaComplete)) readiness.push("Add at least one buyer type (step 2).");
   if (stimuli.length < 2) readiness.push("Add at least two framings to compare (step 3).");
+  // C-13 hard rule (M22/D-078): every study needs a Measured AI framing
+  // with real evidence attached before it can be approved — no exceptions.
+  const hasEvidencedMeasuredAi = stimuli.some(
+    (s) => s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length > 0,
+  );
+  if (!hasEvidencedMeasuredAi) {
+    readiness.push(
+      "Attach a Measured AI framing with at least one real audit response as evidence before approval (step 3, C-13).",
+    );
+  }
   for (const s of stimuli) {
-    if (s.kind === "measured_ai" && !generic && (s.evidenceResponseIdsJson ?? []).length === 0) {
-      readiness.push(`"${s.label}" is a Measured AI framing but has no evidence attached (step 3), or turn on the generic option.`);
+    if (s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length === 0) {
+      readiness.push(`"${s.label}" is a Measured AI framing but has no evidence attached (step 3).`);
     }
   }
 
@@ -275,32 +285,16 @@ export function StudyWizard({
         <div>
           <p className="mb-3 max-w-2xl text-sm leading-6 text-ink/70">
             Add at least <strong>two framings</strong> to compare — for example, what AI says about you today vs. a
-            corrected or repositioned version. The panel reacts to each.
+            corrected or repositioned version. The panel reacts to each. At least one framing must be a{" "}
+            <strong>Measured AI framing</strong> citing real audit evidence — that is the study&rsquo;s baseline
+            (C-13).
           </p>
-          <label className="mb-4 flex items-start gap-2 rounded-lg border border-ink/10 p-3 text-sm text-ink/70">
-            <input
-              type="checkbox"
-              checked={generic}
-              className="mt-1"
-              onChange={(e) => {
-                setGeneric(e.target.checked);
-                startTransition(async () => {
-                  await saveStudy();
-                });
-              }}
-            />
-            <span>
-              <strong>Generic study</strong> — these framings are made up, not quotes of real AI responses. Skips the
-              evidence requirement, and the study is labelled GENERIC on every output.
-            </span>
-          </label>
 
           <div className="flex flex-col gap-4">
             {stimuli.map((s) => (
               <FramingCard
                 key={s.id}
                 stimulus={s}
-                generic={generic}
                 evidenceOptions={evidenceOptions}
                 pending={pending}
                 onSave={(patch, evidenceIds) => saveFraming(s, patch, evidenceIds)}
@@ -323,9 +317,7 @@ export function StudyWizard({
           <ul className="mb-4 flex flex-col gap-2 font-mono text-sm">
             <li>Study: {name || "—"}</li>
             <li>Buyer types: {personas.filter(personaComplete).length}</li>
-            <li>
-              Framings: {stimuli.length} {generic && <Stamp tone="warn">GENERIC</Stamp>}
-            </li>
+            <li>Framings: {stimuli.length}</li>
           </ul>
           {readiness.length > 0 ? (
             <div className="rounded-lg border border-warn p-3">
@@ -366,14 +358,12 @@ export function StudyWizard({
 
 function FramingCard({
   stimulus,
-  generic,
   evidenceOptions,
   pending,
   onSave,
   onDelete,
 }: {
   stimulus: StimulusRow;
-  generic: boolean;
   evidenceOptions: Array<{ id: string; excerpt: string }>;
   pending: boolean;
   onSave: (patch: Partial<StimulusRow>, evidenceIds: string[]) => void;
@@ -384,7 +374,7 @@ function FramingCard({
   const [body, setBody] = useState(stimulus.body);
   const [evidence, setEvidence] = useState<Set<string>>(new Set(stimulus.evidenceResponseIdsJson ?? []));
 
-  const needsEvidence = kind === "measured_ai" && !generic && evidence.size === 0;
+  const needsEvidence = kind === "measured_ai" && evidence.size === 0;
 
   return (
     <div className="rounded-lg border border-ink/10 p-4">
@@ -408,11 +398,11 @@ function FramingCard({
 
       {needsEvidence && (
         <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
-          A Measured AI framing needs at least one real response attached below (or turn on the generic option).
+          A Measured AI framing needs at least one real response attached below (C-13).
         </p>
       )}
 
-      {kind === "measured_ai" && !generic && evidenceOptions.length > 0 && (
+      {kind === "measured_ai" && evidenceOptions.length > 0 && (
         <div className="mt-3">
           <span className="label-mono text-xs text-ink/60">Evidence — the real AI responses this framing quotes</span>
           <div className="mt-2 grid gap-2">

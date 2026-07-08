@@ -670,13 +670,20 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
     }
     validateResonanceCellCount(personas.length, stimuli.length);
 
+    // M22 (D-078): C-13 is now a hard rule — every study needs a measured_ai
+    // stimulus citing real evidence, with no genericUnconditioned escape.
+    // The flag is intentionally NOT consulted here anymore; it stays on the
+    // row (and in this query, above) purely so existing GENERIC studies
+    // keep rendering a truthful historical label on reports/exports/the
+    // results page (resonanceExportLabel, report-templates.ts) — it can no
+    // longer affect whether a study is APPROVABLE.
     const measured = stimuli.filter((s) => s.kind === "measured_ai");
-    if (!study.genericUnconditioned && measured.length === 0) {
-      throw new Error("Evidence-conditioned studies need a measured_ai stimulus, or enable GENERIC unconditioned mode (C-13)");
+    if (measured.length === 0) {
+      throw new Error("Evidence-conditioned studies need a measured_ai stimulus citing stored audit evidence (C-13)");
     }
     for (const stimulus of measured) {
       const evidenceIds = readEvidenceResponseIds(stimulus.evidenceResponseIdsJson);
-      if (!study.genericUnconditioned && evidenceIds.length === 0) {
+      if (evidenceIds.length === 0) {
         throw new Error("measured_ai stimuli must cite at least one stored audit response (C-13)");
       }
       await assertEvidenceIds(projectId, evidenceIds);

@@ -7,13 +7,29 @@ import { computeFindings, editSection, generateReport, regenerateOneSection } fr
 
 // M7 acceptance (DEVELOPMENT_GUIDELINES.md F manual checklist row):
 // "Report: edit section A, regenerate section B, A intact." Automated
-// against the real M4 e2e run's data; self-skips without Postgres.
+// against the real M4 e2e run's data (created by `pnpm test:mock-e2e`, not
+// part of the M22 ephemeral test-DB's migrate+seed) — self-skips without
+// Postgres OR without that fixture, same !dbUp/!fixture idiom as
+// src/modules/matrix/actions.test.ts's !demoProjectId guard (M22: was a
+// hard expect().toBeDefined() failure / bare run.id crash before the test
+// DB was ephemeral-per-run; now a graceful skip).
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 let dbUp = false;
+let m4e2eRunId: string | null = null;
 try {
   await pool.query("select 1");
   dbUp = true;
+  const [project] = await db.select().from(projects).where(eq(projects.slug, "m4-e2e"));
+  if (project) {
+    const [run] = await db
+      .select({ id: auditRuns.id })
+      .from(auditRuns)
+      .where(eq(auditRuns.projectId, project.id))
+      .orderBy(desc(auditRuns.createdAt))
+      .limit(1);
+    m4e2eRunId = run?.id ?? null;
+  }
 } catch {
   dbUp = false;
 }
@@ -30,17 +46,9 @@ describe("report section key validation", () => {
   });
 });
 
-describe.skipIf(!dbUp)("report generation against the dev database", () => {
+describe.skipIf(!dbUp || !m4e2eRunId)("report generation against the dev database", () => {
   it("computes findings with real evidence from the M4 e2e run", async () => {
-    const [project] = await db.select().from(projects).where(eq(projects.slug, "m4-e2e"));
-    expect(project, "m4-e2e project must exist — run pnpm test:mock-e2e first").toBeDefined();
-    const [run] = await db
-      .select()
-      .from(auditRuns)
-      .where(eq(auditRuns.projectId, project.id))
-      .orderBy(desc(auditRuns.createdAt))
-      .limit(1);
-    expect(run).toBeDefined();
+    const run = { id: m4e2eRunId as string };
 
     const count = await computeFindings(run.id);
     // The M4 run's golden-dataset-derived data includes wrong-pricing/
@@ -50,13 +58,7 @@ describe.skipIf(!dbUp)("report generation against the dev database", () => {
   }, 30_000);
 
   it("edit section A, regenerate section B: A is untouched (RB-2, RB-3)", async () => {
-    const [project] = await db.select().from(projects).where(eq(projects.slug, "m4-e2e"));
-    const [run] = await db
-      .select()
-      .from(auditRuns)
-      .where(eq(auditRuns.projectId, project.id))
-      .orderBy(desc(auditRuns.createdAt))
-      .limit(1);
+    const run = { id: m4e2eRunId as string };
 
     await computeFindings(run.id);
     const genResult = await generateReport(run.id);

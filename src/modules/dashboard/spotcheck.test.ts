@@ -9,19 +9,26 @@ import { auditRuns, brands, projects } from "@/db/schema";
 // rather than manual — independently derives Mention Rate, Recommendation
 // Rate, and Citation Share via hand-written SQL against the raw tables and
 // asserts they match the persisted `metrics` rows exactly. Runs against
-// the M4 e2e project's real 500-response run; self-skips without Postgres.
+// the M4 e2e project's real 500-response run (created by `pnpm
+// test:mock-e2e`, not part of the M22 ephemeral test-DB's migrate+seed) —
+// self-skips without Postgres OR without that fixture, same
+// !dbUp/!fixture idiom as src/modules/matrix/actions.test.ts's
+// !demoProjectId guard (M22: was a hard expect().toBeDefined() failure
+// before the test DB was ephemeral-per-run; now a graceful skip).
 let dbUp = false;
+let m4e2eProjectId: string | null = null;
 try {
   await pool.query("select 1");
   dbUp = true;
+  const [project] = await db.select().from(projects).where(eq(projects.slug, "m4-e2e"));
+  m4e2eProjectId = project?.id ?? null;
 } catch {
   dbUp = false;
 }
 
-describe.skipIf(!dbUp)("dashboard figures match independent SQL spot-checks", () => {
+describe.skipIf(!dbUp || !m4e2eProjectId)("dashboard figures match independent SQL spot-checks", () => {
   it("Mention Rate, Recommendation Rate, and Citation Share match hand-written SQL", async () => {
-    const [project] = await db.select().from(projects).where(eq(projects.slug, "m4-e2e"));
-    expect(project, "m4-e2e project must exist — run pnpm test:mock-e2e first").toBeDefined();
+    const project = { id: m4e2eProjectId as string };
 
     const [clientBrand] = await db
       .select({ id: brands.id })

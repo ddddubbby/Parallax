@@ -119,6 +119,11 @@ async function createCompletedResonanceResponse() {
         },
       ],
       anchorSetVersion: "purchase_intent.v1",
+      // M22 (D-078): a direct raw insert (bypasses approveAndCompileResonanceStudy
+      // entirely), not a test of the C-13 approval gate — genericUnconditioned
+      // here is just a convenient way to skip attaching real evidence for a
+      // fixture whose only purpose is exercising the C-12 audit/resonance read
+      // wall below. Unaffected by the approval guard becoming unconditional.
       genericUnconditioned: true,
       approvedAt: new Date(),
     })

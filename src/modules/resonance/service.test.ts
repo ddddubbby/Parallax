@@ -78,6 +78,82 @@ async function demoProjectId() {
   return project.id;
 }
 
+// M22 (D-078): the C-13 approval guard is now unconditional — a study can
+// only compile with a real measured_ai stimulus citing a stored response
+// from a COMPLETED audit run in the same project; genericUnconditioned no
+// longer bypasses this. Tests below that previously used the
+// genericUnconditioned escape hatch purely to reach an approved study (for
+// unrelated freeze/run/scoring assertions) now attach real evidence via
+// this fixture instead. Mirrors the "incomplete audit runs (C-13)" test
+// above, but with state: "completed" so assertEvidenceIds accepts it.
+async function createCompletedEvidenceResponseId(projectId: string): Promise<string> {
+  const [{ latest }] = await db
+    .select({ latest: max(matrixVersions.version) })
+    .from(matrixVersions)
+    .where(eq(matrixVersions.projectId, projectId));
+  const [version] = await db
+    .insert(matrixVersions)
+    .values({
+      projectId,
+      version: (latest ?? 0) + 1,
+      state: "approved",
+      kind: "audit",
+      cellCount: 1,
+      approvedAt: new Date(),
+    })
+    .returning({ id: matrixVersions.id });
+  createdVersionIds.push(version.id);
+  const [cell] = await db
+    .insert(promptCells)
+    .values({
+      matrixVersionId: version.id,
+      intent: "discovery",
+      variantKey: "m22-evidence-fixture",
+      resolvedText: "What AI tools are recommended for finance operations?",
+      competitorOrderJson: [],
+    })
+    .returning({ id: promptCells.id });
+  const [run] = await db
+    .insert(auditRuns)
+    .values({
+      projectId,
+      matrixVersionId: version.id,
+      runMode: "mock",
+      state: "completed",
+      repetitions: 1,
+      selectedProvidersJson: ["mock"],
+      selectedModesJson: ["ungrounded"],
+      plannedCalls: 1,
+      costCapUsd: "1",
+    })
+    .returning({ id: auditRuns.id });
+  createdRunIds.push(run.id);
+  const [job] = await db
+    .insert(jobs)
+    .values({
+      runId: run.id,
+      cellId: cell.id,
+      providerId: "mock",
+      generationMode: "ungrounded",
+      repIndex: 0,
+      state: "succeeded",
+    })
+    .returning({ id: jobs.id });
+  const [response] = await db
+    .insert(responses)
+    .values({
+      jobId: job.id,
+      runId: run.id,
+      cellId: cell.id,
+      providerId: "mock",
+      generationMode: "ungrounded",
+      modelVersion: "mock-completed-evidence",
+      rawText: "Completed audit evidence for M22 evidence-only fixtures.",
+    })
+    .returning({ id: responses.id });
+  return response.id;
+}
+
 describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
   it("rejects unresolved template placeholders before compiling a study (VA-2)", async () => {
     const projectId = await demoProjectId();
@@ -276,12 +352,17 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
 
   it("freezes stimuli once a study is approved (C-4)", async () => {
     const projectId = await demoProjectId();
+    const evidenceResponseId = await createCompletedEvidenceResponseId(projectId);
     const study = await createResonanceStudy(projectId, "M20 C4 Freeze");
     createdStudyIds.push(study.id);
-    await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
-    const [{ id: stimulusId }] = [
-      await addResonanceStimulus({ projectId, studyId: study.id, kind: "custom", label: "A", body: "First variant.", evidenceResponseIds: [] }),
-    ];
+    const { id: stimulusId } = await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "measured_ai",
+      label: "A",
+      body: "First variant.",
+      evidenceResponseIds: [evidenceResponseId],
+    });
     await addResonanceStimulus({ projectId, studyId: study.id, kind: "custom", label: "B", body: "Second variant.", evidenceResponseIds: [] });
 
     const version = await approveAndCompileResonanceStudy(projectId, study.id);
@@ -337,11 +418,11 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     if (!result.ok) expect(result.error).toContain("not found");
   });
 
-  it("blocks unconditioned measured_ai by default, then compiles GENERIC studies into simulation cells", async () => {
+  it("blocks unconditioned measured_ai unconditionally (M22: no genericUnconditioned escape), then compiles once real evidence is attached", async () => {
     const projectId = await demoProjectId();
     const study = await createResonanceStudy(projectId, "M17 Compiler E2E");
     createdStudyIds.push(study.id);
-    await addResonanceStimulus({
+    const measuredStimulus = await addResonanceStimulus({
       projectId,
       studyId: study.id,
       kind: "measured_ai",
@@ -360,7 +441,25 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
 
     await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/C-13/);
 
+    // M22 (D-078): genericUnconditioned is dormant for approval — setting it
+    // (e.g. a stray/legacy row, or a direct repository call bypassing the
+    // now-toggle-less wizard) must NOT let an unevidenced study through.
     await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
+    await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/C-13/);
+
+    // The only way past the gate now: attach a real evidence id from a
+    // completed audit run in the same project.
+    const evidenceResponseId = await createCompletedEvidenceResponseId(projectId);
+    await updateResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      stimulusId: measuredStimulus.id,
+      kind: "measured_ai",
+      label: "Measured AI framing",
+      body: "LedgerFox is described as easy to implement.",
+      evidenceResponseIds: [evidenceResponseId],
+    });
+
     const version = await approveAndCompileResonanceStudy(projectId, study.id);
     createdVersionIds.push(version.id);
 
@@ -539,16 +638,16 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
 
   it("pauses live SSR scoring on credential encryption config errors instead of dead-lettering", async () => {
     const projectId = await demoProjectId();
+    const evidenceResponseId = await createCompletedEvidenceResponseId(projectId);
     const study = await createResonanceStudy(projectId, "M20 SSR Config Pause");
     createdStudyIds.push(study.id);
-    await updateResonanceStudy(projectId, study.id, { genericUnconditioned: true });
     await addResonanceStimulus({
       projectId,
       studyId: study.id,
-      kind: "custom",
+      kind: "measured_ai",
       label: "Baseline",
       body: "Baseline framing.",
-      evidenceResponseIds: [],
+      evidenceResponseIds: [evidenceResponseId],
     });
     await addResonanceStimulus({
       projectId,

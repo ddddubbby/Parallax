@@ -322,6 +322,10 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
           },
         ],
         anchorSetVersion: "purchase_intent.v1",
+        // M22 (D-078): a direct raw insert (bypasses approveAndCompileResonanceStudy
+        // entirely), not a test of the C-13 approval gate — this fixture only
+        // exercises SSR-spend budget attribution. Unaffected by the approval
+        // guard becoming unconditional.
         genericUnconditioned: true,
         approvedAt: new Date(),
       })

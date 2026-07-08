@@ -64,7 +64,15 @@ describe("Resonance core (M17)", () => {
     expect(() => validateResonanceCellCount(6, 10)).toThrow(/run cap/);
   });
 
-  it("uses stable export labels for C-13 generic disclosure", () => {
+  // M22 (D-078): GENERIC can no longer be CREATED (the wizard toggle and its
+  // RPC-reachable FormData field are gone; the approval guard is now
+  // unconditional — src/db/repositories/resonance.ts's
+  // approveAndCompileResonanceStudy no longer consults genericUnconditioned
+  // at all). This test is the historical-rendering regression: an EXISTING
+  // row with generic_unconditioned=true (the dev DB's real approved
+  // "weekday lunch $1 off" study predates M22) must keep rendering a
+  // truthful GENERIC label on reports/exports/the results page.
+  it("uses stable export labels for C-13 generic disclosure (label helper, historical rows only)", () => {
     expect(resonanceExportLabel(true)).toBe("SIMULATED GENERIC");
     expect(resonanceExportLabel(false)).toBe("SIMULATED EVIDENCE-CONDITIONED");
     expect(

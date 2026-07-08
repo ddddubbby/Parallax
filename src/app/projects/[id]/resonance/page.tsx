@@ -415,7 +415,7 @@ export default async function ResonancePage({
                 {isDraft && (
                   <StudyWizard
                     projectId={id}
-                    study={{ id: study.id, name: study.name, genericUnconditioned: study.genericUnconditioned }}
+                    study={{ id: study.id, name: study.name }}
                     initialPersonas={personaRows}
                     stimuli={wizardStimuli}
                     evidenceOptions={evidenceOptions}

@@ -1,5 +1,11 @@
 allowBuilds:
   '@embedded-postgres/darwin-arm64': true
+  # M22 Part A: CI (ubuntu-latest / linux-x64) now also boots an embedded
+  # Postgres for the vitest global setup (scripts/test-db.ts) — its
+  # platform package needs the same build-script approval darwin-arm64
+  # already has (D-060 precedent), or its postinstall symlink-hydration
+  # step is silently skipped under pnpm 10's build-script gating.
+  '@embedded-postgres/linux-x64': true
   esbuild: true
   sharp: true
   unrs-resolver: true
