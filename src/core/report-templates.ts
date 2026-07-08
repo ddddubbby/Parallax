@@ -27,9 +27,9 @@ export const REPORT_SECTIONS = [
 export type SectionKey = (typeof REPORT_SECTIONS)[number]["key"];
 
 export const RESONANCE_REPORT_SECTIONS = [
-  { key: "resonance_method", title: "Resonance Method" },
-  { key: "resonance_results", title: "Resonance Results" },
-  { key: "resonance_evidence", title: "Resonance Evidence" },
+  { key: "resonance_method", title: "Simulation Method" },
+  { key: "resonance_results", title: "Simulation Results" },
+  { key: "resonance_evidence", title: "Simulation Evidence" },
 ] as const;
 
 export type ResonanceSectionKey = (typeof RESONANCE_REPORT_SECTIONS)[number]["key"];
@@ -226,7 +226,7 @@ function badgeLine(ctx: ReportContext): string {
 }
 
 function resonanceBadgeLine(ctx: ResonanceReportContext): string {
-  const badges = ["**SIMULATED** — this lower-funnel section reports synthetic-panel proxy output, not measured human behavior."];
+  const badges = ["**SIMULATED** — this Simulation Layer section reports synthetic-panel proxy output, not measured human behavior."];
   if (ctx.isMock) badges.push("**MOCK** — this run used fixture-backed provider responses.");
   if (ctx.genericUnconditioned) badges.push("**GENERIC** — this study was not conditioned on stored AI-channel evidence.");
   return badges.map((b) => `> ${b}`).join("\n") + "\n\n";
@@ -485,7 +485,7 @@ function pmfText(pmf: number[]): string {
 }
 
 function generateResonanceMethod(ctx: ResonanceReportContext): string {
-  return `${resonanceBadgeLine(ctx)}This Resonance study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). The figures are comparative and directional: ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior.
+  return `${resonanceBadgeLine(ctx)}This Simulation Layer study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). The figures are comparative and directional: ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior.
 
 | Field | Value |
 |---|---|

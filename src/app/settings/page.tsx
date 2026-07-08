@@ -71,7 +71,7 @@ export default async function SettingsPage() {
           <dd>
             {defaults.embeddingProvider}
             <span className="block text-xs text-ink/45">
-              scores live Resonance runs — its credential must be active
+              scores live Simulation runs — its credential must be active
             </span>
           </dd>
           {defaults.providers.map((p) => (

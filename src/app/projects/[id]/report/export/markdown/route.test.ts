@@ -53,7 +53,7 @@ describe("GET report markdown export", () => {
     const res = await GET(request, { params: Promise.resolve({ id: projectId }) });
 
     expect(res.status).toBe(200);
-    await expect(res.text()).resolves.toContain("# Resonance Simulation Report — SIMULATED GENERIC");
+    await expect(res.text()).resolves.toContain("# Simulation Report — SIMULATED GENERIC");
   });
 
   it("marks markdown exports when persisted sections are older than recomputed metrics", async () => {

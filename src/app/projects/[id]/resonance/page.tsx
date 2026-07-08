@@ -85,7 +85,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
   return (
     <div className="mt-5 space-y-5 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="label-mono text-xs font-semibold text-ink/70">Lower funnel results</h3>
+        <h3 className="label-mono text-xs font-semibold text-ink/70">Simulation Layer results</h3>
         <SimulatedBadge />
         {results.study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
         <Stamp tone={results.run.runMode === "mock" ? "accent" : "ink"}>{results.run.runMode}</Stamp>
@@ -306,10 +306,10 @@ export default async function ResonancePage({
         <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
-        / Resonance
+        / Simulation
       </div>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="label-mono text-lg font-semibold">Resonance Studies</h1>
+        <h1 className="label-mono text-lg font-semibold">Simulation Studies</h1>
         <SimulatedBadge />
       </div>
 
@@ -361,7 +361,7 @@ export default async function ResonancePage({
 
       {studies.length === 0 ? (
         <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-8 text-center">
-          <p className="label-mono text-sm text-ink/60">No Resonance studies yet</p>
+          <p className="label-mono text-sm text-ink/60">No Simulation studies yet</p>
           <p className="mt-1 font-mono text-xs text-ink/45">
             create a study, add panel personas and stimulus variants, then compile it into a simulated run matrix
           </p>

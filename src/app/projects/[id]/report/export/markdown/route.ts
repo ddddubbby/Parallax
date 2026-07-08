@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       : null;
   const resonanceLabel = resonanceStudy ? resonanceExportLabel(resonanceStudy.genericUnconditioned) : null;
   const title = kind?.kind === "resonance"
-    ? `Resonance Simulation Report${resonanceLabel ? ` — ${resonanceLabel}` : ""}`
+    ? `Simulation Report${resonanceLabel ? ` — ${resonanceLabel}` : ""}`
     : "Audit Report";
 
   const [sections, freshness] = await Promise.all([getReportSections(runId), getReportFreshness(runId)]);

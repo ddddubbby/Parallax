@@ -167,7 +167,7 @@ export function RunCreationForm({
         </p>
         {singleEngine && (
           <p className="mt-2 font-mono text-xs text-ink/55">
-            Resonance runs use one provider and one mode; each engine is a distinct synthetic population (D-067).
+            Simulation runs use one provider and one mode; each engine is a distinct synthetic population (D-067).
           </p>
         )}
       </div>

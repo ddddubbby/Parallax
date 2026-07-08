@@ -92,7 +92,7 @@ export default async function ReportPrintPage({
       </div>
       <h1 style={{ fontSize: "2rem", marginBottom: "2rem" }}>
         {kind?.kind === "resonance"
-          ? `Resonance Simulation Report${resonanceLabel ? ` — ${resonanceLabel}` : ""}`
+          ? `Simulation Report${resonanceLabel ? ` — ${resonanceLabel}` : ""}`
           : "AI Visibility Audit"}{client ? ` — ${client.name}` : ""}
       </h1>
 

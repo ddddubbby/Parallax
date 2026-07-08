@@ -30,9 +30,9 @@ describe("funnel presentation mapping (M16)", () => {
   });
 
   it("renders structural stamps for audit surfaces", () => {
-    expect(funnelStampForPillar("presence")).toBe("UPPER FUNNEL");
-    expect(funnelStampForPillar("position")).toBe("MID FUNNEL");
-    expect(funnelStampForPillar("perception")).toBe("MID FUNNEL");
+    expect(funnelStampForPillar("presence")).toBe("EVIDENCE LAYER");
+    expect(funnelStampForPillar("position")).toBe("EVIDENCE LAYER");
+    expect(funnelStampForPillar("perception")).toBe("EVIDENCE LAYER");
     expect(funnelStampForPillar("proof")).toBe("TRUST RAIL");
   });
 });
