@@ -1,0 +1,34 @@
+{
+  "note": "SYNTHETIC EXAMPLE DATA — hand-authored to document the paired-data fixture format for CALIBRATION_PROTOCOL.md. These are not real human survey responses and must never be used to compute or claim an actual calibration result.",
+  "studyId": "example-study-not-real",
+  "anchorSetVersion": "purchase_intent.v1",
+  "pairs": [
+    {
+      "stimulusId": "baseline",
+      "stimulusLabel": "Measured AI framing (baseline)",
+      "ssrProviderId": "mock",
+      "ssrRunId": "example-run-not-real",
+      "humanSampleN": 32,
+      "humanPmf": [0.10, 0.20, 0.30, 0.25, 0.15],
+      "ssrPmf": [0.08, 0.22, 0.32, 0.24, 0.14]
+    },
+    {
+      "stimulusId": "repositioned",
+      "stimulusLabel": "Repositioned framing",
+      "ssrProviderId": "mock",
+      "ssrRunId": "example-run-not-real",
+      "humanSampleN": 34,
+      "humanPmf": [0.05, 0.10, 0.20, 0.35, 0.30],
+      "ssrPmf": [0.04, 0.12, 0.19, 0.33, 0.32]
+    },
+    {
+      "stimulusId": "corrected",
+      "stimulusLabel": "Corrected framing",
+      "ssrProviderId": "mock",
+      "ssrRunId": "example-run-not-real",
+      "humanSampleN": 31,
+      "humanPmf": [0.08, 0.17, 0.25, 0.30, 0.20],
+      "ssrPmf": [0.10, 0.15, 0.27, 0.28, 0.20]
+    }
+  ]
+}
