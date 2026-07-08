@@ -14,7 +14,9 @@ import {
   scanUnbrandedCells,
   shuffle,
 } from "@/core/matrix";
+import type { FrameAspect } from "@/core/prompt-templates";
 import {
+  activateTemplatesForAspect,
   approveVersion,
   copyToNewDraft,
   createDraftVersion,
@@ -276,4 +278,29 @@ export async function newDraftFromVersion(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Copy failed" };
   }
+}
+
+/**
+ * M23 (D-079): the coverage panel's "activate" control — flips the seeded
+ * opt-in price/promo templates whose declared aspect matches from
+ * active:false to active:true for the project's archetype. Archetype-scoped
+ * (prompt_templates has no per-project dimension): this changes the pool
+ * for every project sharing the archetype's future `generateMatrix`/
+ * `addCell` calls, never existing approved matrices (C-4).
+ */
+export async function activateCoverageAspectAction(
+  projectId: string,
+  aspect: FrameAspect,
+): Promise<ActionResult> {
+  if (!validIds(projectId)) return { ok: false, error: "Invalid id" };
+  const inputs = await getMatrixInputs(projectId);
+  if (!inputs) return { ok: false, error: "Project not found" };
+  try {
+    const activated = await activateTemplatesForAspect(inputs.project.categoryArchetype, aspect);
+    if (activated === 0) return { ok: false, error: "No inactive templates found for that aspect" };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Activation failed" };
+  }
+  revalidatePath(`/projects/${projectId}/matrix`);
+  return { ok: true };
 }

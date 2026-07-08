@@ -41,6 +41,11 @@ interface DemoProject {
 async function seedTemplates(): Promise<number> {
   let inserted = 0;
   for (const t of TEMPLATE_SEED) {
+    // M23 (D-079): match on the natural key alone, not active=true. The
+    // opt-in price/promo templates seed with active:false, and the partial
+    // unique index only enforces uniqueness among active rows — an
+    // active-only existence check would re-insert an inactive seed row on
+    // every run, breaking seed-twice idempotency.
     const existing = await db
       .select({ id: promptTemplates.id })
       .from(promptTemplates)
@@ -49,7 +54,6 @@ async function seedTemplates(): Promise<number> {
           eq(promptTemplates.intent, t.intent),
           eq(promptTemplates.archetype, t.archetype),
           eq(promptTemplates.variantKey, t.variantKey),
-          eq(promptTemplates.active, true),
         ),
       );
     if (existing.length === 0) {
@@ -58,6 +62,7 @@ async function seedTemplates(): Promise<number> {
         intent: t.intent,
         variantKey: t.variantKey,
         templateText: t.text,
+        active: t.active ?? true,
       });
       inserted += 1;
     }

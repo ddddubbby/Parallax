@@ -1,3 +1,4 @@
+import type { FrameAspect } from "./prompt-templates";
 import type { StimulusKind } from "./resonance";
 
 export type ResonanceStudyTemplateId =
@@ -18,6 +19,12 @@ export interface ResonanceStudyTemplate {
   summary: string;
   guidance: string;
   default: boolean;
+  /**
+   * M23 (D-079): the frame aspect this pack's measured_ai baseline needs
+   * from the Evidence Layer (src/core/coverage.ts consumes this against a
+   * matrix's produced aspects).
+   */
+  requiredAspect: FrameAspect;
   stimuli: ResonanceStudyTemplateStimulus[];
 }
 
@@ -29,6 +36,7 @@ export const RESONANCE_STUDY_TEMPLATES: ResonanceStudyTemplate[] = [
     guidance:
       "Use this when the audit found a weak or inaccurate AI framing. Keep the measured variant tied to stored evidence, then test corrected language before changing market-facing material.",
     default: true,
+    requiredAspect: "perception_attributes",
     stimuli: [
       {
         kind: "measured_ai",
@@ -57,7 +65,14 @@ export const RESONANCE_STUDY_TEMPLATES: ResonanceStudyTemplate[] = [
     guidance:
       "Use this for offer copy, not business-outcome claims. Keep the underlying promotion constant and compare how different framings change the simulated response.",
     default: false,
+    requiredAspect: "promotions",
     stimuli: [
+      {
+        kind: "measured_ai",
+        label: "How AI frames your current offer today",
+        body:
+          "Paste the AI-channel framing of your current promotion or offer that buyers already see, quoting or summarizing the stored audit evidence: {measured_ai_promo_framing}",
+      },
       {
         kind: "custom",
         label: "Direct offer framing",
@@ -84,7 +99,14 @@ export const RESONANCE_STUDY_TEMPLATES: ResonanceStudyTemplate[] = [
     guidance:
       "Use this for presentation and comprehension of an unchanged price. It compares wording only, not demand forecasting or pricing decisions.",
     default: false,
+    requiredAspect: "pricing",
     stimuli: [
+      {
+        kind: "measured_ai",
+        label: "How AI frames your pricing today",
+        body:
+          "Paste the AI-channel framing of your price or package that buyers already see, quoting or summarizing the stored audit evidence: {measured_ai_pricing_framing}",
+      },
       {
         kind: "custom",
         label: "Plain price framing",
@@ -111,6 +133,7 @@ export const RESONANCE_STUDY_TEMPLATES: ResonanceStudyTemplate[] = [
     guidance:
       "Use this when several claims are factually supportable and the operator needs a directional read on which framing is clearer or more persuasive.",
     default: false,
+    requiredAspect: "factual_claims",
     stimuli: [
       {
         kind: "custom",

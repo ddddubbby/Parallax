@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MatrixBoard } from "@/components/matrix/board";
+import { countAspects, evaluatePackCoverage } from "@/core/coverage";
 import { isUuid } from "@/core/id";
 import { scanUnbrandedCells } from "@/core/matrix";
+import { frameAspectsForCell } from "@/core/prompt-templates";
 import {
   getMatrixInputs,
   getVersionWithCells,
@@ -53,6 +55,19 @@ export default async function MatrixPage({
     }
   }
 
+  // M23 (D-079): coverage contract — cross-check the focused matrix's
+  // produced frame aspects against what each resonance study pack needs
+  // (informational, never a block; D-058 sample-budget-panel precedent).
+  const packCoverage = focus
+    ? evaluatePackCoverage(
+        countAspects(
+          focus.cells.map((c) =>
+            frameAspectsForCell(inputs.project.categoryArchetype, c.intent, c.variantKey),
+          ),
+        ),
+      )
+    : [];
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-1 font-mono text-xs text-ink/45">
@@ -65,6 +80,7 @@ export default async function MatrixPage({
         projectId={id}
         projectStatus={inputs.project.status}
         versions={versions}
+        packCoverage={packCoverage}
         focus={
           focus
             ? {

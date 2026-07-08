@@ -1,16 +1,79 @@
 import type { Intent } from "./matrix";
 import type { CategoryArchetype } from "./semantic";
 
+/**
+ * M23 (D-079): the framing aspect a template's evidence answers — the
+ * producer side of the Evidence-Layer -> Simulation-Layer contract (the
+ * LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md synthesis section). This is a pure
+ * core mapping, never a DB column: every seeded row's aspect is either the
+ * intent's default or an explicit per-row override (price/promo templates
+ * living inside an existing intent, per the pinned decision).
+ */
+export type FrameAspect =
+  | "presence"
+  | "positioning"
+  | "perception_attributes"
+  | "factual_claims"
+  | "pricing"
+  | "promotions";
+
+/** Default aspect(s) a plain template of a given intent produces. */
+export const DEFAULT_FRAME_ASPECTS: Record<Intent, FrameAspect[]> = {
+  discovery: ["presence"],
+  consideration: ["presence"],
+  comparison: ["positioning"],
+  validation: ["perception_attributes", "factual_claims"],
+  objection: ["perception_attributes"],
+};
+
 export interface PromptTemplateSeed {
   archetype: CategoryArchetype;
   intent: Intent;
   variantKey: string;
   text: string;
+  /**
+   * Overrides the intent's default frame aspect(s). Only set when a
+   * template's evidentiary content diverges from what its intent usually
+   * produces — e.g. a price/promo template living inside `comparison`.
+   */
+  frameAspects?: FrameAspect[];
+  /**
+   * Opt-in gate (M23/D-079): price/promo templates seed inactive so the
+   * default allocation pool, golden dataset, and mock-e2e expectations stay
+   * unchanged (D-016 risk note). Undefined means active (existing rows).
+   */
+  active?: boolean;
+}
+
+export function frameAspectsForTemplate(t: Pick<PromptTemplateSeed, "intent" | "frameAspects">): FrameAspect[] {
+  return t.frameAspects ?? DEFAULT_FRAME_ASPECTS[t.intent];
+}
+
+/**
+ * Coverage-panel lookup: a cell only carries intent + variantKey (plus the
+ * project's single archetype), so this resolves back to the seed row's
+ * frame aspect(s). A variantKey with no matching seed row (a future
+ * operator-authored template) falls back to the intent's default rather
+ * than throwing — the panel degrades to intent-only granularity for it.
+ */
+export function frameAspectsForCell(
+  archetype: CategoryArchetype,
+  intent: Intent,
+  variantKey: string,
+): FrameAspect[] {
+  const seed = TEMPLATE_SEED.find(
+    (t) => t.archetype === archetype && t.intent === intent && t.variantKey === variantKey,
+  );
+  return seed ? frameAspectsForTemplate(seed) : DEFAULT_FRAME_ASPECTS[intent];
 }
 
 // Three variant phrasings per intent and archetype (PRD 8.4, AT-2).
 // The b2b pack preserves the original PRD text; consumer packs remove
 // procurement-language jargon that invalidates consumer-category audits.
+// M23 (D-079): each archetype also gets two opt-in price/promo variants
+// (variantKey v4/v5, active:false) inside the `comparison` intent — the
+// verified coverage hole (LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md 2c: zero
+// of the 45 default templates mention price/cost/deal/offer/discount).
 export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "b2b", intent: "discovery", variantKey: "v1", text: "What tools should a {persona} in {market} consider for {job_to_be_done}?" },
   { archetype: "b2b", intent: "discovery", variantKey: "v2", text: "Which solutions would you shortlist for a {persona} in {market} trying to {job_to_be_done}?" },
@@ -59,4 +122,57 @@ export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "consumer_venue", intent: "objection", variantKey: "v1", text: "What concerns should a {persona} have before choosing {client_brand}?" },
   { archetype: "consumer_venue", intent: "objection", variantKey: "v2", text: "What do visitors most often criticize about {client_brand}?" },
   { archetype: "consumer_venue", intent: "objection", variantKey: "v3", text: "Why might a {persona} decide not to go to {client_brand}?" },
+
+  // M23 (D-079): opt-in price/promo variants, active:false by default so the
+  // default 40-cell allocation, golden dataset, and mock-e2e expectations
+  // are unchanged until an operator deliberately activates them (coverage
+  // panel recommendation, matrix board control).
+  {
+    archetype: "b2b",
+    intent: "comparison",
+    variantKey: "v4",
+    text: "How does {client_brand}'s pricing compare with {competitor_list} for a {persona} buyer in {market}?",
+    frameAspects: ["pricing"],
+    active: false,
+  },
+  {
+    archetype: "b2b",
+    intent: "comparison",
+    variantKey: "v5",
+    text: "What current deals or discounts make {client_brand} or {competitor_list} worth choosing for a {persona} buyer in {market}?",
+    frameAspects: ["promotions"],
+    active: false,
+  },
+  {
+    archetype: "consumer_product",
+    intent: "comparison",
+    variantKey: "v4",
+    text: "How does {client_brand}'s price compare with {competitor_list} for a {persona} in {market}?",
+    frameAspects: ["pricing"],
+    active: false,
+  },
+  {
+    archetype: "consumer_product",
+    intent: "comparison",
+    variantKey: "v5",
+    text: "What deals or discounts make {client_brand} or {competitor_list} worth buying for a {persona} in {market}?",
+    frameAspects: ["promotions"],
+    active: false,
+  },
+  {
+    archetype: "consumer_venue",
+    intent: "comparison",
+    variantKey: "v4",
+    text: "How do {client_brand}'s prices compare with {competitor_list} for a {persona} in {market}?",
+    frameAspects: ["pricing"],
+    active: false,
+  },
+  {
+    archetype: "consumer_venue",
+    intent: "comparison",
+    variantKey: "v5",
+    text: "What deals or specials make {client_brand} or {competitor_list} worth visiting for a {persona} in {market}?",
+    frameAspects: ["promotions"],
+    active: false,
+  },
 ];

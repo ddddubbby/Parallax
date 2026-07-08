@@ -31,14 +31,34 @@ describe("semantic layer (M11)", () => {
     }
   });
 
-  it("seeds 3 archetype packs with 5 intents and 3 variants each", () => {
+  it("seeds 3 archetype packs with 5 intents and 3 default-active variants each", () => {
+    // M23 (D-079): the "3 variants per intent" invariant covers the
+    // default-active pack only. Opt-in price/promo variants (v4/v5,
+    // active:false) are additional, asserted separately below so this
+    // count keeps proving the original PRD 8.4 seed contract.
     for (const archetype of Object.keys(CATEGORY_ARCHETYPES) as CategoryArchetype[]) {
       for (const intent of INTENT_ORDER) {
-        const variants = TEMPLATE_SEED.filter((t) => t.archetype === archetype && t.intent === intent);
+        const variants = TEMPLATE_SEED.filter(
+          (t) => t.archetype === archetype && t.intent === intent && t.active !== false,
+        );
         expect(variants, `${archetype}/${intent}`).toHaveLength(3);
       }
     }
-    expect(TEMPLATE_SEED).toHaveLength(45);
+    expect(TEMPLATE_SEED.filter((t) => t.active !== false)).toHaveLength(45);
+  });
+
+  it("seeds opt-in price/promo variants inactive by default (D-016 risk mitigation)", () => {
+    const optIn = TEMPLATE_SEED.filter((t) => t.active === false);
+    expect(optIn).toHaveLength(6); // 3 archetypes x (price + promo)
+    for (const archetype of Object.keys(CATEGORY_ARCHETYPES) as CategoryArchetype[]) {
+      const forArchetype = optIn.filter((t) => t.archetype === archetype);
+      expect(forArchetype, archetype).toHaveLength(2);
+      expect(forArchetype.map((t) => t.frameAspects).sort()).toEqual([["pricing"], ["promotions"]]);
+      for (const t of forArchetype) {
+        expect(t.intent, `${archetype} opt-in templates live within an existing intent`).toBe("comparison");
+      }
+    }
+    expect(TEMPLATE_SEED).toHaveLength(51);
   });
 
   it("keeps consumer prompt packs out of B2B procurement idiom (AT-3)", () => {

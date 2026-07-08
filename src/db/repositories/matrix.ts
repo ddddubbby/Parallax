@@ -1,6 +1,8 @@
 import { and, asc, desc, eq, max, sql } from "drizzle-orm";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { isAuditIntent, type CellPlan } from "@/core/matrix";
+import { frameAspectsForTemplate, TEMPLATE_SEED, type FrameAspect } from "@/core/prompt-templates";
+import type { CategoryArchetype } from "@/core/semantic";
 import { db } from "../client";
 import {
   attributes,
@@ -68,6 +70,42 @@ export async function getMatrixInputs(projectId: string) {
     .sort((a, b) => a.priority - b.priority);
 
   return { project, client, competitors, personas: projectPersonas, markets: projectMarkets, attributes: projectAttributes.map((a) => a.name), templates };
+}
+
+/**
+ * M23 (D-079): the operator-facing "matrix builder control" for the coverage
+ * panel's gap stamps. Opt-in price/promo templates seed inactive (D-016
+ * risk mitigation); this flips `active` on the seeded rows for one archetype
+ * whose declared frame aspect matches, so a deliberate operator click — not
+ * a silent default — is what changes future `generateMatrix`/`addCell`
+ * pools. Archetype-scoped (the `prompt_templates` table has no per-project
+ * dimension), so activating affects every project sharing the archetype
+ * going forward; already-approved matrices stay frozen (C-4) regardless.
+ */
+export async function activateTemplatesForAspect(
+  archetype: CategoryArchetype,
+  aspect: FrameAspect,
+): Promise<number> {
+  const matches = TEMPLATE_SEED.filter(
+    (t) => t.archetype === archetype && frameAspectsForTemplate(t).includes(aspect) && t.active === false,
+  );
+  let activated = 0;
+  for (const t of matches) {
+    const updated = await db
+      .update(promptTemplates)
+      .set({ active: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(promptTemplates.archetype, t.archetype),
+          eq(promptTemplates.intent, t.intent),
+          eq(promptTemplates.variantKey, t.variantKey),
+          eq(promptTemplates.active, false),
+        ),
+      )
+      .returning({ id: promptTemplates.id });
+    activated += updated.length;
+  }
+  return activated;
 }
 
 export async function listVersions(projectId: string) {

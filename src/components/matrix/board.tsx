@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, Stamp, Textarea } from "@/components/ui";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
+import { FRAME_ASPECT_LABELS, type PackCoverageResult } from "@/core/coverage";
 import { INTENT_ORDER, type Intent } from "@/core/matrix";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { PillarExplainer, PillarSection } from "@/components/semantic/pillar";
 import { PILLAR_ORDER, PILLARS, intentToPillar, pillarMetricLabels, type Pillar } from "@/core/semantic";
 import {
+  activateCoverageAspectAction,
   addCell,
   approveMatrix,
   generateMatrix,
@@ -54,11 +56,13 @@ export function MatrixBoard({
   projectStatus,
   versions,
   focus,
+  packCoverage,
 }: {
   projectId: string;
   projectStatus: string;
   versions: VersionListItem[];
   focus: VersionView | null;
+  packCoverage: PackCoverageResult[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -247,6 +251,52 @@ export function MatrixBoard({
             <p className="mt-2 font-mono text-[11px] text-ink/45">
               Proof draws on every response&rsquo;s claims and citations, so all {count} cells count toward it (D-051).
               A pillar under {SMALL_N_GATE} still renders per-cell and directional findings, just no aggregate claim (D-015).
+            </p>
+          </div>
+
+          {/* M23 (D-079): Evidence-Layer -> Simulation-Layer coverage
+              contract — does this matrix produce evidence for each
+              resonance study pack's baseline? Informational, never a block
+              (D-058 precedent), computed before any run spends. */}
+          <div className="mb-4 rounded-lg border border-ink/15 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="label-mono text-xs text-ink/45">Simulation coverage</span>
+              <span className="font-mono text-[11px] text-ink/40">
+                whether this matrix would give each Simulation study pack real evidence to cite
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {packCoverage.map((pack) => (
+                <div key={pack.packId} className="flex flex-wrap items-center gap-2">
+                  <Stamp tone={pack.status === "ok" ? "ok" : "warn"}>
+                    {pack.packName}: {FRAME_ASPECT_LABELS[pack.requiredAspect]} — {pack.cellCount} cell
+                    {pack.cellCount === 1 ? "" : "s"}
+                    {pack.status === "ok" ? " ✓" : " (gap)"}
+                  </Stamp>
+                  {pack.status === "gap" && isDraft && (
+                    <>
+                      <span className="font-mono text-[11px] text-ink/45">
+                        no {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} cells yet — templates exist
+                        but are inactive by default (opt-in)
+                      </span>
+                      <Button
+                        variant="secondary"
+                        disabled={pending}
+                        onClick={() =>
+                          run(() => activateCoverageAspectAction(projectId, pack.requiredAspect))
+                        }
+                      >
+                        Activate {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} templates
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 font-mono text-[11px] text-ink/45">
+              Activating adds these prompts to the shared archetype template pool for future matrices
+              of this category — existing approved matrices stay frozen (C-4). Regenerate or add cells
+              afterward to bring them into this draft.
             </p>
           </div>
 
