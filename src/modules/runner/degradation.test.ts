@@ -5,6 +5,7 @@ import { allocateMatrix } from "@/core/matrix";
 import { isPartial, isProviderDown } from "@/core/runner";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
+import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
 import {
   claimJobs,
   completeRun,
@@ -17,7 +18,7 @@ import {
   recordDeadLetter,
   recordSuccess,
 } from "@/db/repositories/runner";
-import { auditRuns, jobs, matrixVersions, projects, promptCells, responses, runEvents } from "@/db/schema";
+import { auditRuns, jobs, matrixVersions, projects, responses, runEvents } from "@/db/schema";
 import { handleProviderDownAfterDeadLetter } from "./degradation";
 
 // M9 acceptance: "provider-down degrades gracefully" (D-042). A two-provider
@@ -50,9 +51,9 @@ afterAll(async () => {
       console.warn(`[degradation.test.ts afterAll] failed to clean up run ${runId}:`, err instanceof Error ? err.message : err);
     }
   }
-  for (const versionId of createdVersionIds) {
-    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
-    await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
+  if (createdVersionIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
+    await forceDeleteMatrixVersions(createdVersionIds);
   }
   await pool.end().catch(() => {});
 });

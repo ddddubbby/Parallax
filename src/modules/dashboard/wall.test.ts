@@ -15,6 +15,7 @@ import {
   reviewClaim,
 } from "@/db/repositories/dashboard";
 import { getExportCitations } from "@/db/repositories/export";
+import { forceDeletePromptCellsByIds } from "@/db/repositories/matrix.test-helpers";
 import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import {
   auditRuns,
@@ -67,8 +68,9 @@ afterAll(async () => {
   for (const runId of created.runIds) {
     await db.delete(auditRuns).where(eq(auditRuns.id, runId)).catch(() => {});
   }
-  for (const cellId of created.cellIds) {
-    await db.delete(promptCells).where(eq(promptCells.id, cellId)).catch(() => {});
+  if (created.cellIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
+    await forceDeletePromptCellsByIds(created.cellIds).catch(() => {});
   }
   for (const versionId of created.versionIds) {
     await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId)).catch(() => {});

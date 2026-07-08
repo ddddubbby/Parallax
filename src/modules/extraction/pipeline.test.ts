@@ -5,6 +5,7 @@ import { db, pool } from "@/db/client";
 import { getEligibleExtractionsForRun, getExtractionProgress, listDeadLetteredExtractions } from "@/db/repositories/extraction";
 import { recomputeMetrics, listMetrics } from "@/db/repositories/metrics";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
+import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
 import { claimJobs, createRun, listRunEvents, recordSuccess } from "@/db/repositories/runner";
 import {
   auditRuns,
@@ -15,7 +16,6 @@ import {
   matrixVersions,
   metrics as metricsTable,
   projects,
-  promptCells,
   responses,
   runEvents,
 } from "@/db/schema";
@@ -68,9 +68,9 @@ afterAll(async () => {
       console.warn(`[pipeline.test.ts afterAll] failed to clean up run ${runId}:`, err instanceof Error ? err.message : err);
     }
   }
-  for (const versionId of createdVersionIds) {
-    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
-    await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
+  if (createdVersionIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
+    await forceDeleteMatrixVersions(createdVersionIds);
   }
   await pool.end().catch(() => {});
 });

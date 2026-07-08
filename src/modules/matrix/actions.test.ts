@@ -1,10 +1,10 @@
-import { inArray } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { INTENT_ORDER } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion } from "@/db/repositories/matrix";
-import { matrixVersions, promptCells, projects } from "@/db/schema";
+import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
+import { promptCells, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 // M3 acceptance (guidelines F): direct API attempt at 51 cells; approval
@@ -31,12 +31,8 @@ const VALID_ID = "00000000-0000-4000-8000-000000000000";
 
 afterAll(async () => {
   if (createdVersionIds.length > 0) {
-    await db
-      .delete(promptCells)
-      .where(inArray(promptCells.matrixVersionId, createdVersionIds));
-    await db
-      .delete(matrixVersions)
-      .where(inArray(matrixVersions.id, createdVersionIds));
+    // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
+    await forceDeleteMatrixVersions(createdVersionIds);
   }
   await pool.end().catch(() => {});
 });
@@ -137,6 +133,37 @@ describe.skipIf(!dbUp || !demoProjectId)(
         .from(promptCells)
         .where(eq(promptCells.id, cell.id));
       expect(after.resolvedText).toBe(cell.resolvedText);
+
+      // D-081: migration 0010's trigger is the DB-level backstop behind the
+      // app-level assertDraft() check above (C-4) — a raw UPDATE/DELETE
+      // against this now-approved cell must be rejected by Postgres itself.
+      // drizzle wraps the pg error in a DrizzleQueryError whose own .message
+      // is "Failed query: ..."; the trigger's RAISE EXCEPTION text survives
+      // on .cause, so assert there rather than on the wrapper's message.
+      const expectDbFreezeRejection = async (query: Promise<unknown>) => {
+        let caught: unknown;
+        try {
+          await query;
+        } catch (err) {
+          caught = err;
+        }
+        expect(caught).toBeInstanceOf(Error);
+        const cause = caught instanceof Error ? caught.cause : undefined;
+        const causeMessage = cause instanceof Error ? cause.message : String(cause);
+        expect(causeMessage).toMatch(/frozen|C-4/i);
+      };
+      await expectDbFreezeRejection(
+        db.update(promptCells).set({ resolvedText: "direct db tamper" }).where(eq(promptCells.id, cell.id)),
+      );
+      await expectDbFreezeRejection(
+        db.delete(promptCells).where(eq(promptCells.id, cell.id)),
+      );
+
+      const [stillUnchanged] = await db
+        .select({ resolvedText: promptCells.resolvedText })
+        .from(promptCells)
+        .where(eq(promptCells.id, cell.id));
+      expect(stillUnchanged.resolvedText).toBe(cell.resolvedText);
 
       // PM-10: edits go into a fresh draft copy, which IS editable.
       const draft = await newDraftFromVersion(projectId, versionId);

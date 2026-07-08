@@ -16,6 +16,7 @@ import {
   responses,
 } from "@/db/schema";
 import { listMetrics, recomputeMetrics } from "./metrics";
+import { forceDeleteMatrixVersions } from "./matrix.test-helpers";
 
 // D-080 (supersedes D-067): multi-provider resonance recompute. Each selected
 // engine must be scored as its own synthetic population — variant means,
@@ -57,9 +58,11 @@ afterAll(async () => {
     await db.delete(jobs).where(eq(jobs.runId, runId)).catch(() => {});
     await db.delete(auditRuns).where(eq(auditRuns.id, runId)).catch(() => {});
   }
-  for (const versionId of created.versionIds) {
-    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId)).catch(() => {});
-    await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId)).catch(() => {});
+  if (created.versionIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081); resonance matrix versions are
+    // born "approved" (D-064), so this always needs the test-only escape
+    // hatch — see budget.test.ts's comment.
+    await forceDeleteMatrixVersions(created.versionIds).catch(() => {});
   }
   for (const studyId of created.studyIds) {
     await db.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId)).catch(() => {});

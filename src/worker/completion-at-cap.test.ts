@@ -4,6 +4,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
+import { forceDeleteMatrixVersionCells } from "@/db/repositories/matrix.test-helpers";
 import { createRun, getRun, listRunEvents, recordSuccess } from "@/db/repositories/runner";
 import {
   auditRuns,
@@ -74,7 +75,8 @@ afterAll(async () => {
       if (cellIds.length > 0) {
         await db.delete(jobs).where(inArray(jobs.cellId, cellIds));
       }
-      await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
+      // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
+      await forceDeleteMatrixVersionCells(versionId);
       await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
     } catch (err) {
       console.warn(`[completion-at-cap.test.ts afterAll] failed to clean up version ${versionId}:`, err instanceof Error ? err.message : err);

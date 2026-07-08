@@ -71,6 +71,13 @@
       "when": 1783297200000,
       "tag": "0009_resonance_shape_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783509591152,
+      "tag": "0010_prompt_cells_freeze_trigger",
+      "breakpoints": true
     }
   ]
 }

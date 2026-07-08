@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
+import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
 import { createPendingExtraction, recordExtractionAttemptCost } from "@/db/repositories/extraction";
 import { claimJobs, createRun, getProviderSpendToday, recordSuccess } from "@/db/repositories/runner";
 import {
@@ -58,9 +59,11 @@ afterAll(async () => {
       console.warn(`[budget.test.ts afterAll] failed to clean up run ${runId}:`, err instanceof Error ? err.message : err);
     }
   }
-  for (const versionId of createdVersionIds) {
-    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
-    await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
+  if (createdVersionIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081): these versions were approved
+    // during the test to exercise the runner, so a raw delete would be
+    // rejected by migration 0010 without the test-only escape hatch.
+    await forceDeleteMatrixVersions(createdVersionIds);
   }
   for (const stimulusId of createdResonanceStimulusIds) {
     await db.delete(resonanceStimuli).where(eq(resonanceStimuli.id, stimulusId));

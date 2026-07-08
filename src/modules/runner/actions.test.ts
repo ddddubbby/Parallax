@@ -3,8 +3,9 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
+import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
 import { createRun as createRunRepo, getApprovedVersionForRun } from "@/db/repositories/runner";
-import { auditRuns, jobs, matrixVersions, projects, promptCells, responses, runEvents } from "@/db/schema";
+import { auditRuns, jobs, matrixVersions, projects, responses, runEvents } from "@/db/schema";
 
 // M8-hardening: the C-9 run-mode boundary. Before this existed, the run
 // form exposed DeepSeek while createRun hardcoded runMode "mock" — real
@@ -35,9 +36,9 @@ afterAll(async () => {
       console.warn(`[runner actions.test.ts afterAll] failed to clean up run ${runId}:`, err instanceof Error ? err.message : err);
     }
   }
-  for (const versionId of createdVersionIds) {
-    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId));
-    await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId));
+  if (createdVersionIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
+    await forceDeleteMatrixVersions(createdVersionIds);
   }
   await pool.end().catch(() => {});
 });

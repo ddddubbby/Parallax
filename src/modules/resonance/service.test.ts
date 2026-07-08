@@ -11,6 +11,7 @@ import {
   updateResonanceStimulus,
   updateResonanceStudy,
 } from "@/db/repositories/resonance";
+import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
 import {
   auditRuns,
   extractions,
@@ -61,9 +62,11 @@ afterAll(async () => {
     await db.delete(runEvents).where(eq(runEvents.runId, runId)).catch(() => {});
     await db.delete(auditRuns).where(eq(auditRuns.id, runId)).catch(() => {});
   }
-  for (const versionId of createdVersionIds) {
-    await db.delete(promptCells).where(eq(promptCells.matrixVersionId, versionId)).catch(() => {});
-    await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId)).catch(() => {});
+  if (createdVersionIds.length > 0) {
+    // Bypasses the C-4 freeze trigger (D-081); resonance matrix versions are
+    // born "approved" (D-064), so this always needs the test-only escape
+    // hatch — see budget.test.ts's comment.
+    await forceDeleteMatrixVersions(createdVersionIds).catch(() => {});
   }
   for (const studyId of createdStudyIds) {
     await db.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId)).catch(() => {});
