@@ -51,7 +51,7 @@ export default async function NewRunPage({
         defaultValidationCapUsd={DEFAULT_VALIDATION_RUN_CAP_USD}
         defaultAuditCapUsd={DEFAULT_AUDIT_RUN_CAP_USD}
         matrixVersionId={version.id}
-        singleEngine={version.kind === "resonance"}
+        singleMode={version.kind === "resonance"}
       />
     </main>
   );

@@ -57,51 +57,57 @@ const RESONANCE_CTX: ResonanceReportContext = {
   anchorSetVersion: "purchase_intent.v1",
   anchorSetCalibrated: false,
   embeddingModel: "mock-fixture",
-  variants: [
+  // D-080: one section per engine — a single-provider run has exactly one.
+  providerSections: [
     {
-      stimulusId: "stim-1",
-      label: "Measured AI framing",
-      stimulusKind: "measured_ai",
-      n: 30,
-      piMean: 3.2,
-      pmf: [0.05, 0.1, 0.35, 0.35, 0.15],
-      sufficientN: true,
-    },
-    {
-      stimulusId: "stim-2",
-      label: "Corrected proof framing",
-      stimulusKind: "corrected",
-      n: 10,
-      piMean: 3.7,
-      pmf: [0.02, 0.08, 0.25, 0.4, 0.25],
-      sufficientN: false,
-    },
-  ],
-  deltas: [
-    {
-      label: "Corrected proof framing",
-      baselineLabel: "Measured AI framing",
-      n: 10,
-      deltaPiMean: 0.5,
-      directionalOnly: true,
-    },
-  ],
-  personaRows: [
-    {
-      panelPersonaLabel: "Primary buyer",
-      stimulusLabel: "Corrected proof framing",
-      n: 5,
-      piMean: 3.8,
-      directionalOnly: true,
-    },
-  ],
-  evidence: [
-    {
-      stimulusLabel: "Corrected proof framing",
-      responseId: "response-001",
-      panelPersonaLabel: "Primary buyer",
-      meanScore: 3.8,
-      rawText: 'I would consider it after seeing the proof. <script>alert("x")</script>',
+      providerId: "mock",
+      variants: [
+        {
+          stimulusId: "stim-1",
+          label: "Measured AI framing",
+          stimulusKind: "measured_ai",
+          n: 30,
+          piMean: 3.2,
+          pmf: [0.05, 0.1, 0.35, 0.35, 0.15],
+          sufficientN: true,
+        },
+        {
+          stimulusId: "stim-2",
+          label: "Corrected proof framing",
+          stimulusKind: "corrected",
+          n: 10,
+          piMean: 3.7,
+          pmf: [0.02, 0.08, 0.25, 0.4, 0.25],
+          sufficientN: false,
+        },
+      ],
+      deltas: [
+        {
+          label: "Corrected proof framing",
+          baselineLabel: "Measured AI framing",
+          n: 10,
+          deltaPiMean: 0.5,
+          directionalOnly: true,
+        },
+      ],
+      personaRows: [
+        {
+          panelPersonaLabel: "Primary buyer",
+          stimulusLabel: "Corrected proof framing",
+          n: 5,
+          piMean: 3.8,
+          directionalOnly: true,
+        },
+      ],
+      evidence: [
+        {
+          stimulusLabel: "Corrected proof framing",
+          responseId: "response-001",
+          panelPersonaLabel: "Primary buyer",
+          meanScore: 3.8,
+          rawText: 'I would consider it after seeing the proof. <script>alert("x")</script>',
+        },
+      ],
     },
   ],
 };
@@ -227,9 +233,44 @@ describe("resonance report templates (RR-3)", () => {
   it("renders persona-slice gate flags from the resonance result contract", () => {
     const md = generateResonanceSection("resonance_results", {
       ...RESONANCE_CTX,
-      personaRows: [{ ...RESONANCE_CTX.personaRows[0], directionalOnly: false }],
+      providerSections: [
+        {
+          ...RESONANCE_CTX.providerSections[0],
+          personaRows: [{ ...RESONANCE_CTX.providerSections[0].personaRows[0], directionalOnly: false }],
+        },
+      ],
     });
     expect(md).toContain("| Primary buyer | Corrected proof framing | 3.80 | 5 | directional |");
+  });
+
+  it("labels each engine's variant/delta/persona/evidence blocks so two providers are never pooled (D-080)", () => {
+    const secondEngine = {
+      providerId: "deepseek",
+      variants: [
+        {
+          stimulusId: "stim-1",
+          label: "Measured AI framing",
+          stimulusKind: "measured_ai",
+          n: 40,
+          piMean: 2.5,
+          pmf: [0.2, 0.3, 0.3, 0.15, 0.05],
+          sufficientN: true,
+        },
+      ],
+      deltas: [],
+      personaRows: [],
+      evidence: [],
+    };
+    const md = generateResonanceSection("resonance_results", {
+      ...RESONANCE_CTX,
+      providerSections: [...RESONANCE_CTX.providerSections, secondEngine],
+    });
+    expect(md).toContain("Engine: mock");
+    expect(md).toContain("Engine: deepseek");
+    // mock's mean PI (3.20) and deepseek's (2.50) must both appear — neither
+    // engine's numbers are averaged into the other's.
+    expect(md).toContain("3.20");
+    expect(md).toContain("2.50");
   });
 });
 

@@ -34,7 +34,7 @@ export function RunCreationForm({
   defaultValidationCapUsd,
   defaultAuditCapUsd,
   matrixVersionId,
-  singleEngine = false,
+  singleMode = false,
 }: {
   projectId: string;
   cellCount: number;
@@ -42,7 +42,10 @@ export function RunCreationForm({
   defaultValidationCapUsd: number;
   defaultAuditCapUsd: number;
   matrixVersionId?: string;
-  singleEngine?: boolean;
+  // D-080 (supersedes D-067): a Resonance run locks generation MODE to a
+  // single choice (no mode dimension in resonance scopes) but now allows
+  // multiple providers — each scored as its own synthetic population.
+  singleMode?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -135,8 +138,8 @@ export function RunCreationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, matrixVersionId, runMode, selectedProviders.join(","), selectedModes.join(","), effectiveRepetitions]);
 
-  function toggle<T>(list: T[], value: T, set: (next: T[]) => void) {
-    if (singleEngine) {
+  function toggle<T>(list: T[], value: T, set: (next: T[]) => void, single = false) {
+    if (single) {
       set([value]);
       return;
     }
@@ -163,11 +166,11 @@ export function RunCreationForm({
         <span className="label-mono text-xs text-ink/60">Approved matrix</span>
         <p className="text-sm text-ink/85">
           {cellCount} <GlossaryTerm term="cell">cells</GlossaryTerm>
-          {singleEngine && <span className="ml-2"><SimulatedBadge /></span>}
+          {singleMode && <span className="ml-2"><SimulatedBadge /></span>}
         </p>
-        {singleEngine && (
+        {singleMode && (
           <p className="mt-2 font-mono text-xs text-ink/55">
-            Simulation runs use one provider and one mode; each engine is a distinct synthetic population (D-067).
+            Simulation runs may select multiple providers but exactly one generation mode; each engine is reported as its own synthetic population, never pooled (D-080).
           </p>
         )}
       </div>
@@ -221,13 +224,13 @@ export function RunCreationForm({
         </div>
       </Field>
 
-      <Field label="Generation modes">
+      <Field label="Generation modes" hint={singleMode ? "Resonance runs lock to one mode — no mode dimension in resonance scopes (D-080)" : undefined}>
         <div className="flex gap-2">
           {MODES.map((mode) => (
             <button
               key={mode}
               type="button"
-              onClick={() => toggle(selectedModes, mode, setSelectedModes)}
+              onClick={() => toggle(selectedModes, mode, setSelectedModes, singleMode)}
               className={`label-mono rounded-full px-4 py-1.5 text-xs transition-micro ${
                 selectedModes.includes(mode)
                   ? "bg-ink text-paper"
@@ -284,7 +287,7 @@ export function RunCreationForm({
           >
             <span>
               Projected cost
-              {isLive ? (singleEngine ? " (generation + SSR scoring, D-022)" : " (generation + extraction, D-022)") : ""}
+              {isLive ? (singleMode ? " (generation + SSR scoring, D-022)" : " (generation + extraction, D-022)") : ""}
             </span>
             <span>${projection.projectedCostUsd.toFixed(4)}</span>
           </div>

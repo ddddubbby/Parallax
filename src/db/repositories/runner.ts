@@ -119,8 +119,11 @@ export async function createRun(
   if (version.state !== "approved") {
     throw new Error("Runs require an approved matrix version");
   }
-  if (version.kind === "resonance" && (input.providers.length !== 1 || input.modes.length !== 1)) {
-    throw new Error("A Resonance run must select exactly one provider and one generation mode (D-067)");
+  // D-080 (supersedes D-067): >=1 providers allowed for resonance — each is
+  // its own synthetic population (metrics.ts scores them separately, never
+  // pooled) — but exactly one generation mode (no mode dimension in scopes).
+  if (version.kind === "resonance" && input.modes.length !== 1) {
+    throw new Error("A Resonance run must select exactly one generation mode (D-080)");
   }
 
   const cells = await db

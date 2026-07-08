@@ -137,8 +137,11 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
     : await getApprovedVersionForRun(projectId);
   if (!version) return { ok: false as const, error: "No approved matrix version" };
   if (version.state !== "approved") return { ok: false as const, error: "Runs require an approved matrix version" };
-  if (version.kind === "resonance" && (input.providers.length !== 1 || input.modes.length !== 1)) {
-    return { ok: false as const, error: "A Resonance run must select exactly one provider and one generation mode (D-067)" };
+  // D-080 (supersedes D-067): a resonance run may select >=1 providers — each
+  // is scored as its own synthetic population, never pooled — but exactly one
+  // generation mode, since resonance metric scopes carry no mode dimension.
+  if (version.kind === "resonance" && input.modes.length !== 1) {
+    return { ok: false as const, error: "A Resonance run must select exactly one generation mode (D-080)" };
   }
   if (input.runMode !== "mock") {
     const secondaryError = validateSecondaryProviderConfig(version.kind);

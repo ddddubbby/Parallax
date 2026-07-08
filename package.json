@@ -25,7 +25,8 @@
     "audit:deepseek-mini": "tsx scripts/audit-deepseek-mini.ts",
     "archive:evidence": "tsx scripts/archive-evidence.ts",
     "demo:walkthrough": "tsx scripts/demo-walkthrough.ts",
-    "demo:resonance": "tsx scripts/demo-resonance.ts"
+    "demo:resonance": "tsx scripts/demo-resonance.ts",
+    "recompute:resonance": "tsx scripts/recompute-resonance.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",

@@ -45,16 +45,20 @@ async function buildCsv(
         ]);
       }
       case "resonance_metrics": {
+        // D-080: a dedicated providerId column (lifted from metadataJson,
+        // where recompute already stores it) so the engine dimension is
+        // spreadsheet-visible without parsing the JSON blob column.
         const rows = withResonanceExportColumns(
           (await getExportMetrics(runId)).map((m) => ({
             ...m,
+            providerId: (m.metadataJson as { providerId?: unknown } | null)?.providerId ?? null,
             metadataJson: JSON.stringify(m.metadataJson),
           })),
           resonanceStudy,
         );
         return toCsv(rows, [
           "simulationLabel", "genericUnconditioned", "studyId", "studyName",
-          "scopeType", "scopeKey", "metricKey", "n", "value", "ciLow", "ciHigh", "metadataJson", "computedAt",
+          "providerId", "scopeType", "scopeKey", "metricKey", "n", "value", "ciLow", "ciHigh", "metadataJson", "computedAt",
         ]);
       }
       default:

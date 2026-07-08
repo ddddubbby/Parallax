@@ -45,6 +45,7 @@ export interface ResonanceEvidenceResponse {
 
 export interface ResonanceVariantResult {
   stimulusId: string;
+  providerId: string;
   stimulusKind: string;
   label: string;
   n: number;
@@ -58,6 +59,7 @@ export interface ResonancePersonaResult {
   key: string;
   stimulusId: string;
   panelPersonaKey: string;
+  providerId: string;
   panelPersonaLabel: string;
   stimulusLabel: string;
   n: number;
@@ -69,12 +71,26 @@ export interface ResonancePersonaResult {
 
 export interface ResonanceDeltaResult {
   stimulusId: string;
+  providerId: string;
   label: string;
   baselineStimulusId: string;
   baselineLabel: string;
   n: number;
   deltaPiMean: number;
   directionalOnly: boolean;
+}
+
+/**
+ * D-080 (supersedes D-067): one group per selected engine — each provider is
+ * a distinct synthetic population, so its variant ranking, delta table, and
+ * persona slices are never pooled with another provider's. A single-provider
+ * run produces exactly one group (the pre-M24 shape, just wrapped).
+ */
+export interface ResonanceProviderGroup {
+  providerId: string;
+  variants: ResonanceVariantResult[];
+  personaRows: ResonancePersonaResult[];
+  deltas: ResonanceDeltaResult[];
 }
 
 export interface ResonanceStudyResults {
@@ -91,9 +107,8 @@ export interface ResonanceStudyResults {
     completedAt: Date | null;
     repetitions: number;
   };
-  variants: ResonanceVariantResult[];
-  personaRows: ResonancePersonaResult[];
-  deltas: ResonanceDeltaResult[];
+  providers: string[];
+  providerGroups: ResonanceProviderGroup[];
 }
 
 export async function getResonanceStudyExportLabel(projectId: string, studyId: string) {
@@ -112,14 +127,28 @@ type PmfMetricMetadata = {
   pmf?: unknown;
   stimulusKind?: unknown;
   label?: unknown;
+  providerId?: unknown;
   sufficientN?: unknown;
   directionalOnly?: unknown;
 };
 
 type DeltaMetricMetadata = {
   baselineStimulusId?: unknown;
+  providerId?: unknown;
   directionalOnly?: unknown;
 };
+
+/**
+ * D-080 scope keys carry a trailing `|providerId` (resonance_variant/delta:
+ * `stimulusId|providerId`; resonance_variant_persona:
+ * `stimulusId|personaKey|providerId`). Stimulus ids and persona keys never
+ * contain "|" (UUIDs and `[a-z0-9_-]+` respectively), so splitting from the
+ * right by a fixed part count is unambiguous.
+ */
+function splitScopeKey(scopeKey: string, partCount: 2 | 3): string[] {
+  const parts = scopeKey.split("|");
+  return parts.length === partCount ? parts : [];
+}
 
 type SsrPayload = {
   kind?: unknown;
@@ -310,6 +339,8 @@ export async function getResonanceStudyResults(
   const anchorSet = getSsrAnchorSet(study.anchorSetVersion);
   const cellById = new Map(cellRows.map((cell) => [cell.id, cell]));
   const responseById = new Map(responseRows.map((response) => [response.id, response]));
+  // D-080: evidence is keyed WITH the provider id — a stimulus run under two
+  // engines must never mix engine A's responses into engine B's variant card.
   const evidenceByStimulus = new Map<string, ResonanceEvidenceResponse[]>();
   const evidenceByStimulusPersona = new Map<string, ResonanceEvidenceResponse[]>();
 
@@ -329,45 +360,55 @@ export async function getResonanceStudyResults(
       stimulusId: cell.stimulusId,
       stimulusLabel: cell.stimulusLabel,
     };
-    if (!evidenceByStimulus.has(cell.stimulusId)) evidenceByStimulus.set(cell.stimulusId, []);
-    evidenceByStimulus.get(cell.stimulusId)?.push(row);
-    const personaKey = `${cell.stimulusId}|${cell.panelPersonaKey}`;
+    const stimulusProviderKey = `${cell.stimulusId}|${sample.providerId}`;
+    if (!evidenceByStimulus.has(stimulusProviderKey)) evidenceByStimulus.set(stimulusProviderKey, []);
+    evidenceByStimulus.get(stimulusProviderKey)?.push(row);
+    const personaKey = `${cell.stimulusId}|${cell.panelPersonaKey}|${sample.providerId}`;
     if (!evidenceByStimulusPersona.has(personaKey)) evidenceByStimulusPersona.set(personaKey, []);
     evidenceByStimulusPersona.get(personaKey)?.push(row);
   }
 
+  // variantById is keyed `stimulusId|providerId` so a delta row (same key
+  // shape) can look up both its own variant AND its baseline WITHIN the same
+  // provider — the within-population guarantee (D-080).
   const variantById = new Map<string, ResonanceVariantResult>();
-  const variants: ResonanceVariantResult[] = [];
+  const variantsByProvider = new Map<string, ResonanceVariantResult[]>();
   for (const row of metricRows.filter((metric) => metric.scopeType === "resonance_variant" && metric.metricKey === "pi_mean")) {
+    const [stimulusId, providerId] = splitScopeKey(row.scopeKey, 2);
+    if (!stimulusId || !providerId) continue;
     const metadata = row.metadataJson as PmfMetricMetadata;
     const pmf = readPmf(metadata.pmf);
     if (!pmf) continue;
     const result: ResonanceVariantResult = {
-      stimulusId: row.scopeKey,
+      stimulusId,
+      providerId,
       stimulusKind: typeof metadata.stimulusKind === "string" ? metadata.stimulusKind : "custom",
-      label: typeof metadata.label === "string" ? metadata.label : row.scopeKey,
+      label: typeof metadata.label === "string" ? metadata.label : stimulusId,
       n: row.n,
       piMean: row.value,
       pmf,
       sufficientN: metadata.sufficientN === true,
       responses: evidenceByStimulus.get(row.scopeKey) ?? [],
     };
-    variantById.set(result.stimulusId, result);
-    variants.push(result);
+    variantById.set(row.scopeKey, result);
+    if (!variantsByProvider.has(providerId)) variantsByProvider.set(providerId, []);
+    variantsByProvider.get(providerId)?.push(result);
   }
-  variants.sort((a, b) => b.piMean - a.piMean || a.label.localeCompare(b.label));
 
-  const personaRows: ResonancePersonaResult[] = [];
+  const personaRowsByProvider = new Map<string, ResonancePersonaResult[]>();
   for (const row of metricRows.filter((metric) => metric.scopeType === "resonance_variant_persona" && metric.metricKey === "pi_mean")) {
-    const [stimulusId, panelPersonaKey = "unknown"] = row.scopeKey.split("|");
+    const [stimulusId, panelPersonaKey, providerId] = splitScopeKey(row.scopeKey, 3);
+    if (!stimulusId || !panelPersonaKey || !providerId) continue;
     const metadata = row.metadataJson as PmfMetricMetadata;
     const pmf = readPmf(metadata.pmf);
     if (!pmf) continue;
-    const label = typeof metadata.label === "string" ? metadata.label : variantById.get(stimulusId)?.label ?? stimulusId;
-    personaRows.push({
+    const label = typeof metadata.label === "string" ? metadata.label : variantById.get(`${stimulusId}|${providerId}`)?.label ?? stimulusId;
+    if (!personaRowsByProvider.has(providerId)) personaRowsByProvider.set(providerId, []);
+    personaRowsByProvider.get(providerId)?.push({
       key: row.scopeKey,
       stimulusId,
       panelPersonaKey,
+      providerId,
       panelPersonaLabel: personaLabel(personas, panelPersonaKey),
       stimulusLabel: label,
       n: row.n,
@@ -377,17 +418,22 @@ export async function getResonanceStudyResults(
       responses: evidenceByStimulusPersona.get(row.scopeKey) ?? [],
     });
   }
-  personaRows.sort((a, b) => a.panelPersonaLabel.localeCompare(b.panelPersonaLabel) || b.piMean - a.piMean);
 
-  const deltas: ResonanceDeltaResult[] = [];
+  const deltasByProvider = new Map<string, ResonanceDeltaResult[]>();
   for (const row of metricRows.filter((metric) => metric.scopeType === "resonance_delta" && metric.metricKey === "delta_pi_mean")) {
+    const [stimulusId, providerId] = splitScopeKey(row.scopeKey, 2);
+    if (!stimulusId || !providerId) continue;
     const metadata = row.metadataJson as DeltaMetricMetadata;
     const baselineStimulusId = typeof metadata.baselineStimulusId === "string" ? metadata.baselineStimulusId : "";
     const variant = variantById.get(row.scopeKey);
-    const baseline = variantById.get(baselineStimulusId);
+    // D-080: the baseline lookup is scoped to the SAME provider as the delta
+    // row — never another provider's variant, even if stimulus ids collide.
+    const baseline = variantById.get(`${baselineStimulusId}|${providerId}`);
     if (!variant || !baseline) continue;
-    deltas.push({
-      stimulusId: row.scopeKey,
+    if (!deltasByProvider.has(providerId)) deltasByProvider.set(providerId, []);
+    deltasByProvider.get(providerId)?.push({
+      stimulusId,
+      providerId,
       label: variant.label,
       baselineStimulusId,
       baselineLabel: baseline.label,
@@ -396,7 +442,17 @@ export async function getResonanceStudyResults(
       directionalOnly: metadata.directionalOnly !== false,
     });
   }
-  deltas.sort((a, b) => b.deltaPiMean - a.deltaPiMean || a.label.localeCompare(b.label));
+
+  const providers = [...variantsByProvider.keys()].sort();
+  const providerGroups: ResonanceProviderGroup[] = providers.map((providerId) => {
+    const variants = [...(variantsByProvider.get(providerId) ?? [])];
+    variants.sort((a, b) => b.piMean - a.piMean || a.label.localeCompare(b.label));
+    const personaRows = [...(personaRowsByProvider.get(providerId) ?? [])];
+    personaRows.sort((a, b) => a.panelPersonaLabel.localeCompare(b.panelPersonaLabel) || b.piMean - a.piMean);
+    const deltas = [...(deltasByProvider.get(providerId) ?? [])];
+    deltas.sort((a, b) => b.deltaPiMean - a.deltaPiMean || a.label.localeCompare(b.label));
+    return { providerId, variants, personaRows, deltas };
+  });
 
   return {
     study: {
@@ -407,9 +463,8 @@ export async function getResonanceStudyResults(
       anchorSetCalibrated: anchorSet.calibrated,
     },
     run,
-    variants,
-    personaRows,
-    deltas,
+    providers,
+    providerGroups,
   };
 }
 

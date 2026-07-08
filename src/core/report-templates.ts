@@ -100,18 +100,14 @@ export interface ReportContext {
   brandMetrics: Array<{ brandName: string; isClient: boolean; metricKey: string; value: number; n: number }>;
 }
 
-export interface ResonanceReportContext {
-  studyName: string;
-  runMode: string;
-  runDate: string;
-  isMock: boolean;
-  genericUnconditioned: boolean;
-  repetitions: number;
-  providers: string[];
-  modes: string[];
-  anchorSetVersion: string;
-  anchorSetCalibrated: boolean;
-  embeddingModel: string;
+/**
+ * D-080 (supersedes D-067): one section per engine — each provider is a
+ * distinct synthetic population, so its variant ranking, delta table,
+ * persona slices, and evidence excerpts are never pooled with another
+ * provider's. A single-provider run's report renders exactly one section.
+ */
+export interface ResonanceProviderSection {
+  providerId: string;
   variants: Array<{
     stimulusId: string;
     label: string;
@@ -142,6 +138,21 @@ export interface ResonanceReportContext {
     meanScore: number;
     rawText: string;
   }>;
+}
+
+export interface ResonanceReportContext {
+  studyName: string;
+  runMode: string;
+  runDate: string;
+  isMock: boolean;
+  genericUnconditioned: boolean;
+  repetitions: number;
+  providers: string[];
+  modes: string[];
+  anchorSetVersion: string;
+  anchorSetCalibrated: boolean;
+  embeddingModel: string;
+  providerSections: ResonanceProviderSection[];
 }
 
 function overall(ctx: ReportContext, key: string): MetricLike | undefined {
@@ -502,27 +513,32 @@ function generateResonanceMethod(ctx: ResonanceReportContext): string {
 Respondents saw text-only stimulus variants. This limitation matters: the reference SSR method also studies image stimuli, and text-only stimuli should be read as a narrower proxy. Means are point estimates with no confidence interval; per-persona slices are always directional-only. Panel personas use age and income as validated conditioning axes, with location and behavioral profile as prompt context.`;
 }
 
-function generateResonanceResults(ctx: ResonanceReportContext): string {
-  const variantRows = ctx.variants
+// D-080: each provider is its own synthetic population — a variant ranking,
+// delta table, and persona-slice block per engine, never pooled numbers
+// across engines. A single-provider run renders exactly one "Engine:" block.
+function generateResonanceResultsSection(section: ResonanceProviderSection): string {
+  const variantRows = section.variants
     .map(
       (v) =>
         `| ${escapeModelText(v.label)} | ${escapeModelText(v.stimulusKind)} | ${v.piMean.toFixed(2)} | ${v.n} | ${pmfText(v.pmf)} | ${v.sufficientN ? "aggregate" : "directional"} |`,
     )
     .join("\n");
-  const deltaRows = ctx.deltas
+  const deltaRows = section.deltas
     .map(
       (d) =>
         `| ${escapeModelText(d.label)} | ${escapeModelText(d.baselineLabel)} | ${d.deltaPiMean > 0 ? "+" : ""}${d.deltaPiMean.toFixed(2)} | ${d.n} | ${d.directionalOnly ? "directional" : "aggregate"} |`,
     )
     .join("\n");
-  const personaRows = ctx.personaRows
+  const personaRows = section.personaRows
     .map(
       (p) =>
         `| ${escapeModelText(p.panelPersonaLabel)} | ${escapeModelText(p.stimulusLabel)} | ${p.piMean.toFixed(2)} | ${p.n} | directional |`,
     )
     .join("\n");
 
-  return `${resonanceBadgeLine(ctx)}## Variant ranking
+  return `### Engine: ${escapeModelText(section.providerId)}
+
+## Variant ranking
 
 | Variant | Kind | Mean PI | n | PMF | Gate |
 |---|---|---:|---:|---|---|
@@ -543,8 +559,13 @@ Persona slices are included for diagnosis and are always directional-only.
 ${personaRows || "| No persona metrics | — | — | — | — |"}`;
 }
 
-function generateResonanceEvidence(ctx: ResonanceReportContext): string {
-  const rows = ctx.evidence
+function generateResonanceResults(ctx: ResonanceReportContext): string {
+  const sections = ctx.providerSections.map(generateResonanceResultsSection).join("\n\n---\n\n");
+  return `${resonanceBadgeLine(ctx)}${sections || "No variant metrics for this run."}`;
+}
+
+function generateResonanceEvidenceSection(section: ResonanceProviderSection): string {
+  const rows = section.evidence
     .map(
       (e) =>
         `### ${escapeModelText(e.stimulusLabel)} · ${escapeModelText(e.panelPersonaLabel)}
@@ -555,9 +576,17 @@ Response: \`${e.responseId}\` · scored mean PI: ${e.meanScore.toFixed(2)}`,
     )
     .join("\n\n---\n\n");
 
+  return `### Engine: ${escapeModelText(section.providerId)}
+
+${rows || "No eligible SSR-scored responses were available for this engine."}`;
+}
+
+function generateResonanceEvidence(ctx: ResonanceReportContext): string {
+  const sections = ctx.providerSections.map(generateResonanceEvidenceSection).join("\n\n===\n\n");
+
   return `${resonanceBadgeLine(ctx)}Evidence excerpts below are deterministic: responses are sorted by response id within each stimulus and selected from eligible SSR-scored responses. They are shown so every simulated figure can be traced back to stored raw text.
 
-${rows || "No eligible SSR-scored responses were available for this run."}`;
+${sections || "No eligible SSR-scored responses were available for this run."}`;
 }
 
 const RESONANCE_GENERATORS: Record<ResonanceSectionKey, (ctx: ResonanceReportContext) => string> = {

@@ -10,6 +10,7 @@ import {
   getResonanceStudyResults,
   listAuditEvidenceResponses,
   listResonanceStudies,
+  type ResonanceProviderGroup,
   type ResonanceStudyResults,
 } from "@/db/repositories/resonance";
 import { getProjectSummary } from "@/db/repositories/runner";
@@ -44,7 +45,7 @@ function ResponseEvidenceList({
 }: {
   id: string;
   title: string;
-  responses: ResonanceStudyResults["variants"][number]["responses"];
+  responses: ResonanceProviderGroup["variants"][number]["responses"];
 }) {
   return (
     <section id={id} className="border-t border-ink/15 pt-4">
@@ -81,27 +82,20 @@ function ResponseEvidenceList({
   );
 }
 
-function ResonanceResultsPanel({ projectId, results }: { projectId: string; results: ResonanceStudyResults }) {
+// D-080 (supersedes D-067): one section per engine — each provider is a
+// distinct synthetic population, so its ranking/delta/persona/evidence never
+// pool with another provider's. A single-provider run renders exactly one
+// section (visually equivalent to the pre-M24 panel, plus an engine label).
+function ProviderResultsSection({ group }: { group: ResonanceProviderGroup }) {
+  const anchor = (stimulusId: string) => `responses-${group.providerId}-${stimulusId}`;
+  const personaAnchor = (key: string) => `responses-${group.providerId}-${key}`;
+
   return (
-    <div className="mt-5 space-y-5 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
+    <div className="space-y-5 border-t border-ink/10 pt-5 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="label-mono text-xs font-semibold text-ink/70">Simulation Layer results</h3>
+        <h4 className="label-mono text-sm font-semibold text-ink/75">Engine: {group.providerId}</h4>
         <SimulatedBadge />
-        {results.study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
-        <Stamp tone={results.run.runMode === "mock" ? "accent" : "ink"}>{results.run.runMode}</Stamp>
-        <span className="font-mono text-xs text-ink/45">
-          run {results.run.id.slice(0, 8)} · k={results.run.repetitions}
-        </span>
-        <Link
-          href={`/projects/${projectId}/report?runId=${results.run.id}`}
-          className="label-mono ml-auto rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"
-        >
-          Report →
-        </Link>
       </div>
-      <p className="font-mono text-xs leading-5 text-ink/55">
-        Mean PI and ΔPI are simulated Likert-scale survey-construct scores. They compare stimulus variants within this study; they are not forecasts of buying behavior or business outcomes.
-      </p>
 
       <section>
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -109,7 +103,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
           <SimulatedBadge />
         </div>
         <div className="grid gap-3">
-          {results.variants.map((variant, idx) => (
+          {group.variants.map((variant, idx) => (
             <article key={variant.stimulusId} className="rounded-lg border border-ink/10 bg-paper p-3">
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="label-mono text-xs text-ink/45">#{idx + 1}</span>
@@ -117,7 +111,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
                 <Stamp tone="ink">{variant.stimulusKind}</Stamp>
                 {!variant.sufficientN && <Stamp tone="warn">DIRECTIONAL</Stamp>}
                 <a
-                  href={`#responses-${variant.stimulusId}`}
+                  href={`#${anchor(variant.stimulusId)}`}
                   className="label-mono ml-auto rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"
                 >
                   View evidence →
@@ -132,7 +126,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
                   {variant.pmf.map((value, bucket) => (
                     <a
                       key={`${variant.stimulusId}-${bucket}`}
-                      href={`#responses-${variant.stimulusId}`}
+                      href={`#${anchor(variant.stimulusId)}`}
                       className="group min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       <div className="flex h-20 items-end rounded-sm bg-ink/10">
@@ -154,7 +148,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
         </div>
       </section>
 
-      {results.deltas.length > 0 && (
+      {group.deltas.length > 0 && (
         <section>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <h4 className="label-mono text-xs text-ink/55">Delta vs baseline</h4>
@@ -172,7 +166,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
                 </tr>
               </thead>
               <tbody>
-                {results.deltas.map((delta) => (
+                {group.deltas.map((delta) => (
                   <tr key={delta.stimulusId} className="border-t border-ink/10">
                     <td className="px-3 py-2">{delta.label}</td>
                     <td className="px-3 py-2 text-ink/55">{delta.baselineLabel}</td>
@@ -189,7 +183,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
         </section>
       )}
 
-      {results.personaRows.length > 0 && (
+      {group.personaRows.length > 0 && (
         <section>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <h4 className="label-mono text-xs text-ink/55">Segment slices</h4>
@@ -207,14 +201,14 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
                 </tr>
               </thead>
               <tbody>
-                {results.personaRows.map((row) => (
+                {group.personaRows.map((row) => (
                   <tr key={row.key} className="border-t border-ink/10">
                     <td className="px-3 py-2">{row.panelPersonaLabel}</td>
                     <td className="px-3 py-2 text-ink/65">{row.stimulusLabel}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatPi(row.piMean)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{row.n}</td>
                     <td className="px-3 py-2">
-                      <a className="text-ink/70 underline-offset-2 hover:underline" href={`#responses-${row.key}`}>
+                      <a className="text-ink/70 underline-offset-2 hover:underline" href={`#${personaAnchor(row.key)}`}>
                         responses
                       </a>{" "}
                       {row.directionalOnly ? <Stamp tone="warn">DIRECTIONAL</Stamp> : <Stamp tone="ok">AGGREGATE</Stamp>}
@@ -233,7 +227,7 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
           <SimulatedBadge />
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          {results.variants.map((variant) => {
+          {group.variants.map((variant) => {
             const sorted = [...variant.responses].sort(
               (a, b) => a.meanScore - b.meanScore || a.responseId.localeCompare(b.responseId),
             );
@@ -257,23 +251,52 @@ function ResonanceResultsPanel({ projectId, results }: { projectId: string; resu
       </section>
 
       <div className="space-y-5">
-        {results.variants.map((variant) => (
+        {group.variants.map((variant) => (
           <ResponseEvidenceList
-            key={`responses-${variant.stimulusId}`}
-            id={`responses-${variant.stimulusId}`}
+            key={anchor(variant.stimulusId)}
+            id={anchor(variant.stimulusId)}
             title={`${variant.label} evidence`}
             responses={variant.responses}
           />
         ))}
-        {results.personaRows.map((row) => (
+        {group.personaRows.map((row) => (
           <ResponseEvidenceList
-            key={`responses-${row.key}`}
-            id={`responses-${row.key}`}
+            key={personaAnchor(row.key)}
+            id={personaAnchor(row.key)}
             title={`${row.panelPersonaLabel} · ${row.stimulusLabel}`}
             responses={row.responses}
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+function ResonanceResultsPanel({ projectId, results }: { projectId: string; results: ResonanceStudyResults }) {
+  return (
+    <div className="mt-5 space-y-6 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="label-mono text-xs font-semibold text-ink/70">Simulation Layer results</h3>
+        <SimulatedBadge />
+        {results.study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
+        <Stamp tone={results.run.runMode === "mock" ? "accent" : "ink"}>{results.run.runMode}</Stamp>
+        <span className="font-mono text-xs text-ink/45">
+          run {results.run.id.slice(0, 8)} · k={results.run.repetitions}
+        </span>
+        <Link
+          href={`/projects/${projectId}/report?runId=${results.run.id}`}
+          className="label-mono ml-auto rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"
+        >
+          Report →
+        </Link>
+      </div>
+      <p className="font-mono text-xs leading-5 text-ink/55">
+        Mean PI and ΔPI are simulated Likert-scale survey-construct scores. They compare stimulus variants within one engine&rsquo;s population; they are never pooled across engines and are not forecasts of buying behavior or business outcomes.
+      </p>
+
+      {results.providerGroups.map((group) => (
+        <ProviderResultsSection key={group.providerId} group={group} />
+      ))}
     </div>
   );
 }

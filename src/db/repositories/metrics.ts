@@ -467,6 +467,7 @@ async function recomputeResonanceMetrics(runId: string) {
     stimulusKind: string;
     stimulusLabel: string;
     stimulusPosition: number;
+    providerId: string;
     pmf: number[];
     meanScore: number;
   }> = [];
@@ -481,85 +482,104 @@ async function recomputeResonanceMetrics(runId: string) {
       stimulusKind: cell.stimulusKind,
       stimulusLabel: cell.stimulusLabel,
       stimulusPosition: cell.stimulusPosition,
+      providerId: row.providerId,
       pmf: ssr.pmf,
       meanScore: ssr.meanScore,
     });
   }
 
   const rows: Array<typeof metrics.$inferInsert> = [];
-  const byStimulus = groupBy(samples, (sample) => sample.stimulusId);
-  const stimulusMeans = new Map<string, number>();
 
-  for (const [stimulusId, items] of byStimulus) {
-    const first = items[0];
-    const value = mean(items.map((item) => item.meanScore));
-    stimulusMeans.set(stimulusId, value);
-    rows.push({
-      runId,
-      scopeType: "resonance_variant",
-      scopeKey: stimulusId,
-      metricKey: "pi_mean",
-      n: items.length,
-      value,
-      ciLow: null,
-      ciHigh: null,
-      metadataJson: {
-        pmf: averagePmf(items.map((item) => item.pmf)),
-        stimulusKind: first.stimulusKind,
-        label: first.stimulusLabel,
-        sufficientN: items.length >= 30,
-      },
-    });
-  }
+  // D-080 (supersedes D-067): each selected engine is a distinct synthetic
+  // population. Variant means, persona slices, and delta baselines are all
+  // computed WITHIN one provider's own samples — never pooled across
+  // providers, which would silently merge two populations' PMFs (the C-12
+  // failure mode in miniature). Scope keys and metadataJson both carry
+  // providerId so the results reader and exports can group per engine.
+  const byProvider = groupBy(samples, (sample) => sample.providerId);
+  for (const [providerId, providerSamples] of byProvider) {
+    const byStimulus = groupBy(providerSamples, (sample) => sample.stimulusId);
+    const stimulusMeans = new Map<string, number>();
 
-  const byStimulusPersona = groupBy(samples, (sample) => `${sample.stimulusId}|${sample.panelPersonaKey}`);
-  for (const [key, items] of byStimulusPersona) {
-    const first = items[0];
-    rows.push({
-      runId,
-      scopeType: "resonance_variant_persona",
-      scopeKey: key,
-      metricKey: "pi_mean",
-      n: items.length,
-      value: mean(items.map((item) => item.meanScore)),
-      ciLow: null,
-      ciHigh: null,
-      metadataJson: {
-        pmf: averagePmf(items.map((item) => item.pmf)),
-        stimulusKind: first.stimulusKind,
-        label: first.stimulusLabel,
-        directionalOnly: true,
-      },
-    });
-  }
-
-  const orderedStimuli = [...byStimulus.values()]
-    .map((items) => items[0])
-    .sort((a, b) => a.stimulusPosition - b.stimulusPosition);
-  const measuredBaseline = orderedStimuli.find((item) => item.stimulusKind === "measured_ai")?.stimulusId;
-  const fallbackBaseline = orderedStimuli[0]?.stimulusId;
-  const baselineStimulusId = studyRow?.baselineStimulusId ?? measuredBaseline ?? fallbackBaseline ?? null;
-  const baselineMean = baselineStimulusId ? stimulusMeans.get(baselineStimulusId) : undefined;
-  if (baselineStimulusId && baselineMean !== undefined) {
-    const baselineN = byStimulus.get(baselineStimulusId)?.length ?? 0;
-    const baselineSufficientN = baselineN >= 30;
-    for (const [stimulusId, value] of stimulusMeans) {
-      if (stimulusId === baselineStimulusId) continue;
-      const variantN = byStimulus.get(stimulusId)?.length ?? 0;
+    for (const [stimulusId, items] of byStimulus) {
+      const first = items[0];
+      const value = mean(items.map((item) => item.meanScore));
+      stimulusMeans.set(stimulusId, value);
       rows.push({
         runId,
-        scopeType: "resonance_delta",
-        scopeKey: stimulusId,
-        metricKey: "delta_pi_mean",
-        n: variantN,
-        value: value - baselineMean,
+        scopeType: "resonance_variant",
+        scopeKey: `${stimulusId}|${providerId}`,
+        metricKey: "pi_mean",
+        n: items.length,
+        value,
         ciLow: null,
         ciHigh: null,
         metadataJson: {
-          baselineStimulusId,
-          directionalOnly: !(variantN >= 30 && baselineSufficientN),
+          pmf: averagePmf(items.map((item) => item.pmf)),
+          stimulusKind: first.stimulusKind,
+          label: first.stimulusLabel,
+          providerId,
+          sufficientN: items.length >= 30,
         },
       });
+    }
+
+    const byStimulusPersona = groupBy(providerSamples, (sample) => `${sample.stimulusId}|${sample.panelPersonaKey}`);
+    for (const [key, items] of byStimulusPersona) {
+      const first = items[0];
+      rows.push({
+        runId,
+        scopeType: "resonance_variant_persona",
+        scopeKey: `${key}|${providerId}`,
+        metricKey: "pi_mean",
+        n: items.length,
+        value: mean(items.map((item) => item.meanScore)),
+        ciLow: null,
+        ciHigh: null,
+        metadataJson: {
+          pmf: averagePmf(items.map((item) => item.pmf)),
+          stimulusKind: first.stimulusKind,
+          label: first.stimulusLabel,
+          providerId,
+          directionalOnly: true,
+        },
+      });
+    }
+
+    const orderedStimuli = [...byStimulus.values()]
+      .map((items) => items[0])
+      .sort((a, b) => a.stimulusPosition - b.stimulusPosition);
+    const measuredBaseline = orderedStimuli.find((item) => item.stimulusKind === "measured_ai")?.stimulusId;
+    const fallbackBaseline = orderedStimuli[0]?.stimulusId;
+    // The study's pinned baseline is a single physical stimulus shared across
+    // providers, but its MEAN must come from THIS provider's own stimulusMeans
+    // (D-080) — if this provider has no samples for it, baselineMean is
+    // undefined and this provider simply emits no delta rows, exactly like the
+    // pre-M24 single-provider fallback behaved when the baseline was missing.
+    const baselineStimulusId = studyRow?.baselineStimulusId ?? measuredBaseline ?? fallbackBaseline ?? null;
+    const baselineMean = baselineStimulusId ? stimulusMeans.get(baselineStimulusId) : undefined;
+    if (baselineStimulusId && baselineMean !== undefined) {
+      const baselineN = byStimulus.get(baselineStimulusId)?.length ?? 0;
+      const baselineSufficientN = baselineN >= 30;
+      for (const [stimulusId, value] of stimulusMeans) {
+        if (stimulusId === baselineStimulusId) continue;
+        const variantN = byStimulus.get(stimulusId)?.length ?? 0;
+        rows.push({
+          runId,
+          scopeType: "resonance_delta",
+          scopeKey: `${stimulusId}|${providerId}`,
+          metricKey: "delta_pi_mean",
+          n: variantN,
+          value: value - baselineMean,
+          ciLow: null,
+          ciHigh: null,
+          metadataJson: {
+            baselineStimulusId,
+            providerId,
+            directionalOnly: !(variantN >= 30 && baselineSufficientN),
+          },
+        });
+      }
     }
   }
 

@@ -473,7 +473,10 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     expect(cells.every((cell) => cell.intent === "simulation")).toBe(true);
     expect(cells.every((cell) => cell.personaId === null && cell.marketId === null)).toBe(true);
 
-    const multi = await projectRunCost(projectId, {
+    // D-080 (supersedes D-067): a Resonance run may now select multiple
+    // providers — each is scored as its own synthetic population — but
+    // exactly one generation mode (no mode dimension in resonance scopes).
+    const multiProvider = await projectRunCost(projectId, {
       matrixVersionId: version.id,
       runMode: "live_validation",
       providers: ["deepseek", "openai"],
@@ -481,8 +484,18 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       repetitions: 1,
       costCapUsd: 1,
     });
-    expect(multi.ok).toBe(false);
-    if (!multi.ok) expect(multi.error).toContain("D-067");
+    expect(multiProvider.ok).toBe(true);
+
+    const multiMode = await projectRunCost(projectId, {
+      matrixVersionId: version.id,
+      runMode: "live_validation",
+      providers: ["deepseek"],
+      modes: ["ungrounded", "grounded"],
+      repetitions: 1,
+      costCapUsd: 1,
+    });
+    expect(multiMode.ok).toBe(false);
+    if (!multiMode.ok) expect(multiMode.error).toContain("D-080");
 
     const run = await createRun(projectId, {
       matrixVersionId: version.id,
@@ -554,25 +567,32 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     }
 
     const refreshedResults = await getResonanceStudyResults(projectId, study.id, run.runId, { refreshMetrics: true });
-    expect(refreshedResults?.variants.length).toBeGreaterThan(0);
-    expect(refreshedResults?.variants.every((variant) => variant.pmf.reduce((sum, value) => sum + value, 0) > 0.999)).toBe(true);
+    expect(refreshedResults?.providers).toEqual(["mock"]);
+    const refreshedVariants = refreshedResults?.providerGroups.flatMap((g) => g.variants) ?? [];
+    expect(refreshedVariants.length).toBeGreaterThan(0);
+    expect(refreshedVariants.every((variant) => variant.pmf.reduce((sum, value) => sum + value, 0) > 0.999)).toBe(true);
+    expect(refreshedVariants.every((variant) => variant.providerId === "mock")).toBe(true);
 
+    // Single-provider run: rowCount and scopeKey suffix are the pre-M24
+    // shape plus a `|mock` provider suffix (D-080) — 2 variant + 2 persona +
+    // 1 delta rows, unchanged in count from before M24.
     const rowCount = await recomputeMetrics(run.runId);
     expect(rowCount).toBe(5);
     const first = await listMetrics(run.runId);
     expect(first.every((row) => row.scopeType.startsWith("resonance_"))).toBe(true);
+    expect(first.every((row) => row.scopeKey.endsWith("|mock"))).toBe(true);
     expect(first.some((row) => row.scopeType === "resonance_delta" && row.metricKey === "delta_pi_mean")).toBe(true);
     const deltaMetric = first.find((row) => row.scopeType === "resonance_delta" && row.metricKey === "delta_pi_mean");
     if (!deltaMetric) throw new Error("expected resonance delta metric");
-    expect(deltaMetric.metadataJson).toMatchObject({ baselineStimulusId: expect.any(String), directionalOnly: true });
+    expect(deltaMetric.metadataJson).toMatchObject({ baselineStimulusId: expect.any(String), providerId: "mock", directionalOnly: true });
     const results = await getResonanceStudyResults(projectId, study.id, run.runId);
-    expect(results?.deltas[0]?.directionalOnly).toBe(true);
+    expect(results?.providerGroups[0]?.deltas[0]?.directionalOnly).toBe(true);
     await db
       .update(metrics)
       .set({ metadataJson: { ...(deltaMetric.metadataJson as Record<string, unknown>), directionalOnly: false } })
       .where(eq(metrics.id, deltaMetric.id));
     const overriddenResults = await getResonanceStudyResults(projectId, study.id, run.runId);
-    expect(overriddenResults?.deltas[0]?.directionalOnly).toBe(false);
+    expect(overriddenResults?.providerGroups[0]?.deltas[0]?.directionalOnly).toBe(false);
     const personaMetric = first.find(
       (row) => row.scopeType === "resonance_variant_persona" && row.metricKey === "pi_mean",
     );
@@ -582,7 +602,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       .set({ metadataJson: { ...(personaMetric.metadataJson as Record<string, unknown>), directionalOnly: false } })
       .where(eq(metrics.id, personaMetric.id));
     const personaResults = await getResonanceStudyResults(projectId, study.id, run.runId);
-    expect(personaResults?.personaRows.every((row) => row.directionalOnly)).toBe(true);
+    expect(personaResults?.providerGroups[0]?.personaRows.every((row) => row.directionalOnly)).toBe(true);
     const variantMetric = first.find(
       (row) => row.scopeType === "resonance_variant" && row.metricKey === "pi_mean" && row.scopeKey === deltaMetric.scopeKey,
     );
@@ -592,8 +612,10 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       .set({ metadataJson: { ...(variantMetric.metadataJson as Record<string, unknown>), pmf: [1, 1, 1, 1, 1] } })
       .where(eq(metrics.id, variantMetric.id));
     const invalidPmfResults = await getResonanceStudyResults(projectId, study.id, run.runId);
-    expect(invalidPmfResults?.variants.some((variant) => variant.stimulusId === variantMetric.scopeKey)).toBe(false);
-    expect(invalidPmfResults?.deltas.some((delta) => delta.stimulusId === variantMetric.scopeKey)).toBe(false);
+    const invalidPmfVariants = invalidPmfResults?.providerGroups.flatMap((g) => g.variants) ?? [];
+    const invalidPmfDeltas = invalidPmfResults?.providerGroups.flatMap((g) => g.deltas) ?? [];
+    expect(invalidPmfVariants.some((variant) => `${variant.stimulusId}|${variant.providerId}` === variantMetric.scopeKey)).toBe(false);
+    expect(invalidPmfDeltas.some((delta) => `${delta.stimulusId}|${delta.providerId}` === variantMetric.scopeKey)).toBe(false);
 
     const [variantResponse] = responseRows.filter((response) => response.cellId === jobRows.find((job) => job.cellId)?.cellId);
     const [variantExtraction] = await db
@@ -611,9 +633,10 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     expect(inconsistentMeanMetrics.every((row) => row.n < responseRows.length)).toBe(true);
 
     const inconsistentMeanResults = await getResonanceStudyResults(projectId, study.id, run.runId);
-    const responseIdsInResults = inconsistentMeanResults?.variants.flatMap((variant) =>
-      variant.responses.map((response) => response.responseId),
-    ) ?? [];
+    const responseIdsInResults =
+      inconsistentMeanResults?.providerGroups.flatMap((g) =>
+        g.variants.flatMap((variant) => variant.responses.map((response) => response.responseId)),
+      ) ?? [];
     expect(responseIdsInResults).not.toContain(variantResponse.id);
     await db
       .update(extractions)

@@ -174,38 +174,43 @@ async function buildResonanceReportContext(runId: string): Promise<ResonanceRepo
     anchorSetVersion: results.study.anchorSetVersion,
     anchorSetCalibrated: results.study.anchorSetCalibrated,
     embeddingModel,
-    variants: results.variants.map((variant) => ({
-      stimulusId: variant.stimulusId,
-      label: variant.label,
-      stimulusKind: variant.stimulusKind,
-      n: variant.n,
-      piMean: variant.piMean,
-      pmf: variant.pmf,
-      sufficientN: variant.sufficientN,
-    })),
-    deltas: results.deltas.map((delta) => ({
-      label: delta.label,
-      baselineLabel: delta.baselineLabel,
-      n: delta.n,
-      deltaPiMean: delta.deltaPiMean,
-      directionalOnly: delta.directionalOnly,
-    })),
-    personaRows: results.personaRows.map((row) => ({
-      panelPersonaLabel: row.panelPersonaLabel,
-      stimulusLabel: row.stimulusLabel,
-      n: row.n,
-      piMean: row.piMean,
-      directionalOnly: row.directionalOnly,
-    })),
-    evidence: results.variants.flatMap((variant) =>
-      variant.responses.slice(0, 4).map((response) => ({
-        stimulusLabel: variant.label,
-        responseId: response.responseId,
-        panelPersonaLabel: response.panelPersonaLabel,
-        meanScore: response.meanScore,
-        rawText: response.rawText,
+    // D-080: one section per engine — never pool a provider's variants,
+    // deltas, persona slices, or evidence with another provider's.
+    providerSections: results.providerGroups.map((group) => ({
+      providerId: group.providerId,
+      variants: group.variants.map((variant) => ({
+        stimulusId: variant.stimulusId,
+        label: variant.label,
+        stimulusKind: variant.stimulusKind,
+        n: variant.n,
+        piMean: variant.piMean,
+        pmf: variant.pmf,
+        sufficientN: variant.sufficientN,
       })),
-    ),
+      deltas: group.deltas.map((delta) => ({
+        label: delta.label,
+        baselineLabel: delta.baselineLabel,
+        n: delta.n,
+        deltaPiMean: delta.deltaPiMean,
+        directionalOnly: delta.directionalOnly,
+      })),
+      personaRows: group.personaRows.map((row) => ({
+        panelPersonaLabel: row.panelPersonaLabel,
+        stimulusLabel: row.stimulusLabel,
+        n: row.n,
+        piMean: row.piMean,
+        directionalOnly: row.directionalOnly,
+      })),
+      evidence: group.variants.flatMap((variant) =>
+        variant.responses.slice(0, 4).map((response) => ({
+          stimulusLabel: variant.label,
+          responseId: response.responseId,
+          panelPersonaLabel: response.panelPersonaLabel,
+          meanScore: response.meanScore,
+          rawText: response.rawText,
+        })),
+      ),
+    })),
   };
 }
 
