@@ -4,6 +4,7 @@ import {
   type BrandTerms,
   type CellPlan,
   findBrandTerms,
+  findBusinessVoicePhrases,
   intentQuotas,
   type MatrixContext,
   renderTemplate,
@@ -231,6 +232,45 @@ describe("scanUnbrandedCells (PM-9)", () => {
         brands,
       ),
     ).toEqual([]);
+  });
+});
+
+describe("findBusinessVoicePhrases (M28 buyer-voice guard)", () => {
+  it("returns empty for clean buyer-voice phrasing", () => {
+    expect(findBusinessVoicePhrases("night street photography")).toEqual([]);
+    expect(findBusinessVoicePhrases("keep invoices reconciled every month")).toEqual([]);
+    expect(findBusinessVoicePhrases("spend management for a 20-person team")).toEqual([]);
+  });
+
+  it("flags leading imperative marketing verbs", () => {
+    expect(findBusinessVoicePhrases("Penetrate the enterprise segment")).toContain("penetrate");
+    expect(findBusinessVoicePhrases("Dominate the regional market")).toContain("dominate");
+  });
+
+  it("flags market-objective phrases", () => {
+    expect(findBusinessVoicePhrases("Grow market share this quarter")).toContain("market share");
+    expect(findBusinessVoicePhrases("Increase adoption among enterprise teams")).toContain(
+      "increase adoption",
+    );
+    expect(findBusinessVoicePhrases("Acquire customers in APAC")).toContain("acquire customers");
+    expect(findBusinessVoicePhrases("Launch into the SMB tier")).toContain("launch into");
+    expect(findBusinessVoicePhrases("Scale to 10,000 users")).toContain("scale to");
+  });
+
+  it("flags the target ... segment pattern even with words in between", () => {
+    expect(findBusinessVoicePhrases("Target the traditional DSLR consumer segment")).toContain(
+      "target ... segment",
+    );
+  });
+
+  it("does not false-positive on a word containing the phrase (word boundary, D-062 lesson)", () => {
+    expect(findBusinessVoicePhrases("Our captured audience loves the app")).toEqual([]);
+    expect(findBusinessVoicePhrases("Converting RAW photos to JPEG at night")).toEqual([]);
+  });
+
+  it("returns multiple matches when several phrases are present", () => {
+    const hits = findBusinessVoicePhrases("Penetrate the market and grow share fast");
+    expect(hits).toEqual(expect.arrayContaining(["penetrate", "grow share"]));
   });
 });
 

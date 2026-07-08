@@ -157,7 +157,7 @@ export function MatrixBoard({
           <span className="font-mono text-xs text-warn">
             PM-9 — {violationCount} unbranded cell{violationCount === 1 ? "" : "s"} contain
             {violationCount === 1 ? "s" : ""} tracked brand terms; approval will be blocked.
-            Discovery/consideration prompts must be brand-free — check the job-to-be-done and
+            Discovery/consideration prompts must be brand-free — check the buyer&rsquo;s goal and
             category intake fields, then edit or regenerate the flagged cells below.
           </span>
         </div>

@@ -3,7 +3,7 @@ import {
   DEFAULT_MATRIX_CELLS,
   MAX_CELLS_PER_RUN,
 } from "./constants";
-import { normalizePhrase } from "./intake";
+import { containsPhrase, normalizePhrase } from "./intake";
 
 // Matrix domain: allocation, template rendering, and approval rules
 // (PRD 8.4). Pure module — no project-layer imports (C-7); randomness is
@@ -297,4 +297,55 @@ export function scanUnbrandedCells(
       violations.push({ cellId: cell.id, intent: cell.intent, terms });
   }
   return violations;
+}
+
+/**
+ * M28 buyer-voice guard — PM-9's "other half" (D-046 caught brand NAMES in
+ * job_to_be_done; this catches brand/business-GOAL language). Every template
+ * interpolates {job_to_be_done} as what the BUYER wants to accomplish
+ * ("night street photography"), never the operator's marketing objective
+ * ("penetrate the DSLR segment") — the latter produces a grammatically and
+ * evidentially broken prompt. Word-boundary matching via the same
+ * `containsPhrase` helper PM-9's own findBrandTerms uses, so a short phrase
+ * like "capture" never matches inside an unrelated word ("captured") — the
+ * exact over-eager-substring lesson from D-062 finding 3.
+ */
+const BUSINESS_VOICE_PHRASES: string[] = [
+  "penetrate",
+  "capture",
+  "grow share",
+  "expand share",
+  "gain share",
+  "acquire customers",
+  "convert",
+  "win customers",
+  "dominate",
+  "target market",
+  "market share",
+  "grow revenue",
+  "increase adoption",
+  "scale to",
+  "launch into",
+];
+
+// "target ... segment" is a pattern, not a fixed phrase — real phrasing
+// varies ("target the DSLR consumer segment", "target the enterprise
+// segment"). Bounded word gap so it can't swallow an unrelated sentence.
+const TARGET_SEGMENT_PATTERN = /\btarget\b(?:\s+\S+){0,4}\s+segment\b/i;
+
+/**
+ * Returns the business/brand-goal phrase(s) found in a job_to_be_done-style
+ * string, or an empty array when the phrasing reads as a buyer's own goal.
+ * Warn-only signal (never a validation error) — callers decide how to
+ * surface it, matching PM-9's own warn-never-block philosophy (D-046).
+ */
+export function findBusinessVoicePhrases(text: string): string[] {
+  const found: string[] = [];
+  for (const phrase of BUSINESS_VOICE_PHRASES) {
+    if (containsPhrase(text, phrase)) found.push(phrase);
+  }
+  if (!found.includes("target market") && TARGET_SEGMENT_PATTERN.test(text)) {
+    found.push("target ... segment");
+  }
+  return found;
 }

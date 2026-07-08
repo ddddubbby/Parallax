@@ -8,7 +8,7 @@ import {
   INTAKE_STEPS,
   type IntakeStepKey,
 } from "@/core/intake";
-import { findBrandTerms } from "@/core/matrix";
+import { findBrandTerms, findBusinessVoicePhrases } from "@/core/matrix";
 import { CATEGORY_ARCHETYPES, type CategoryArchetype } from "@/core/semantic";
 
 // PS-4: review deep-links to steps and returns to review.
@@ -77,9 +77,14 @@ export function Review({
   // discovery/consideration prompts, so tracked brand terms in them will
   // block matrix approval. Warn here — the first moment all brands are known.
   const contaminatedFields = [
-    { label: "job-to-be-done", terms: findBrandTerms(basics.job_to_be_done ?? "", allBrands) },
+    { label: "buyer's goal", terms: findBrandTerms(basics.job_to_be_done ?? "", allBrands) },
     { label: "category", terms: findBrandTerms(basics.category ?? "", allBrands) },
   ].filter((f) => f.terms.length > 0);
+
+  // M28 buyer-voice early warning: PM-9's "other half" — the buyer's goal
+  // read as a business/marketing objective rather than the buyer's own
+  // words. Same never-blocks philosophy, surfaced at the same moment.
+  const businessVoiceHits = findBusinessVoicePhrases(basics.job_to_be_done ?? "");
 
   const errFor = (key: IntakeStepKey) =>
     Boolean(stepErrors[key] && Object.keys(stepErrors[key]).length > 0);
@@ -119,6 +124,21 @@ export function Review({
                 {f.label} contains: {f.terms.join(", ")}
               </li>
             ))}
+          </ul>
+        </div>
+      )}
+
+      {businessVoiceHits.length > 0 && (
+        <div className="rounded-xl border border-warn p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Stamp tone="warn">Buyer&rsquo;s goal reads like a business objective</Stamp>
+            <span className="font-mono text-xs text-ink/60">
+              templates interpolate this field as what the BUYER wants to accomplish —
+              describe their goal in their own words, not a growth/market objective
+            </span>
+          </div>
+          <ul className="font-mono text-xs text-warn">
+            <li>buyer&rsquo;s goal contains: {businessVoiceHits.join(", ")}</li>
           </ul>
         </div>
       )}

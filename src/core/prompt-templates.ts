@@ -74,9 +74,16 @@ export function frameAspectsForCell(
 // (variantKey v4/v5, active:false) inside the `comparison` intent — the
 // verified coverage hole (LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md 2c: zero
 // of the 45 default templates mention price/cost/deal/offer/discount).
+// M28 (D-085): every {job_to_be_done} slot across all three archetypes is
+// noun-phrase-compatible ("...for {job_to_be_done}?", "...working on/focused
+// on {job_to_be_done}?") — a single stored buyer-goal value (e.g. "night
+// street photography") must read grammatically no matter which variant it
+// lands in. The two verb-phrase-framed b2b/consumer_product v2 rows
+// ("trying to"/"who wants to") were rewritten; see prompt-templates.test.ts
+// for the standing regression assertion.
 export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "b2b", intent: "discovery", variantKey: "v1", text: "What tools should a {persona} in {market} consider for {job_to_be_done}?" },
-  { archetype: "b2b", intent: "discovery", variantKey: "v2", text: "Which solutions would you shortlist for a {persona} in {market} trying to {job_to_be_done}?" },
+  { archetype: "b2b", intent: "discovery", variantKey: "v2", text: "Which solutions would you shortlist for a {persona} in {market} working on {job_to_be_done}?" },
   { archetype: "b2b", intent: "discovery", variantKey: "v3", text: "I'm a {persona} in {market}. What should I look at for {job_to_be_done}?" },
   { archetype: "b2b", intent: "consideration", variantKey: "v1", text: "What are the best options for {persona} teams evaluating {category} in {market}?" },
   { archetype: "b2b", intent: "consideration", variantKey: "v2", text: "Rank the leading {category} options for a {persona} buyer in {market}." },
@@ -92,7 +99,7 @@ export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "b2b", intent: "objection", variantKey: "v3", text: "Why might a {persona} decide against {client_brand}?" },
 
   { archetype: "consumer_product", intent: "discovery", variantKey: "v1", text: "What {category} options should a {persona} in {market} consider for {job_to_be_done}?" },
-  { archetype: "consumer_product", intent: "discovery", variantKey: "v2", text: "Which {category} products are worth trying for a {persona} in {market} who wants to {job_to_be_done}?" },
+  { archetype: "consumer_product", intent: "discovery", variantKey: "v2", text: "Which {category} products are worth trying for a {persona} in {market} focused on {job_to_be_done}?" },
   { archetype: "consumer_product", intent: "discovery", variantKey: "v3", text: "I'm a {persona} in {market}. What should I buy or try for {job_to_be_done}?" },
   { archetype: "consumer_product", intent: "consideration", variantKey: "v1", text: "What are the best {category} choices for a {persona} in {market}?" },
   { archetype: "consumer_product", intent: "consideration", variantKey: "v2", text: "Rank the leading {category} options for someone like a {persona} in {market}." },

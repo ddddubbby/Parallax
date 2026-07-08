@@ -166,12 +166,17 @@ export function StepForm({
             />
           </Field>
           <Field
-            label="Job to be done"
-            hint="What the buyer is trying to accomplish"
+            label="Buyer's goal (in their words)"
+            hint={
+              'What the buyer wants to accomplish, in their own words — e.g. "night street ' +
+              'photography" or "spend management for a 20-person team." Not your business goal ' +
+              '(e.g. "grow market share" or "penetrate the enterprise segment").'
+            }
             errors={errsFor(errors, "job_to_be_done")}
           >
             <Textarea
               value={v.job_to_be_done}
+              placeholder="e.g. night street photography"
               onChange={(e) => onChange({ ...v, job_to_be_done: e.target.value })}
             />
           </Field>

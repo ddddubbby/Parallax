@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { findBrandTerms } from "@/core/matrix";
+import { findBrandTerms, findBusinessVoicePhrases } from "@/core/matrix";
 import { isUuid } from "@/core/id";
 import {
   setupAttributeSchema,
@@ -62,12 +62,22 @@ function revalidateSetup(projectId: string) {
 async function scanBasicsForBrandTerms(projectId: string, category: string, jobToBeDone: string): Promise<string | undefined> {
   const brandTerms = await getActiveBrandTerms(projectId);
   const hits = [
-    { label: "job-to-be-done", terms: findBrandTerms(jobToBeDone, brandTerms) },
+    { label: "buyer's goal", terms: findBrandTerms(jobToBeDone, brandTerms) },
     { label: "category", terms: findBrandTerms(category, brandTerms) },
   ].filter((f) => f.terms.length > 0);
   if (hits.length === 0) return undefined;
   const first = hits[0];
   return `PM-9 — ${first.label} contains tracked brand terms: ${first.terms.join(", ")}${hits.length > 1 ? ` (+${hits.length - 1} more field)` : ""}. Discovery/consideration prompts must stay brand-free.`;
+}
+
+/** M28 (D-085): PM-9's "other half" — a job_to_be_done written as a
+ *  business/marketing objective instead of the buyer's own goal. Sibling
+ *  check to scanBasicsForBrandTerms, same warn-never-block treatment,
+ *  same warning slot; combined below when both fire. */
+function scanBasicsForBusinessVoice(jobToBeDone: string): string | undefined {
+  const hits = findBusinessVoicePhrases(jobToBeDone);
+  if (hits.length === 0) return undefined;
+  return `Buyer-voice — buyer's goal reads like a business objective, not the buyer's own goal: ${hits.join(", ")}. Templates interpolate this field as what the BUYER wants (e.g. "night street photography"), never a growth/market objective.`;
 }
 
 export async function updateBasicsAction(projectId: string, input: unknown): Promise<BasicsResult> {
@@ -81,7 +91,12 @@ export async function updateBasicsAction(projectId: string, input: unknown): Pro
     jobToBeDone: parsed.data.job_to_be_done,
   });
   if (updated === 0) return { ok: false, error: "Project not found or not yet active" };
-  const warning = await scanBasicsForBrandTerms(projectId, parsed.data.category, parsed.data.job_to_be_done);
+  // Both checks share the same warning slot (BasicsResult.warning); when
+  // both fire, the messages are concatenated with a space (each is already
+  // a complete, period-terminated sentence) rather than picking one.
+  const brandWarning = await scanBasicsForBrandTerms(projectId, parsed.data.category, parsed.data.job_to_be_done);
+  const voiceWarning = scanBasicsForBusinessVoice(parsed.data.job_to_be_done);
+  const warning = [brandWarning, voiceWarning].filter(Boolean).join(" ") || undefined;
   revalidateSetup(projectId);
   return { ok: true, ...(warning && { warning }) };
 }

@@ -225,8 +225,19 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
               ))}
             </Select>
           </Field>
-          <Field label="Job to be done">
-            <Textarea value={basics.job_to_be_done} onChange={(e) => setBasics({ ...basics, job_to_be_done: e.target.value })} />
+          <Field
+            label="Buyer's goal (in their words)"
+            hint={
+              'What the buyer wants to accomplish, in their own words — e.g. "night street ' +
+              'photography" or "spend management for a 20-person team." Not your business goal ' +
+              '(e.g. "grow market share" or "penetrate the enterprise segment").'
+            }
+          >
+            <Textarea
+              value={basics.job_to_be_done}
+              placeholder="e.g. night street photography"
+              onChange={(e) => setBasics({ ...basics, job_to_be_done: e.target.value })}
+            />
           </Field>
           <div>
             <Button disabled={pending} onClick={() => run(() => updateBasicsAction(projectId, basics))}>

@@ -93,4 +93,24 @@ describe.skipIf(!dbUp)("setup basics PM-9 warning (D-046 reused post-intake)", (
     const [row] = await db.select({ jobToBeDone: projects.jobToBeDone }).from(projects).where(eq(projects.id, projectId));
     expect(row.jobToBeDone).toContain("RivalBooks");
   });
+
+  it("warns, but does not block, when job-to-be-done reads as a business objective (M28 buyer-voice guard)", async () => {
+    const { updateBasicsAction } = await import("./actions");
+    const projectId = await ensureProject();
+
+    const businessVoice = await updateBasicsAction(projectId, {
+      name: "M27 Setup Actions E2E",
+      category_archetype: "b2b",
+      category: "software",
+      job_to_be_done: "Penetrate the traditional DSLR consumer segment",
+    });
+    expect(businessVoice.ok).toBe(true);
+    expect((businessVoice as { warning?: string }).warning).toBeTruthy();
+    expect((businessVoice as { warning?: string }).warning).toContain("Buyer-voice");
+    expect((businessVoice as { warning?: string }).warning).toContain("penetrate");
+
+    // The save itself still succeeded (warning is non-blocking).
+    const [row] = await db.select({ jobToBeDone: projects.jobToBeDone }).from(projects).where(eq(projects.id, projectId));
+    expect(row.jobToBeDone).toBe("Penetrate the traditional DSLR consumer segment");
+  });
 });
