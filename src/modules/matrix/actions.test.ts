@@ -185,6 +185,18 @@ describe.skipIf(!dbUp || !demoProjectId)(
 
       const draftEdit = await saveCellText(projectId, draftId, draftCell.id, "edited in draft");
       expect(draftEdit.ok).toBe(true);
+      // Regression (D-081): migration 0010's freeze trigger originally
+      // returned OLD unconditionally, which for a BEFORE UPDATE trigger
+      // discards the caller's new values and silently rewrites the row's
+      // PREVIOUS ones — no exception is raised, so `ok: true` above was
+      // insufficient to catch it; the actual persisted text must be checked
+      // too. Draft cells are the common, fully-mutable case (C-4 only
+      // freezes approved/superseded). Fixed in migration 0011.
+      const [draftCellAfterEdit] = await db
+        .select({ resolvedText: promptCells.resolvedText })
+        .from(promptCells)
+        .where(eq(promptCells.id, draftCell.id));
+      expect(draftCellAfterEdit.resolvedText).toBe("edited in draft");
 
       const missingDelete = await removeCell(projectId, draftId, "00000000-0000-4000-8000-000000000000");
       expect(missingDelete.ok).toBe(false);
