@@ -588,10 +588,11 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
     expect((await listMetrics(run.id)).length).toBeGreaterThan(0);
   });
 
-  it("keeps audit run selectors and resonance study results on separate walls (M31 / D-087 / C-12)", async () => {
+  it("keeps audit run selectors and resonance study results on separate walls (M31/M32 / C-12)", async () => {
     // Same project must hold both kinds so the cross-exclusion is meaningful.
-    // Dashboard Simulation summary (summarizeSimulationStudy) only consumes
+    // Dashboard Simulation view (summarizeSimulationStudy) only consumes
     // resonance results; fetchRunOptions only consumes listCompletedRuns.
+    // M32 keeps this wall under /dashboard?view=simulation (D-088).
     const { run: auditRun } = await createCompletedAuditCitationResponse();
     const projectId = auditRun.projectId;
     const suffix = randomUUID().slice(0, 8);

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { isUuid } from "@/core/id";
 import { parsePanelPersonaLines, STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import { getResonanceStudyTemplate } from "@/core/resonance-templates";
@@ -13,6 +14,11 @@ import {
   updateResonanceStimulus,
   updateResonanceStudy,
 } from "@/db/repositories/resonance";
+
+function revalidateStudyPaths(projectId: string, studyId?: string) {
+  revalidatePath(`/projects/${projectId}/resonance`);
+  if (studyId) revalidatePath(`/projects/${projectId}/resonance/${studyId}`);
+}
 
 type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -42,7 +48,7 @@ export async function createStudyAction(projectId: string, formData: FormData): 
     const name = textField(formData, "name");
     if (!name) return { ok: false, error: "Study name is required" };
     const study = await createResonanceStudy(projectId, name);
-    revalidatePath(`/projects/${projectId}/resonance`);
+    revalidateStudyPaths(projectId, study.id);
     return { ok: true, id: study.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Study create failed" };
@@ -56,7 +62,7 @@ export async function createStudyFromTemplateAction(projectId: string, formData:
     const template = getResonanceStudyTemplate(templateId);
     if (!template) return { ok: false, error: "Unknown Resonance study template" };
     const study = await createResonanceStudyFromTemplate(projectId, template);
-    revalidatePath(`/projects/${projectId}/resonance`);
+    revalidateStudyPaths(projectId, study.id);
     return { ok: true, id: study.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Study template create failed" };
@@ -85,7 +91,7 @@ export async function updateStudyAction(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Study update failed" };
   }
-  revalidatePath(`/projects/${projectId}/resonance`);
+  revalidateStudyPaths(projectId, studyId);
   return { ok: true };
 }
 
@@ -109,7 +115,7 @@ export async function addStimulusAction(
       body,
       evidenceResponseIds,
     });
-    revalidatePath(`/projects/${projectId}/resonance`);
+    revalidateStudyPaths(projectId, studyId);
     return { ok: true, id: stimulus.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Stimulus create failed" };
@@ -142,7 +148,7 @@ export async function updateStimulusAction(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Stimulus update failed" };
   }
-  revalidatePath(`/projects/${projectId}/resonance`);
+  revalidateStudyPaths(projectId, studyId);
   return { ok: true };
 }
 
@@ -158,7 +164,7 @@ export async function deleteStimulusAction(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Stimulus delete failed" };
   }
-  revalidatePath(`/projects/${projectId}/resonance`);
+  revalidateStudyPaths(projectId, studyId);
   return { ok: true };
 }
 
@@ -166,7 +172,7 @@ export async function approveStudyAction(projectId: string, studyId: string): Pr
   if (!validIds(projectId, studyId)) return { ok: false, error: "Invalid id" };
   try {
     const version = await approveAndCompileResonanceStudy(projectId, studyId);
-    revalidatePath(`/projects/${projectId}/resonance`);
+    revalidateStudyPaths(projectId, studyId);
     return { ok: true, id: version.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Study approval failed";
@@ -185,11 +191,17 @@ function unwrap(result: ActionResult) {
 }
 
 export async function createStudyFormAction(projectId: string, formData: FormData) {
-  unwrap(await createStudyAction(projectId, formData));
+  const result = await createStudyAction(projectId, formData);
+  if (!result.ok) throw new Error(result.error);
+  if (!result.id) throw new Error("Study create failed");
+  redirect(`/projects/${projectId}/resonance/${result.id}?view=design`);
 }
 
 export async function createStudyFromTemplateFormAction(projectId: string, formData: FormData) {
-  unwrap(await createStudyFromTemplateAction(projectId, formData));
+  const result = await createStudyFromTemplateAction(projectId, formData);
+  if (!result.ok) throw new Error(result.error);
+  if (!result.id) throw new Error("Study template create failed");
+  redirect(`/projects/${projectId}/resonance/${result.id}?view=design`);
 }
 
 export async function updateStudyFormAction(projectId: string, studyId: string, formData: FormData) {

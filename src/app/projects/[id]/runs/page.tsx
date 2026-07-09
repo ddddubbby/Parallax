@@ -14,6 +14,10 @@ function stateTone(state: string): "ink" | "warn" | "danger" | "ok" {
   return "ink";
 }
 
+function asStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+}
+
 function RunRow({
   projectId,
   run,
@@ -21,19 +25,32 @@ function RunRow({
   projectId: string;
   run: Awaited<ReturnType<typeof listRunsWithProgress>>[number];
 }) {
+  const providers = asStringList(run.selectedProvidersJson);
+  const modes = asStringList(run.selectedModesJson);
+  const primaryLabel =
+    run.matrixKind === "resonance" && run.studyName
+      ? run.studyName
+      : `Matrix V${run.matrixVersion}`;
+
   return (
     <Link
       href={`/projects/${projectId}/runs/${run.id}`}
-      className="flex items-center justify-between rounded-xl border border-ink/15 p-3 transition-micro hover:border-ink"
+      className="flex flex-col gap-2 rounded-xl border border-ink/15 p-3 transition-micro hover:border-ink sm:flex-row sm:items-center sm:justify-between"
     >
-      <span className="flex items-center gap-2">
-        <span className="font-mono text-sm text-ink/85">Run {run.id.slice(0, 8)}</span>
-        {run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
-        {run.matrixKind === "resonance" && <SimulatedBadge />}
-        {run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
-        <Stamp tone={stateTone(run.state)}>{run.state}</Stamp>
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm text-ink/90">{primaryLabel}</span>
+          {run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+          {run.matrixKind === "resonance" && <SimulatedBadge />}
+          {run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
+          <Stamp tone={stateTone(run.state)}>{run.state}</Stamp>
+        </span>
+        <span className="font-mono text-xs text-ink/45">
+          {run.matrixKind === "resonance" ? `V${run.matrixVersion} · ` : ""}
+          {providers.join(", ") || "—"} · {modes.join(", ") || "—"} · Run {run.id.slice(0, 8)}
+        </span>
       </span>
-      <span className="flex items-center gap-4 font-mono text-xs text-ink/45">
+      <span className="flex shrink-0 items-center gap-4 font-mono text-xs text-ink/45">
         <span>
           {run.succeeded} / {run.total} jobs
         </span>
@@ -77,7 +94,7 @@ export default async function RunsIndexPage({
           href={`/projects/${id}/runs/new`}
           className="label-mono text-xs text-accent-ink hover:text-accent"
         >
-          New run →
+          Configure run →
         </Link>
       </div>
 
@@ -91,7 +108,7 @@ export default async function RunsIndexPage({
             href={`/projects/${id}/runs/new`}
             className="label-mono text-xs text-accent-ink hover:text-accent"
           >
-            New run →
+            Configure run →
           </Link>
         </div>
       ) : (

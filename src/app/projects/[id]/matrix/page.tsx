@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { LocalViewTabs } from "@/components/local-view-tabs";
 import { MatrixBoard } from "@/components/matrix/board";
-import { SetupSubnav } from "@/components/setup-subnav";
 import { countAspects, evaluatePackCoverage } from "@/core/coverage";
 import { isUuid } from "@/core/id";
 import { scanUnbrandedCells } from "@/core/matrix";
 import { frameAspectsForCell } from "@/core/prompt-templates";
+import { parseMatrixView, withViewParam } from "@/core/views";
 import {
   getMarketLabelsForProject,
   getMatrixInputs,
@@ -21,10 +22,11 @@ export default async function MatrixPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ v?: string }>;
+  searchParams: Promise<{ v?: string; view?: string }>;
 }) {
   const { id } = await params;
-  const { v } = await searchParams;
+  const { v, view: viewRaw } = await searchParams;
+  const view = parseMatrixView(viewRaw);
   if (!isUuid(id)) notFound();
 
   const inputs = await getMatrixInputs(id);
@@ -89,6 +91,19 @@ export default async function MatrixPage({
       )
     : [];
 
+  const base = `/projects/${id}/matrix`;
+  const vParam = focusId ?? undefined;
+  const tabs = [
+    { id: "overview", label: "Overview", href: withViewParam(base, "overview", { v: vParam }) },
+    { id: "presence", label: "Presence", href: withViewParam(base, "presence", { v: vParam }) },
+    { id: "position", label: "Position", href: withViewParam(base, "position", { v: vParam }) },
+    {
+      id: "perception",
+      label: "Perception",
+      href: withViewParam(base, "perception", { v: vParam }),
+    },
+  ];
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-1 font-mono text-xs text-ink/45">
@@ -102,7 +117,7 @@ export default async function MatrixPage({
         / Setup / Prompt matrix
       </div>
       <h1 className="label-mono mb-4 mt-4 text-lg font-semibold">Prompt matrix</h1>
-      <SetupSubnav projectId={id} />
+      <LocalViewTabs tabs={tabs} activeId={view} label="Matrix sections" />
       <MatrixBoard
         projectId={id}
         projectStatus={inputs.project.status}
@@ -110,6 +125,7 @@ export default async function MatrixPage({
         packCoverage={packCoverage}
         activeCompetitorCount={inputs.competitors.length}
         staleDraft={staleDraft}
+        view={view}
         focus={
           focus
             ? {

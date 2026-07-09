@@ -1,12 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, Input, Stamp } from "@/components/ui";
 import type { GenerationMode, ProviderId, RunMode } from "@/core/runner";
-import { createRun, projectRunCost, type RunCreationInput } from "@/modules/runner/actions";
+import { startRunLabel } from "@/core/run-labels";
+import {
+  createRun,
+  projectRunCost,
+  type RunCreationInput,
+  type SecondaryRequirement,
+} from "@/modules/runner/actions";
 import { reportError } from "@/observability";
 
 interface ProviderOption {
@@ -14,6 +21,8 @@ interface ProviderOption {
   displayName: string;
   supportsGrounded: boolean;
   supportsUngrounded: boolean;
+  /** M32 / D-088: live providers need an active Settings credential. */
+  credentialState?: "not_required" | "active" | "disabled" | "missing";
 }
 
 const MODES: GenerationMode[] = ["ungrounded", "grounded"];
@@ -35,6 +44,8 @@ export function RunCreationForm({
   defaultAuditCapUsd,
   matrixVersionId,
   singleMode = false,
+  secondaryRequirement = null,
+  matrixLabel,
 }: {
   projectId: string;
   cellCount: number;
@@ -46,6 +57,9 @@ export function RunCreationForm({
   // single choice (no mode dimension in resonance scopes) but now allows
   // multiple providers — each scored as its own synthetic population.
   singleMode?: boolean;
+  /** M32 / D-088: extraction (audit) or embedding (simulation) readiness. */
+  secondaryRequirement?: SecondaryRequirement | null;
+  matrixLabel?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -55,6 +69,7 @@ export function RunCreationForm({
   const [selectedModes, setSelectedModes] = useState<GenerationMode[]>(["ungrounded"]);
   const [repetitions, setRepetitions] = useState(5);
   const [costCapUsd, setCostCapUsd] = useState(defaultAuditCapUsd);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [injectionEnabled, setInjectionEnabled] = useState(false);
   const [injectionRate, setInjectionRate] = useState(0.15);
   const [injectionErrorType, setInjectionErrorType] = useState("rate_limit");
@@ -73,15 +88,26 @@ export function RunCreationForm({
   const isLive = runMode !== "mock";
   const effectiveRepetitions = runMode === "live_audit" ? 5 : repetitions;
 
+  const secondaryBlocks =
+    isLive &&
+    secondaryRequirement !== null &&
+    secondaryRequirement.credentialState !== "active";
+
+  const selectedBlocked = selectedProviders.some((id) => {
+    const p = providers.find((x) => x.id === id);
+    return p && p.credentialState !== "not_required" && p.credentialState !== "active" && isLive;
+  });
+
   function selectRunMode(next: RunMode) {
     setRunMode(next);
     // Reset dependent state so a mode switch can't smuggle a provider or
-    // debug flag the new mode disallows (server re-validates regardless).
+    // injection config across the mock/live boundary (C-9).
     setSelectedProviders(next === "mock" ? ["mock"] : []);
     setCostCapUsd(next === "live_validation" ? defaultValidationCapUsd : defaultAuditCapUsd);
     if (next !== "mock") {
       setInjectionEnabled(false);
       setExtractionInjectionEnabled(false);
+      setAdvancedOpen(false);
     }
     if (next === "live_validation") setRepetitions(2);
     if (next === "live_audit") setRepetitions(5);
@@ -159,18 +185,32 @@ export function RunCreationForm({
   }
 
   const overCap = projection ? projection.projectedCostUsd > costCapUsd : false;
+  const canSubmit =
+    !pending &&
+    selectedProviders.length > 0 &&
+    selectedModes.length > 0 &&
+    !selectedBlocked &&
+    !secondaryBlocks;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <span className="label-mono text-xs text-ink/60">Approved matrix</span>
+        <span className="label-mono text-xs text-ink/60">
+          {singleMode ? "Approved simulation matrix" : "Approved matrix"}
+        </span>
         <p className="text-sm text-ink/85">
+          {matrixLabel ? <span className="mr-2">{matrixLabel}</span> : null}
           {cellCount} <GlossaryTerm term="cell">cells</GlossaryTerm>
-          {singleMode && <span className="ml-2"><SimulatedBadge /></span>}
+          {singleMode && (
+            <span className="ml-2">
+              <SimulatedBadge />
+            </span>
+          )}
         </p>
         {singleMode && (
           <p className="mt-2 font-mono text-xs text-ink/55">
-            Simulation runs may select multiple providers but exactly one generation mode; each engine is reported as its own synthetic population, never pooled (D-080).
+            Simulation runs may select multiple providers but exactly one generation mode; each
+            engine is reported as its own synthetic population, never pooled (D-080).
           </p>
         )}
       </div>
@@ -201,30 +241,103 @@ export function RunCreationForm({
         <p className="rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
           {runMode === "live_validation"
             ? "Live validation spends real money and is labeled VALIDATION-ONLY — never client-ready evidence."
-            : <>Live audit spends real money at k=5 per <GlossaryTerm term="cell">cell</GlossaryTerm> per <GlossaryTerm term="engine-mode">engine-mode</GlossaryTerm>.</>}
+            : (
+                <>
+                  Live audit spends real money at k=5 per <GlossaryTerm term="cell">cell</GlossaryTerm>{" "}
+                  per <GlossaryTerm term="engine-mode">engine-mode</GlossaryTerm>.
+                </>
+              )}
         </p>
       )}
 
       <Field label="Providers">
         <div className="flex flex-wrap gap-2">
-          {visibleProviders.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => toggle(selectedProviders, p.id, setSelectedProviders)}
-              className={`label-mono rounded-full px-4 py-1.5 text-xs transition-micro ${
-                selectedProviders.includes(p.id)
-                  ? "bg-ink text-paper"
-                  : "border border-ink/25 text-ink/60 hover:border-ink"
-              }`}
-            >
-              {p.displayName}
-            </button>
-          ))}
+          {visibleProviders.map((p) => {
+            const ready = !isLive || p.credentialState === "active" || p.credentialState === "not_required";
+            const selected = selectedProviders.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                disabled={!ready}
+                title={
+                  ready
+                    ? undefined
+                    : `${p.displayName} credential is ${p.credentialState} — add or enable in Settings`
+                }
+                onClick={() => toggle(selectedProviders, p.id, setSelectedProviders)}
+                className={`label-mono rounded-full px-4 py-1.5 text-xs transition-micro ${
+                  !ready
+                    ? "cursor-not-allowed border border-ink/10 text-ink/30"
+                    : selected
+                      ? "bg-ink text-paper"
+                      : "border border-ink/25 text-ink/60 hover:border-ink"
+                }`}
+              >
+                {p.displayName}
+                {!ready && (
+                  <span className="ml-1.5 text-ink/35">
+                    ({p.credentialState})
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
+        {isLive &&
+          visibleProviders.some(
+            (p) => p.credentialState !== "active" && p.credentialState !== "not_required",
+          ) && (
+            <p className="mt-2 font-mono text-xs text-ink/55">
+              Missing or disabled providers are unavailable until you{" "}
+              <Link href="/settings?view=providers" className="text-accent-ink hover:text-accent">
+                add or enable a credential in Settings
+              </Link>
+              . Server checks remain authoritative.
+            </p>
+          )}
       </Field>
 
-      <Field label="Generation modes" hint={singleMode ? "Resonance runs lock to one mode — no mode dimension in resonance scopes (D-080)" : undefined}>
+      {isLive && secondaryRequirement && (
+        <div
+          className={`rounded-xl border p-4 ${
+            secondaryRequirement.credentialState === "active"
+              ? "border-ink/15"
+              : "border-warn"
+          }`}
+        >
+          <span className="label-mono text-xs text-ink/60">
+            {secondaryRequirement.role === "embedding" ? "Embedding engine" : "Extraction engine"}{" "}
+            readiness
+          </span>
+          <p className="mt-1 font-mono text-sm text-ink/85">
+            {secondaryRequirement.providerId}{" "}
+            <Stamp
+              tone={secondaryRequirement.credentialState === "active" ? "ok" : "warn"}
+            >
+              {secondaryRequirement.credentialState}
+            </Stamp>
+          </p>
+          {secondaryRequirement.credentialState !== "active" && (
+            <p className="mt-2 font-mono text-xs text-warn">
+              Live runs need an active credential for the{" "}
+              {secondaryRequirement.role === "embedding" ? "embedding" : "extraction"} engine.{" "}
+              <Link href="/settings?view=providers" className="underline hover:text-accent">
+                Open Settings
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
+
+      <Field
+        label="Generation modes"
+        hint={
+          singleMode
+            ? "Resonance runs lock to one mode — no mode dimension in resonance scopes (D-080)"
+            : undefined
+        }
+      >
         <div className="flex gap-2">
           {MODES.map((mode) => (
             <button
@@ -270,9 +383,8 @@ export function RunCreationForm({
 
       {projectionFailed && (
         <p className="rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
-          Cost projection is unavailable right now. You can still submit — the
-          run&rsquo;s cost cap and daily budgets are re-checked server-side before
-          any spend.
+          Cost projection is unavailable right now. You can still submit — the run&rsquo;s cost cap
+          and daily budgets are re-checked server-side before any spend.
         </p>
       )}
 
@@ -287,7 +399,11 @@ export function RunCreationForm({
           >
             <span>
               Projected cost
-              {isLive ? (singleMode ? " (generation + SSR scoring, D-022)" : " (generation + extraction, D-022)") : ""}
+              {isLive
+                ? singleMode
+                  ? " (generation + SSR scoring, D-022)"
+                  : " (generation + extraction, D-022)"
+                : ""}
             </span>
             <span>${projection.projectedCostUsd.toFixed(4)}</span>
           </div>
@@ -313,7 +429,8 @@ export function RunCreationForm({
                   >
                     <span>{b.providerId}</span>
                     <span>
-                      ${b.spentUsd.toFixed(4)} + ${b.projectedUsd.toFixed(4)} projected / ${b.budgetUsd.toFixed(2)}
+                      ${b.spentUsd.toFixed(4)} + ${b.projectedUsd.toFixed(4)} projected / $
+                      {b.budgetUsd.toFixed(2)}
                       {already
                         ? " — already over; run blocked server-side"
                         : wouldExceed
@@ -329,62 +446,80 @@ export function RunCreationForm({
       )}
 
       {runMode === "mock" && (
-        <div className="rounded-xl border border-warn p-4">
-          <label className="label-mono flex items-center gap-2 text-xs text-ink/70">
-            <input
-              type="checkbox"
-              checked={injectionEnabled}
-              onChange={(e) => setInjectionEnabled(e.target.checked)}
-            />
-            Generation failure injection (testing) <Stamp tone="warn">Debug</Stamp>
-          </label>
-          {injectionEnabled && (
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <Field label="Rate (0-1)">
-                <Input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={injectionRate}
-                  onChange={(e) => setInjectionRate(Number(e.target.value))}
+        <div className="rounded-xl border border-ink/15">
+          <button
+            type="button"
+            className="label-mono flex w-full items-center justify-between px-4 py-3 text-xs text-ink/70 hover:text-ink"
+            onClick={() => setAdvancedOpen((o) => !o)}
+            aria-expanded={advancedOpen}
+          >
+            Advanced — failure injection
+            <span className="text-ink/40">{advancedOpen ? "−" : "+"}</span>
+          </button>
+          {advancedOpen && (
+            <div className="border-t border-ink/10 p-4">
+              <label className="label-mono flex items-center gap-2 text-xs text-ink/70">
+                <input
+                  type="checkbox"
+                  checked={injectionEnabled}
+                  onChange={(e) => setInjectionEnabled(e.target.checked)}
                 />
-              </Field>
-              <Field label="Error type">
-                <select
-                  className="w-full rounded-lg border border-ink/20 bg-paper px-3 py-2 text-sm"
-                  value={injectionErrorType}
-                  onChange={(e) => setInjectionErrorType(e.target.value)}
-                >
-                  {["rate_limit", "timeout", "server_error", "auth_error", "malformed_output"].map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-          )}
-          <label className="label-mono mt-4 flex items-center gap-2 border-t border-warn/40 pt-4 text-xs text-ink/70">
-            <input
-              type="checkbox"
-              checked={extractionInjectionEnabled}
-              onChange={(e) => setExtractionInjectionEnabled(e.target.checked)}
-            />
-            Extraction failure injection (testing) <Stamp tone="warn">Debug</Stamp>
-          </label>
-          {extractionInjectionEnabled && (
-            <div className="mt-3">
-              <Field label="Invalid rate (0-1)" hint="Forces validation to fail this fraction of extraction attempts (SM-2/SM-3)">
-                <Input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={extractionInvalidRate}
-                  onChange={(e) => setExtractionInvalidRate(Number(e.target.value))}
+                Generation failure injection (testing) <Stamp tone="warn">Debug</Stamp>
+              </label>
+              {injectionEnabled && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Field label="Rate (0-1)">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={injectionRate}
+                      onChange={(e) => setInjectionRate(Number(e.target.value))}
+                    />
+                  </Field>
+                  <Field label="Error type">
+                    <select
+                      className="w-full rounded-lg border border-ink/20 bg-paper px-3 py-2 text-sm"
+                      value={injectionErrorType}
+                      onChange={(e) => setInjectionErrorType(e.target.value)}
+                    >
+                      {["rate_limit", "timeout", "server_error", "auth_error", "malformed_output"].map(
+                        (t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </Field>
+                </div>
+              )}
+              <label className="label-mono mt-4 flex items-center gap-2 border-t border-ink/10 pt-4 text-xs text-ink/70">
+                <input
+                  type="checkbox"
+                  checked={extractionInjectionEnabled}
+                  onChange={(e) => setExtractionInjectionEnabled(e.target.checked)}
                 />
-              </Field>
+                Extraction failure injection (testing) <Stamp tone="warn">Debug</Stamp>
+              </label>
+              {extractionInjectionEnabled && (
+                <div className="mt-3">
+                  <Field
+                    label="Invalid rate (0-1)"
+                    hint="Forces validation to fail this fraction of extraction attempts (SM-2/SM-3)"
+                  >
+                    <Input
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={extractionInvalidRate}
+                      onChange={(e) => setExtractionInvalidRate(Number(e.target.value))}
+                    />
+                  </Field>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -396,8 +531,8 @@ export function RunCreationForm({
         </p>
       )}
 
-      <Button disabled={pending || selectedProviders.length === 0} onClick={onSubmit}>
-        {pending ? "Starting…" : "Start run"}
+      <Button disabled={!canSubmit} onClick={onSubmit}>
+        {pending ? "Starting…" : startRunLabel(runMode)}
       </Button>
     </div>
   );

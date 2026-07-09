@@ -106,7 +106,16 @@ function SectionHeader({ n, title, hint }: { n: string; title: string; hint?: st
   );
 }
 
-export function SetupClient({ projectId, data }: { projectId: string; data: SetupData }) {
+export function SetupClient({
+  projectId,
+  data,
+  view = "basics",
+}: {
+  projectId: string;
+  data: SetupData;
+  /** M32: one Setup section at a time via URL `view`. */
+  view?: "basics" | "brands" | "personas" | "markets" | "attributes" | "facts";
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -204,6 +213,7 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
       )}
 
       {/* 01 Basics */}
+      {view === "basics" && (
       <section>
         <SectionHeader n="01" title="Basics" />
         <div className="flex flex-col gap-3 pl-4">
@@ -246,8 +256,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 02 Brands */}
+      {view === "brands" && (
       <section>
         <SectionHeader n="02" title="Brands" hint={activeCompetitorCount === 0 ? "no active competitors — comparison prompts cannot be generated" : undefined} />
         <div className="flex flex-col gap-4 pl-4">
@@ -388,8 +400,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 03 Personas */}
+      {view === "personas" && (
       <section>
         <SectionHeader n="03" title="Personas" />
         <div className="flex flex-col gap-2 pl-4">
@@ -496,8 +510,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           )}
         </div>
       </section>
+      )}
 
       {/* 04 Markets */}
+      {view === "markets" && (
       <section>
         <SectionHeader n="04" title="Markets" />
         <div className="flex flex-col gap-2 pl-4">
@@ -560,8 +576,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 05 Attributes */}
+      {view === "attributes" && (
       <section>
         <SectionHeader n="05" title="Attributes" hint="renaming does not retag historical extractions already tagged under the old name" />
         <div className="flex flex-col gap-2 pl-4">
@@ -613,8 +631,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 06 Fact sheet */}
+      {view === "facts" && (
       <section>
         <SectionHeader n="06" title="Fact sheet" />
         <div className="flex flex-col gap-2 pl-4">
@@ -716,6 +736,7 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

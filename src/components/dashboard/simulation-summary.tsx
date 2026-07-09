@@ -67,7 +67,7 @@ export function SimulationSummarySection({
                   </span>
                 )}
                 <Link
-                  href={`/projects/${projectId}/resonance#study-${summary.studyId}`}
+                  href={`/projects/${projectId}/resonance/${summary.studyId}?view=results`}
                   className="label-mono ml-auto text-xs text-accent-ink hover:text-accent"
                 >
                   Full results →

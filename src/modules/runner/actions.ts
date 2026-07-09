@@ -14,7 +14,7 @@ import {
   type RunMode,
   validateDebugFailureInjection,
 } from "@/core/runner";
-import { getActiveCredential } from "@/db/repositories/credentials";
+import { getActiveCredential, listCredentialSummaries } from "@/db/repositories/credentials";
 import {
   appendRunEvent,
   cancelRun as cancelRunRepo,
@@ -117,14 +117,77 @@ function validateModeConsistency(input: RunCreationInput): string | null {
   return null;
 }
 
+export type CredentialState = "not_required" | "active" | "disabled" | "missing";
+
+export type SecondaryRequirement = {
+  role: "extraction" | "embedding";
+  providerId: ProviderId;
+  credentialState: Exclude<CredentialState, "not_required">;
+};
+
+function credentialStateForProvider(
+  providerId: string,
+  byProvider: Map<string, Array<{ status: string }>>,
+): CredentialState {
+  if (providerId === "mock") return "not_required";
+  const rows = byProvider.get(providerId) ?? [];
+  if (rows.some((r) => r.status === "active")) return "active";
+  if (rows.some((r) => r.status === "disabled")) return "disabled";
+  return "missing";
+}
+
 /** C-7: the UI gets provider metadata through this action, never from /src/providers directly. */
 export async function listProviderOptions() {
+  const summaries = await listCredentialSummaries();
+  const byProvider = new Map<string, Array<(typeof summaries)[number]>>();
+  for (const row of summaries) {
+    const list = byProvider.get(row.providerId) ?? [];
+    list.push(row);
+    byProvider.set(row.providerId, list);
+  }
+
   return listRegisteredProviders().map((p) => ({
     id: p.id,
     displayName: p.displayName,
     supportsGrounded: p.supportsGrounded,
     supportsUngrounded: p.supportsUngrounded,
+    // M32 / D-088: surface credential readiness before spend. Mock never needs a key.
+    credentialState: credentialStateForProvider(p.id, byProvider),
   }));
+}
+
+/**
+ * M32 / D-088: secondary-engine readiness for the configure-run form.
+ * Audit runs need the extraction engine; Simulation runs need embeddings.
+ * Server createRun/projectRunCost remain the authoritative backstop.
+ */
+export async function getSecondaryRequirement(
+  matrixKind: "audit" | "resonance",
+): Promise<SecondaryRequirement | null> {
+  try {
+    const providerId = secondaryProviderIdForKind(matrixKind);
+    const summaries = await listCredentialSummaries();
+    const byProvider = new Map<string, Array<(typeof summaries)[number]>>();
+    for (const row of summaries) {
+      const list = byProvider.get(row.providerId) ?? [];
+      list.push(row);
+      byProvider.set(row.providerId, list);
+    }
+    const state = credentialStateForProvider(providerId, byProvider);
+    return {
+      role: matrixKind === "resonance" ? "embedding" : "extraction",
+      providerId,
+      credentialState: state === "not_required" ? "missing" : state,
+    };
+  } catch {
+    // Misconfigured EXTRACTION_PROVIDER / EMBEDDING_PROVIDER — surface as missing
+    // so the form blocks; createRun still rejects with the precise error.
+    return {
+      role: matrixKind === "resonance" ? "embedding" : "extraction",
+      providerId: (matrixKind === "resonance" ? "openai" : "deepseek") as ProviderId,
+      credentialState: "missing",
+    };
+  }
 }
 
 /** RN-1/RN-2: plan and validate before touching the database. */

@@ -4,12 +4,21 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Stamp } from "@/components/ui";
+import type { RunDetailView } from "@/core/views";
 import { resolvePauseReason } from "@/core/runner";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
 
 const POLL_MS = 1500;
-const JOB_STATES = ["queued", "running", "succeeded", "retryable_failed", "dead_lettered", "cancelled", "skipped"];
+const JOB_STATES = [
+  "queued",
+  "running",
+  "succeeded",
+  "retryable_failed",
+  "dead_lettered",
+  "cancelled",
+  "skipped",
+];
 
 interface RunDetail {
   run: {
@@ -41,10 +50,13 @@ export function RunProgress({
   projectId,
   runId,
   initial,
+  view = "overview",
 }: {
   projectId: string;
   runId: string;
   initial: RunDetail;
+  /** M32 / D-088: overview = state/cost/controls; events = log only. */
+  view?: Extract<RunDetailView, "overview" | "events">;
 }) {
   const [detail, setDetail] = useState<RunDetail>(initial);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -86,7 +98,11 @@ export function RunProgress({
   }
 
   const total = detail.run.plannedCalls;
-  const finished = (detail.progress.succeeded ?? 0) + (detail.progress.dead_lettered ?? 0) + (detail.progress.cancelled ?? 0) + (detail.progress.skipped ?? 0);
+  const finished =
+    (detail.progress.succeeded ?? 0) +
+    (detail.progress.dead_lettered ?? 0) +
+    (detail.progress.cancelled ?? 0) +
+    (detail.progress.skipped ?? 0);
   const pct = total > 0 ? Math.round((finished / total) * 100) : 0;
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
   const isResonance = detail.run.matrixKind === "resonance";
@@ -94,6 +110,42 @@ export function RunProgress({
   // priority logic (automated event > operator_paused > neutral fallback)
   // lives in core/runner.ts so it's covered by a pure unit test.
   const pauseReason = resolvePauseReason(detail.run.state, detail.events);
+
+  const resultsHref = isResonance
+    ? detail.run.resonanceStudyId
+      ? `/projects/${projectId}/resonance/${detail.run.resonanceStudyId}?view=results`
+      : `/projects/${projectId}/resonance`
+    : `/projects/${projectId}/dashboard`;
+
+  if (view === "events") {
+    return (
+      <div>
+        <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">Event log</h2>
+        <div className="flex flex-col gap-1 font-mono text-xs">
+          {detail.events.length === 0 && <p className="text-ink/45">No events yet</p>}
+          {detail.events.map((e) => (
+            <div key={e.id} className="flex gap-2 border-b border-ink/10 py-1">
+              <span className="text-ink/40">
+                {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour12: false })}
+              </span>
+              <span
+                className={
+                  e.level === "error"
+                    ? "text-danger"
+                    : e.level === "warn"
+                      ? "text-warn"
+                      : "text-ink/50"
+                }
+              >
+                {e.level}
+              </span>
+              <span className="text-ink/80">{e.message}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -118,10 +170,10 @@ export function RunProgress({
         {isPartial && <Stamp tone="warn">PARTIAL</Stamp>}
         {detail.run.state === "completed" && (
           <Link
-            href={isResonance ? `/projects/${projectId}/resonance` : `/projects/${projectId}/dashboard`}
+            href={resultsHref}
             className="label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
           >
-            {isResonance ? "Back to study →" : "View dashboard →"}
+            {isResonance ? "Study results →" : "Evidence dashboard →"}
           </Link>
         )}
       </div>
@@ -130,7 +182,8 @@ export function RunProgress({
         <p className="mb-4 rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
           WORKER OFFLINE — this run is queued but no worker is processing jobs. Start it with{" "}
           <code className="font-semibold">pnpm dev:all</code> (app + worker) or run{" "}
-          <code className="font-semibold">pnpm worker</code> in a second terminal. This clears once the worker sends a heartbeat.
+          <code className="font-semibold">pnpm worker</code> in a second terminal. This clears once
+          the worker sends a heartbeat.
         </p>
       )}
 
@@ -148,10 +201,7 @@ export function RunProgress({
           <span>{pct}%</span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-paper-2">
-          <div
-            className="h-full bg-accent transition-standard"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full bg-accent transition-standard" style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-3 grid grid-cols-4 gap-2 font-mono text-xs text-ink/60">
           {JOB_STATES.map((s) => (
@@ -162,14 +212,19 @@ export function RunProgress({
         </div>
         <div className="mt-3 flex items-center justify-between font-mono text-xs text-ink/60">
           <span>
-            cost ${Number(detail.run.actualCostUsd).toFixed(4)} / ${Number(detail.run.costCapUsd).toFixed(2)} cap
+            cost ${Number(detail.run.actualCostUsd).toFixed(4)} / $
+            {Number(detail.run.costCapUsd).toFixed(2)} cap
           </span>
         </div>
       </div>
 
       <div className="mb-6 flex gap-2">
         {(detail.run.state === "queued" || detail.run.state === "running") && (
-          <Button variant="secondary" disabled={pending} onClick={() => run(() => pauseRun(projectId, runId))}>
+          <Button
+            variant="secondary"
+            disabled={pending}
+            onClick={() => run(() => pauseRun(projectId, runId))}
+          >
             Pause
           </Button>
         )}
@@ -179,7 +234,11 @@ export function RunProgress({
           </Button>
         )}
         {!TERMINAL_STATES.has(detail.run.state) && (
-          <Button variant="danger" disabled={pending} onClick={() => run(() => cancelRun(projectId, runId))}>
+          <Button
+            variant="danger"
+            disabled={pending}
+            onClick={() => run(() => cancelRun(projectId, runId))}
+          >
             Cancel
           </Button>
         )}
@@ -190,30 +249,6 @@ export function RunProgress({
           {actionError}
         </p>
       )}
-
-      <h2 className="label-mono mb-2 text-xs font-medium text-ink/60">Recent events</h2>
-      <div className="flex flex-col gap-1 font-mono text-xs">
-        {detail.events.length === 0 && <p className="text-ink/45">No events yet</p>}
-        {detail.events.map((e) => (
-          <div key={e.id} className="flex gap-2 border-b border-ink/10 py-1">
-            <span className="text-ink/40">
-              {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour12: false })}
-            </span>
-            <span
-              className={
-                e.level === "error"
-                  ? "text-danger"
-                  : e.level === "warn"
-                    ? "text-warn"
-                    : "text-ink/50"
-              }
-            >
-              {e.level}
-            </span>
-            <span className="text-ink/80">{e.message}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { ReportClient } from "@/components/report/report-client";
 import { ReportRunSwitcher } from "@/components/report/report-run-switcher";
 import { isUuid } from "@/core/id";
+import { reportSectionsForKind } from "@/core/report-templates";
+import { parseReportView } from "@/core/views";
 import { listCompletedResonanceRuns, listCompletedRuns } from "@/db/repositories/dashboard";
 import { getReportFreshness, getReportSections } from "@/db/repositories/report";
 import { getProjectSummary } from "@/db/repositories/runner";
@@ -14,10 +16,10 @@ export default async function ReportPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ runId?: string }>;
+  searchParams: Promise<{ runId?: string; view?: string }>;
 }) {
   const { id } = await params;
-  const { runId: requestedRunId } = await searchParams;
+  const { runId: requestedRunId, view: viewRaw } = await searchParams;
   if (!isUuid(id)) notFound();
   const project = await getProjectSummary(id);
   if (project === null) notFound();
@@ -35,9 +37,20 @@ export default async function ReportPage({
   const defaultRun = auditRuns[0]
     ? { ...auditRuns[0], matrixKind: "audit" as const }
     : runs[0];
-  const selectedRun = requestedRunId ? runs.find((r) => r.id === requestedRunId) ?? defaultRun : defaultRun;
+  const selectedRun = requestedRunId
+    ? (runs.find((r) => r.id === requestedRunId) ?? defaultRun)
+    : defaultRun;
   const runId = selectedRun.id;
-  const [sections, freshness] = await Promise.all([getReportSections(runId), getReportFreshness(runId)]);
+  const [sections, freshness] = await Promise.all([
+    getReportSections(runId),
+    getReportFreshness(runId),
+  ]);
+  const activeSectionKey = parseReportView(viewRaw, selectedRun.matrixKind);
+  // Ensure the selected key exists in the kind's outline (parser already does).
+  const outline = reportSectionsForKind(selectedRun.matrixKind);
+  const sectionKey = outline.some((s) => s.key === activeSectionKey)
+    ? activeSectionKey
+    : outline[0].key;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
@@ -63,6 +76,7 @@ export default async function ReportPage({
         initialSections={sections}
         kind={selectedRun.matrixKind}
         initialIsStale={freshness.stale}
+        activeSectionKey={sectionKey}
       />
     </main>
   );

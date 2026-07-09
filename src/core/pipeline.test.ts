@@ -33,7 +33,9 @@ describe("resolveProjectStage (OX-2)", () => {
     // Completed sim results land on the Dashboard Simulation section (M31 / D-087).
     expect(resolveProjectStage({ ...done, hasApprovedResonanceStudy: true }).nextPath).toBe("resonance");
     expect(resolveProjectStage({ ...done, hasActiveResonanceRun: true }).nextPath).toBe("resonance");
-    expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).nextPath).toBe("dashboard");
+    expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).nextPath).toBe(
+      "dashboard?view=simulation",
+    );
     expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).stageLabel).toBe(
       "Simulation results ready",
     );

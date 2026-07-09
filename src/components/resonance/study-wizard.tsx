@@ -330,12 +330,12 @@ export function StudyWizard({
             </div>
           ) : (
             <p className="mb-4 rounded-lg border border-ink/15 p-3 font-mono text-xs text-ink/60">
-              Ready. Approving freezes this study and compiles it into a simulated run you can start next.
+              Ready. Approving freezes this study and compiles a simulated matrix. Next: configure a simulation run.
             </p>
           )}
           <div className="mt-4">
             <Button type="button" disabled={pending || readiness.length > 0} onClick={approve}>
-              {pending ? "Working…" : "Approve & simulate"}
+              {pending ? "Working…" : "Approve study"}
             </Button>
           </div>
         </div>

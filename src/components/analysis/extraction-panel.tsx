@@ -29,7 +29,18 @@ function formatMetric(m: MetricRow): string {
   return `${value}${ci}`;
 }
 
-export function ExtractionPanel({ projectId, runId, terminal }: { projectId: string; runId: string; terminal: boolean }) {
+export function ExtractionPanel({
+  projectId,
+  runId,
+  terminal,
+  panel = "both",
+}: {
+  projectId: string;
+  runId: string;
+  terminal: boolean;
+  /** M32 / D-088: run detail views render extraction or metrics alone. */
+  panel?: "extraction" | "metrics" | "both";
+}) {
   const [data, setData] = useState<{ progress: Record<string, number>; metrics: MetricRow[]; plannedResponses: number } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -58,87 +69,96 @@ export function ExtractionPanel({ projectId, runId, terminal }: { projectId: str
   const extracted = (data.progress.valid ?? 0) + (data.progress.qa_reviewed ?? 0);
   const deadLettered = data.progress.dead_lettered ?? 0;
 
-  return (
-    <div className="mt-8">
-      <div className="mb-3 flex items-center gap-3">
-        <h2 className="label-mono text-xs font-medium text-ink/60">Extraction</h2>
-        {deadLettered > 0 && <Stamp tone="danger">{deadLettered} dead-lettered</Stamp>}
-      </div>
-      <div className="mb-6 grid grid-cols-5 gap-2 font-mono text-xs text-ink/60">
-        {EXTRACTION_STATES.map((s) => (
-          <div key={s}>
-            {s}: {data.progress[s] ?? 0}
-          </div>
-        ))}
-      </div>
+  const showExtraction = panel === "extraction" || panel === "both";
+  const showMetrics = panel === "metrics" || panel === "both";
 
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="label-mono text-xs font-medium text-ink/60">
-          Metrics preview <span className="text-ink/40">(overall scope)</span>
-        </h2>
-        <Button
-          variant="secondary"
-          disabled={pending || extracted === 0}
-          onClick={() => {
-            setActionError(null);
-            startTransition(async () => {
-              try {
-                await recomputeMetrics(projectId, runId);
-                const next = await fetchExtractionAndMetrics(projectId, runId);
-                setData(next);
-              } catch (err) {
-                reportError(err, { boundary: "extraction-panel-recompute", projectId, runId });
-                setActionError("Recompute failed — the existing metrics are unchanged. Try again.");
-              }
-            });
-          }}
-        >
-          {pending ? "Recomputing…" : "Recompute metrics"}
-        </Button>
-      </div>
-      {actionError && (
-        <p className="mb-3 font-mono text-xs text-danger">{actionError}</p>
-      )}
-      {overallMetrics.length === 0 ? (
-        <p className="font-mono text-xs text-ink/45">No metrics computed yet</p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {metricsByPillar.map(({ pillar, metrics }) => (
-            <section key={pillar} className="rounded-xl border border-ink/15 p-3">
-              <div className="mb-2">
-                <h3 className="label-mono text-xs text-ink/70">
-                  {PILLARS[pillar].label}
-                </h3>
-                <p className="font-mono text-[11px] text-ink/45">
-                  {PILLARS[pillar].clientQuestion}
-                </p>
+  return (
+    <div className={panel === "both" ? "mt-8" : undefined}>
+      {showExtraction && (
+        <>
+          <div className="mb-3 flex items-center gap-3">
+            <h2 className="label-mono text-xs font-medium text-ink/60">Extraction</h2>
+            {deadLettered > 0 && <Stamp tone="danger">{deadLettered} dead-lettered</Stamp>}
+          </div>
+          <div className="mb-6 grid grid-cols-5 gap-2 font-mono text-xs text-ink/60">
+            {EXTRACTION_STATES.map((s) => (
+              <div key={s}>
+                {s}: {data.progress[s] ?? 0}
               </div>
-              <table className="w-full border-collapse font-mono text-xs">
-                <thead>
-                  <tr className="border-b border-ink/20 text-left text-ink/50">
-                    <th className="py-1.5 pr-4">Metric</th>
-                    <th className="py-1.5 pr-4">Meaning</th>
-                    <th className="py-1.5 pr-4">n</th>
-                    <th className="py-1.5 pr-4">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.map((m) => {
-                    const glossary = resolveGlossary(m.metricKey);
-                    return (
-                      <tr key={m.id} className="border-b border-ink/10">
-                        <td className="py-1.5 pr-4 text-ink/80">{glossary.label}</td>
-                        <td className="py-1.5 pr-4 text-ink/50">{glossary.definition}</td>
-                        <td className="py-1.5 pr-4 text-ink/50">{m.n}</td>
-                        <td className="py-1.5 pr-4">{formatMetric(m)}</td>
-                      </tr>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showMetrics && (
+        <>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="label-mono text-xs font-medium text-ink/60">
+              Metrics preview <span className="text-ink/40">(overall scope)</span>
+            </h2>
+            <Button
+              variant="secondary"
+              disabled={pending || extracted === 0}
+              onClick={() => {
+                setActionError(null);
+                startTransition(async () => {
+                  try {
+                    await recomputeMetrics(projectId, runId);
+                    const next = await fetchExtractionAndMetrics(projectId, runId);
+                    setData(next);
+                  } catch (err) {
+                    reportError(err, { boundary: "extraction-panel-recompute", projectId, runId });
+                    setActionError(
+                      "Recompute failed — the existing metrics are unchanged. Try again.",
                     );
-                  })}
-                </tbody>
-              </table>
-            </section>
-          ))}
-        </div>
+                  }
+                });
+              }}
+            >
+              {pending ? "Recomputing…" : "Recompute metrics"}
+            </Button>
+          </div>
+          {actionError && <p className="mb-3 font-mono text-xs text-danger">{actionError}</p>}
+          {overallMetrics.length === 0 ? (
+            <p className="font-mono text-xs text-ink/45">No metrics computed yet</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {metricsByPillar.map(({ pillar, metrics }) => (
+                <section key={pillar} className="rounded-xl border border-ink/15 p-3">
+                  <div className="mb-2">
+                    <h3 className="label-mono text-xs text-ink/70">{PILLARS[pillar].label}</h3>
+                    <p className="font-mono text-[11px] text-ink/45">
+                      {PILLARS[pillar].clientQuestion}
+                    </p>
+                  </div>
+                  <table className="w-full border-collapse font-mono text-xs">
+                    <thead>
+                      <tr className="border-b border-ink/20 text-left text-ink/50">
+                        <th className="py-1.5 pr-4">Metric</th>
+                        <th className="py-1.5 pr-4">Meaning</th>
+                        <th className="py-1.5 pr-4">n</th>
+                        <th className="py-1.5 pr-4">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {metrics.map((m) => {
+                        const glossary = resolveGlossary(m.metricKey);
+                        return (
+                          <tr key={m.id} className="border-b border-ink/10">
+                            <td className="py-1.5 pr-4 text-ink/80">{glossary.label}</td>
+                            <td className="py-1.5 pr-4 text-ink/50">{glossary.definition}</td>
+                            <td className="py-1.5 pr-4 text-ink/50">{m.n}</td>
+                            <td className="py-1.5 pr-4">{formatMetric(m)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </section>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
