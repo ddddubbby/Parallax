@@ -140,3 +140,16 @@ Every doc in this repo belongs to exactly one of three classes. The class determ
 ## 7. Handoff discipline for this audit
 
 Per the project's own session rules: one branch (`m30-repo-cleanup-audit`), BUILD_NOTES entries per work session, and **one closing Decision Log entry** for the whole audit (not one per PR) recording the durable conventions this document introduces — the four-tier label, the document-class taxonomy, the Protected Register as a standing artifact, and the D-025 BUILD_NOTES-truncation execution. Cite this file (`AUDIT_METHODOLOGY.md`) as the plan artifact per §7's split-file precedent, the same way `RESONANCE_BUILD_PLAN.md` and `M21_M26_BUILD_PLAN.md` were adopted alongside their own closing entries.
+
+---
+
+## 8. Disposability convention for audit working artifacts
+
+Audit working artifacts — the drift matrix, register, inventory, and structure map produced by Passes 1-5 (`AUDIT_DOC_DRIFT_MATRIX.md`, `AUDIT_REGISTER.md`, `AUDIT_REPO_INVENTORY.md`, `AUDIT_STRUCTURE_MAP.md`) — are **disposable at milestone close**. They exist to drive the cleanup dispatch; once every finding's action has landed and any durable residue has graduated to the Decision Log (or, for deferred structural work, been recorded there as a named future proposal), the working docs are deleted. Keeping them around past close-out would make them a second, competing home for facts that `MASTER_CONTEXT.md` §9 already owns — the same "one fact, one home" problem the document-class taxonomy (§4) exists to prevent for product docs.
+
+Two artifacts are the exception and persist indefinitely:
+
+- **`PROTECTED_REGISTER.md`** — a standing safety net, not a one-time finding. Every future cleanup pass (this audit's own §2 Pass 0 rule) must consult it before proposing a `Delete`/`Merge`/rename, so it has to outlive the audit that produced it.
+- **`AUDIT_METHODOLOGY.md`** (this file) — the standing playbook. A future audit re-runs this method rather than re-deriving it from scratch.
+
+Future audits should place their per-milestone working docs under `docs/audits/mNN/` (for example `docs/audits/m30/`) rather than the repo root, so a mid-audit `git status` doesn't read as a pile of loose root-level files, and so the disposability boundary — everything under `docs/audits/mNN/` is deletable once mNN closes, everything outside it is not — is visible from the path alone.
