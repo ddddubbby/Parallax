@@ -6,11 +6,11 @@
 
 ## 1. Vision
 
-Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and simulates what that presentation does to buyers. It is organized as a marketing funnel — Upper Funnel (awareness & reach: Presence), Mid Funnel (consideration & education: Position + Perception, with Proof as the trust rail), Lower Funnel (simulated buyer action: the synthetic panel), and a value-add layer of test-before-you-spend study templates. The funnel is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
+Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and simulates what that presentation does to buyers. It is organized around two named epistemic layers (D-077): the Evidence Layer (the audit engine — Presence, Position, and Perception as the Four P pillars answering the client's core questions, with Proof as the trust rail underneath all three), and the Simulation Layer (simulated buyer action via the synthetic panel), plus a value-add layer of test-before-you-spend study templates on top of it. The two-layer split is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
 
 Parallax remains the name of the measurement engine (M0-M15): it turns a multi-week manual research task, "how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?", into a same-day operator pipeline: structured intake, capped prompt matrix, sampled provider runs, structured extraction, metrics with confidence intervals, findings, and an editable report. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations.
 
-The lower funnel is a simulation layer with a different epistemic status from the measurement engine: measured and simulated data never mix (C-12), simulations are conditioned on measured audit evidence by default (C-13), and simulation claims are comparative only (C-14). Scope through M20 is an internal tool for testing and demos: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
+The Simulation Layer has a different epistemic status from the Evidence Layer: measured and simulated data never mix (C-12), simulations are conditioned on measured audit evidence by default (C-13), and simulation claims are comparative only (C-14). Scope through M20 is an internal tool for testing and demos: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
 
 ## 2. How Parallax works
 
@@ -27,7 +27,7 @@ The lower funnel is a simulation layer with a different epistemic status from th
 
 ## 3. Target user
 
-The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month (and, from M16, lower-funnel simulation studies off the back of those audits) and need evidence that survives client scrutiny.
+The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month (and, from M16, Simulation Layer studies off the back of those audits) and need evidence that survives client scrutiny.
 
 The end client is not an app user.
 
@@ -38,11 +38,11 @@ The end client is not an app user.
 3. Misinformation register: factual-risk deliverable for regulated or trust-sensitive clients.
 4. Competitive displacement diagnosis: lost-shortlist cells plus sources driving competitor wins.
 5. Evidence pack: raw answers, extractions, and metrics backing strategy work.
-6. Lower-funnel simulation (M16+): after an audit surfaces how AI frames the brand, a resonance study simulates how buyer segments respond to that framing and to candidate fixes — the "so what, and which fix" chapter that closes the loop from measurement to action. Comparative and evidence-conditioned only (C-12/C-13/C-14).
+6. Simulation Layer study (M16+): after an audit surfaces how AI frames the brand, a resonance study simulates how buyer segments respond to that framing and to candidate fixes — the "so what, and which fix" chapter that closes the loop from measurement to action. Comparative and evidence-conditioned only (C-12/C-13/C-14).
 
 ## 5. MVP scope
 
-This section and §6 define the original measurement-engine MVP (M0-M10). The funnel presentation layer and the lower-funnel simulation product are specified in sections 8.19-8.22 and tracked as M16-M20; nothing below is retracted by them.
+This section and §6 define the original measurement-engine MVP (M0-M10). The Evidence Layer / Simulation Layer identity work and the Simulation Layer product are specified in sections 8.19-8.22 and tracked as M16-M20 (and further backfilled in sections 8.23-8.30 for M21-M29); nothing below is retracted by them.
 
 - Seven-step intake wizard with autosave and review.
 - Budget-aware prompt matrix, operator-edited, versioned, and capped per C-1.
@@ -73,7 +73,7 @@ Routes:
 - `/projects/[id]/runs` and `/projects/[id]/runs/[runId]`
 - `/projects/[id]/dashboard`
 - `/projects/[id]/report`
-- `/projects/[id]/resonance` and `/projects/[id]/resonance/[studyId]` (M16+ — lower-funnel studies and results, always SIMULATED-badged)
+- `/projects/[id]/resonance` and `/projects/[id]/resonance/[studyId]` (M16+ — Simulation Layer studies and results, always SIMULATED-badged)
 - `/settings`
 - `/debug`
 
@@ -330,7 +330,7 @@ OX-2 (M15): Guided pipeline: every stage page states where the project is and of
 OX-5 (M15): Demo-readiness: the seeded demo project walks every view end-to-end with real-shaped mock data at $0 spend.
 OX-6 (M15): Jargon pass: operator-facing terms (cell, rep, engine-mode) get inline glossary explanations.
 
-### 8.19 Funnel presentation layer and Resonance identity (M16)
+### 8.19 Layer identity and Resonance presentation (M16)
 
 FL-1: A pure core mapping (`src/core/funnel.ts`) assigns pillars to funnel stages: Presence -> Upper, Position + Perception -> Mid, Proof -> trust rail (never a stage), lower funnel fed by resonance metrics only. Additive over D-051; no pillar/metric/intent renames.
 FL-2: Dashboard and matrix pillar sections display their funnel-stage chip; Proof displays "TRUST RAIL". Chips are structural (badge tokens), never a new accent (V-2).
@@ -338,7 +338,7 @@ FL-3: The app presents as Resonance; Parallax remains the engine name. No repo/p
 FL-4: A shared `SimulatedBadge` component exists; every simulation surface added in M17+ must render it (C-12).
 FL-5: Project subnav gains a Resonance item from M16 (stub until M17); glossary gains funnel-stage and simulated terms.
 
-### 8.20 Lower funnel: resonance studies and synthetic panel runs (M17-M18)
+### 8.20 Simulation Layer: resonance studies and synthetic panel runs (M17-M18)
 
 RS-1: A resonance study = named panel personas x 2-3 stimulus variants (`measured_ai | corrected | repositioned | custom`), with one designated baseline. Persona fields: age and income band (the paper-validated conditioning axes) plus location and behavioral profile (prompt context that aids role-play coherence, never presented as validated segmentation — D-066); no gender/ethnicity fields (C-14).
 RS-2: `measured_ai` stimuli must cite stored raw response ids from the same project (C-13); studies may be explicitly marked unconditioned and are then labeled GENERIC on every surface.
@@ -350,9 +350,9 @@ RS-7: Embeddings are a provider capability (`EmbeddingProvider`, `EMBEDDING_PROV
 RS-8: Resonance metrics (disposable, C-5) compute per-variant and per-variant-x-persona PMFs, mean purchase-intent point estimates (no invented intervals — D-023), and delta-vs-baseline rows. ΔPI is always framed as a Likert-scale purchase-intent mean shift vs baseline — a survey construct, never a purchase-probability or conversion claim (D-066). Variant aggregates obey the n>=30 gate (default study shape: 6 personas x k=5 = 30 per variant); persona slices are always directional-only.
 RS-9: Audit metrics and resonance metrics never cross-contaminate: recompute dispatches on matrix kind, and wall tests prove an interleaved project keeps audit rows byte-identical (C-12). The wall extends to shared UI plumbing FROM M17 (D-068, the milestone that first produces completed resonance runs): audit dashboard/report run selectors filter `kind='audit'`, audit report generation and all export/print routes reject resonance runs until M19's dispatch, and the OX-2 next-action pipeline state is computed from audit-kind rows only.
 
-### 8.21 Lower funnel: results, report, exports, demo (M19)
+### 8.21 Simulation Layer: results, report, exports, demo (M19)
 
-RR-1: A lower-funnel results view shows variant ranking (PMF distributions), the delta table per segment, and deterministic highest/lowest excerpt panels (D-061 pattern, no LLM summarizer); every panel SIMULATED-badged.
+RR-1: A Simulation Layer results view shows variant ranking (PMF distributions), the delta table per segment, and deterministic highest/lowest excerpt panels (D-061 pattern, no LLM summarizer); every panel SIMULATED-badged.
 RR-2: Drill-through from any resonance figure reaches the exact eligible responses (shared eligibility function with recompute) in <=2 clicks (TP-4 pattern).
 RR-3: Resonance runs generate their own report sections (`resonance_method`, `resonance_results`, `resonance_evidence`) via deterministic templates (D-033) with model-origin text escaped (D-040) and C-14 language enforced by an extended forbidden-phrase test (RB-5 pattern). The method section must state: anchor-set version and its calibration status (uncalibrated in v1), that stimuli are text-only (the paper's image-stimulus setting performed mildly better — a known limitation, D-066), and that ΔPI is a Likert-scale survey-construct shift, not predicted buying behavior.
 RR-4: Exports: markdown, print-HTML, JSON evidence, and CSV (formula-injection guarded, D-045); the evidence archive works on resonance runs.
@@ -363,6 +363,77 @@ RR-5: `pnpm demo:resonance` walks a seeded demo study end-to-end at $0 (idempote
 VA-1: Four seeded study templates — AI-framing repair (default, the C-13 flagship), promo framing, price presentation (framing only, never absolute willingness-to-pay), message/claim variants — each a stimulus scaffold plus test-before-you-spend guidance copy.
 VA-2: Template placeholders must be resolved before approval; pack copy is covered by the C-14 forbidden-phrase test.
 VA-3: An adversarial hardening checklist (C-12/C-13/C-14 sweeps, budget chaos, injection, kill/resume) and a fresh-clone internal demo close out the internal build (see `RESONANCE_BUILD_PLAN.md` M20).
+
+### 8.23 Layer identity: Evidence Layer / Simulation Layer (M21)
+
+A first-time client met three competing vocabularies at once — pillars, funnel stages, pipeline terms — and saw "Resonance" mean both the whole product umbrella and one sub-tab, even though the C-12 epistemic wall already existed in code. D-077 resolves this by naming two product-facing epistemic layers and retiring the upper/mid/lower funnel framing (superseding 8.19's FL-1/FL-2 framing language); this is presentation-only, following the D-063 precedent — no pillar, metric, or intent rename, no schema change, no migration.
+
+LI-1: `src/core/funnel.ts`'s label strings and `funnelStampForPillar` are rewritten so audit pillars stamp "EVIDENCE LAYER" and Proof keeps "TRUST RAIL"; the dormant lower-stage label now leads with "Simulation Layer". The underlying `FunnelStage` type and its `"upper"|"mid"|"lower"` internal values are unchanged (non-rendered internals, D-077).
+LI-2: The "Resonance" umbrella-vs-subtab naming collision is resolved: the project subnav tab, the simulation page's h1/empty-state/breadcrumb/results heading, the print and markdown report titles, the `RESONANCE_REPORT_SECTIONS` titles and method-section body text, the SIMULATED badge line, the Settings embedding-engine caption, and the run-form's D-067/D-080 caption all rename to "Simulation". The umbrella brand (app title, login h1, nav mark) stays "Resonance", explicitly untouched — as does the `resonance` route segment.
+LI-3: The glossary's "funnel stage" term is redefined around the Evidence Layer / Simulation Layer split.
+LI-4: A full metrics recompute stays byte-identical pre/post the copy change, proving the milestone touched presentation only.
+
+### 8.24 Test-DB isolation + evidence-only studies (M22)
+
+Two independent hardening items shipped together (D-078), closing a live operational hazard and a real C-13 gap.
+
+TI-1: `pnpm test` runs every DB-backed test against a fresh, ephemeral, embedded-Postgres instance, never the shared dev DB — closing the D-073 hazard where the test suite's `claimJobs` calls could claim and corrupt a real queued run's jobs mid-session. Any startup failure overrides `DATABASE_URL` to a guaranteed-unreachable string (fail closed) rather than leaving it unset, so a broken embedded-PG degrades the same way "no Postgres installed" already does, and never silently falls through to the dev DB.
+TI-2: `pnpm test:db` boots the same ephemeral instance standalone in the foreground for manual poking, mirroring `pnpm db:dev`'s UX.
+EO-1: A `measured_ai` resonance stimulus with real stored evidence is unconditionally required for study approval (C-13) — the `genericUnconditioned` operator toggle and its RPC-reachable form field are removed entirely; no flag, UI or otherwise, can bypass the evidence requirement at approval.
+EO-2: Historical GENERIC studies approved before this milestone keep rendering truthfully (export label, report badge, CSV column) — kept deliberately for historical accuracy, never reachable for new approvals.
+EO-3: A template-pack draft lacking a measured_ai baseline shows a plain-language readiness requirement at approval time instead of a raw server error.
+
+### 8.25 Coverage contract + price/promo templates (M23)
+
+An audit of the default template set found zero of the 45 seeded prompt templates mention price, cost, deals, offers, or discounts, so two of the four value-add study packs (price presentation, promo framing) could never draw real Evidence Layer support for their `measured_ai` baseline (D-079). This section closes that gap with a checkable coverage contract plus opt-in templates that leave the default 40-cell allocation, golden dataset, and mock-e2e expectations provably unchanged.
+
+CV-1: A pure `FrameAspect` taxonomy (presence, positioning, perception_attributes, factual_claims, pricing, promotions) tags every seeded prompt template — defaulted from the template's intent, with an explicit per-row override where a template's evidentiary content diverges from its intent's usual meaning.
+CV-2: Each study template pack declares a `requiredAspect`; `evaluatePackCoverage` cross-checks a pack's requirement against the project's actual cell coverage and stamps ok/gap, rendered as an informational "Simulation coverage" panel on the matrix board (never a block, D-058 precedent).
+PP-1: Six opt-in price/promo prompt templates (one price + one promo per archetype) seed with `active:false`, so `getMatrixInputs`'s active-only filter guarantees zero effect on the default allocation until an operator explicitly flips them on via a per-archetype "Activate {aspect} templates" board control.
+PP-2: The price_presentation and promo_framing study template packs each ship a pre-filled `measured_ai` baseline slot so they can satisfy 8.24's EO-1 hard evidence rule once the operator attaches a real response.
+
+### 8.26 Multi-provider resonance (M24)
+
+D-067 (8.20's RS-4) restricted a resonance run to exactly one generation engine-mode because pooling two engines' PMFs into a single variant mean would silently merge two distinct synthetic populations — the C-12 failure mode one level down. D-080 lifts that provider restriction (generation mode still stays locked to exactly one) by extending the same never-pool discipline to the provider dimension rather than avoiding it with a hard cap.
+
+MP-1: A resonance run now accepts >=1 providers; generation mode remains locked to exactly one, since resonance metric scopes still carry no mode dimension.
+MP-2: Every resonance metric computes strictly within one provider's own samples: `resonance_variant`/`resonance_delta` scope keys become `<stimulusId>|<providerId>`, `resonance_variant_persona` becomes `<stimulusId>|<personaKey>|<providerId>`; a provider's ΔPI baseline subtracts only its own baseline mean, never another provider's.
+MP-3: The results page, report (`ResonanceReportContext.providerSections`), and `resonance_metrics.csv` (new `providerId` column) each render one block per engine; no cross-engine comparison UI or pooled numbers exist anywhere in the product.
+MP-4: A one-shot, repeatable `pnpm recompute:resonance` sweep migrates existing resonance runs' metric rows to the new composite scope-key format without touching audit-run metrics.
+
+### 8.27 prompt_cells freeze-trigger DB backstop (M25)
+
+Infrastructure hardening, not a client-facing feature — matches the compact treatment of 8.14/8.15. M25's operator-scoped deploy/Sentry/grounded-provider work was explicitly deferred by operator decision; the ops track instead delivered this DB-level closure of a real gap: C-4 ("approved matrices are frozen") was application-enforced only (`assertDraft()`), so a raw migration, script, or a future code path that forgot to call the guard could still mutate a frozen `prompt_cells` row with nothing to stop it (D-081).
+
+FT-1: Migration 0010 adds a Postgres trigger rejecting direct UPDATE/DELETE on `prompt_cells` rows whose parent `matrix_versions.state` is `approved` or `superseded`; draft-state rows and all INSERTs remain fully mutable.
+FT-2: A transaction-scoped `SET LOCAL app.bypass_cell_freeze` GUC (never a session-level `SET`, which would leak onto a pooled connection's next unrelated query) provides a narrow test-only escape hatch for fixture teardown, used only by dedicated helpers in `matrix.test-helpers.ts`.
+FT-3: A same-week hotfix (D-083, migration 0011) corrected a bug in the trigger itself (`RETURN OLD` on `UPDATE`, which silently discarded legitimate draft-cell edits) — TG_OP branching now returns NEW on UPDATE and OLD on DELETE.
+
+### 8.28 Calibration protocol + comparison harness (M26)
+
+`purchase_intent.v1` ships uncalibrated (D-066) until independently validated against real human survey data, which does not exist yet. This section builds the measurement machinery for that future benchmark without pretending a benchmark has happened (D-082) — infrastructure ahead of data, not a user-facing feature, so it gets the compact 8.14/8.15-style treatment rather than the full requirement-list prose.
+
+CL-1: `CALIBRATION_PROTOCOL.md` defines the survey design (direct five-point Likert rating from human respondents shown the identical stimulus text), minimum sample guidance (n>=30 per stimulus, >=8 distinct stimuli), the paired human/SSR PMF fixture format, and section-6 acceptance thresholds for flipping a new anchor set's `calibrated:true` (Pearson r >= 0.6, mean absolute error <= 0.5, mean Wasserstein-1 <= 0.75, n>=30 per counted stimulus, >=80% directional sign agreement) — labeled explicitly as this protocol's own floor, not a figure borrowed from the SSR paper.
+CL-2: A pure `src/core/calibration.ts` (`computeCalibrationSummary`) computes per-stimulus and aggregate Pearson r, mean absolute error, and a closed-form Wasserstein-1 distance from paired human/SSR PMF observations — no DB, no network call, no new dependency.
+CL-3: No script invokes the harness against real data, and `purchase_intent.v1` stays `calibrated:false` — a deliberate stop-line until real human-benchmark data exists (flipping calibration on a synthetic self-comparison would be exactly the invented-precision variance theater D-023 exists to prevent).
+
+### 8.29 Post-intake Setup editing (M27)
+
+Post-completion intake editing was explicitly out of MVP scope with no resolution path (`projects/new`'s own code comment): the operator had no way to view or change competitors, category, personas, markets, or the fact sheet once intake finished. Reopening the intake wizard was rejected because its completion path deletes and reinserts normalized rows with new UUIDs (D-026), which would orphan `prompt_cells.persona_id`/`market_id` and `brand_mentions.brand_id` foreign keys the moment any matrix, run, or extraction already exists (D-084).
+
+SU-1: A dedicated `/projects/[id]/setup` page (row-level, not the wizard) lets an operator view and edit competitors, personas, markets, attributes, and the fact sheet after intake completes. Every edit is an UPDATE keyed by the existing row id, preserving identity for every downstream foreign key.
+SU-2: "Remove" archives rather than deletes for brands/personas/markets (nullable `archived_at`, migration 0012) and fact claims (the existing `factClaimStatus` enum, since `claims_found.fact_claim_id` FK-blocks a real delete); attributes, which carry no foreign key anywhere, get a real delete. The client brand can never be archived (server-enforced).
+SU-3: Generation-input reads (`getMatrixInputs`, and both PM-9 scan call sites) exclude archived rows; historical label-resolution reads (`getPersonaLabelsForProject`/`getMarketLabelsForProject`, `regenerateCell`'s own cell-specific lookups) remain archived-inclusive so existing matrix cells keep readable labels.
+SU-4: Zero active competitors blocks new comparison-intent generation with a clear server-side error instead of silently rendering an empty competitor list; the matrix board warns when a draft matrix predates the project's most recent Setup edit (`projects.setup_updated_at`), never on approved versions (C-4 — frozen evidence is never flagged stale).
+SU-5: `/projects/new` redirects a non-draft project id to `/projects/[id]/setup` instead of `/projects`.
+
+### 8.30 Buyer-voice guard + JTBD field clarity + template grammar fix (M28)
+
+PM-9 (D-046) only ever caught brand NAMES contaminating prompt inputs, never brand- or business-GOAL language. An operator-reported bug — a marketing-objective `job_to_be_done` value ("Penetrate traditional DSLR consumer segment") producing a grammatically and evidentially broken prompt — showed PM-9's other half was missing (D-085).
+
+BV-1: `findBusinessVoicePhrases` flags business/brand-goal phrasing (penetrate, capture, grow/expand/gain share, acquire/win customers, convert, dominate, target market, market share, grow revenue, increase adoption, scale to, launch into, plus a bounded "target ... segment" pattern) using the same word-boundary matcher PM-9's own brand-term check relies on, as a warning — never a block, matching PM-9's own precedent — at intake review and on Setup basics save.
+BV-2: Every user-facing "Job to be done" label is renamed to "Buyer's goal (in their words)" with a hint contrasting a concrete buyer-goal example against a brand-goal example, on both intake and Setup (Setup's field previously shipped with no guidance at all, an M27 regression fixed here). The underlying `job_to_be_done` column/field identifier is unchanged — copy-only, no migration.
+BV-3: Every `{job_to_be_done}` prompt-template slot across all three archetypes is rewritten to a noun-phrase-compatible framing, so one stored buyer-goal value reads grammatically in every template variant that interpolates it.
 
 ## 9. Data model summary
 
@@ -405,10 +476,10 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M13 | Pillar visual system + navigation | Numbered pillar sections with spines/tints on dashboard and matrix; per-project subnav on every project page; V-2 intact (orange stays the only accent) | Done |
 | M14 | Competitive spectrum | Per-brand metric scope under D-054 frames; head-to-head and open-field bar charts replace "rest of the field"; per-competitor report table + CSV; SQL spot-check green | Done |
 | M15 | Explanatory layer | Pillar business-value explainers in matrix; live per-pillar sample-budget panel vs the n>=30 gate; guided next actions; $0 demo walkthrough | Done |
-| M16 | Funnel presentation layer + Resonance identity | Funnel chips on dashboard/matrix; app presents as Resonance; SimulatedBadge exists; recompute byte-identical pre/post (presentation-only proven) | Done |
+| M16 | Layer identity + Resonance presentation | Funnel-stage chips on dashboard/matrix (renamed to Evidence Layer / Trust Rail stamps by M21, D-077); app presents as Resonance; SimulatedBadge exists; recompute byte-identical pre/post (presentation-only proven) | Done |
 | M17 | Resonance studies + mock panel run | Migration 0008 clean on fresh+existing DB; study -> approve -> mock run completes storing raw responses, zero extractions; PM-9 bypass proven with branded stimulus; audit mock e2e still green | Done |
 | M18 | SSR scoring + resonance metrics | Golden SSR math tests; mock run fixture-scored end-to-end, recompute idempotent; embedding spend in projection+budgets; C-12 wall tests green | Done |
-| M19 | Lower-funnel surfaces + report + demo | Results view with <=2-click drill-through; resonance report sections + guarded exports; archive works; `pnpm demo:resonance` walkable at $0 | Done |
+| M19 | Simulation Layer surfaces + report + demo | Results view with <=2-click drill-through; resonance report sections + guarded exports; archive works; `pnpm demo:resonance` walkable at $0 | Done |
 | M20 | Value-add packs + hardening + internal demo | Four template packs seeded; C-12/13/14 adversarial sweep logged; fresh-clone demo executed unassisted | Done pending operator sign-off walk (sweep + fresh-clone demo executed 2026-07-05; caught and fixed the drizzle-config env P1) |
 | M21 | Layer identity: Evidence Layer / Simulation Layer copy | Funnel-stage stamps read `EVIDENCE LAYER`/`TRUST RAIL`; the "Resonance" umbrella-vs-subtab collision resolved to "Simulation" on the simulation surfaces only; recompute byte-identical pre/post (presentation-only proven) | Done |
 | M22 | Test-DB isolation + evidence-only (kill GENERIC) | `pnpm test` runs DB-backed tests against an ephemeral embedded-Postgres instance, never the dev DB; C-13 approval guard is unconditional (no genericUnconditioned escape) while historical GENERIC rows still render truthfully | Done |
@@ -418,6 +489,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M26 | Calibration spike | `CALIBRATION_PROTOCOL.md` committed (survey design, n>=30-per-stimulus sample guidance, paired-data fixture format, section-6 acceptance thresholds for flipping a NEW anchor version's `calibrated:true`, honest limits); pure `src/core/calibration.ts` comparison harness (Pearson r, per-stimulus MAE, closed-form Wasserstein-1) with hand-computed unit tests (perfect match r=1; shifted case MAE=1.0, meanW1=1.0, r=11/14); `fixtures/calibration/example-paired.json` marked SYNTHETIC; `purchase_intent.v1` stays `calibrated:false`; no UI, no script invoking the harness (deliberate stop-line — no real human data yet) | Done |
 | M27 | Post-intake Setup editing | Dedicated `/projects/[id]/setup` page (row-level, archive-not-delete) lets an operator view/edit competitors, personas, markets, attributes, and the fact sheet after intake completes, without reopening the intake wizard (D-026 UUID-churn FK-orphan risk); migration 0012 adds `archived_at`/`setup_updated_at`; the two-reads trap (generation-input excludes archived, label-resolution includes it) is enforced at `getMatrixInputs`; zero-active-competitor and stale-draft guards surface on the matrix board | Done |
 | M28 | Buyer-voice guard + JTBD field clarity + template grammar fix | A new PM-9-pattern warning (never a block) flags business/brand-goal phrasing in `job_to_be_done` at intake review, and on Setup basics save; the field is relabeled "Buyer's goal (in their words)" everywhere with a buyer-vs-brand-goal hint+placeholder (Setup's own field, which shipped with none, was the M27 regression); every `{job_to_be_done}` template slot across all three archetypes is noun-phrase-compatible so one stored buyer-goal value reads grammatically in every variant | Done |
+| M29 | Pause/cancel observability hotfix | A manually-paused run now logs an `operator_paused`/`operator_cancelled` event and the run page shows a plain-language reason instead of a bare stamp when a run is paused with no explanatory event on record; small enough that it received no Decision Log entry (BUILD_NOTES S-058 only, same precedent as the D-083 hotfix) | Done |
 
 Progress notes:
 
@@ -515,6 +587,6 @@ Progress notes:
 
 ## 12. Roadmap after MVP
 
-Current stage (specified, D-063): M16 funnel presentation layer -> M17 resonance data layer + mock panel runs -> M18 SSR scoring + metrics -> M19 lower-funnel surfaces + demo -> M20 value-add packs + hardening. Ordering rationale: identity/presentation first because it is zero-risk and stabilizes navigation; data layer before scoring so the pipeline is provable in mock at $0 before any embedding spend; surfaces after metrics so every chart has real rows behind it; value-add packs last because they are presets over proven machinery. M10 close-out (deploy, remaining live providers, Gemini grounding caveat) remains a parallel ops track gated on operator actions.
+Completed (D-063, D-077): M16 layer identity + Resonance presentation -> M17 resonance data layer + mock panel runs -> M18 SSR scoring + metrics -> M19 Simulation Layer surfaces + demo -> M20 value-add packs + hardening -> M21 Evidence Layer / Simulation Layer copy (D-077) -> M22 test-DB isolation + evidence-only studies (D-078) -> M23 coverage contract + price/promo templates (D-079) -> M24 multi-provider resonance (D-080) -> M25 prompt_cells freeze trigger residue (D-081) -> M26 calibration protocol + comparison harness (D-082) -> M27 post-intake Setup editing (D-084) -> M28 buyer-voice guard + JTBD clarity (D-085) -> M29 pause/cancel observability hotfix. Ordering rationale (M16-M20): identity/presentation first because it is zero-risk and stabilizes navigation; data layer before scoring so the pipeline is provable in mock at $0 before any embedding spend; surfaces after metrics so every chart has real rows behind it; value-add packs last because they are presets over proven machinery. M10 close-out (deploy, remaining live providers, Gemini grounding caveat) remains a parallel ops track gated on operator actions and is still open as of M30.
 
 Post-PoC parking lot (deliberately NOT scheduled — see RESONANCE_BUILD_PLAN parking lot): multi-user/auth changes, payments, client portals, live embedding-fidelity calibration, bootstrap intervals for PMF means and D-023 point estimates, additional simulation constructs (relevance/trust/switch-likelihood), image stimuli, anchor-set tuning, non-English panels, location/footfall studies. Earlier demand-driven items stand: client-deliverable polish (charts in the PDF, branded layout, `.docx` export), AI Overviews through a SERP/API vendor, snapshot preset, run-over-run comparison, extraction-accuracy trends, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.

@@ -1,6 +1,6 @@
 # Parallax (product: Resonance)
 
-Internal operator-facing web tool for auditing how AI systems describe, recommend, cite, and misrepresent brands — and, from M16, simulating how buyer segments respond to that AI framing. The product umbrella is **Resonance**, organized as a marketing funnel; Parallax is the measurement engine's name and stays the repo/package name (D-063).
+Internal operator-facing web tool for auditing how AI systems describe, recommend, cite, and misrepresent brands — and, from M16, simulating how buyer segments respond to that AI framing. The product umbrella is **Resonance**, organized around two named epistemic layers — the Evidence Layer (audit) and the Simulation Layer (resonance studies), D-077; Parallax is the measurement engine's name and stays the repo/package name (D-063).
 
 Start here:
 
