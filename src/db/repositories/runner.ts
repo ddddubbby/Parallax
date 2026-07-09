@@ -194,14 +194,6 @@ export async function getRun(runId: string) {
   return run ?? null;
 }
 
-export async function listRuns(projectId: string) {
-  return db
-    .select()
-    .from(auditRuns)
-    .where(eq(auditRuns.projectId, projectId))
-    .orderBy(desc(auditRuns.createdAt));
-}
-
 /**
  * Runs for a project's index page, newest first, each with total and
  * succeeded job counts (one grouped query, no N+1). Powers the runs list
