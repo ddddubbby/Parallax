@@ -125,13 +125,19 @@ Split a section into a separate file only when it exceeds roughly 300 lines or c
 
 Boot ritual for implementation sessions:
 
-> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then `DEVELOPMENT_GUIDELINES.md` section A, then the active milestone's entries in `BUILD_NOTES.md`. For UI-facing milestones (M2, M3, M6, M7), also read `DESIGN_GUIDELINES.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then `DEVELOPMENT_GUIDELINES.md` section A, then the active milestone's entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 
-> Append a session entry to `BUILD_NOTES.md` (template inside that file). Append decisions made this session to `MASTER_CONTEXT.md` section 9. Append a 3-line progress note to the current milestone in `PRD.md`. Give the commit message. If stopping mid-task or blocked, write the `BUILD_NOTES.md` entry immediately, even without the rest of the ritual.
+> Append a session entry to `BUILD_NOTES.md` (template inside that file). Append decisions made this session to `MASTER_CONTEXT.md` section 9. If a decision logged this session protects an existing surface from removal/rename/merge, also append it to `PROTECTED_REGISTER.md` (D-086) so the register doesn't silently go stale. Append a 3-line progress note to the current milestone in `PRD.md`. Give the commit message. If stopping mid-task or blocked, write the `BUILD_NOTES.md` entry immediately, even without the rest of the ritual.
 
-Session rules: one active session at a time, one branch per milestone, plan before any multi-file edit, and any schema-change plan must say the word migration.
+Session rules: one active session at a time, one branch per milestone, plan before any multi-file edit, and any schema-change plan must say the word migration. Any proposal to delete, merge, rename, or "simplify away" an existing surface must check `PROTECTED_REGISTER.md` (D-086) first; a match is an automatic Keep — Protected, cite the D-number.
+
+Operational hazards, every session:
+- Never `git add -A` / `git add .` — the operator keeps live untracked WIP in the tree; stage explicit paths only.
+- Never `pnpm build` while a dev server is running (shared `.next` corruption, D-075).
+- `pnpm test` is DB-isolated since D-078, but never point ad-hoc scripts at the dev DB directly — it holds real operator runs (D-073).
+- If `node`/`pnpm` are missing from PATH, bootstrap via nvm before concluding the project is broken.
 
 ## 9. Decision Log
 
