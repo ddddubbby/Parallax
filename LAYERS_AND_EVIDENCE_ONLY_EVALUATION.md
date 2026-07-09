@@ -1,6 +1,6 @@
 # Layers & Evidence-Only Evaluation
 
-> Proposal for operator review. NOT canon — untracked, uncommitted. Two operator-proposed
+> **Status: tracked planning canon, executed — layer-identity rename shipped as M21/D-077, coverage-contract idea shipped as M23/D-079.** Two operator-proposed
 > product improvements evaluated against the running code. Every factual claim cites `file:line`.
 > Judgment calls are marked **[JUDGMENT]**; unverified claims are marked **[UNVERIFIED]**.
 > Precedent: D-063 (funnel is presentation-only, no data restructure), D-051 (semantic layer

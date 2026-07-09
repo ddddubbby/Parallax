@@ -1,5 +1,7 @@
 # RESONANCE_BUILD_PLAN.md — M16–M20 Execution Playbook
 
+**Status: executed — M16-M20 all shipped, see D-063 through D-071 and PRD.md §11.** Historical planning record; kept for the how and the traps it documents, not as a live execution guide.
+
 > Step-by-step build plan for the Resonance expansion (funnel presentation layer + lower-funnel synthetic panel + value-add template packs). Written for execution by agentic coding sessions and human QA. **Assume no prior context beyond the canonical docs.** Read `MASTER_CONTEXT.md` fully first (constraints C-1..C-14, decisions D-063..D-065), then the milestone's PRD section (8.19–8.22), then this file's milestone chapter. `ENGINEERING_SPEC.md` owns schema/state contracts; this file owns the how and the traps.
 >
 > RULES FOR EXECUTORS: (1) Do not improvise architecture — every deviation from this plan must be logged as a Decision Log entry and approved by the operator first. (2) Every milestone ends with its QA gate fully executed and pasted into `BUILD_NOTES.md`. (3) When this plan says VERIFY, run the command and read the output; do not assume. (4) When a step conflicts with observed code, STOP, write the conflict into `BUILD_NOTES.md`, and ask the operator. (5) The words "simulated" and "measured" are load-bearing everywhere; never swap them.

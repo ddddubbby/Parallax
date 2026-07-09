@@ -1,6 +1,6 @@
 # M21_M26_BUILD_PLAN.md — Layer Identity → Calibration Execution Playbook
 
-> Proposal for operator review. **Untracked, uncommitted, NOT canon.** Execution playbook for
+> **Status: tracked planning canon, executed (M21-M26), see D-077 (adoption) through D-082 (execution).** Execution playbook for
 > sprints M21–M26, continuing the format of `RESONANCE_BUILD_PLAN.md` (per-milestone numbered
 > steps, explicit QA gates, critical-bug risk tables). Strategic sequencing is fixed by the lead
 > session; this file verifies effort/risk against the running code and writes the how. Read
