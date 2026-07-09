@@ -54,7 +54,7 @@ AI assistants have become decision intermediaries between brands and buyers. Con
 | C-10 | Provider grounding capability is explicit. Grounded runs are blocked for providers that cannot return citations through an approved API path. |
 | C-11 | LLM provider API keys are never stored in source files, `.env.example`, `render.yaml`, fixtures, logs, or client-visible payloads. The operator enters them in the authenticated Settings UI; the server encrypts them at rest and only the server/worker can decrypt them. |
 | C-12 | Measured and simulated data never mix. Resonance (simulation) rows are structurally separated (matrix `kind`, `resonance_*` metric scopes, run-scoped report sections); audit aggregates, charts, and reports never include simulated samples and vice versa; every simulation surface renders a SIMULATED badge. Enforced by recompute dispatch plus wall tests (same isolation discipline as C-9). |
-| C-13 | Simulations are evidence-conditioned by default: a study's `measured_ai` stimulus must cite stored raw response ids from the same project. Unconditioned studies require an explicit operator toggle and are labeled GENERIC on every surface and export. |
+| C-13 | Simulations are evidence-conditioned: at approval, a study's `measured_ai` stimulus must cite stored raw response ids from the same project — no toggle can bypass this (D-078 removed the operator "unconditioned" toggle entirely). GENERIC is now a historical-only label, rendered truthfully on studies approved before D-078 but unreachable for any new approval. |
 | C-14 | Simulation claims are comparative only: rankings and deltas between stimulus variants. Never absolute purchase-intent promises, never sales/ROI predictions, never quoting the SSR paper's accuracy as our own. ΔPI is a Likert-scale survey-construct shift, never framed as purchase probability. Panel persona conditioning: age and income band are the paper-validated axes; location and behavioral profile are prompt context only, never presented as validated segmentation (D-066); no gender/ethnicity conditioning. Enforced in template copy by forbidden-phrase tests (RB-5 pattern). |
 
 ## 5. Stack snapshot
@@ -87,6 +87,10 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 /src/modules/analysis    Metrics, findings, stability calculations
 /src/modules/resonance   Simulation Layer studies: compile, SSR scoring, resonance metrics (M17+)
 /src/modules/report      Report section generation and export helpers
+/src/modules/auth        Login/session (M8, D-034)
+/src/modules/settings    Provider credentials UI/service (M8, D-017/D-021)
+/src/modules/dashboard   Dashboard data assembly (M6)
+/src/modules/setup       Post-intake Setup editing (M27, D-084)
 /src/providers           LLMProvider interface, mock, live provider adapters
 /src/db                  Drizzle schema, migrations, repositories
 /src/worker              Polling worker entrypoint
@@ -105,7 +109,10 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 | `ENGINEERING_SPEC.md` | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
 | `RENDER_DEPLOYMENT.md` | Render Blueprint assumptions, secret model, first-deploy checklist |
 | `RELEASE_CHECKLIST.md` | Go-live gates and the per-audit delivery/archive record (D-043) |
-| `RESONANCE_BUILD_PLAN.md` | M16-M20 execution playbook: per-milestone steps, QA gates, critical-bug risk tables (D-063) |
+| `RESONANCE_BUILD_PLAN.md` | M16-M20 execution playbook: per-milestone steps, QA gates, critical-bug risk tables (D-063); executed, historical record |
+| `M21_M26_BUILD_PLAN.md` | M21-M26 execution playbook, adopted as planning canon (D-077); executed, historical record |
+| `LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md` | Layer-identity rename and coverage-contract proposal synthesis, adopted as planning canon (D-077); executed, historical record |
+| `CALIBRATION_PROTOCOL.md` | SSR human-benchmark calibration survey design, thresholds, and paired-data fixture format (M26, D-082) |
 | `BUILD_NOTES.md` | Disposable per-session working memory for agent handoff; truncated at milestone merge |
 | `README.md` | Quick orientation and local setup pointer |
 | `fixtures/` | Demo project, mock response manifest, golden expectation manifest |
