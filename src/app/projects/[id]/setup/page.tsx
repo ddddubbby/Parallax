@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { SetupSubnav } from "@/components/setup-subnav";
 import { SetupClient } from "@/components/setup/setup-client";
 import { isUuid } from "@/core/id";
 import { getProjectSetup } from "@/db/repositories/setup";
@@ -27,9 +28,14 @@ export default async function SetupPage({ params }: { params: Promise<{ id: stri
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
-        / {setup.project.name} / Setup
+        /{" "}
+        <Link href={`/projects/${id}`} className="hover:text-ink">
+          {setup.project.name}
+        </Link>{" "}
+        / Setup / Inputs
       </div>
-      <h1 className="label-mono mb-6 text-lg font-semibold">Project Setup</h1>
+      <h1 className="label-mono mb-4 text-lg font-semibold">Project Setup</h1>
+      <SetupSubnav projectId={id} />
       <SetupClient
         projectId={id}
         data={{

@@ -24,7 +24,7 @@ export default function ProjectError({
 
   const links = projectId
     ? [
-        { href: `/projects/${projectId}/matrix`, label: "Back to this project" },
+        { href: `/projects/${projectId}`, label: "Back to this project" },
         { href: "/projects", label: "All projects" },
       ]
     : [{ href: "/projects", label: "Return to projects" }];

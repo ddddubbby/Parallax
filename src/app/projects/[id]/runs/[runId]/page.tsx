@@ -28,7 +28,7 @@ export default async function RunDetailPage({
           Projects
         </Link>{" "}
         /{" "}
-        <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
+        <Link href={`/projects/${id}`} className="hover:text-ink">
           {project?.name ?? "Project"}
         </Link>{" "}
         /{" "}

@@ -38,7 +38,7 @@ export default async function NewRunPage({
           Projects
         </Link>{" "}
         /{" "}
-        <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
+        <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
         / New run

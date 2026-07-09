@@ -14,6 +14,35 @@ function stateTone(state: string): "ink" | "warn" | "danger" | "ok" {
   return "ink";
 }
 
+function RunRow({
+  projectId,
+  run,
+}: {
+  projectId: string;
+  run: Awaited<ReturnType<typeof listRunsWithProgress>>[number];
+}) {
+  return (
+    <Link
+      href={`/projects/${projectId}/runs/${run.id}`}
+      className="flex items-center justify-between rounded-xl border border-ink/15 p-3 transition-micro hover:border-ink"
+    >
+      <span className="flex items-center gap-2">
+        <span className="font-mono text-sm text-ink/85">Run {run.id.slice(0, 8)}</span>
+        {run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+        {run.matrixKind === "resonance" && <SimulatedBadge />}
+        {run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
+        <Stamp tone={stateTone(run.state)}>{run.state}</Stamp>
+      </span>
+      <span className="flex items-center gap-4 font-mono text-xs text-ink/45">
+        <span>
+          {run.succeeded} / {run.total} jobs
+        </span>
+        <span>{run.createdAt.toISOString().slice(0, 10).replaceAll("-", ".")}</span>
+      </span>
+    </Link>
+  );
+}
+
 export default async function RunsIndexPage({
   params,
 }: {
@@ -24,6 +53,10 @@ export default async function RunsIndexPage({
   const project = await getProjectSummary(id);
   if (!project) notFound();
   const runs = await listRunsWithProgress(id);
+  // M31 / D-087: group the existing flat list — no query change; matrixKind
+  // already comes from listRunsWithProgress.
+  const auditRuns = runs.filter((r) => r.matrixKind === "audit");
+  const simulationRuns = runs.filter((r) => r.matrixKind === "resonance");
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
@@ -32,7 +65,7 @@ export default async function RunsIndexPage({
           Projects
         </Link>{" "}
         /{" "}
-        <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
+        <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
         / Runs
@@ -62,34 +95,41 @@ export default async function RunsIndexPage({
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {runs.map((run) => (
-            <Link
-              key={run.id}
-              href={`/projects/${id}/runs/${run.id}`}
-              className="flex items-center justify-between rounded-xl border border-ink/15 p-3 transition-micro hover:border-ink"
-            >
-              <span className="flex items-center gap-2">
-                <span className="font-mono text-sm text-ink/85">
-                  Run {run.id.slice(0, 8)}
-                </span>
-                {run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
-                {run.matrixKind === "resonance" && <SimulatedBadge />}
-                {run.runMode === "live_validation" && (
-                  <Stamp tone="warn">VALIDATION-ONLY</Stamp>
-                )}
-                <Stamp tone={stateTone(run.state)}>{run.state}</Stamp>
-              </span>
-              <span className="flex items-center gap-4 font-mono text-xs text-ink/45">
-                <span>
-                  {run.succeeded} / {run.total} jobs
-                </span>
-                <span>
-                  {run.createdAt.toISOString().slice(0, 10).replaceAll("-", ".")}
-                </span>
-              </span>
-            </Link>
-          ))}
+        <div className="flex flex-col gap-8">
+          <section aria-label="Audit runs">
+            <h2 className="label-mono mb-3 text-xs font-semibold uppercase text-ink/60">
+              Audit runs
+              <span className="text-ink/40"> · {auditRuns.length}</span>
+            </h2>
+            {auditRuns.length === 0 ? (
+              <p className="font-mono text-xs text-ink/45">No audit runs on file</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {auditRuns.map((run) => (
+                  <RunRow key={run.id} projectId={id} run={run} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section aria-label="Simulation runs">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h2 className="label-mono text-xs font-semibold uppercase text-ink/60">
+                Simulation runs
+                <span className="text-ink/40"> · {simulationRuns.length}</span>
+              </h2>
+              <SimulatedBadge />
+            </div>
+            {simulationRuns.length === 0 ? (
+              <p className="font-mono text-xs text-ink/45">No simulation runs on file</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {simulationRuns.map((run) => (
+                  <RunRow key={run.id} projectId={id} run={run} />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       )}
     </main>

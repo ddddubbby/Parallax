@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MatrixBoard } from "@/components/matrix/board";
+import { SetupSubnav } from "@/components/setup-subnav";
 import { countAspects, evaluatePackCoverage } from "@/core/coverage";
 import { isUuid } from "@/core/id";
 import { scanUnbrandedCells } from "@/core/matrix";
@@ -94,8 +95,14 @@ export default async function MatrixPage({
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
-        / {inputs.project.name} / Matrix
+        /{" "}
+        <Link href={`/projects/${id}`} className="hover:text-ink">
+          {inputs.project.name}
+        </Link>{" "}
+        / Setup / Prompt matrix
       </div>
+      <h1 className="label-mono mb-4 mt-4 text-lg font-semibold">Prompt matrix</h1>
+      <SetupSubnav projectId={id} />
       <MatrixBoard
         projectId={id}
         projectStatus={inputs.project.status}

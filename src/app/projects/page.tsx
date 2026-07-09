@@ -64,10 +64,10 @@ export default async function ProjectsPage() {
                   ) : (
                     <span className="flex justify-end gap-3">
                       <Link
-                        href={`/projects/${p.id}/matrix`}
+                        href={`/projects/${p.id}`}
                         className="label-mono text-xs text-accent-ink hover:text-accent"
                       >
-                        Matrix →
+                        Open →
                       </Link>
                       <Link
                         href={`/projects/${p.id}/runs`}

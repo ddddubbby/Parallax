@@ -46,7 +46,7 @@ export default async function ReportPage({
           Projects
         </Link>{" "}
         /{" "}
-        <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
+        <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
         /{" "}

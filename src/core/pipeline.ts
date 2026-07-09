@@ -38,7 +38,9 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
       return { stageLabel: "Simulation running", nextLabel: "Watch the simulation", nextPath: "resonance" };
     }
     if (s.hasCompletedResonanceRun) {
-      return { stageLabel: "Simulation results ready", nextLabel: "View simulation results", nextPath: "resonance" };
+      // M31 / D-087: primary results surface is the walled Dashboard Simulation
+      // section; full tables remain on /resonance via link-through.
+      return { stageLabel: "Simulation results ready", nextLabel: "View simulation results", nextPath: "dashboard" };
     }
     if (s.hasApprovedResonanceStudy) {
       return { stageLabel: "Study ready to run", nextLabel: "Run the simulation study", nextPath: "resonance" };

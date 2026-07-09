@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { StudyWizard } from "@/components/resonance/study-wizard";
+import { SetupSubnav } from "@/components/setup-subnav";
 import { Button, Field, Input, Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
 import { type PanelPersona, type StimulusKind } from "@/core/resonance";
@@ -326,15 +327,20 @@ export default async function ResonancePage({
           Projects
         </Link>{" "}
         /{" "}
-        <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
+        <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
-        / Simulation
+        / Setup / Simulation studies
       </div>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-4 mt-4 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Simulation Studies</h1>
         <SimulatedBadge />
       </div>
+      <SetupSubnav projectId={id} />
+      <p className="mb-6 font-mono text-xs leading-5 text-ink/55">
+        Define and approve studies here. Completed results also appear as a walled summary on the
+        Dashboard (C-12) — open a study&rsquo;s full results below or via that link-through.
+      </p>
 
       <form action={createStudyFormAction.bind(null, id)} className="mb-6 flex gap-3 rounded-xl border border-ink/15 p-4">
         <Field label="New study name">
@@ -413,7 +419,11 @@ export default async function ResonancePage({
               evidenceResponseIdsJson: (s.evidenceResponseIdsJson as string[] | null) ?? null,
             }));
             return (
-              <section key={study.id} className="border-t border-ink/15 py-5">
+              <section
+                key={study.id}
+                id={`study-${study.id}`}
+                className="scroll-mt-6 border-t border-ink/15 py-5"
+              >
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <h2 className="label-mono text-sm font-semibold">{study.name}</h2>
                   <Stamp tone={study.state === "approved" ? "ok" : "ink"}>{study.state}</Stamp>
@@ -433,8 +443,6 @@ export default async function ResonancePage({
                   )}
                 </div>
 
-                {results && <ResonanceResultsPanel projectId={id} results={results} />}
-
                 {isDraft && (
                   <StudyWizard
                     projectId={id}
@@ -444,6 +452,10 @@ export default async function ResonancePage({
                     evidenceOptions={evidenceOptions}
                   />
                 )}
+
+                {/* Full results stay here for Dashboard link-through (D-087);
+                    definition/approval is the primary job of this page. */}
+                {results && <ResonanceResultsPanel projectId={id} results={results} />}
               </section>
             );
           })}
