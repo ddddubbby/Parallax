@@ -37,6 +37,27 @@ export interface TestDbHandle {
   stop: () => Promise<void>;
 }
 
+/**
+ * Migrate + seed an already-running Postgres reachable at `connectionString`.
+ * Extracted so both the embedded-Postgres path (below) and an external DB
+ * (a CI Postgres service container, D-092 e2e hotfix) share one code path.
+ * Migrate is idempotent (drizzle tracks applied migrations); seed is
+ * idempotent (D-016 fixtures). Uses a throwaway pool and a child-process
+ * seed so it never shares src/db/client's singleton pool.
+ */
+export async function migrateAndSeed(connectionString: string): Promise<void> {
+  const migPool = new Pool({ connectionString });
+  try {
+    await migrate(drizzle(migPool), { migrationsFolder: MIGRATIONS_FOLDER });
+  } finally {
+    await migPool.end();
+  }
+  execFileSync(TSX_BIN, [SEED_SCRIPT], {
+    env: { ...process.env, DATABASE_URL: connectionString },
+    stdio: "inherit",
+  });
+}
+
 // A connection string that can never resolve — used when the ephemeral PG
 // itself fails to start (bad platform binary, sandboxed environment, etc.)
 // so that dbUp checks in test files fail closed instead of silently
@@ -75,24 +96,7 @@ export async function startEphemeralTestDb(): Promise<TestDbHandle> {
 
     const connectionString = `postgres://postgres:postgres@localhost:${TEST_DB_PORT}/${TEST_DB_NAME}`;
 
-    // Migrate via a throwaway pool/drizzle instance — deliberately NOT
-    // src/db/client's singleton, so this script never depends on import
-    // order or leaves a pool open past this function.
-    const migPool = new Pool({ connectionString });
-    try {
-      await migrate(drizzle(migPool), { migrationsFolder: MIGRATIONS_FOLDER });
-    } finally {
-      await migPool.end();
-    }
-
-    // Seed as a child process (not an in-process import) so this script
-    // never shares a module cache / pool with scripts/seed.ts's own
-    // `src/db/client` import — the child only ever sees the test DB via
-    // its own DATABASE_URL env override.
-    execFileSync(TSX_BIN, [SEED_SCRIPT], {
-      env: { ...process.env, DATABASE_URL: connectionString },
-      stdio: "inherit",
-    });
+    await migrateAndSeed(connectionString);
 
     return {
       connectionString,

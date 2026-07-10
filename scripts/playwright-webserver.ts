@@ -1,20 +1,37 @@
-// M33 / D-092: boot ephemeral Postgres + Next for Playwright smoke.
+// M33 / D-092: boot a seeded Postgres + Next for the Playwright smoke run.
 // Keeps CI independent of the operator's local Insta 360 project.
+//
+// Two DB sources (D-092 e2e hotfix):
+//   - CI: `E2E_DATABASE_URL` points at a Postgres SERVICE CONTAINER. We only
+//     migrate + seed it — no embedded-Postgres. This sidesteps embedded
+//     initdb's fragility on the CI runner (the `pnpm test:e2e` boot failed
+//     there where `pnpm test`'s earlier embedded boot had succeeded, because
+//     the intervening `playwright install --with-deps` mutated the runner).
+//   - Local: no env var → boot a throwaway embedded-Postgres, same as vitest.
 import { spawn, type ChildProcess } from "node:child_process";
-import { startEphemeralTestDb } from "./test-db";
+import { migrateAndSeed, startEphemeralTestDb } from "./test-db";
 
 const PORT = process.env.PLAYWRIGHT_PORT ?? "3100";
 
-async function main() {
+async function resolveDb(): Promise<{ connectionString: string; stop: () => Promise<void> }> {
+  const external = process.env.E2E_DATABASE_URL;
+  if (external) {
+    await migrateAndSeed(external);
+    return { connectionString: external, stop: async () => {} };
+  }
   const handle = await startEphemeralTestDb();
   if (handle.connectionString.includes("parallax_test_unavailable")) {
-    console.error("[playwright-webserver] ephemeral DB failed to start");
-    process.exit(1);
+    throw new Error("ephemeral DB failed to start (and no E2E_DATABASE_URL provided)");
   }
+  return { connectionString: handle.connectionString, stop: handle.stop };
+}
+
+async function main() {
+  const db = await resolveDb();
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    DATABASE_URL: handle.connectionString,
+    DATABASE_URL: db.connectionString,
     DISABLE_AUTH: "true",
     APP_ENV: "development",
     NODE_ENV: "development",
@@ -29,7 +46,7 @@ async function main() {
 
   const shutdown = async () => {
     child.kill("SIGTERM");
-    await handle.stop();
+    await db.stop();
     process.exit(0);
   };
   process.on("SIGINT", () => {
@@ -40,7 +57,7 @@ async function main() {
   });
 
   child.on("exit", (code) => {
-    void handle.stop().then(() => process.exit(code ?? 1));
+    void db.stop().then(() => process.exit(code ?? 1));
   });
 }
 
