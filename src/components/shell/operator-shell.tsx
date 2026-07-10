@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode, type MouseEvent } from "react";
 import {
   GLOBAL_NAV_ITEMS,
   isNavItemActive,
@@ -16,8 +17,9 @@ import {
 import type { PipelineState } from "@/core/pipeline";
 import { cn } from "@/core/cn";
 import { logout } from "@/modules/auth/actions";
-import { AppMenu, AppMenuItem, AppMenuSeparator } from "@/components/ui/menu";
+import { AppMenu, AppMenuItem } from "@/components/ui/menu";
 import { AppTooltip, AppTooltipProvider } from "@/components/ui/tooltip";
+import { useUnsavedEdit } from "@/components/unsaved-edit";
 
 export type OperatorShellProps = {
   mode: "global" | "project";
@@ -43,10 +45,20 @@ function NavLink({
   onNavigate?: () => void;
   indent?: boolean;
 }) {
+  const { dirty } = useUnsavedEdit();
+
+  function onClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (dirty && !window.confirm("You have unsaved changes. Leave this page?")) {
+      e.preventDefault();
+      return;
+    }
+    onNavigate?.();
+  }
+
   return (
     <Link
       href={href}
-      onClick={onNavigate}
+      onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
         "label-mono block rounded-md px-3 py-1.5 text-xs transition-micro",
@@ -79,11 +91,7 @@ function SidebarBody({
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-ink/10 px-4 py-4">
-        <Link
-          href="/projects"
-          onClick={onNavigate}
-          className="flex flex-col text-ink"
-        >
+        <Link href="/projects" onClick={onNavigate} className="flex flex-col text-ink">
           <span className="label-mono text-sm font-semibold">Resonance</span>
           <span className="font-mono text-[10px] text-ink/45">Parallax measurement engine</span>
         </Link>
@@ -212,11 +220,10 @@ function SidebarBody({
 
 /**
  * M32 / D-088: one responsive left sidebar for authenticated operator surfaces.
- * Desktop: fixed ~248px. Below 1024px: focus-trapped drawer.
+ * Desktop: fixed ~248px. Below 1024px: Radix Dialog drawer (M33 / D-089 focus trap).
  */
 export function OperatorShell(props: OperatorShellProps) {
   const [open, setOpen] = useState(false);
-  const titleId = useId();
   const pathname = usePathname();
   const search = useSearchParams().toString();
 
@@ -224,16 +231,6 @@ export function OperatorShell(props: OperatorShellProps) {
   useEffect(() => {
     setOpen(false);
   }, [pathname, search]);
-
-  // Escape closes drawer.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
 
   return (
     <AppTooltipProvider>
@@ -246,52 +243,46 @@ export function OperatorShell(props: OperatorShellProps) {
           <SidebarBody {...props} />
         </aside>
 
-        {/* Mobile top bar */}
-        <div className="operator-mobile-bar sticky top-0 z-30 flex items-center gap-3 border-b border-ink/10 bg-paper px-4 py-3 lg:hidden">
-          <AppTooltip label="Open navigation">
-            <button
-              type="button"
-              className="rounded-md border border-ink/15 p-2 text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              aria-label="Open navigation"
-              aria-expanded={open}
-              aria-controls={titleId}
-              onClick={() => setOpen(true)}
-            >
-              <Menu className="h-4 w-4" aria-hidden />
-            </button>
-          </AppTooltip>
-          <span className="label-mono truncate text-xs font-semibold">
-            {props.mode === "project" && props.project ? props.project.name : "Resonance"}
-          </span>
-        </div>
-
-        {/* Mobile drawer */}
-        {open && (
-          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-            <button
-              type="button"
-              className="absolute inset-0 bg-ink/40"
-              aria-label="Close navigation"
-              onClick={() => setOpen(false)}
-            />
-            <aside
-              id={titleId}
-              className="absolute inset-y-0 left-0 flex w-[min(100%,var(--sidebar-width))] flex-col border-r border-ink/10 bg-paper shadow-xl"
-            >
-              <div className="flex justify-end p-2">
+        {/* Mobile top bar + drawer (Radix Dialog = focus trap + restore). */}
+        <Dialog.Root open={open} onOpenChange={setOpen}>
+          <div className="operator-mobile-bar sticky top-0 z-30 flex items-center gap-3 border-b border-ink/10 bg-paper px-4 py-3 lg:hidden">
+            <AppTooltip label="Open navigation">
+              <Dialog.Trigger asChild>
                 <button
                   type="button"
-                  className="rounded-md p-2 text-ink/50 hover:bg-ink/5 hover:text-ink"
+                  className="rounded-md border border-ink/15 p-2 text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  aria-label="Open navigation"
+                >
+                  <Menu className="h-4 w-4" aria-hidden />
+                </button>
+              </Dialog.Trigger>
+            </AppTooltip>
+            <span className="label-mono truncate text-xs font-semibold">
+              {props.mode === "project" && props.project ? props.project.name : "Resonance"}
+            </span>
+          </div>
+
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 lg:hidden" />
+            <Dialog.Content
+              aria-describedby={undefined}
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(100%,var(--sidebar-width))] flex-col border-r border-ink/10 bg-paper shadow-xl outline-none lg:hidden"
+            >
+              <div className="flex items-center justify-between border-b border-ink/10 px-3 py-2">
+                <Dialog.Title className="label-mono text-xs font-semibold text-ink">
+                  Navigation
+                </Dialog.Title>
+                <Dialog.Close
+                  className="rounded-md p-2 text-ink/50 hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   aria-label="Close navigation"
-                  onClick={() => setOpen(false)}
                 >
                   <X className="h-4 w-4" aria-hidden />
-                </button>
+                </Dialog.Close>
               </div>
               <SidebarBody {...props} onNavigate={() => setOpen(false)} />
-            </aside>
-          </div>
-        )}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
 
         <div className="min-w-0 flex-1 lg:pl-[var(--sidebar-width)]">{props.children}</div>
       </div>

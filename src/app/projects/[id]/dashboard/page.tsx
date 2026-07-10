@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { SimulationSummarySection } from "@/components/dashboard/simulation-summary";
 import { LocalViewTabs } from "@/components/local-view-tabs";
+import { SimulatedBadge } from "@/components/simulated-badge";
 import { isUuid } from "@/core/id";
 import { parseDashboardView, withViewParam } from "@/core/views";
 import { summarizeSimulationStudy } from "@/core/workspace";
@@ -16,6 +17,10 @@ export const dynamic = "force-dynamic";
  * M32 / D-088: Dashboard is URL-segmented. Audit views load audit DTOs only.
  * `view=simulation` loads approved-study summaries only — no audit selector,
  * chart, aggregate, or metric DTO (C-12).
+ *
+ * M33 / D-089 step 7: Simulation is not a sixth pillar sibling in the tab row.
+ * On simulation view, replace pillar tabs with a back link; on audit views,
+ * visually separate Simulation and stamp it SIMULATED.
  */
 export default async function DashboardPage({
   params,
@@ -32,13 +37,12 @@ export default async function DashboardPage({
 
   const view = parseDashboardView(viewRaw);
   const base = `/projects/${id}/dashboard`;
-  const tabs = [
+  const auditTabs = [
     { id: "overview", label: "Overview", href: withViewParam(base, "overview") },
     { id: "presence", label: "Presence", href: withViewParam(base, "presence") },
     { id: "position", label: "Position", href: withViewParam(base, "position") },
     { id: "perception", label: "Perception", href: withViewParam(base, "perception") },
     { id: "proof", label: "Proof", href: withViewParam(base, "proof") },
-    { id: "simulation", label: "Simulation", href: withViewParam(base, "simulation") },
   ];
 
   return (
@@ -66,7 +70,29 @@ export default async function DashboardPage({
           </Link>
         )}
       </div>
-      <LocalViewTabs tabs={tabs} activeId={view} label="Dashboard sections" />
+
+      {view === "simulation" ? (
+        <div className="mb-6">
+          <Link
+            href={withViewParam(base, "overview")}
+            className="label-mono text-xs text-accent-ink hover:text-accent"
+          >
+            ← Evidence dashboard
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <LocalViewTabs tabs={auditTabs} activeId={view} label="Evidence dashboard sections" />
+          <span className="hidden h-4 w-px bg-ink/15 sm:block" aria-hidden />
+          <Link
+            href={withViewParam(base, "simulation")}
+            className="label-mono inline-flex items-center gap-2 rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/60 transition-micro hover:border-ink hover:text-ink"
+          >
+            Simulation results
+            <SimulatedBadge />
+          </Link>
+        </div>
+      )}
 
       {view === "simulation" ? (
         <SimulationDashboard projectId={id} />

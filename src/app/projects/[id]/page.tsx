@@ -66,7 +66,7 @@ export default async function ProjectHubPage({
           <>
             {" "}
             ·{" "}
-            <Link href={nextHref} className="label-mono text-accent-ink hover:text-accent">
+            <Link href={nextHref} className="label-mono text-accent-ink underline underline-offset-2 hover:text-accent">
               {stage.nextLabel} →
             </Link>
           </>

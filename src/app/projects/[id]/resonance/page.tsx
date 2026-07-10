@@ -85,7 +85,7 @@ export default async function ResonanceLibraryPage({
                     {personas.length} persona{personas.length === 1 ? "" : "s"}
                   </span>
                   <span>
-                    {stimuli.length} stimulus{stimuli.length === 1 ? "" : "i"}
+                    {stimuli.length} {stimuli.length === 1 ? "stimulus" : "stimuli"}
                   </span>
                   {matrixVersion && (
                     <span>

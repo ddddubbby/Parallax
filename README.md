@@ -34,6 +34,7 @@ pnpm db:seed
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:e2e                 # Playwright smoke + axe (D-092); optional locally, required in CI
 pnpm dev:all                 # app + polling worker together (what you usually want)
 ```
 
@@ -50,6 +51,7 @@ banner on its run page.
 
 Useful scripts:
 
+- `pnpm test:e2e` — Playwright critical-journey smoke + axe floor (D-092); boots ephemeral Postgres + Next on :3100.
 - `pnpm test:mock-e2e` — the full mock pipeline end to end (500-job run, worker kill/restart, failure injection).
 - `pnpm demo:walkthrough` — populates the seeded demo project with a completed mock audit run at $0 so every view is walkable.
 - `pnpm demo:resonance` — populates the seeded demo project with a completed mock resonance study at $0.

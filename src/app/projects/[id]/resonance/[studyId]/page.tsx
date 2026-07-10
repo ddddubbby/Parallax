@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocalViewTabs } from "@/components/local-view-tabs";
+import { EvidenceFilters } from "@/components/resonance/evidence-filters";
 import { StudyResultsPanel } from "@/components/resonance/study-results-panel";
 import { StudyWizard } from "@/components/resonance/study-wizard";
 import { SimulatedBadge } from "@/components/simulated-badge";
@@ -136,6 +137,8 @@ export default async function ResonanceStudyPage({
     engine?: string;
     section?: string;
     page?: string;
+    stimulus?: string;
+    persona?: string;
   }>;
 }) {
   const { id, studyId } = await params;
@@ -165,6 +168,8 @@ export default async function ResonanceStudyPage({
           projectId: id,
           studyId,
           providerId: sp.engine,
+          stimulusId: sp.stimulus,
+          panelPersonaKey: sp.persona,
           page: evidencePage,
           pageSize: 25,
         })
@@ -369,7 +374,11 @@ export default async function ResonanceStudyPage({
                   return (
                     <Link
                       key={providerId}
-                      href={withViewParam(base, "evidence", { engine: providerId })}
+                      href={withViewParam(base, "evidence", {
+                        engine: providerId,
+                        stimulus: sp.stimulus,
+                        persona: sp.persona,
+                      })}
                       className={
                         active
                           ? "label-mono rounded-full bg-ink px-3 py-1 text-[11px] text-paper"
@@ -383,8 +392,18 @@ export default async function ResonanceStudyPage({
               </>
             )}
           </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <EvidenceFilters
+              base={base}
+              engine={engine || undefined}
+              stimulus={sp.stimulus}
+              persona={sp.persona}
+              stimuli={stimuli.map((s) => ({ id: s.id, label: s.label }))}
+              personas={personas.map((p) => ({ key: p.key, label: p.label }))}
+            />
+          </div>
           {!evidencePageData || evidencePageData.total === 0 ? (
-            <p className="font-mono text-xs text-ink/45">No evidence responses for this engine yet.</p>
+            <p className="font-mono text-xs text-ink/45">No evidence responses for this filter yet.</p>
           ) : (
             <>
               <p className="font-mono text-xs text-ink/50">
@@ -424,6 +443,8 @@ export default async function ResonanceStudyPage({
                     <Link
                       href={withViewParam(base, "evidence", {
                         engine: engine || undefined,
+                        stimulus: sp.stimulus,
+                        persona: sp.persona,
                         page: String(evidencePageData.page - 1),
                       })}
                       className="label-mono rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"
@@ -435,6 +456,8 @@ export default async function ResonanceStudyPage({
                     <Link
                       href={withViewParam(base, "evidence", {
                         engine: engine || undefined,
+                        stimulus: sp.stimulus,
+                        persona: sp.persona,
                         page: String(evidencePageData.page + 1),
                       })}
                       className="label-mono rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"

@@ -308,7 +308,8 @@ Extraction prompt requirements:
 | Integration | Project -> matrix -> run -> extract -> metrics -> report | Before milestone merge |
 | Failure injection | Mock timeout, 429, 500, malformed output, restart | From M4 onward |
 | Live validation | 5 cells x k=2 against DeepSeek under $2 | M8 |
-| Manual checklist | Wizard, matrix, run, dashboard, report | Milestone merge |
+| Playwright smoke + axe | Critical operator journey floor (`pnpm test:e2e`, D-092) | CI required check; before UI milestone Done |
+| Manual checklist | Wizard, matrix, run, dashboard, report | Milestone merge (UI milestones: evidenced walk in `BUILD_NOTES.md` before Done, D-092) |
 
 Milestone acceptance commands:
 
@@ -319,6 +320,7 @@ Milestone acceptance commands:
 - M5: `pnpm test:golden`, extraction retry/dead-letter tests, metric recompute idempotency test.
 - M8: `pnpm audit:deepseek-mini`, 5 cells x k=2 under `$2`, validation labels visible.
 - M16-M20: per-milestone QA gates in `RESONANCE_BUILD_PLAN.md` are the acceptance contract — including the M16 recompute-invariance check, M17/M18 C-12 wall tests plus audit `test:mock-e2e` regression, golden SSR math tests (hand-computed PMFs; must fail if min-subtraction or the (1+cos)/2 rescale is skipped), and the M19 `pnpm demo:resonance` $0 walkthrough. Gate outputs are pasted into `BUILD_NOTES.md`.
+- M33+: `pnpm lint --max-warnings 0`, `pnpm test:e2e` (Playwright smoke + axe). Under `CI=true`, ephemeral Postgres startup failure is fatal (D-092); local `pnpm test` still fail-to-skips (D-078).
 
 Standing rules:
 
@@ -328,19 +330,22 @@ Standing rules:
 - Migrations are additive-first: new columns/tables land before code depends on them; destructive changes ship in a later deploy, because the web service migrates in pre-deploy while the worker may still run older code.
 - Production destructive migrations require `pg_dump` first.
 - After each delivered audit, export the EX-3 evidence pack and take a redacted database snapshot stored off-Render before closing the engagement (D-024). The evidence archive excludes server-only provider credentials; managed-Postgres backup retention is not the evidence archive.
+- CI lint must pass with zero warnings (`pnpm lint --max-warnings 0`, D-092).
 
 Manual checklist seeds:
 
 - Wizard: refresh mid-step keeps data; browser back safe; draft resumes; alias overlap fires.
 - Matrix: default <=50 for extreme inputs; 51st blocked UI and API; approved version immutable.
 - Run: projected cost shown; cancel works; worker kill/restart exact counts; MOCK and validation labels visible.
-- Dashboard: three figures spot-checked against SQL; drill-down <=2 clicks; insufficient-data guard works.
+- Dashboard: three figures spot-checked against SQL; drill-down <=2 clicks; insufficient-data guard works; Simulation view never shares audit selectors/charts (C-12) and is not a sixth pillar tab.
 - Report: edit section A, regenerate section B, A intact; export opens; every number traceable.
 
 ## G. Workflow
 
 - One active session, one branch per milestone.
-- Commit at every green-test state.
+- Commit at every green-test / phase-green state (D-092), not only at milestone close.
 - Any schema plan must say migration.
 - Interface, table, dependency, provider capability, or invariant changed? Log it in `MASTER_CONTEXT.md` section 9.
-- Handoff includes a 3-line milestone progress note in `PRD.md`.
+- Handoff ritual (also in `MASTER_CONTEXT.md` §8): `BUILD_NOTES.md` session entry; Decision Log row when durable; `PROTECTED_REGISTER.md` append when a new decision protects a surface from delete/rename/merge (D-086); PRD tracker + progress note; update `README.md` / this file's command tables when scripts or acceptance gates change; update `DESIGN_GUIDELINES.md` only when a visual rule changes.
+- Any proposal to delete, merge, rename, or "simplify away" an existing surface must check `PROTECTED_REGISTER.md` first (D-086).
+- A UI-touching milestone cannot be marked Done until its interactive verification ran and is evidenced in `BUILD_NOTES.md` (D-092).

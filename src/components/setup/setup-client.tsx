@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button, Field, Input, Select, Stamp, Textarea } from "@/components/ui";
+import { UnsavedChangesSignal, useUnsavedEdit } from "@/components/unsaved-edit";
 import type { CategoryArchetype } from "@/core/semantic";
 import { CATEGORY_ARCHETYPES } from "@/core/semantic";
 import {
@@ -120,6 +121,7 @@ export function SetupClient({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const { setDirty } = useUnsavedEdit();
 
   function run(action: () => Promise<{ ok: boolean; error?: string; warning?: string }>, onOk?: () => void) {
     setError(null);
@@ -131,6 +133,7 @@ export function SetupClient({
       } else {
         if (result.warning) setWarning(result.warning);
         onOk?.();
+        setDirty(false);
       }
       router.refresh();
     });
@@ -195,8 +198,34 @@ export function SetupClient({
     setFactForm({ type: f.type, statement: f.statement, source_note: f.sourceNote ?? "", source_url: f.sourceUrl ?? "" });
   }
 
+  const basicsDirty =
+    basics.name !== data.project.name ||
+    basics.category !== data.project.category ||
+    basics.category_archetype !== data.project.categoryArchetype ||
+    basics.job_to_be_done !== data.project.jobToBeDone;
+  const rowEditOpen =
+    editingBrandId !== null ||
+    editingPersonaId !== null ||
+    editingMarketId !== null ||
+    editingAttrId !== null ||
+    editingFactId !== null ||
+    showNewPersona ||
+    showNewFact ||
+    newCompetitor.name.trim() !== "" ||
+    newMarket.trim() !== "" ||
+    newAttr.trim() !== "";
+
+  useEffect(() => {
+    setDirty(basicsDirty || rowEditOpen);
+  }, [basicsDirty, rowEditOpen, setDirty]);
+
   return (
     <div className="flex flex-col gap-8">
+      {(basicsDirty || rowEditOpen) && (
+        <div className="sticky top-0 z-10 -mx-1 flex items-center justify-end px-1 py-1">
+          <UnsavedChangesSignal />
+        </div>
+      )}
       <div className="rounded-lg border border-ink/15 p-3">
         <p className="font-mono text-xs text-ink/60">
           Changes here apply to future matrix generation and future runs. Approved matrices stay

@@ -10,3 +10,7 @@ coverage
 *.tsbuildinfo
 .pgdata
 .pnpm-store
+test-results
+playwright-report
+blob-report
+playwright/.cache

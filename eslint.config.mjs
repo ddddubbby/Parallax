@@ -16,6 +16,22 @@ const eslintConfig = [
     ignores: [".next/**", "node_modules/**", "coverage/**", "out/**", "next-env.d.ts"],
   },
   {
+    // M33 / D-089: intentional rest-sibling discards (`{ foo: _foo, ...rest }`)
+    // are not unused-var noise — ignoreRestSiblings matches the TypeScript
+    // eslint recommendation for that pattern (resonance.ts summary strip).
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
+  {
     // C-7: "The UI never imports providers." Pages get provider metadata
     // via module actions (e.g. listProviderOptions); components take the
     // literal-union types from @/core/runner.

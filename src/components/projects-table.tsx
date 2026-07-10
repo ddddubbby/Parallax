@@ -71,7 +71,9 @@ export function ProjectsTable({ projects }: { projects: ProjectRow[] }) {
               <th className="label-mono py-2 pr-4 text-xs font-medium text-ink/60">Status</th>
               <th className="label-mono py-2 pr-4 text-xs font-medium text-ink/60">Step</th>
               <th className="label-mono py-2 pr-4 text-xs font-medium text-ink/60">Updated</th>
-              <th className="py-2" />
+              <th className="label-mono py-2 text-xs font-medium text-ink/60">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="font-mono">

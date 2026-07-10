@@ -105,7 +105,7 @@ export function MatrixBoard({
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="label-mono text-lg font-semibold">Prompt Matrix</h1>
+          <div className="label-mono text-lg font-semibold">Prompt Matrix</div>
           {focus && (
             <>
               <Stamp tone="ink">V{focus.version}</Stamp>

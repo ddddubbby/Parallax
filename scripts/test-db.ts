@@ -44,11 +44,14 @@ export interface TestDbHandle {
 const UNREACHABLE_CONNECTION_STRING = "postgres://postgres:postgres@127.0.0.1:1/parallax_test_unavailable";
 
 /**
- * Boots a fresh, migrated, seeded, ephemeral Postgres instance. Never
- * throws — on any failure it logs a warning and returns a handle whose
- * connectionString is guaranteed unreachable, so DB-backed tests degrade to
- * `describe.skipIf(!dbUp)` exactly as they do with no Postgres installed at
- * all (Part A requirement (c)).
+ * Boots a fresh, migrated, seeded, ephemeral Postgres instance.
+ *
+ * Local (no CI): never throws — on failure it logs a warning and returns a
+ * handle whose connectionString is guaranteed unreachable, so DB-backed tests
+ * degrade to `describe.skipIf(!dbUp)` (D-078).
+ *
+ * CI (`CI=true`, D-092 / M33): startup failure is fatal. A broken runner must
+ * not silently skip 96+ DB-backed tests and report green.
  */
 export async function startEphemeralTestDb(): Promise<TestDbHandle> {
   const databaseDir = join(tmpdir(), `parallax-test-pg-${process.pid}-${Date.now()}`);
@@ -99,12 +102,16 @@ export async function startEphemeralTestDb(): Promise<TestDbHandle> {
       },
     };
   } catch (err) {
+    await pg.stop().catch(() => {});
+    cleanupDir();
+    if (process.env.CI === "true") {
+      console.error("[test-db] ephemeral Postgres failed to start under CI=true — failing hard (D-092):", err);
+      throw err instanceof Error ? err : new Error(String(err));
+    }
     console.warn(
       "[test-db] ephemeral Postgres failed to start — DB-backed tests will self-skip (describe.skipIf(!dbUp)):",
       err,
     );
-    await pg.stop().catch(() => {});
-    cleanupDir();
     return {
       connectionString: UNREACHABLE_CONNECTION_STRING,
       stop: async () => {},
