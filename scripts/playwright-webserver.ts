@@ -5,6 +5,18 @@ import { startEphemeralTestDb } from "./test-db";
 
 const PORT = process.env.PLAYWRIGHT_PORT ?? "3100";
 
+// D-092 hotfix: embedded-postgres runs `initdb --lc-messages=<getBestLocale()>`,
+// which reads the process locale env. On the CI runner, the `playwright install
+// --with-deps` step (sudo apt-get) mutates installed locales AFTER `pnpm test`'s
+// own embedded-postgres already succeeded — so the later e2e boot's initdb can
+// hit a locale the runner no longer honors and exit 1 ("Postgres init script
+// failed"). Force a locale that always exists on Linux (C.UTF-8) before booting.
+// Linux-only: macOS has no `C.UTF-8` and its e2e boot already works untouched.
+if (process.platform === "linux") {
+  process.env.LANG = "C.UTF-8";
+  process.env.LC_ALL = "C.UTF-8";
+}
+
 async function main() {
   const handle = await startEphemeralTestDb();
   if (handle.connectionString.includes("parallax_test_unavailable")) {
