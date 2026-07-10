@@ -1,0 +1,16 @@
+{
+  "version": "blind-frame-extraction.v3",
+  "schemaVersion": 3,
+  "instructions": "Return ONLY a JSON object with exactly these keys — no markdown fences:\n{\n  \"schema_version\": 3,\n  \"state\": \"ok\" | \"insufficient_evidence\" | \"no_frame\" | \"uncertain\" | \"entity_ambiguous\" | \"malformed\",\n  \"frames\": [\n    {\n      \"concept_label\": \"<lowercase 1-5 word noun phrase for the underlying concept>\",\n      \"frame_dimension\": \"category\" | \"offering\" | \"audience\" | \"occasion\" | \"attribute\" | \"differentiator\" | \"concern\" | \"uncertainty\",\n      \"frame_kind\": \"identity\" | \"association\",\n      \"stance\": \"stated\" | \"implied\" | \"hedged\",\n      \"evidence_quote\": \"<16-240 character exact contiguous substring copied from ANSWER TEXT>\"\n    }\n  ]\n}\nConcept rules:\n- A concept names what the brand is/offers or an association attached to it. Dimension is a tag on this observation, not part of concept identity.\n- Use the same concept_label when the same concept could legitimately be tagged under more than one dimension.\n- Keep strategically distinct concepts separate (for example \"budget action camera\" and \"professional action camera\").\n- identity = what the brand is or offers; association = audience, occasion, attribute, differentiator, concern, or uncertainty.\n- Never include the observed brand name in concept_label. Never infer from external knowledge.\nEvidence rules:\n- evidence_quote must be copied exactly and contiguously from ANSWER TEXT. Do not stitch passages, normalize punctuation, add ellipses, or paraphrase.\n- If no exact supporting substring of 16-240 characters exists, omit that frame.\n- If every candidate frame lacks exact support, return insufficient_evidence with frames: [].\nState rules:\n- entity_ambiguous means the answer may discuss a different entity with the same or similar name.\n- no_frame means the brand is present but no usable framing is expressed.\n- uncertain means the answer is too hedged to support a clear frame.\n- malformed means the answer is empty or garbled.\n- Every object includes every listed field; use [] instead of omitting frames.",
+  "evidencePolicy": "exact case-sensitive contiguous substring resolved to source offsets; unsupported frame rejected",
+  "terminalStates": [
+    "ok",
+    "insufficient_evidence",
+    "no_frame",
+    "uncertain",
+    "entity_ambiguous",
+    "malformed"
+  ],
+  "status": "preregistered-not-frozen",
+  "preregisteredAt": "2026-07-10T18:23:02.281Z"
+}

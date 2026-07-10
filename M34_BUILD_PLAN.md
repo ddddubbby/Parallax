@@ -86,6 +86,24 @@ Legend for each phase: **Goal · Files · Steps · Acceptance · Commit.**
 > until frozen v3 passes its held-out gate. C-15 remains unfrozen. No threshold was loosened.**
 > The Phase-4 eligibility rules and BF-8/BF-10/BF-14 below are therefore superseded-in-part by the v3
 > design once it freezes; they are left as written pending that freeze (immutable-history discipline).
+>
+> **PHASE 0 RECOVERY AMENDMENT (D-096):** before any v3 scoring, implement exact
+> source-offset verification, immutable generation/extraction manifests, response-state
+> denominators, one-run/one-standard-extraction-version organic pinning, four controls
+> through the real clustering/eligibility path, and count/outcome-blinded mapping locked
+> before scoring. v3 measures a profile of independently stable concepts with a
+> per-concept dimension distribution; several stable concepts are allowed and a tie is
+> not automatically instability. A small blinded human-coded instrument check and the
+> preregistered uncertainty-clause ablation are freeze gates. Crocs/Xiaomi stay untouched
+> until freeze. A held-out failure produces NO-GO (method changes create v4 + new held-outs).
+>
+> **V3 GATE RESULT (2026-07-11, D-097): NO-GO.** All four controls passed and
+> exact-offset/manifests/denominators/pinning/blinding were implemented, but the
+> preregistered ablation found eligibility only when the shared uncertainty clause
+> was present. The registered rule therefore selects the no-clause arm, which was
+> `unstable_profile`. v3 is rejected-not-frozen; human gold and Crocs/Xiaomi were not
+> run; migration 0013 and Phases 1–6 remain blocked. See
+> `docs/audits/m34/phase0-v3-gate.md`.
 
 **Goal.** Prove the eligibility thresholds are empirically achievable on real data *before* any of them are written into enforceable code. Freeze the numeric rules as versioned protocol parameters, not universal truths.
 
@@ -303,14 +321,14 @@ Public domain additions: `Intent += "representation"`; `FrameLane`; `FrameDimens
 
 ## 8. Definition of done
 
-M34 is complete only when **all** hold:
-- Phase 0 feasibility gate succeeded (≥1 real baseline passes, ≥1 unstable fixture abstains) and `framing-protocol.v1.json` is frozen.
+M34 is complete only when **all** hold (D-095/D-096 supersede the stale v1/hard-enforcement wording below where they differ):
+- Phase 0 recovery gate succeeded under frozen `framing-protocol.v3`: six instrument fixes, all four real-path controls, blinded human-coded instrument check, preregistered uncertainty ablation, Crocs eligible, and Xiaomi preserved as a multi-concept profile or honest abstention without over-merge.
 - Migration 0013 applies to fresh + existing DB twice; no historical row changes; seed idempotent; consumer 46 / B2B 40 / 51 rejected.
 - Blind-extractor prompt snapshots prove input isolation; retry/dead-letter/sweep/budget parity tests green.
 - Eligibility boundary suite green (neutral 5/6 pass & 4/6 fail, ties fail, LOO instability, missing extractions, contradictions; organic <5-cell abstain; grounded/ungrounded separated).
 - Medoid selection deterministic + immutable; operator edits can't change the measured stimulus.
 - No confidence interval / respondent-style claim emitted from correlated generations (test-enforced); forbidden-vocabulary test covers "bias-free"/"unbiased"/"vanilla".
-- Approval rejects custom-baseline, ineligible, cross-project, stale-version, B2B, and blocked-state attempts; existing studies render `LEGACY BASELINE`.
+- Shadow/advisory integration rejects or marks every provenance defect internally, records eligibility/abstention/review-time/actionable-gap rates, and renders `PRE-M34 BASELINE` for new C-13 studies until a later evidence-backed hard-enforcement decision; existing historical studies render `LEGACY BASELINE`.
 - Independent SQL spot-check confirms provenance, cluster membership, medoid linkage, zero backfill.
 - C-12 wall tests prove frame rows never enter Simulation or ordinary audit metrics.
 - Playwright journey: consumer project → 46-cell matrix → audit run → frame review → baseline approval → experimental Simulation study; B2B absence and blocked states exercised.

@@ -1,0 +1,43 @@
+{
+  "version": "representation-prompts.v3",
+  "admission": [
+    {
+      "variantKey": "a1",
+      "text": "What is {client_brand}?"
+    },
+    {
+      "variantKey": "a2",
+      "text": "Tell me about {client_brand}."
+    },
+    {
+      "variantKey": "a3",
+      "text": "How would you describe {client_brand}?"
+    },
+    {
+      "variantKey": "a4",
+      "text": "In a few sentences, explain {client_brand}."
+    },
+    {
+      "variantKey": "a5",
+      "text": "Describe {client_brand} in your own words."
+    },
+    {
+      "variantKey": "a6",
+      "text": "Provide a brief overview of {client_brand}."
+    }
+  ],
+  "diagnosticProbes": [
+    {
+      "variantKey": "p1-offering",
+      "text": "What does {client_brand} make or offer?"
+    },
+    {
+      "variantKey": "p2-audience",
+      "text": "Who is {client_brand} typically for?"
+    }
+  ],
+  "uncertaintyAllowance": "If you are unsure about any detail, say so rather than guessing.",
+  "armDecisionRule": "Retain the clause only if, for every development provider, it reduces entity_ambiguous|uncertain|insufficient_evidence by at least 10 percentage points and the stable-concept set is identical (Jaccard=1). Otherwise omit it.",
+  "status": "preregistered-not-frozen",
+  "preregisteredAt": "2026-07-10T18:23:02.281Z"
+}

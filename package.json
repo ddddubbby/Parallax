@@ -30,7 +30,14 @@
     "recompute:resonance": "tsx scripts/recompute-resonance.ts",
     "framing:extract": "tsx scripts/framing-feasibility/extract-frames.ts",
     "framing:neutral": "tsx scripts/framing-feasibility/neutral-mini-run.ts",
-    "framing:analyze": "tsx scripts/framing-feasibility/analyze.ts"
+    "framing:analyze": "tsx scripts/framing-feasibility/analyze.ts",
+    "framing:v3:preregister": "tsx scripts/framing-feasibility/v3-preregister.ts",
+    "framing:v3:controls": "tsx scripts/framing-feasibility/v3-controls.ts",
+    "framing:v3:run": "tsx scripts/framing-feasibility/v3-run.ts",
+    "framing:v3:review": "tsx scripts/framing-feasibility/v3-review.ts",
+    "framing:v3:map": "tsx scripts/framing-feasibility/v3-map.ts",
+    "framing:v3:analyze": "tsx scripts/framing-feasibility/v3-analyze.ts",
+    "framing:v3:gold": "tsx scripts/framing-feasibility/v3-gold-packet.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",

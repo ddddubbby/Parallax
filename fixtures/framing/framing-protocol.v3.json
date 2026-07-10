@@ -1,0 +1,93 @@
+{
+  "protocolVersion": "framing-protocol.v3",
+  "promptProtocolVersion": "representation-prompts.v3",
+  "extractionVersion": "blind-frame-extraction.v3",
+  "clusteringVersion": "complete-link-concepts.v1",
+  "reviewVersion": "blind-review.v1",
+  "status": "rejected-not-frozen",
+  "preregisteredAt": "2026-07-10T18:23:02.281Z",
+  "frozenAt": null,
+  "selectedPromptArm": "without_uncertainty_clause",
+  "selectedClusteringThreshold": 0.88,
+  "goNoGo": "NO-GO",
+  "rejectedAt": "2026-07-11T02:58:00+08:00",
+  "evidence": {
+    "controlsPass": true,
+    "withoutClauseStatus": "unstable_profile",
+    "withClauseStatus": "eligible",
+    "uncertaintyRuleOutcome": "omit clause because stable-concept sets differ and terminal-abstention improvement is below 10 percentage points",
+    "humanGoldStatus": "not_run_earlier_gate_failed",
+    "crocsStatus": "untouched",
+    "xiaomiStatus": "untouched",
+    "report": "docs/audits/m34/phase0-v3-gate.md"
+  },
+  "rules": {
+    "repetitionsPerVariant": 5,
+    "admissionVariantKeys": [
+      "a1",
+      "a2",
+      "a3",
+      "a4",
+      "a5",
+      "a6"
+    ],
+    "diagnosticProbeKeys": [
+      "p1-offering",
+      "p2-audience"
+    ],
+    "conceptWinsVariantAt": 3,
+    "conceptWinsRequired": 5,
+    "leaveOneVariantOutWinsRequired": 4,
+    "atLeastOneStableIdentityConcept": true,
+    "multipleStableConceptsAllowed": true,
+    "clusteringMethod": "complete_link",
+    "clusteringThresholdCandidates": [
+      0.78,
+      0.8,
+      0.82,
+      0.85,
+      0.88
+    ],
+    "thresholdSelection": "Choose the highest candidate that passes synonym-consolidation and polysemy controls while keeping distinct-concept and over-merge controls separate; no brand data participates.",
+    "uncertaintyClauseDecision": "Retain the clause only if, for every development provider, it reduces entity_ambiguous|uncertain|insufficient_evidence by at least 10 percentage points and the stable-concept set is identical (Jaccard=1). Otherwise omit it.",
+    "organicCellQualifyMentions": 3,
+    "organicConceptCellMajority": true,
+    "organicConceptWinsRequired": 5,
+    "reviewBlinding": "Review packets contain labels, dimensions and support excerpts only; never counts, variants, cells, providers, prevalence or eligibility. Mapping locks before scoring.",
+    "heldoutGate": {
+      "crocs": "must yield an eligible profile with at least one stable identity concept",
+      "xiaomi": "must preserve multiple distinct stable identities or abstain; must not pass by merging strategically distinct categories",
+      "controls": "all four controls must pass",
+      "tuning": "any method change after held-out scoring means v4 and replacement held-outs"
+    }
+  },
+  "developmentSources": {
+    "insta360": "development only; may shape v3; never held-out evidence",
+    "heytea": {
+      "projectId": "d4a65f05-fca2-432b-a3be-39edd59410bd",
+      "runId": "0241898e-d930-4ab7-b326-4760e5f86b3b",
+      "standardExtractionVersion": 1,
+      "role": "organic-lane development only"
+    }
+  },
+  "heldoutBrands": [
+    "Crocs",
+    "Xiaomi"
+  ],
+  "gate": {
+    "controls": "all four pass through offsets, complete-link clustering, blind mapping and profile eligibility",
+    "humanInstrumentCheck": "required before freeze; small blinded human-coded set, not calibration",
+    "development": "uncertainty-clause rule resolves arm; at least one development profile behaves coherently",
+    "heldout": {
+      "crocs": "must yield an eligible profile with at least one stable identity concept",
+      "xiaomi": "must preserve multiple distinct stable identities or abstain; must not pass by merging strategically distinct categories",
+      "controls": "all four controls must pass",
+      "tuning": "any method change after held-out scoring means v4 and replacement held-outs"
+    },
+    "noTuning": "any method change after held-out scoring creates v4 and replacement held-outs"
+  },
+  "artifactHashes": {
+    "prompts": "129fce9e609c9f72f0d539d12ad9b8c37bbd6dcd26fd0db8afb8cd21c55df459",
+    "extraction": "0ccfbfd79105410b8795ecf7ca3f13831bd63a03b8b7a766877b764581177c8d"
+  }
+}

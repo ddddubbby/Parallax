@@ -9,7 +9,7 @@
 
 | Brand | Consumer archetype | Held-out role | Pre-registered method expectation |
 |---|---|---|---|
-| Crocs | `consumer_product` | Relatively clear identity | The method may recover at least one recurring identity concept while preserving multiple legitimate associations. A pass is not required; abstention remains an acceptable empirical outcome. |
+| Crocs | `consumer_product` | Relatively clear identity; real-pass candidate | The frozen method must produce an eligible profile containing at least one stable identity concept. An abstention is scientifically acceptable but makes the Phase-0 gate NO-GO because no real held-out baseline passed. |
 | Xiaomi | `consumer_product` | Genuinely fragmented identity | The method must preserve multiple identities or abstain when no concept dominates. It must not manufacture one dominant frame by merging strategically distinct categories. |
 
 The expectations above test method behavior, not predetermined brand answers. No
@@ -38,6 +38,9 @@ specified in advance.
    brands, with bounded live spend recorded before launch.
 5. Treat any protocol or implementation change prompted by held-out results as v4;
    neither Crocs nor Xiaomi may then be reused as a v4 held-out brand.
+6. Score the gate exactly as registered: Crocs must be eligible; Xiaomi must preserve
+   multiple distinct stable identities or abstain without an over-merge; all four
+   controls must pass. Held-out results never relax these conditions.
 
 ## Execution status
 
