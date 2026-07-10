@@ -111,6 +111,78 @@ export interface ResonanceStudyResults {
   providerGroups: ResonanceProviderGroup[];
 }
 
+/** M32 / D-088: ranking/deltas/segments/excerpts without raw response arrays. */
+export type ResonanceVariantSummary = Omit<ResonanceVariantResult, "responses"> & {
+  lowExcerpt: string | null;
+  highExcerpt: string | null;
+};
+
+export type ResonancePersonaSummary = Omit<ResonancePersonaResult, "responses">;
+
+export interface ResonanceProviderSummaryGroup {
+  providerId: string;
+  variants: ResonanceVariantSummary[];
+  personaRows: ResonancePersonaSummary[];
+  deltas: ResonanceDeltaResult[];
+}
+
+export interface ResonanceStudyResultSummary {
+  study: ResonanceStudyResults["study"];
+  run: ResonanceStudyResults["run"];
+  providers: string[];
+  providerGroups: ResonanceProviderSummaryGroup[];
+}
+
+export interface ResonanceEvidencePageItem {
+  responseId: string;
+  cellId: string;
+  rawText: string;
+  pmf: number[];
+  meanScore: number;
+  providerId: string;
+  panelPersonaKey: string;
+  panelPersonaLabel: string;
+  stimulusId: string;
+  stimulusLabel: string;
+}
+
+export interface ResonanceEvidencePage {
+  items: ResonanceEvidencePageItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+function excerptText(text: string, max = 180) {
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function stripResponsesFromResults(results: ResonanceStudyResults): ResonanceStudyResultSummary {
+  return {
+    study: results.study,
+    run: results.run,
+    providers: results.providers,
+    providerGroups: results.providerGroups.map((group) => ({
+      providerId: group.providerId,
+      deltas: group.deltas,
+      personaRows: group.personaRows.map(({ responses: _responses, ...row }) => row),
+      variants: group.variants.map(({ responses, ...variant }) => {
+        const sorted = [...responses].sort(
+          (a, b) => a.meanScore - b.meanScore || a.responseId.localeCompare(b.responseId),
+        );
+        const lowest = sorted[0];
+        const highest = sorted[sorted.length - 1];
+        return {
+          ...variant,
+          lowExcerpt: lowest ? excerptText(lowest.rawText) : null,
+          highExcerpt: highest ? excerptText(highest.rawText) : null,
+        };
+      }),
+    })),
+  };
+}
+
 export async function getResonanceStudyExportLabel(projectId: string, studyId: string) {
   const [study] = await db
     .select({
@@ -243,11 +315,115 @@ export async function listResonanceStudies(projectId: string) {
       .from(matrixVersions)
       .where(and(eq(matrixVersions.projectId, projectId), eq(matrixVersions.kind, "resonance"))),
   ]);
-  return studies.map((study) => ({
-    study,
-    stimuli: stimuli.filter((s) => s.studyId === study.id),
-    matrixVersion: versions.find((v) => v.studyId === study.id && v.state === "approved") ?? null,
-  }));
+
+  const approvedVersionIds = versions.filter((v) => v.state === "approved" && v.studyId).map((v) => v.id);
+  const latestRuns =
+    approvedVersionIds.length === 0
+      ? []
+      : await db
+          .select({
+            id: auditRuns.id,
+            state: auditRuns.state,
+            runMode: auditRuns.runMode,
+            matrixVersionId: auditRuns.matrixVersionId,
+            completedAt: auditRuns.completedAt,
+            createdAt: auditRuns.createdAt,
+          })
+          .from(auditRuns)
+          .where(and(eq(auditRuns.projectId, projectId), inArray(auditRuns.matrixVersionId, approvedVersionIds)))
+          .orderBy(desc(auditRuns.createdAt));
+
+  const latestRunByVersion = new Map<string, (typeof latestRuns)[number]>();
+  for (const run of latestRuns) {
+    if (!latestRunByVersion.has(run.matrixVersionId)) latestRunByVersion.set(run.matrixVersionId, run);
+  }
+
+  return studies.map((study) => {
+    const matrixVersion = versions.find((v) => v.studyId === study.id && v.state === "approved") ?? null;
+    const latestRun = matrixVersion ? (latestRunByVersion.get(matrixVersion.id) ?? null) : null;
+    return {
+      study,
+      stimuli: stimuli.filter((s) => s.studyId === study.id),
+      matrixVersion,
+      latestRun: latestRun
+        ? {
+            id: latestRun.id,
+            state: latestRun.state,
+            runMode: latestRun.runMode,
+            completedAt: latestRun.completedAt,
+          }
+        : null,
+    };
+  });
+}
+
+/** Load one study with ownership check (projectId + studyId). */
+export async function getResonanceStudy(projectId: string, studyId: string) {
+  const [study] = await db
+    .select()
+    .from(resonanceStudies)
+    .where(and(eq(resonanceStudies.id, studyId), eq(resonanceStudies.projectId, projectId)));
+  if (!study) return null;
+
+  const [stimuli, versions] = await Promise.all([
+    db
+      .select()
+      .from(resonanceStimuli)
+      .where(eq(resonanceStimuli.studyId, studyId))
+      .orderBy(asc(resonanceStimuli.position)),
+    db
+      .select({
+        id: matrixVersions.id,
+        studyId: matrixVersions.resonanceStudyId,
+        version: matrixVersions.version,
+        cellCount: matrixVersions.cellCount,
+        state: matrixVersions.state,
+      })
+      .from(matrixVersions)
+      .where(
+        and(
+          eq(matrixVersions.projectId, projectId),
+          eq(matrixVersions.kind, "resonance"),
+          eq(matrixVersions.resonanceStudyId, studyId),
+        ),
+      )
+      .orderBy(desc(matrixVersions.version)),
+  ]);
+
+  const matrixVersion = versions.find((v) => v.state === "approved") ?? null;
+  let latestRun: {
+    id: string;
+    state: string;
+    runMode: string;
+    completedAt: Date | null;
+  } | null = null;
+  let studyRuns: Array<{
+    id: string;
+    state: string;
+    runMode: string;
+    createdAt: Date;
+    completedAt: Date | null;
+  }> = [];
+
+  if (matrixVersion) {
+    studyRuns = await db
+      .select({
+        id: auditRuns.id,
+        state: auditRuns.state,
+        runMode: auditRuns.runMode,
+        createdAt: auditRuns.createdAt,
+        completedAt: auditRuns.completedAt,
+      })
+      .from(auditRuns)
+      .where(and(eq(auditRuns.projectId, projectId), eq(auditRuns.matrixVersionId, matrixVersion.id)))
+      .orderBy(desc(auditRuns.createdAt));
+    const first = studyRuns[0];
+    latestRun = first
+      ? { id: first.id, state: first.state, runMode: first.runMode, completedAt: first.completedAt }
+      : null;
+  }
+
+  return { study, stimuli, matrixVersion, latestRun, studyRuns };
 }
 
 export async function getResonanceStudyResults(
@@ -465,6 +641,82 @@ export async function getResonanceStudyResults(
     run,
     providers,
     providerGroups,
+  };
+}
+
+/** M32 / D-088: same metrics as getResonanceStudyResults, without raw response arrays. */
+export async function getResonanceStudyResultSummary(
+  projectId: string,
+  studyId: string,
+  runId?: string,
+  options: { refreshMetrics?: boolean } = {},
+): Promise<ResonanceStudyResultSummary | null> {
+  const results = await getResonanceStudyResults(projectId, studyId, runId, options);
+  if (!results) return null;
+  return stripResponsesFromResults(results);
+}
+
+/**
+ * M32 / D-088: deduplicated evidence page for one study/engine.
+ * Each response appears once (not duplicated across variant/persona panels).
+ */
+export async function listResonanceEvidencePage(input: {
+  projectId: string;
+  studyId: string;
+  runId?: string;
+  providerId?: string;
+  stimulusId?: string;
+  panelPersonaKey?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<ResonanceEvidencePage | null> {
+  const pageSize = Math.min(Math.max(input.pageSize ?? 25, 1), 100);
+  const page = Math.max(input.page ?? 1, 1);
+  const results = await getResonanceStudyResults(input.projectId, input.studyId, input.runId, {
+    refreshMetrics: false,
+  });
+  if (!results) return null;
+
+  const providerId = input.providerId ?? results.providers[0];
+  if (!providerId) {
+    return { items: [], page, pageSize, total: 0, totalPages: 0 };
+  }
+
+  const group = results.providerGroups.find((g) => g.providerId === providerId);
+  if (!group) {
+    return { items: [], page, pageSize, total: 0, totalPages: 0 };
+  }
+
+  const byId = new Map<string, ResonanceEvidencePageItem>();
+  for (const variant of group.variants) {
+    for (const response of variant.responses) {
+      if (input.stimulusId && response.stimulusId !== input.stimulusId) continue;
+      if (input.panelPersonaKey && response.panelPersonaKey !== input.panelPersonaKey) continue;
+      if (!byId.has(response.responseId)) {
+        byId.set(response.responseId, {
+          ...response,
+          providerId,
+        });
+      }
+    }
+  }
+
+  const items = [...byId.values()].sort(
+    (a, b) =>
+      a.stimulusLabel.localeCompare(b.stimulusLabel) ||
+      a.panelPersonaLabel.localeCompare(b.panelPersonaLabel) ||
+      a.responseId.localeCompare(b.responseId),
+  );
+  const total = items.length;
+  const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
+  const start = (page - 1) * pageSize;
+
+  return {
+    items: items.slice(start, start + pageSize),
+    page,
+    pageSize,
+    total,
+    totalPages,
   };
 }
 

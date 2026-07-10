@@ -4,7 +4,8 @@ import { RunCreationForm } from "@/components/runner/run-creation-form";
 import { DEFAULT_AUDIT_RUN_CAP_USD, DEFAULT_VALIDATION_RUN_CAP_USD } from "@/core/constants";
 import { isUuid } from "@/core/id";
 import { getApprovedVersionForRun, getMatrixVersionForRun, getProjectSummary } from "@/db/repositories/runner";
-import { listProviderOptions } from "@/modules/runner/actions";
+import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
+import { getSecondaryRequirement, listProviderOptions } from "@/modules/runner/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,16 @@ export default async function NewRunPage({
 
   // C-7: provider metadata comes through the runner module's action, never
   // from /src/providers directly (lint-enforced for app/components).
-  const providers = await listProviderOptions();
+  const [providers, secondaryRequirement] = await Promise.all([
+    listProviderOptions(),
+    getSecondaryRequirement(version.kind === "resonance" ? "resonance" : "audit"),
+  ]);
+
+  let matrixLabel = `V${version.version}`;
+  if (version.kind === "resonance" && version.resonanceStudyId) {
+    const study = await getResonanceStudyExportLabel(id, version.resonanceStudyId);
+    if (study?.name) matrixLabel = `${study.name} · V${version.version}`;
+  }
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
@@ -38,12 +48,12 @@ export default async function NewRunPage({
           Projects
         </Link>{" "}
         /{" "}
-        <Link href={`/projects/${id}/matrix`} className="hover:text-ink">
+        <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
-        / New run
+        / Configure run
       </div>
-      <h1 className="label-mono mb-6 text-lg font-semibold">Start Run</h1>
+      <h1 className="label-mono mb-6 text-lg font-semibold">Configure run</h1>
       <RunCreationForm
         projectId={id}
         cellCount={version.cellCount}
@@ -52,6 +62,8 @@ export default async function NewRunPage({
         defaultAuditCapUsd={DEFAULT_AUDIT_RUN_CAP_USD}
         matrixVersionId={version.id}
         singleMode={version.kind === "resonance"}
+        secondaryRequirement={secondaryRequirement}
+        matrixLabel={matrixLabel}
       />
     </main>
   );

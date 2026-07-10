@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resonance. Synthetic consumer research, grounded in evidence.</title>
+<meta name="description" content="Resonance measures how AI assistants frame your brand, then tests that framing, and your candidate fixes, on synthetic buyer panels. Ranked answers in hours, every figure labeled and traceable.">
+<meta property="og:title" content="Resonance">
+<meta property="og:description" content="Test your brand's framings on synthetic buyers. Grounded in evidence.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+
+<!-- shared SVG gradient defs (referenced by every inline cone) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="coneBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFA26B"/><stop offset=".42" stop-color="#F15A24"/><stop offset="1" stop-color="#D4430D"/>
+    </linearGradient>
+    <linearGradient id="coneBase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E85419"/><stop offset="1" stop-color="#B23606"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ============ NAV ============ -->
+<header class="nav" id="nav">
+  <a class="brand" href="#top" aria-label="Resonance home">
+    <svg viewBox="0 0 512 512" aria-hidden="true">
+      <g transform="rotate(-14 256 256)">
+        <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
+        <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
+      </g>
+    </svg>
+    <span>resonance</span>
+  </a>
+  <nav class="links" aria-label="Primary">
+    <a href="#studies">Studies</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#method">Method</a>
+    <a href="#pilot">Pilot</a>
+    <a href="#investors">Investors</a>
+    <a class="btn primary" href="#contact">Run a pilot study</a>
+  </nav>
+</header>
+
+<span id="nav-sentinel" aria-hidden="true"></span>
+
+<main id="top">
+
+  <!-- ============ S0 HERO ============ -->
+  <section class="hero stage" aria-label="Introduction">
+    <div class="stagecast" aria-hidden="true">
+      <div class="prim drift" style="top:18%;left:12%">
+        <svg class="spin-90" width="96" height="96" viewBox="0 0 120 120" style="transform-origin:60px 60px">
+          <rect x="38" y="18" width="44" height="84" rx="22" fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="prim floaty" style="top:24%;right:14%">
+        <svg class="spin-140" width="120" height="120" viewBox="0 0 120 120" style="transform-origin:60px 60px">
+          <g fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5">
+            <path d="M60 12 L102 36 V84 L60 108 L18 84 V36 Z"/>
+            <path d="M60 12 L60 60 M18 36 L60 60 M102 36 L60 60 M60 108 L60 60 M18 84 L60 60 M102 84 L60 60" fill="none"/>
+          </g>
+        </svg>
+      </div>
+      <div class="prim drift" style="bottom:20%;left:18%">
+        <svg class="spin-120" width="104" height="104" viewBox="0 0 120 120" style="transform-origin:60px 60px">
+          <rect x="24" y="24" width="72" height="72" rx="14" fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5"/>
+          <path d="M24 48 H96 M48 24 V96" stroke="var(--shape-stroke)" stroke-width="1" opacity=".5"/>
+        </svg>
+      </div>
+      <div class="prim floaty" style="bottom:22%;right:16%">
+        <svg class="spin-105" width="90" height="90" viewBox="0 0 120 120" style="transform-origin:60px 60px">
+          <g fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5">
+            <path d="M30 96 L42 68 H78 L90 96 Z"/><path d="M38 64 L48 44 H72 L82 64 Z"/><path d="M46 40 L52 26 H68 L74 40 Z"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="hero-cone">
+        <div class="floaty">
+          <svg class="sway" viewBox="0 0 512 512" width="100%" aria-label="Resonance" style="transform-origin:256px 256px">
+            <circle class="ring-pulse" cx="256" cy="252" r="150" fill="none" stroke="rgba(240,238,228,.25)" stroke-width="3" style="transform-origin:256px 252px"/>
+            <g transform="rotate(-14 256 256)">
+              <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
+              <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
+              <path d="M256 92 L300 336 A104 36 0 0 0 340 322 Z" fill="#fff" opacity=".18"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <h1 data-reveal><span class="h1-main">Test your brand's framings on synthetic&nbsp;buyers.</span><span class="h1-sub">Grounded in evidence.</span></h1>
+      <p class="lead" data-reveal style="--i:1">Resonance measures how AI assistants frame your brand, then tests that framing, and your candidate fixes, on synthetic buyer panels. Ranked answers in hours, every figure labeled and traceable.</p>
+      <div class="btn-row" data-reveal style="--i:2">
+        <a class="btn primary" href="#contact">Run a pilot study</a>
+        <a class="btn ghost" href="#method">Read the methodology</a>
+      </div>
+      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".55">
+          <path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/>
+          <path d="M100 84c130 0 170-28 250-28s130 44 250 44 170-24 260-24"/>
+          <path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/>
+          <path d="M140 124c110 0 150 16 230 16s110-36 230-36 150 28 220 28"/>
+        </g>
+        <g stroke="#F15A24" stroke-width="6" stroke-linecap="round">
+          <path d="M40 80h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36"/>
+        </g>
+        <circle cx="40" cy="80" r="12" fill="#F15A24"/><circle cx="920" cy="80" r="12" fill="#F15A24"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ S1 STAKES ============ -->
+  <section id="stakes" class="stage" aria-labelledby="s1h">
+    <div class="wrap">
+      <span class="label" data-reveal>01 / The stakes</span>
+      <h2 id="s1h" data-reveal style="--i:1">AI assistants are the new front door.</h2>
+      <p class="lead" data-reveal style="--i:2; margin-top:20px">
+        They describe, rank, and recommend your brand before a human ever reaches your site. Sample the same question five times and you may get five different shortlists, five different reasons, five different brands named first. For the first time, the framing your buyers see is measurable.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ S2 THE BROKEN LOOP ============ -->
+  <section id="broken-loop" aria-labelledby="s2h">
+    <div class="wrap">
+      <span class="label" data-reveal>02 / The broken loop</span>
+      <h2 id="s2h" data-reveal style="--i:1">Every fix stalls somewhere in this loop.</h2>
+      <div class="bento" data-reveal style="--i:2; margin-top:32px">
+        <article class="study">
+          <span class="arche">Diagnosis without treatment</span>
+          <p class="finding">An audit that ends at a dashboard is a diagnosis without a treatment.</p>
+        </article>
+        <article class="study">
+          <span class="arche">The dead research loop</span>
+          <p class="finding">Traditional testing costs $20,000 to $100,000 and takes four to eight weeks. The loop never closes.</p>
+        </article>
+        <article class="study">
+          <span class="arche">Simulation theater</span>
+          <p class="finding">Generic synthetic panels test framings a workshop imagined. Ungrounded in, ungrounded out.</p>
+        </article>
+      </div>
+      <p class="manifesto-line" data-reveal style="--i:3">The loop is broken.</p>
+    </div>
+  </section>
+
+  <!-- ============ S3 RESONANCE STUDIES (hero section) ============ -->
+  <section id="studies" aria-labelledby="s3h">
+    <div class="wrap">
+      <span class="label" data-reveal>03 / The Resonance study</span>
+      <h2 id="s3h" data-reveal style="--i:1">Your framings, tested before you spend.</h2>
+      <p class="lead" data-reveal style="--i:2; margin-top:20px">
+        A Resonance study takes the framing AI already uses to describe you, plus the candidate fixes you want tested, and puts them in front of a synthetic buyer panel. Out the other side: your framings ranked by &Delta;PI, the shift in expressed purchase intent versus baseline.
+      </p>
+
+      <p class="mono" data-reveal style="--i:3; margin-top:32px; color:var(--ink-60)">The loop every study runs:</p>
+      <div class="steps steps-3" data-reveal style="--i:4; margin-top:16px">
+        <div class="step">
+          <span class="snum">STEP 01</span><h3>Measure</h3><p>AI's framing of your brand, and the fixes you are considering, become the stimulus.</p>
+          <p style="margin-top:12px"><a class="tlink" href="#evidence">How it's grounded &rarr;</a></p>
+        </div>
+        <div class="step">
+          <span class="snum">STEP 02</span><h3>Simulate</h3><p>A synthetic panel reacts in free text, scored into expressed purchase intent.</p>
+          <p style="margin-top:12px"><a class="tlink" href="#method">How it's scored &rarr;</a></p>
+        </div>
+        <div class="step"><span class="snum">STEP 03</span><h3>Decide</h3><p>Framings rank by &Delta;PI. Choose the one buyers respond to, before you spend.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ S4 THE EVIDENCE LAYER ============ -->
+  <section id="evidence" class="stage" aria-labelledby="s4h">
+    <div class="wrap">
+      <span class="label" data-reveal>04 / The evidence layer</span>
+      <h2 id="s4h" data-reveal style="--i:1">What grounds every study.</h2>
+      <p class="lead" data-reveal style="--i:2; margin-top:16px">
+        Step 01 of every study, expanded. The panel reacts to what AI actually says about you, not what a workshop imagined. Four measured questions build the stimulus.
+      </p>
+      <div class="rows" data-reveal style="--i:3; margin-top:32px">
+
+        <div class="row">
+          <span class="num">01</span>
+          <div><h3>Presence</h3><p>Are you in the set of brands AI considers at all? We measure how often you appear, across engines and phrasings.</p></div>
+          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><rect x="38" y="18" width="44" height="84" rx="22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+
+        <div class="row">
+          <span class="num">02</span>
+          <div><h3>Position</h3><p>When AI is asked to compare, do you win? We measure head to head recommendation rates against each named competitor.</p></div>
+          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 96 L42 68 H78 L90 96 Z M38 64 L48 44 H72 L82 64 Z M46 40 L52 26 H68 L74 40 Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+
+        <div class="row">
+          <span class="num">03</span>
+          <div><h3>Perception</h3><p>How does AI describe you? We extract the attributes and sentiment attached to your brand, split by whether the prompt planted them.</p></div>
+          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 18 L98 40 V80 L60 102 L22 80 V40 Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+
+        <div class="row">
+          <span class="num">04</span>
+          <div><h3>Proof</h3><p>Is the story true, and sourced? We check every claim about you against your fact sheet and log what AI gets wrong.</p></div>
+          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><rect x="24" y="24" width="72" height="72" rx="12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 48 H96 M48 24 V96" stroke="currentColor" stroke-width="1.5" opacity=".6"/></svg>
+        </div>
+
+      </div>
+      <p class="rail-note" data-reveal style="--i:4">This measured evidence is the stimulus every study is conditioned on.</p>
+    </div>
+  </section>
+
+  <!-- ============ S5 THE GLASS BOX (methodology) ============ -->
+  <section id="method" class="stage" aria-labelledby="s5h">
+    <div class="wrap">
+      <div class="method-grid">
+        <div>
+          <span class="label" data-reveal>05 / The Glass Box</span>
+          <h2 id="s5h" data-reveal style="--i:1">We publish our uncertainty.</h2>
+          <div class="statstamps" data-reveal style="--i:2">
+            <div class="statstamp"><b>k = 5</b> samples per prompt</div>
+            <div class="statstamp"><b>Wilson 95%</b> confidence intervals</div>
+            <div class="statstamp"><b>n &#8805; 30</b> or labeled directional</div>
+            <div class="statstamp"><b>Measured and simulated</b> data never mix</div>
+          </div>
+          <div class="stamps" data-reveal style="--i:3; margin:24px 0 12px">
+            <span class="stamp sim">Simulated</span>
+          </div>
+          <p class="rail-note" data-reveal style="--i:3">Every study output carries this stamp. Not a caveat. The feature.</p>
+          <p class="lead" data-reveal style="--i:4">
+            Every Resonance figure ships in the Glass Box: labeled measured or simulated, gated by sample size, wrapped in its confidence interval where the math supports one, and traceable to the stored raw response behind it.
+          </p>
+          <p class="lead" data-reveal style="--i:5">
+            Panels are conditioned on age and income, the two axes validated in independent published research. Reactions are elicited in free text, never gameable numeric ratings, and scored against benchmarked anchor statements. SSR was published and validated by independent researchers: 90% of human test-retest reliability across 9,300 human responses and 57 surveys (arXiv:2510.08338). That validation belongs to the method, not to us. Our work is productizing it: we run it on framings measured from the AI channel, and we label everything we cannot yet prove. Benchmarked, not black-boxed. Uncalibrated scales ship labeled as such.
+          </p>
+        </div>
+        <div data-reveal style="--i:2">
+          <svg class="bezel spin-140" viewBox="0 0 400 400" aria-hidden="true" style="transform-origin:200px 200px">
+            <g fill="none" stroke="rgba(240,238,228,.75)" stroke-width="6">
+              <path d="M120 60 H280 L340 120 V280 L280 340 H120 L60 280 V120 Z"/>
+            </g>
+            <g fill="none" stroke="rgba(240,238,228,.25)" stroke-width="1.5">
+              <path d="M140 90 H260 L310 140 V260 L260 310 H140 L90 260 V140 Z"/>
+            </g>
+            <circle cx="72" cy="200" r="14" fill="none" stroke="rgba(240,238,228,.5)" stroke-width="2"/><circle cx="72" cy="200" r="5" fill="#F15A24"/>
+            <circle cx="328" cy="200" r="14" fill="none" stroke="rgba(240,238,228,.5)" stroke-width="2"/><circle cx="328" cy="200" r="5" fill="#F15A24"/>
+            <path d="M86 200 h40 c20 0 24 -70 44 -70 s24 140 44 140 s24 -70 44 -70 h40" fill="none" stroke="#F15A24" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+          <p class="bezel-caption">The orange thread through the noise: the resonant framing found by a study.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ S6 PILOT ============ -->
+  <section id="pilot" aria-labelledby="s6h">
+    <div class="wrap">
+      <span class="label" data-reveal>06 / The pilot</span>
+      <h2 id="s6h" data-reveal style="--i:1">A self-initiated pilot, and the promo we killed before it launched.</h2>
+      <p class="lead" data-reveal style="--i:2; margin-top:16px">
+        We ran this pilot ourselves, for a leading Asian tea brand, to prove the loop end to end. No commercial relationship, no endorsement, just measured evidence, a synthetic panel, and one decision it changed.
+      </p>
+      <div class="stamps" data-reveal style="--i:3; margin:20px 0 8px">
+        <span class="stamp">Self-initiated pilot study</span>
+      </div>
+
+      <div class="bento" data-reveal style="--i:4; margin-top:16px">
+        <article class="study big">
+          <div class="stamps"><span class="stamp sim">Simulated</span><span class="stamp">Directional</span></div>
+          <span class="arche">The promo framing</span>
+          <p class="finding">A $1-off lunch-hour promo framing lowered simulated purchase intent by -0.67 on a five-point scale against the measured baseline (directional, n=5). It was killed before a dollar was spent.</p>
+          <svg class="chart" viewBox="0 0 400 100" aria-hidden="true">
+            <g font-family="IBM Plex Mono" font-size="10" fill="#0E0E0C">
+              <text x="0" y="20">Measured baseline</text><rect x="170" y="12" width="180" height="12" fill="#6E6E73" rx="2"/><text x="358" y="22">3.40</text>
+              <text x="0" y="52">Promo framing</text><rect x="170" y="44" width="145" height="12" fill="#6E6E73" rx="2"/><text x="323" y="54">2.73</text>
+            </g>
+          </svg>
+          <p class="quote">"A $1-off promo during the weekday lunch hour feels more like a token gesture. It barely covers the cost of a kopi."</p>
+          <p class="attribution">Synthetic respondent, working adults, CBD</p>
+        </article>
+
+        <article class="study">
+          <div class="stamps"><span class="stamp">n=40, aggregate</span></div>
+          <span class="arche">Share of voice</span>
+          <p class="finding">78% share of voice in open, unbranded AI answers.</p>
+          <svg class="chart" viewBox="0 0 200 60" aria-hidden="true">
+            <rect x="0" y="10" width="156" height="12" fill="#6E6E73" rx="2"/><rect x="0" y="34" width="44" height="12" fill="#6E6E73" rx="2" opacity=".4"/>
+          </svg>
+        </article>
+
+        <article class="study">
+          <div class="stamps"><span class="stamp">Directional</span></div>
+          <span class="arche">Forced head to head</span>
+          <p class="finding">A rival edges the brand 96% to 92% in forced head-to-heads (directional, n=25).</p>
+          <svg class="chart" viewBox="0 0 200 60" aria-hidden="true">
+            <rect x="0" y="10" width="192" height="12" fill="#6E6E73" rx="2"/><rect x="0" y="34" width="184" height="12" fill="#6E6E73" rx="2" opacity=".7"/>
+          </svg>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ S7 INVESTORS ============ -->
+  <section id="investors" aria-labelledby="s7h">
+    <div class="wrap">
+      <span class="label" data-reveal>For investors</span>
+      <div class="inv-grid" data-reveal style="--i:1">
+        <div>
+          <h2 id="s7h">Two halves of the market. We own the seam.</h2>
+          <p class="lead" style="margin-top:20px">
+            GEO and AI-visibility tools have evidence, but no simulation. They diagnose, then stop. Generic synthetic-research vendors have simulation, but no evidence. Their panels react to framings a workshop imagined. Resonance owns the intersection, evidence-grounded simulation, and it compounds: audits feed studies, studies feed retainers.
+          </p>
+        </div>
+        <!-- REPLACE the three figures below with real numbers, or remove any stat you cannot substantiate. -->
+        <div class="statstrip">
+          <div class="item"><div class="stat">4</div><div class="k">AI engines covered</div></div>
+          <div class="item"><div class="stat">k=5</div><div class="k">Samples per prompt cell</div></div>
+          <div class="item"><div class="stat">100%</div><div class="k">Figures traceable to raw answers</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ S8 CONTACT / FOOTER ============ -->
+  <section id="contact" class="stage footer" aria-labelledby="s8h">
+    <div class="wrap">
+      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true" style="margin-top:0">
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".55">
+          <path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/>
+          <path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/>
+        </g>
+        <g stroke="#F15A24" stroke-width="6" stroke-linecap="round"><path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36"/></g>
+        <circle cx="40" cy="88" r="12" fill="#F15A24"/><circle cx="920" cy="88" r="12" fill="#F15A24"/>
+      </svg>
+      <h2 id="s8h" data-reveal style="margin-top:32px">Test your next framing before you spend on&nbsp;it.</h2>
+      <div class="cta" data-reveal style="--i:1">
+        <a class="btn primary" href="mailto:hello@resonance.audit?subject=Pilot%20study%20request">Run a pilot study</a>
+        <a class="tlink" href="mailto:hello@resonance.audit">hello@resonance.audit</a>
+      </div>
+      <p class="fineprint" data-reveal style="--i:2">Simulated results are comparative and labeled. No guarantees of AI rankings are made or implied.</p>
+      <div class="sig">
+        <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
+        <span>resonance</span>
+      </div>
+      <div class="copy">Resonance &#183; Grounded in evidence, simulated with labels &#183; 2026</div>
+    </div>
+  </section>
+
+</main>
+
+<script src="motion.js"></script>
+</body>
+</html>

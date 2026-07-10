@@ -200,22 +200,36 @@ export async function getRun(runId: string) {
  * that is the only navigation path back to an in-progress run's page.
  */
 export async function listRunsWithProgress(projectId: string) {
+  // M32 / D-088: list rows carry matrix version, providers, modes, and study
+  // name so the operator can identify a run without opening it. Short run ids
+  // remain secondary metadata on the row.
   return db
     .select({
       id: auditRuns.id,
       runMode: auditRuns.runMode,
       state: auditRuns.state,
       createdAt: auditRuns.createdAt,
+      selectedProvidersJson: auditRuns.selectedProvidersJson,
+      selectedModesJson: auditRuns.selectedModesJson,
       matrixKind: matrixVersions.kind,
+      matrixVersion: matrixVersions.version,
       resonanceStudyId: matrixVersions.resonanceStudyId,
+      studyName: resonanceStudies.name,
       total: sql<number>`count(${jobs.id})::int`,
       succeeded: sql<number>`count(${jobs.id}) filter (where ${jobs.state} = 'succeeded')::int`,
     })
     .from(auditRuns)
     .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .leftJoin(resonanceStudies, eq(resonanceStudies.id, matrixVersions.resonanceStudyId))
     .leftJoin(jobs, eq(jobs.runId, auditRuns.id))
     .where(eq(auditRuns.projectId, projectId))
-    .groupBy(auditRuns.id, matrixVersions.kind, matrixVersions.resonanceStudyId)
+    .groupBy(
+      auditRuns.id,
+      matrixVersions.kind,
+      matrixVersions.version,
+      matrixVersions.resonanceStudyId,
+      resonanceStudies.name,
+    )
     .orderBy(desc(auditRuns.createdAt));
 }
 

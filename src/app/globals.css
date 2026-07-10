@@ -37,6 +37,9 @@
      same bounded-loop license as the live-run pulse (§7). Disabled
      entirely by the prefers-reduced-motion block below. */
   --duration-pulse: 1600ms;
+
+  /* M32 / D-088: operator sidebar. Desktop fixed width; drawer below 1024px. */
+  --sidebar-width: 15.5rem; /* 248px */
 }
 
 @layer base {
@@ -83,11 +86,15 @@
   }
 }
 
-/* EX-2 / DESIGN_GUIDELINES V-4: the ink nav is app chrome, never part of a
-   client-facing export. It stays visible on-screen for navigation but is
-   removed from anything actually printed/exported to PDF. */
+/* EX-2 / DESIGN_GUIDELINES V-4: operator chrome is never part of a
+   client-facing export. Removed from print/PDF. */
 @media print {
-  header {
-    display: none;
+  aside,
+  [role="dialog"],
+  .operator-mobile-bar {
+    display: none !important;
+  }
+  .lg\:pl-\[var\(--sidebar-width\)\] {
+    padding-left: 0 !important;
   }
 }

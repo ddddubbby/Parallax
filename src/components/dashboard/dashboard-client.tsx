@@ -29,11 +29,14 @@ export function DashboardClient({
   initialRuns,
   initialRunId,
   initialData,
+  focusPillar = null,
 }: {
   projectId: string;
   initialRuns: RunOption[];
   initialRunId: string | null;
   initialData: DashboardData;
+  /** M32: when set, render only that pillar; null = overview (all pillars). */
+  focusPillar?: "presence" | "position" | "perception" | "proof" | null;
 }) {
   const [runs] = useState(initialRuns);
   const [runId, setRunId] = useState(initialRunId);
@@ -157,8 +160,9 @@ export function DashboardClient({
         </div>
       ) : (
         <div className="flex flex-col gap-10">
-          {/* D-055: one numbered dossier section per pillar — the operator
-              can tell which P any figure belongs to at a glance. */}
+          {/* D-055 / M32: one numbered dossier section per pillar. focusPillar
+              (URL view) shows a single pillar; overview shows all. */}
+          {(focusPillar === null || focusPillar === "presence") && (
           <PillarSection pillar="presence">
             <div className="flex flex-col gap-6">
               <MetricCards
@@ -189,7 +193,9 @@ export function DashboardClient({
               />
             </div>
           </PillarSection>
+          )}
 
+          {(focusPillar === null || focusPillar === "position") && (
           <PillarSection pillar="position">
             <div className="flex flex-col gap-6">
               <MetricCards
@@ -207,14 +213,18 @@ export function DashboardClient({
               />
             </div>
           </PillarSection>
+          )}
 
+          {(focusPillar === null || focusPillar === "perception") && (
           <PillarSection pillar="perception">
             <div className="flex flex-col gap-6">
               <AttributeSection metrics={metrics} onAttributeEvidence={onMetricEvidence} />
               <SentimentSection metrics={metrics} />
             </div>
           </PillarSection>
+          )}
 
+          {(focusPillar === null || focusPillar === "proof") && (
           <PillarSection pillar="proof">
             <div className="flex flex-col gap-6">
               <MetricCards
@@ -246,9 +256,11 @@ export function DashboardClient({
               />
             </div>
           </PillarSection>
+          )}
 
           {/* Confidence rail — deliberately NOT a fifth pillar (D-051):
-              the layer under all four. */}
+              the layer under all four. Shown on overview only. */}
+          {focusPillar === null && (
           <div className="rounded-xl border border-ink/15 p-4">
             <div className="mb-2 label-mono text-xs font-medium uppercase text-ink/60">
               Confidence rail — spans all four
@@ -272,6 +284,7 @@ export function DashboardClient({
               </button>
             </div>
           </div>
+          )}
         </div>
       )}
 

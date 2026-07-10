@@ -38,7 +38,12 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
       return { stageLabel: "Simulation running", nextLabel: "Watch the simulation", nextPath: "resonance" };
     }
     if (s.hasCompletedResonanceRun) {
-      return { stageLabel: "Simulation results ready", nextLabel: "View simulation results", nextPath: "resonance" };
+      // M32 / D-088: Simulation results live on the walled Dashboard view.
+      return {
+        stageLabel: "Simulation results ready",
+        nextLabel: "View simulation results",
+        nextPath: "dashboard?view=simulation",
+      };
     }
     if (s.hasApprovedResonanceStudy) {
       return { stageLabel: "Study ready to run", nextLabel: "Run the simulation study", nextPath: "resonance" };

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button, Field, Input, Select, Stamp, Textarea } from "@/components/ui";
+import { UnsavedChangesSignal, useUnsavedEdit } from "@/components/unsaved-edit";
 import type { CategoryArchetype } from "@/core/semantic";
 import { CATEGORY_ARCHETYPES } from "@/core/semantic";
 import {
@@ -106,11 +107,21 @@ function SectionHeader({ n, title, hint }: { n: string; title: string; hint?: st
   );
 }
 
-export function SetupClient({ projectId, data }: { projectId: string; data: SetupData }) {
+export function SetupClient({
+  projectId,
+  data,
+  view = "basics",
+}: {
+  projectId: string;
+  data: SetupData;
+  /** M32: one Setup section at a time via URL `view`. */
+  view?: "basics" | "brands" | "personas" | "markets" | "attributes" | "facts";
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const { setDirty } = useUnsavedEdit();
 
   function run(action: () => Promise<{ ok: boolean; error?: string; warning?: string }>, onOk?: () => void) {
     setError(null);
@@ -122,6 +133,7 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
       } else {
         if (result.warning) setWarning(result.warning);
         onOk?.();
+        setDirty(false);
       }
       router.refresh();
     });
@@ -186,8 +198,34 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
     setFactForm({ type: f.type, statement: f.statement, source_note: f.sourceNote ?? "", source_url: f.sourceUrl ?? "" });
   }
 
+  const basicsDirty =
+    basics.name !== data.project.name ||
+    basics.category !== data.project.category ||
+    basics.category_archetype !== data.project.categoryArchetype ||
+    basics.job_to_be_done !== data.project.jobToBeDone;
+  const rowEditOpen =
+    editingBrandId !== null ||
+    editingPersonaId !== null ||
+    editingMarketId !== null ||
+    editingAttrId !== null ||
+    editingFactId !== null ||
+    showNewPersona ||
+    showNewFact ||
+    newCompetitor.name.trim() !== "" ||
+    newMarket.trim() !== "" ||
+    newAttr.trim() !== "";
+
+  useEffect(() => {
+    setDirty(basicsDirty || rowEditOpen);
+  }, [basicsDirty, rowEditOpen, setDirty]);
+
   return (
     <div className="flex flex-col gap-8">
+      {(basicsDirty || rowEditOpen) && (
+        <div className="sticky top-0 z-10 -mx-1 flex items-center justify-end px-1 py-1">
+          <UnsavedChangesSignal />
+        </div>
+      )}
       <div className="rounded-lg border border-ink/15 p-3">
         <p className="font-mono text-xs text-ink/60">
           Changes here apply to future matrix generation and future runs. Approved matrices stay
@@ -204,6 +242,7 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
       )}
 
       {/* 01 Basics */}
+      {view === "basics" && (
       <section>
         <SectionHeader n="01" title="Basics" />
         <div className="flex flex-col gap-3 pl-4">
@@ -246,8 +285,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 02 Brands */}
+      {view === "brands" && (
       <section>
         <SectionHeader n="02" title="Brands" hint={activeCompetitorCount === 0 ? "no active competitors — comparison prompts cannot be generated" : undefined} />
         <div className="flex flex-col gap-4 pl-4">
@@ -388,8 +429,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 03 Personas */}
+      {view === "personas" && (
       <section>
         <SectionHeader n="03" title="Personas" />
         <div className="flex flex-col gap-2 pl-4">
@@ -496,8 +539,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           )}
         </div>
       </section>
+      )}
 
       {/* 04 Markets */}
+      {view === "markets" && (
       <section>
         <SectionHeader n="04" title="Markets" />
         <div className="flex flex-col gap-2 pl-4">
@@ -560,8 +605,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 05 Attributes */}
+      {view === "attributes" && (
       <section>
         <SectionHeader n="05" title="Attributes" hint="renaming does not retag historical extractions already tagged under the old name" />
         <div className="flex flex-col gap-2 pl-4">
@@ -613,8 +660,10 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           </div>
         </div>
       </section>
+      )}
 
       {/* 06 Fact sheet */}
+      {view === "facts" && (
       <section>
         <SectionHeader n="06" title="Fact sheet" />
         <div className="flex flex-col gap-2 pl-4">
@@ -716,6 +765,7 @@ export function SetupClient({ projectId, data }: { projectId: string; data: Setu
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

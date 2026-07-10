@@ -29,9 +29,13 @@ describe("resolveProjectStage (OX-2)", () => {
     const done = { ...base, hasCompletedRun: true };
     // Audit complete, no resonance yet → unchanged.
     expect(resolveProjectStage(done).nextPath).toBe("dashboard");
-    // Approved study, active run, completed run each route to the resonance surface.
+    // Approved study / active sim run still route to resonance (definition + watch).
+    // Completed sim results land on the Dashboard Simulation section (M31 / D-087).
     expect(resolveProjectStage({ ...done, hasApprovedResonanceStudy: true }).nextPath).toBe("resonance");
     expect(resolveProjectStage({ ...done, hasActiveResonanceRun: true }).nextPath).toBe("resonance");
+    expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).nextPath).toBe(
+      "dashboard?view=simulation",
+    );
     expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).stageLabel).toBe(
       "Simulation results ready",
     );

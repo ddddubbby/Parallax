@@ -587,4 +587,110 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
     expect(await areMetricsStale(run.id)).toBe(false);
     expect((await listMetrics(run.id)).length).toBeGreaterThan(0);
   });
+
+  it("keeps audit run selectors and resonance study results on separate walls (M31/M32 / C-12)", async () => {
+    // Same project must hold both kinds so the cross-exclusion is meaningful.
+    // Dashboard Simulation view (summarizeSimulationStudy) only consumes
+    // resonance results; fetchRunOptions only consumes listCompletedRuns.
+    // M32 keeps this wall under /dashboard?view=simulation (D-088).
+    const { run: auditRun } = await createCompletedAuditCitationResponse();
+    const projectId = auditRun.projectId;
+    const suffix = randomUUID().slice(0, 8);
+
+    const [study] = await db
+      .insert(resonanceStudies)
+      .values({
+        projectId,
+        name: `Shared-project sim ${suffix}`,
+        state: "approved",
+        panelPersonasJson: [
+          {
+            key: "budget_owner",
+            label: "Budget owner",
+            ageBand: "35-44",
+            incomeBand: "$150k-$250k",
+            location: "US",
+            behavioralProfile: "Owns software budget",
+          },
+        ],
+        anchorSetVersion: "purchase_intent.v1",
+        genericUnconditioned: true,
+        approvedAt: new Date(),
+      })
+      .returning();
+    created.studyIds.push(study.id);
+
+    const [stimulus] = await db
+      .insert(resonanceStimuli)
+      .values({
+        studyId: study.id,
+        kind: "custom",
+        label: "Shared variant",
+        body: "Simulated framing for wall test.",
+        evidenceResponseIdsJson: [],
+        position: 0,
+      })
+      .returning();
+    created.stimulusIds.push(stimulus.id);
+
+    const [version] = await db
+      .insert(matrixVersions)
+      .values({
+        projectId,
+        version: 99,
+        state: "approved",
+        kind: "resonance",
+        resonanceStudyId: study.id,
+        cellCount: 1,
+        approvedAt: new Date(),
+      })
+      .returning();
+    created.versionIds.push(version.id);
+
+    const [cell] = await db
+      .insert(promptCells)
+      .values({
+        matrixVersionId: version.id,
+        intent: "simulation",
+        stimulusId: stimulus.id,
+        panelPersonaKey: "budget_owner",
+        variantKey: "shared-wall",
+        resolvedText: "Simulated buyer reaction prompt",
+      })
+      .returning();
+    created.cellIds.push(cell.id);
+
+    const [resonanceRun] = await db
+      .insert(auditRuns)
+      .values({
+        projectId,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        state: "completed",
+        repetitions: 1,
+        selectedProvidersJson: ["mock"],
+        selectedModesJson: ["ungrounded"],
+        plannedCalls: 1,
+        costCapUsd: "0",
+        completedAt: new Date(),
+      })
+      .returning();
+    created.runIds.push(resonanceRun.id);
+
+    const auditSelector = await listCompletedRuns(projectId);
+    expect(auditSelector.map((r) => r.id)).toContain(auditRun.id);
+    expect(auditSelector.map((r) => r.id)).not.toContain(resonanceRun.id);
+
+    const resonanceOnly = await listCompletedResonanceRuns(projectId);
+    expect(resonanceOnly.map((r) => r.id)).toContain(resonanceRun.id);
+    expect(resonanceOnly.map((r) => r.id)).not.toContain(auditRun.id);
+
+    const resonanceMetrics = await listMetrics(resonanceRun.id);
+    for (const row of resonanceMetrics) {
+      expect(row.scopeType).not.toMatch(/^(overall|provider|intent|persona|market|cell)$/);
+      if (row.scopeType.startsWith("resonance_")) {
+        expect(row.metricKey).not.toMatch(/mention_rate|share_of_voice|recommendation_rate/);
+      }
+    }
+  });
 });

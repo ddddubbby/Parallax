@@ -9,6 +9,7 @@ import { INTENT_ORDER, type Intent } from "@/core/matrix";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { PillarExplainer, PillarSection } from "@/components/semantic/pillar";
 import { PILLAR_ORDER, PILLARS, intentToPillar, pillarMetricLabels, type Pillar } from "@/core/semantic";
+import type { MatrixView } from "@/core/views";
 import {
   activateCoverageAspectAction,
   addCell,
@@ -59,6 +60,7 @@ export function MatrixBoard({
   packCoverage,
   activeCompetitorCount,
   staleDraft,
+  view = "overview",
 }: {
   projectId: string;
   projectStatus: string;
@@ -69,6 +71,8 @@ export function MatrixBoard({
   activeCompetitorCount: number;
   /** M27/D-084: the focused draft was generated before the last Setup edit. */
   staleDraft: boolean;
+  /** M32 / D-088: overview = summary/actions; pillar views = cells only. */
+  view?: MatrixView;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -101,7 +105,7 @@ export function MatrixBoard({
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="label-mono text-lg font-semibold">Prompt Matrix</h1>
+          <div className="label-mono text-lg font-semibold">Prompt Matrix</div>
           {focus && (
             <>
               <Stamp tone="ink">V{focus.version}</Stamp>
@@ -163,23 +167,30 @@ export function MatrixBoard({
         </div>
       )}
 
-      {versions.length > 1 && (
+      {versions.length > 0 && (
         <div className="mb-4 flex items-center gap-2">
-          <span className="label-mono text-xs text-ink/45">Versions:</span>
-          {versions.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => router.push(`/projects/${projectId}/matrix?v=${v.id}`)}
-              className={`label-mono rounded-full px-3 py-1 text-xs transition-micro ${
-                v.id === focus?.id
-                  ? "bg-ink text-paper"
-                  : "border border-ink/25 text-ink/60 hover:border-ink"
-              }`}
-            >
-              V{v.version} · {v.state} · {v.cellCount}
-            </button>
-          ))}
+          <label htmlFor="matrix-version" className="label-mono text-xs text-ink/45">
+            Version
+          </label>
+          <select
+            id="matrix-version"
+            className="label-mono rounded-lg border border-ink/20 bg-paper px-3 py-1.5 text-xs"
+            value={focus?.id ?? ""}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (!next) return;
+              const params = new URLSearchParams();
+              params.set("v", next);
+              if (view !== "overview") params.set("view", view);
+              router.push(`/projects/${projectId}/matrix?${params.toString()}`);
+            }}
+          >
+            {versions.map((v) => (
+              <option key={v.id} value={v.id}>
+                V{v.version} · {v.state} · {v.cellCount} cells
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -234,107 +245,127 @@ export function MatrixBoard({
                 <Button
                   variant="secondary"
                   disabled={pending}
-                  onClick={() => router.push(`/projects/${projectId}/runs/new`)}
+                  onClick={() => router.push(`/projects/${projectId}/setup?view=basics`)}
                 >
-                  Start run
+                  Review project inputs
                 </Button>
                 <Button
                   variant="secondary"
                   disabled={pending}
-                  onClick={() => router.push(`/projects/${projectId}/dashboard`)}
+                  onClick={() =>
+                    router.push(`/projects/${projectId}/runs/new?matrixVersionId=${focus.id}`)
+                  }
                 >
-                  Dashboard
+                  Configure run
                 </Button>
                 <Button
                   variant="secondary"
                   disabled={pending}
                   onClick={() => run(() => newDraftFromVersion(projectId, focus.id))}
                 >
-                  New draft from V{focus.version}
+                  Create draft from V{focus.version}
                 </Button>
               </>
             )}
           </div>
 
-          {/* EL-2: per-pillar sample budget vs the n>=30 aggregate gate,
-              live as cells change — so coverage is a deliberate decision at
-              matrix time, not a surprise on the dashboard (S-024). */}
-          <div className="mb-4 rounded-lg border border-ink/15 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="label-mono text-xs text-ink/45">Sample budget</span>
-              <span className="font-mono text-[11px] text-ink/40">
-                projected at k={AUDIT_K}, one engine-mode — aggregate metrics need n ≥ {SMALL_N_GATE}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {pillarCounts.map(({ pillar, count }) => {
-                const samples = count * AUDIT_K;
-                const clears = samples >= SMALL_N_GATE;
-                return (
-                  <Stamp key={pillar} tone={count === 0 ? "warn" : clears ? "ok" : "warn"}>
-                    {pillar === "proof" ? "TRUST RAIL · " : ""}
-                    {PILLARS[pillar].label}: {count} → {samples}{clears ? " ✓" : ` (< ${SMALL_N_GATE})`}
-                  </Stamp>
-                );
-              })}
-            </div>
-            <p className="mt-2 font-mono text-[11px] text-ink/45">
-              Proof draws on every response&rsquo;s claims and citations, so all {count} cells count toward it (D-051).
-              A pillar under {SMALL_N_GATE} still renders per-cell and directional findings, just no aggregate claim (D-015).
-            </p>
-          </div>
-
-          {/* M23 (D-079): Evidence-Layer -> Simulation-Layer coverage
-              contract — does this matrix produce evidence for each
-              resonance study pack's baseline? Informational, never a block
-              (D-058 precedent), computed before any run spends. */}
-          <div className="mb-4 rounded-lg border border-ink/15 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="label-mono text-xs text-ink/45">Simulation coverage</span>
-              <span className="font-mono text-[11px] text-ink/40">
-                whether this matrix would give each Simulation study pack real evidence to cite
-              </span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {packCoverage.map((pack) => (
-                <div key={pack.packId} className="flex flex-wrap items-center gap-2">
-                  <Stamp tone={pack.status === "ok" ? "ok" : "warn"}>
-                    {pack.packName}: {FRAME_ASPECT_LABELS[pack.requiredAspect]} — {pack.cellCount} cell
-                    {pack.cellCount === 1 ? "" : "s"}
-                    {pack.status === "ok" ? " ✓" : " (gap)"}
-                  </Stamp>
-                  {pack.status === "gap" && isDraft && (
-                    <>
-                      <span className="font-mono text-[11px] text-ink/45">
-                        no {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} cells yet — templates exist
-                        but are inactive by default (opt-in)
-                      </span>
-                      <Button
-                        variant="secondary"
-                        disabled={pending}
-                        onClick={() =>
-                          run(() => activateCoverageAspectAction(projectId, pack.requiredAspect))
-                        }
-                      >
-                        Activate {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} templates
-                      </Button>
-                    </>
-                  )}
+          {/* M32 / D-088: overview owns sample budget + simulation coverage;
+              pillar views own their cells only. */}
+          {view === "overview" && (
+            <>
+              {/* EL-2: per-pillar sample budget vs the n>=30 aggregate gate,
+                  live as cells change — so coverage is a deliberate decision at
+                  matrix time, not a surprise on the dashboard (S-024). */}
+              <div className="mb-4 rounded-lg border border-ink/15 p-3">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="label-mono text-xs text-ink/45">Sample budget</span>
+                  <span className="font-mono text-[11px] text-ink/40">
+                    projected at k={AUDIT_K}, one engine-mode — aggregate metrics need n ≥ {SMALL_N_GATE}
+                  </span>
                 </div>
-              ))}
-            </div>
-            <p className="mt-2 font-mono text-[11px] text-ink/45">
-              Activating adds these prompts to the shared archetype template pool for future matrices
-              of this category — existing approved matrices stay frozen (C-4). Regenerate or add cells
-              afterward to bring them into this draft.
-            </p>
-          </div>
+                <div className="flex flex-wrap gap-2">
+                  {pillarCounts.map(({ pillar, count: pillarCount }) => {
+                    const samples = pillarCount * AUDIT_K;
+                    const clears = samples >= SMALL_N_GATE;
+                    return (
+                      <Stamp key={pillar} tone={pillarCount === 0 ? "warn" : clears ? "ok" : "warn"}>
+                        {pillar === "proof" ? "TRUST RAIL · " : ""}
+                        {PILLARS[pillar].label}: {pillarCount} → {samples}
+                        {clears ? " ✓" : ` (< ${SMALL_N_GATE})`}
+                      </Stamp>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 font-mono text-[11px] text-ink/45">
+                  Proof draws on every response&rsquo;s claims and citations, so all {count} cells
+                  count toward it (D-051). A pillar under {SMALL_N_GATE} still renders per-cell and
+                  directional findings, just no aggregate claim (D-015).
+                </p>
+              </div>
 
+              {/* M23 (D-079): Evidence-Layer -> Simulation-Layer coverage
+                  contract — does this matrix produce evidence for each
+                  resonance study pack's baseline? Informational, never a block
+                  (D-058 precedent), computed before any run spends. */}
+              <div className="mb-4 rounded-lg border border-ink/15 p-3">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="label-mono text-xs text-ink/45">Simulation coverage</span>
+                  <span className="font-mono text-[11px] text-ink/40">
+                    whether this matrix would give each Simulation study pack real evidence to cite
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {packCoverage.map((pack) => (
+                    <div key={pack.packId} className="flex flex-wrap items-center gap-2">
+                      <Stamp tone={pack.status === "ok" ? "ok" : "warn"}>
+                        {pack.packName}: {FRAME_ASPECT_LABELS[pack.requiredAspect]} — {pack.cellCount}{" "}
+                        cell
+                        {pack.cellCount === 1 ? "" : "s"}
+                        {pack.status === "ok" ? " ✓" : " (gap)"}
+                      </Stamp>
+                      {pack.status === "gap" && isDraft && (
+                        <>
+                          <span className="font-mono text-[11px] text-ink/45">
+                            no {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} cells yet —
+                            templates exist but are inactive by default (opt-in)
+                          </span>
+                          <Button
+                            variant="secondary"
+                            disabled={pending}
+                            onClick={() =>
+                              run(() => activateCoverageAspectAction(projectId, pack.requiredAspect))
+                            }
+                          >
+                            Activate {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} templates
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 font-mono text-[11px] text-ink/45">
+                  Activating adds these prompts to the shared archetype template pool for future
+                  matrices of this category — existing approved matrices stay frozen (C-4).
+                  Regenerate or add cells afterward to bring them into this draft.
+                </p>
+              </div>
+            </>
+          )}
+
+          {view !== "overview" && (
           <div className="flex flex-col gap-6">
-            {PILLAR_ORDER.filter((p) => p !== "proof").map((pillar) => {
+            {PILLAR_ORDER.filter((p) => p !== "proof")
+              .filter((pillar) => view === pillar)
+              .map((pillar) => {
               const pillarIntents = INTENT_ORDER.filter((i) => intentToPillar(i) === pillar);
               const pillarCellCount = focus.cells.filter((c) => intentToPillar(c.intent) === pillar).length;
-              if (pillarCellCount === 0) return null;
+              if (pillarCellCount === 0) {
+                return (
+                  <p key={pillar} className="font-mono text-xs text-ink/45">
+                    No {PILLARS[pillar].label} cells in this version.
+                  </p>
+                );
+              }
               return (
                 <PillarSection key={pillar} pillar={pillar} count={pillarCellCount}>
                   <PillarExplainer pillar={pillar} />
@@ -442,6 +473,7 @@ export function MatrixBoard({
               );
             })}
           </div>
+          )}
         </>
       )}
     </div>

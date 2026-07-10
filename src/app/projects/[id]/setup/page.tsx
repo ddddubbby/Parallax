@@ -1,25 +1,34 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { LocalViewTabs } from "@/components/local-view-tabs";
 import { SetupClient } from "@/components/setup/setup-client";
 import { isUuid } from "@/core/id";
+import { parseSetupView, withViewParam } from "@/core/views";
 import { getProjectSetup } from "@/db/repositories/setup";
 
 export const dynamic = "force-dynamic";
 
 /**
- * M27 (D-084): post-intake Setup editing. Reads directly from the repo
- * layer (matching the matrix/dashboard page convention — server actions in
- * modules/setup/actions.ts handle mutations only).
+ * M27 (D-084) / M32 (D-088): post-intake Setup editing, one section at a time
+ * via `?view=`.
  */
-export default async function SetupPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SetupPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
   const { id } = await params;
+  const { view: viewRaw } = await searchParams;
   if (!isUuid(id)) notFound();
 
   const setup = await getProjectSetup(id);
   if (!setup) notFound();
-  // Setup editing is post-intake only; a draft project has no normalized
-  // rows yet (D-026) — send the operator back to finish the wizard.
   if (setup.project.status === "draft") redirect(`/projects/new?id=${id}`);
+
+  const view = parseSetupView(viewRaw);
+  const base = `/projects/${id}/setup`;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
@@ -27,11 +36,28 @@ export default async function SetupPage({ params }: { params: Promise<{ id: stri
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
-        / {setup.project.name} / Setup
+        /{" "}
+        <Link href={`/projects/${id}`} className="hover:text-ink">
+          {setup.project.name}
+        </Link>{" "}
+        / Setup / Project inputs
       </div>
-      <h1 className="label-mono mb-6 text-lg font-semibold">Project Setup</h1>
+      <h1 className="label-mono mb-4 text-lg font-semibold">Project inputs</h1>
+      <LocalViewTabs
+        tabs={[
+          { id: "basics", label: "Basics", href: withViewParam(base, "basics") },
+          { id: "brands", label: "Brands", href: withViewParam(base, "brands") },
+          { id: "personas", label: "Personas", href: withViewParam(base, "personas") },
+          { id: "markets", label: "Markets", href: withViewParam(base, "markets") },
+          { id: "attributes", label: "Attributes", href: withViewParam(base, "attributes") },
+          { id: "facts", label: "Fact sheet", href: withViewParam(base, "facts") },
+        ]}
+        activeId={view}
+        label="Setup sections"
+      />
       <SetupClient
         projectId={id}
+        view={view}
         data={{
           project: {
             id: setup.project.id,

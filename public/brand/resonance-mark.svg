@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Resonance mark: the Signal Cone">
+  <!-- The Signal Cone: glossy orange cone, tilted 14deg, inside a hairline
+       resonance ring. Vector companion to resonance-logo-concept.png.
+       Ring color is overridable via CSS on .ring; cone gradient is fixed brand
+       orange (see BRAND_SITE_GUIDE.md section 3). Drop the ring below 96px. -->
+  <defs>
+    <linearGradient id="coneBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFA26B"/>
+      <stop offset="0.42" stop-color="#F15A24"/>
+      <stop offset="1" stop-color="#D4430D"/>
+    </linearGradient>
+    <linearGradient id="coneBase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E85419"/>
+      <stop offset="1" stop-color="#B23606"/>
+    </linearGradient>
+  </defs>
+
+  <circle class="ring" cx="256" cy="252" r="150" fill="none" stroke="#D9D4C5" stroke-width="3"/>
+
+  <g transform="rotate(-14 256 256)">
+    <!-- base underside -->
+    <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
+    <!-- body -->
+    <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
+    <!-- apex-to-base sheen -->
+    <path d="M256 92 L300 336 A104 36 0 0 0 340 322 Z" fill="#FFFFFF" opacity="0.18"/>
+  </g>
+</svg>
