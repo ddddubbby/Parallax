@@ -1,0 +1,55 @@
+{
+  "protocolVersion": "framing-protocol.v2",
+  "promptProtocolVersion": "representation-prompts.v1",
+  "clusteringVersion": "frame-cluster.v2",
+  "extractionSchemaVersion": 1,
+  "repetitionsPerVariant": 5,
+  "variantCount": 6,
+  "neutralVariantWinMin": 3,
+  "neutralVariantWinsRequired": 5,
+  "organicCellQualifyMin": 3,
+  "organicCellWinMajority": true,
+  "organicCellWinsRequired": 5,
+  "clusteringCosineThreshold": 0.82,
+  "clusteringCosineSweep": [
+    0.78,
+    0.8,
+    0.82,
+    0.85
+  ],
+  "leaveOneOutRequired": true,
+  "uniqueTopRequired": true,
+  "tiesFail": true,
+  "status": "draft-not-frozen",
+  "frozenAt": null,
+  "goNoGo": "NO-GO",
+  "evidence": {
+    "realEligibleCount": 0,
+    "realEligibleScopes": [],
+    "gateExcludedEligibleScopes": [],
+    "unstableFixtureStatus": "recurring_only",
+    "salvage": {
+      "truncatedQuotes": 1,
+      "droppedFrames": 0
+    }
+  },
+  "neutralSampling": {
+    "deepseek": {
+      "temperature": 0.7
+    },
+    "openai": {}
+  },
+  "notes": [
+    "Draft starting values from M34_BUILD_PLAN Phase 4. Frozen only after Phase 0 GO (>=1 real baseline eligible AND >=1 unstable fixture abstains).",
+    "No auto-loosening on NO-GO.",
+    "neutralSampling: the two engines are NOT sampled identically. Verified 2026-07-10 against the live API: gpt-5.5 rejects any non-default temperature on /v1/responses (HTTP 400, param=temperature, 'Unsupported parameter'); temperature=1 and omitting it both return 200. DeepSeek accepts 0.7. null = parameter omitted, model default used.",
+    "This asymmetry is admissible ONLY because each engine is scored as its own population and never pooled (D-080 / C-12). It must be disclosed wherever neutral-lane results are reported, and never silently normalized away.",
+    "Cross-engine differences in frame prevalence confound sampling with model identity; no cross-engine comparison may be drawn from the Phase 0 run.",
+    "2026-07-10 Phase 0 run 1: NO-GO. Zero eligible baselines. Causes recorded in docs/audits/m34/phase0-feasibility.md and BUILD_NOTES; thresholds NOT loosened.",
+    "2026-07-11 Phase 0 run 2: NO-GO with REAL verdicts (prompt_sensitive 2/6, volatile 1/6; negative control abstains). Lead ruling D-095: eligibility unit malformed (dimension::label fragments cross-dimension polysemy) and v4/v5 are probes, not paraphrases. Superseded by framing-protocol.v3 research — two-level concept+dimension ontology, admission/probe prompt split, four-control suite, brand-level dev/holdout (Insta360 = development data). This file is the run-2 evidence record; do not edit. Full record: docs/audits/m34/phase0-reassessment.md"
+  ],
+  "blindExtractionVersion": "blind-frame-extraction.v2",
+  "gateExclusions": {
+    "organic|heytea-be18|deepseek|ungrounded": "Heytea is stored with category_archetype=b2b (the D-052 defect): its audit ran B2B-procurement prompt templates against a consumer tea brand, and BF-24 excludes B2B projects from framing baselines. Kept as instrument diagnostics; never gate evidence."
+  }
+}

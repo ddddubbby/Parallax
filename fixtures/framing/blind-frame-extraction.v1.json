@@ -1,0 +1,20 @@
+{
+  "version": "blind-frame-extraction.v1",
+  "schemaVersion": 1,
+  "schemaInstructions": "Return ONLY a JSON object with exactly these keys — no other keys, no markdown fences:\n{\n  \"schema_version\": 1,\n  \"state\": \"ok\" | \"insufficient_evidence\" | \"no_frame\" | \"uncertain\" | \"malformed\",\n  \"frames\": [\n    {\n      \"frame_label\": \"<short noun-phrase naming the framing, e.g. action camera / premium bubble tea>\",\n      \"frame_dimension\": \"category\" | \"offering\" | \"audience\" | \"occasion\" | \"attribute\" | \"differentiator\" | \"concern\" | \"uncertainty\",\n      \"stance\": \"stated\" | \"implied\" | \"hedged\",\n      \"evidence_quote\": \"<=240 char exact quote from the answer text supporting this frame\"\n    }\n  ]\n}\nRules:\n- Extract how the answer frames the OBSERVED BRAND — the story it tells about what the brand is, offers, who it is for, when it is used, what attributes or differentiators it carries, or any concerns/uncertainty.\n- Include a frame only when the answer text supports it with an exact evidence_quote.\n- Prefer the most specific accurate label; do not invent marketing language absent from the text.\n- If the answer barely mentions the brand or gives no usable framing, return state \"insufficient_evidence\" or \"no_frame\" with frames: [].\n- If the answer hedges heavily without a clear frame, return state \"uncertain\".\n- If the answer is empty/garbled, return state \"malformed\".\n- Never use external knowledge about the brand; use only the answer text.\n- Every object must include every listed field; use [] rather than omitting keys.",
+  "inputContract": [
+    "observedBrandName",
+    "rawText"
+  ],
+  "forbiddenInputs": [
+    "fact sheet",
+    "desired attributes",
+    "competitors",
+    "original prompt",
+    "operator labels",
+    "campaign goals",
+    "corrected narratives"
+  ],
+  "exampleAssembler": "OBSERVED BRAND NAME: ExampleBrand\n\nANSWER TEXT:\n\"\"\"\nExampleBrand is a placeholder answer used only to document the assembler shape.\n\"\"\"\n\nReturn ONLY a JSON object with exactly these keys — no other keys, no markdown fences:\n{\n  \"schema_version\": 1,\n  \"state\": \"ok\" | \"insufficient_evidence\" | \"no_frame\" | \"uncertain\" | \"malformed\",\n  \"frames\": [\n    {\n      \"frame_label\": \"<short noun-phrase naming the framing, e.g. action camera / premium bubble tea>\",\n      \"frame_dimension\": \"category\" | \"offering\" | \"audience\" | \"occasion\" | \"attribute\" | \"differentiator\" | \"concern\" | \"uncertainty\",\n      \"stance\": \"stated\" | \"implied\" | \"hedged\",\n      \"evidence_quote\": \"<=240 char exact quote from the answer text supporting this frame\"\n    }\n  ]\n}\nRules:\n- Extract how the answer frames the OBSERVED BRAND — the story it tells about what the brand is, offers, who it is for, when it is used, what attributes or differentiators it carries, or any concerns/uncertainty.\n- Include a frame only when the answer text supports it with an exact evidence_quote.\n- Prefer the most specific accurate label; do not invent marketing language absent from the text.\n- If the answer barely mentions the brand or gives no usable framing, return state \"insufficient_evidence\" or \"no_frame\" with frames: [].\n- If the answer hedges heavily without a clear frame, return state \"uncertain\".\n- If the answer is empty/garbled, return state \"malformed\".\n- Never use external knowledge about the brand; use only the answer text.\n- Every object must include every listed field; use [] rather than omitting keys.",
+  "frozenAt": "2026-07-10T15:15:25.326Z"
+}

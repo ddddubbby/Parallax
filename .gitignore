@@ -14,3 +14,11 @@ test-results
 playwright-report
 blob-report
 playwright/.cache
+
+# M34 Phase-0+ framing evidence: raw model-origin artifacts (full response text,
+# extractor inputs) stay out of git (D-096 data governance). Reports (.md) and
+# the SHA-256 manifest are committed; raw JSON lives only on the operator machine
+# and in evidence archives.
+docs/audits/m34/*.json
+docs/audits/m34/*.json.bak
+docs/audits/m34/*.bak.json

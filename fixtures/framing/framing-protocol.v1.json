@@ -1,0 +1,47 @@
+{
+  "protocolVersion": "framing-protocol.v1",
+  "promptProtocolVersion": "representation-prompts.v1",
+  "clusteringVersion": "frame-cluster.v1",
+  "extractionSchemaVersion": 1,
+  "repetitionsPerVariant": 5,
+  "variantCount": 6,
+  "neutralVariantWinMin": 3,
+  "neutralVariantWinsRequired": 5,
+  "organicCellQualifyMin": 3,
+  "organicCellWinMajority": true,
+  "organicCellWinsRequired": 5,
+  "clusteringCosineThreshold": 0.82,
+  "clusteringCosineSweep": [
+    0.78,
+    0.8,
+    0.82,
+    0.85
+  ],
+  "leaveOneOutRequired": true,
+  "uniqueTopRequired": true,
+  "tiesFail": true,
+  "status": "draft-not-frozen",
+  "frozenAt": null,
+  "goNoGo": "NO-GO",
+  "evidence": {
+    "realEligibleCount": 0,
+    "realEligibleScopes": [],
+    "unstableFixtureStatus": "recurring_only"
+  },
+  "neutralSampling": {
+    "deepseek": {
+      "temperature": 0.7
+    },
+    "openai": {
+      "temperature": null
+    }
+  },
+  "notes": [
+    "Draft starting values from M34_BUILD_PLAN Phase 4. Frozen only after Phase 0 GO (>=1 real baseline eligible AND >=1 unstable fixture abstains).",
+    "No auto-loosening on NO-GO.",
+    "neutralSampling: the two engines are NOT sampled identically. Verified 2026-07-10 against the live API: gpt-5.5 rejects any non-default temperature on /v1/responses (HTTP 400, param=temperature, 'Unsupported parameter'); temperature=1 and omitting it both return 200. DeepSeek accepts 0.7. null = parameter omitted, model default used.",
+    "This asymmetry is admissible ONLY because each engine is scored as its own population and never pooled (D-080 / C-12). It must be disclosed wherever neutral-lane results are reported, and never silently normalized away.",
+    "Cross-engine differences in frame prevalence confound sampling with model identity; no cross-engine comparison may be drawn from the Phase 0 run.",
+    "2026-07-10 Phase 0 run 1: NO-GO. Zero eligible baselines. Causes recorded in docs/audits/m34/phase0-feasibility.md and BUILD_NOTES; thresholds NOT loosened."
+  ]
+}

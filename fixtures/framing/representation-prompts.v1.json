@@ -1,0 +1,32 @@
+{
+  "version": "representation-prompts.v1",
+  "uncertaintyAllowance": "If you are unsure about any detail, say so rather than guessing.",
+  "prompts": [
+    {
+      "variantKey": "v1",
+      "text": "What is {client_brand}? If you are unsure about any detail, say so rather than guessing."
+    },
+    {
+      "variantKey": "v2",
+      "text": "Tell me about {client_brand}. If you are unsure about any detail, say so rather than guessing."
+    },
+    {
+      "variantKey": "v3",
+      "text": "How would you describe {client_brand}? If you are unsure about any detail, say so rather than guessing."
+    },
+    {
+      "variantKey": "v4",
+      "text": "What does {client_brand} make or offer? If you are unsure about any detail, say so rather than guessing."
+    },
+    {
+      "variantKey": "v5",
+      "text": "Who is {client_brand} typically for? If you are unsure about any detail, say so rather than guessing."
+    },
+    {
+      "variantKey": "v6",
+      "text": "In a few sentences, explain {client_brand}. If you are unsure about any detail, say so rather than guessing."
+    }
+  ],
+  "frozenAt": "2026-07-10T16:14:44.349Z",
+  "frozenBecause": "Phase 0 NO-GO — prompts retained for reassessment, not production"
+}

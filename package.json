@@ -27,7 +27,10 @@
     "archive:evidence": "tsx scripts/archive-evidence.ts",
     "demo:walkthrough": "tsx scripts/demo-walkthrough.ts",
     "demo:resonance": "tsx scripts/demo-resonance.ts",
-    "recompute:resonance": "tsx scripts/recompute-resonance.ts"
+    "recompute:resonance": "tsx scripts/recompute-resonance.ts",
+    "framing:extract": "tsx scripts/framing-feasibility/extract-frames.ts",
+    "framing:neutral": "tsx scripts/framing-feasibility/neutral-mini-run.ts",
+    "framing:analyze": "tsx scripts/framing-feasibility/analyze.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
