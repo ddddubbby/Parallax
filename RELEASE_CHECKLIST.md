@@ -39,6 +39,18 @@ owner: **[op]** = operator action, **[auto]** = provable by a command.
   audit-grade run.
 - [ ] **[op] Worker heartbeat visible** in `/debug` during the runs above
   (RN-9) — proves the deployed worker, not a local one, did the work.
+- [ ] **[auto] Worker drains on SIGTERM** instead of exiting immediately:
+  an in-flight paid provider call is allowed to finish (or the job is
+  released cleanly for reclaim) within a bounded deadline before the
+  process exits. Without this, a Render redeploy mid-run risks an
+  ambiguous billing outcome on a paid call (D-092).
+- [ ] **[auto] `/health` checks database readiness**, not liveness only —
+  a DB that's down or unreachable must not report a healthy 200 (D-092).
+- [ ] **[op] Observability wiring matches the stack table**: either pino
+  and Sentry are actually installed and wired before this gate, or the
+  stack tables in `MASTER_CONTEXT.md` §5 and `DEVELOPMENT_GUIDELINES.md`
+  are confirmed still accurate as corrected (D-092) — `reportError`
+  (`src/observability.ts`) remains the single swap-in seam per D-076.
 
 ## Part 2 — Per-audit delivery checklist (every engagement)
 

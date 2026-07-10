@@ -61,7 +61,7 @@ Definition of done: relevant test or acceptance criterion passes, diff is surgic
 | Worker | Plain Node polling loop | Same repo and types as app |
 | Validation | Zod everywhere | env, DTOs, provider results, extraction schema |
 | Tests | Vitest | Unit, golden, integration scripts |
-| Observability | pino + `run_events` + Sentry | Operator-visible events in DB |
+| Observability | `run_events` (wired); pino + Sentry (target, not yet a dependency — `src/observability.ts`'s `reportError` is the seam, D-076/D-081/D-092) | Operator-visible events in DB |
 | Deploy | Render | Web service, worker, Postgres |
 
 Env rules:
