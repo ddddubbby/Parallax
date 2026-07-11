@@ -3,7 +3,7 @@ import {
   computeFramingRecurrence,
   getFramingStudy,
 } from "@/db/repositories/framing";
-import { getProjectSummary } from "@/db/repositories/runner";
+import { getProjectSummary, getRun } from "@/db/repositories/runner";
 
 function reviewDisclosure(method: string) {
   if (method === "inter_rater_reliability") {
@@ -26,7 +26,9 @@ export async function buildFramingReport(
     getProjectSummary(projectId),
     getFramingStudy(projectId, studyId),
   ]);
-  if (!project || !detail || detail.study.state !== "completed") return null;
+  if (!project || !detail || detail.study.state !== "completed" || !detail.study.gapOutcome) return null;
+  const sourceRun = await getRun(detail.study.sourceRunId);
+  if (!sourceRun || sourceRun.projectId !== projectId) return null;
   const recurrence = await computeFramingRecurrence(projectId, studyId);
   const associations = new Map(
     detail.codebook.map((association) => [association.associationId, association.label]),
@@ -57,19 +59,33 @@ export async function buildFramingReport(
           annotation.endOffset !== null,
       )
       .map((annotation) => ({
+        responseId: review.responseId!,
+        rawText: review.rawText!,
         associationLabel: associations.get(annotation.associationId) ?? annotation.associationId,
         quote: review.rawText!.slice(annotation.startOffset!, annotation.endOffset!),
+        startOffset: annotation.startOffset!,
+        endOffset: annotation.endOffset!,
         variantKey: review.variantKey,
         providerId: review.providerId,
         modelVersion: review.modelVersion ?? "generation_unavailable",
         generationMode: review.generationMode,
+        observedAt: review.observedAt.toISOString(),
       })),
   );
   const reviewMethod = detail.study.reviewMethod ?? "single_analyst";
+  const reviewOutcomeCounts = Object.fromEntries(
+    detail.reviews.reduce((counts, review) => {
+      counts.set(review.outcome, (counts.get(review.outcome) ?? 0) + 1);
+      return counts;
+    }, new Map<string, number>()),
+  );
   return {
     reportVersion: "m34a-framing-report.v1",
     projectName: project.name,
     studyId,
+    sourceRunId: sourceRun.id,
+    sourceRunMode: sourceRun.runMode,
+    sourceRepetitions: sourceRun.repetitions,
     completedDate: (detail.study.completedAt ?? detail.study.updatedAt).toISOString().slice(0, 10),
     promptProtocolVersion: detail.study.promptProtocolVersion,
     promptWording,
@@ -78,6 +94,15 @@ export async function buildFramingReport(
     reviewerIdentity: detail.study.reviewerIdentity ?? "Not recorded",
     reviewMethod,
     reviewDisclosure: reviewDisclosure(reviewMethod),
+    discoveryManifestDigest: detail.study.discoveryManifestDigest ?? "not-recorded",
+    discoveryAttestation: detail.study.discoveryAttestedBy && detail.study.discoveryAttestedAt
+      ? `${detail.study.discoveryAttestedBy} attested at ${detail.study.discoveryAttestedAt.toISOString()} that in-product positioning and fact-sheet material were not consulted during discovery.`
+      : "No discovery attestation was recorded.",
+    codebookLockedAt: detail.study.codebookLockedAt?.toISOString() ?? "not-recorded",
+    revealedAt: detail.study.revealedAt?.toISOString() ?? "not-recorded",
+    codebook: detail.codebook,
+    gapOutcome: detail.study.gapOutcome as "actionable_gap_identified" | "no_actionable_gap_identified",
+    reviewOutcomeCounts,
     denominator: detail.reviews.length,
     availableResponses: detail.reviews.filter((review) => review.responseId !== null).length,
     unavailableJobs: detail.reviews.filter((review) => review.responseId === null).length,

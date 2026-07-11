@@ -35,6 +35,14 @@ function withResonanceExportColumns<T extends Record<string, unknown>>(
       : null,
     baselineReviewMethod: metadata?.baselineProvenance?.reviewMethod ?? null,
     baselineCodebookVersion: metadata?.baselineProvenance?.codebookVersion ?? null,
+    baselineSnapshotVersion: metadata?.baselineProvenance?.snapshotVersion ?? null,
+    baselineSnapshotSha256: metadata?.baselineProvenance?.snapshotSha256 ?? null,
+    baselineSourceRunMode: metadata?.baselineProvenance?.sourceRunMode ?? null,
+    baselineObservedAt: metadata?.baselineProvenance?.observedAt ?? null,
+    baselineAssociation: metadata?.baselineProvenance?.associationLabel ?? null,
+    baselineGap: metadata?.baselineProvenance?.gapClassification
+      ? `${metadata.baselineProvenance.gapClassification}: ${metadata.baselineProvenance.gapSubject}`
+      : null,
     ...row,
   }));
 }
@@ -50,7 +58,7 @@ async function buildCsv(
       case "resonance_responses": {
         const rows = withResonanceExportColumns(await getExportResponses(runId), resonanceStudy);
         return toCsv(rows, [
-          "simulationLabel", "genericUnconditioned", "studyId", "studyName", "baselineLabel", "framingEvidenceSnapshotId", "baselineNumerator", "baselineDenominator", "baselinePromptSpread", "baselinePromptDenominator", "baselineModelScope", "baselineReviewMethod", "baselineCodebookVersion",
+          "simulationLabel", "genericUnconditioned", "studyId", "studyName", "baselineLabel", "framingEvidenceSnapshotId", "baselineNumerator", "baselineDenominator", "baselinePromptSpread", "baselinePromptDenominator", "baselineModelScope", "baselineReviewMethod", "baselineCodebookVersion", "baselineSnapshotVersion", "baselineSnapshotSha256", "baselineSourceRunMode", "baselineObservedAt", "baselineAssociation", "baselineGap",
           "id", "cellId", "providerId", "generationMode", "modelVersion",
           "tokensIn", "tokensOut", "costUsd", "latencyMs", "rawText", "createdAt",
         ]);
@@ -68,7 +76,7 @@ async function buildCsv(
           resonanceStudy,
         );
         return toCsv(rows, [
-          "simulationLabel", "genericUnconditioned", "studyId", "studyName", "baselineLabel", "framingEvidenceSnapshotId", "baselineNumerator", "baselineDenominator", "baselinePromptSpread", "baselinePromptDenominator", "baselineModelScope", "baselineReviewMethod", "baselineCodebookVersion",
+          "simulationLabel", "genericUnconditioned", "studyId", "studyName", "baselineLabel", "framingEvidenceSnapshotId", "baselineNumerator", "baselineDenominator", "baselinePromptSpread", "baselinePromptDenominator", "baselineModelScope", "baselineReviewMethod", "baselineCodebookVersion", "baselineSnapshotVersion", "baselineSnapshotSha256", "baselineSourceRunMode", "baselineObservedAt", "baselineAssociation", "baselineGap",
           "providerId", "scopeType", "scopeKey", "metricKey", "n", "value", "ciLow", "ciHigh", "metadataJson", "computedAt",
         ]);
       }

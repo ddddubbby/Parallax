@@ -82,7 +82,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <label className="flex flex-col gap-1.5">
       <span className="label-mono text-xs text-ink/70">{label}</span>
       {children}
       {hint && !errors?.length && (
@@ -93,7 +93,7 @@ export function Field({
           {e}
         </span>
       ))}
-    </div>
+    </label>
   );
 }
 

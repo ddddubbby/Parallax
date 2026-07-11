@@ -170,6 +170,7 @@ async function buildResonanceReportContext(runId: string): Promise<ResonanceRepo
     genericUnconditioned: results.study.genericUnconditioned,
     baselineProvenance: results.study.baselineProvenance,
     repetitions: run.repetitions,
+    panelCount: results.study.panelCount,
     providers: (run.selectedProvidersJson as string[]) ?? [],
     modes: (run.selectedModesJson as string[]) ?? [],
     anchorSetVersion: results.study.anchorSetVersion,

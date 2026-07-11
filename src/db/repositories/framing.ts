@@ -39,8 +39,10 @@ export const FRAMING_REVIEW_OUTCOMES = [
   "pending",
   "coded",
   "none",
+  "other",
   "ambiguous",
   "entity_ambiguous",
+  "insufficient_evidence",
   "generation_unavailable",
 ] as const;
 export type FramingReviewOutcome = (typeof FRAMING_REVIEW_OUTCOMES)[number];
@@ -60,6 +62,22 @@ export interface FramingGapInput {
   rationale: string;
   factReferences: string[];
 }
+
+export type FramingGapOutcome =
+  | "actionable_gap_identified"
+  | "no_actionable_gap_identified";
+
+type DiscoveryManifest = {
+  version: "m34a-discovery-manifest.v2";
+  createdAt: string;
+  selected: Array<{
+    jobId: string;
+    responseId: string;
+    variantKey: string;
+    rawTextSha256: string;
+  }>;
+  promptVariantCoverage: string[];
+};
 
 export interface FramingReviewRow {
   id: string;
@@ -93,6 +111,90 @@ export interface FramingReviewRow {
 
 function sha256(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function parseDiscoveryManifest(value: unknown): DiscoveryManifest {
+  if (!value || typeof value !== "object") throw new Error("Discovery manifest is missing");
+  const candidate = value as Partial<DiscoveryManifest>;
+  if (
+    candidate.version !== "m34a-discovery-manifest.v2" ||
+    typeof candidate.createdAt !== "string" ||
+    !Array.isArray(candidate.selected) ||
+    !Array.isArray(candidate.promptVariantCoverage)
+  ) {
+    throw new Error("Discovery manifest is invalid");
+  }
+  for (const item of candidate.selected) {
+    if (
+      !item ||
+      typeof item.jobId !== "string" ||
+      typeof item.responseId !== "string" ||
+      typeof item.variantKey !== "string" ||
+      !/^[0-9a-f]{64}$/.test(item.rawTextSha256)
+    ) {
+      throw new Error("Discovery manifest item is invalid");
+    }
+  }
+  return {
+    version: "m34a-discovery-manifest.v2",
+    createdAt: candidate.createdAt,
+    selected: candidate.selected.map((item) => ({
+      jobId: item.jobId,
+      responseId: item.responseId,
+      variantKey: item.variantKey,
+      rawTextSha256: item.rawTextSha256,
+    })),
+    promptVariantCoverage: [...candidate.promptVariantCoverage],
+  };
+}
+
+function buildDiscoveryManifest(input: {
+  studyId: string;
+  rows: Array<{
+    jobId: string;
+    responseId: string | null;
+    variantKey: string;
+    rawText: string | null;
+  }>;
+  createdAt: Date;
+}): DiscoveryManifest {
+  const available = input.rows.filter(
+    (row): row is typeof row & { responseId: string; rawText: string } =>
+      row.responseId !== null && row.rawText !== null,
+  );
+  if (available.length === 0) throw new Error("No stored representation responses are available");
+  const rank = (jobId: string) => stableHash(`${input.studyId}|${jobId}`);
+  const byVariant = new Map<string, typeof available>();
+  for (const row of available) {
+    const group = byVariant.get(row.variantKey) ?? [];
+    group.push(row);
+    byVariant.set(row.variantKey, group);
+  }
+  const selected: typeof available = [];
+  for (const variantKey of [...byVariant.keys()].sort()) {
+    const rows = [...(byVariant.get(variantKey) ?? [])].sort(
+      (a, b) => rank(a.jobId) - rank(b.jobId) || a.jobId.localeCompare(b.jobId),
+    );
+    selected.push(...rows.slice(0, 2));
+  }
+  if (selected.length < 10) {
+    const chosen = new Set(selected.map((row) => row.jobId));
+    const remaining = available
+      .filter((row) => !chosen.has(row.jobId))
+      .sort((a, b) => rank(a.jobId) - rank(b.jobId) || a.jobId.localeCompare(b.jobId));
+    selected.push(...remaining.slice(0, 10 - selected.length));
+  }
+  return {
+    version: "m34a-discovery-manifest.v2",
+    createdAt: input.createdAt.toISOString(),
+    selected: selected.slice(0, 10).map((row) => ({
+      jobId: row.jobId,
+      responseId: row.responseId,
+      variantKey: row.variantKey,
+      rawTextSha256: createHash("sha256").update(row.rawText).digest("hex"),
+    })),
+    promptVariantCoverage: [...new Set(selected.slice(0, 10).map((row) => row.variantKey))].sort(),
+  };
 }
 
 function parseCodebook(value: unknown): CodebookAssociation[] {
@@ -192,8 +294,15 @@ export async function createFramingStudy(projectId: string, sourceRunId: string)
 
   const cellIds = cells.map((cell) => cell.id);
   const denominatorRows = await db
-    .select({ jobId: jobs.id, cellId: jobs.cellId, responseId: responses.id })
+    .select({
+      jobId: jobs.id,
+      cellId: jobs.cellId,
+      responseId: responses.id,
+      variantKey: promptCells.variantKey,
+      rawText: responses.rawText,
+    })
     .from(jobs)
+    .innerJoin(promptCells, eq(promptCells.id, jobs.cellId))
     .leftJoin(responses, eq(responses.jobId, jobs.id))
     .where(and(eq(jobs.runId, sourceRunId), inArray(jobs.cellId, cellIds)))
     .orderBy(asc(jobs.id));
@@ -205,14 +314,22 @@ export async function createFramingStudy(projectId: string, sourceRunId: string)
   }
 
   return db.transaction(async (tx) => {
+    const createdAt = new Date();
     const [study] = await tx
       .insert(framingStudies)
       .values({
         projectId,
         sourceRunId,
         promptProtocolVersion: REPRESENTATION_PROMPT_PROTOCOL_VERSION,
+        createdAt,
       })
       .returning();
+    const manifest = buildDiscoveryManifest({ studyId: study.id, rows: denominatorRows, createdAt });
+    const manifestDigest = sha256(manifest);
+    await tx
+      .update(framingStudies)
+      .set({ discoveryManifestJson: manifest, discoveryManifestDigest: manifestDigest })
+      .where(eq(framingStudies.id, study.id));
     await tx.insert(framingResponseReviews).values(
       denominatorRows.map((row) => ({
         framingStudyId: study.id,
@@ -224,7 +341,11 @@ export async function createFramingStudy(projectId: string, sourceRunId: string)
         note: row.responseId ? null : "No immutable response was stored for this source job.",
       })),
     );
-    return study;
+    return {
+      ...study,
+      discoveryManifestJson: manifest,
+      discoveryManifestDigest: manifestDigest,
+    };
   });
 }
 
@@ -368,6 +489,7 @@ export async function getFramingReviewRows(
   }
   return reviewRows.map((row) => ({
     ...row,
+    observedAt: row.observedAt instanceof Date ? row.observedAt : new Date(row.observedAt),
     outcome: row.outcome as FramingReviewOutcome,
     providerId: row.providerId,
     generationMode: row.generationMode,
@@ -401,22 +523,31 @@ export async function getBlindDiscoveryPacket(projectId: string, studyId: string
   if (detail.study.state !== "draft") {
     throw new Error("Blind discovery is available only before the codebook is locked");
   }
-  const available = detail.reviews.filter((review) => review.rawText !== null);
-  if (available.length === 0) throw new Error("No stored representation responses are available");
-  const subsetSize = Math.min(10, Math.max(5, Math.ceil(available.length * 0.2)));
-  const selected = [...available]
-    .sort((a, b) => {
-      const rank = stableHash(`${studyId}|${a.jobId}`) - stableHash(`${studyId}|${b.jobId}`);
-      return rank !== 0 ? rank : a.jobId.localeCompare(b.jobId);
-    })
-    .slice(0, Math.min(subsetSize, available.length));
+  const manifest = parseDiscoveryManifest(detail.study.discoveryManifestJson);
+  if (sha256(manifest) !== detail.study.discoveryManifestDigest) {
+    throw new Error("Discovery manifest digest does not match its stored payload");
+  }
+  const byJobId = new Map(detail.reviews.map((review) => [review.jobId, review]));
+  const selected = manifest.selected.map((item) => {
+    const review = byJobId.get(item.jobId);
+    if (
+      !review ||
+      review.responseId !== item.responseId ||
+      review.rawText === null ||
+      createHash("sha256").update(review.rawText).digest("hex") !== item.rawTextSha256
+    ) {
+      throw new Error("Discovery manifest no longer matches immutable source evidence");
+    }
+    return review;
+  });
   return {
-    packetVersion: "m34a-blind-discovery-packet.v1" as const,
+    packetVersion: "m34a-metadata-masked-discovery-packet.v2" as const,
     studyId,
+    manifestDigest: detail.study.discoveryManifestDigest,
     instructions: [
       "Code only the response text supplied here.",
       "Do not use client positioning, desired attributes, fact sheet, response frequency, or simulation candidates.",
-      "Develop a small association codebook; other, ambiguous, and no relevant association are valid outcomes.",
+      "Develop a small association codebook; other, ambiguous, insufficient evidence, and no relevant association are valid outcomes.",
     ],
     items: selected.map((review, index) => ({
       blindId: `blind-${String(index + 1).padStart(3, "0")}`,
@@ -456,19 +587,30 @@ export async function saveFramingCodebookDraft(input: {
   return updated[0];
 }
 
-export async function lockFramingCodebook(projectId: string, studyId: string) {
+export async function lockFramingCodebook(
+  projectId: string,
+  studyId: string,
+  discoveryAttested: boolean,
+) {
+  if (!discoveryAttested) {
+    throw new Error("Codebook lock requires the metadata-masked discovery attestation");
+  }
   return db.transaction(async (tx) => {
     const locked = await tx.execute<{
       state: string;
       codebookJson: unknown;
       codebookCreatedBy: string | null;
       codebookCreatedAt: Date | null;
+      discoveryManifestJson: unknown;
+      discoveryManifestDigest: string | null;
     }>(sql`
       select
         state,
         codebook_json as "codebookJson",
         codebook_created_by as "codebookCreatedBy",
-        codebook_created_at as "codebookCreatedAt"
+        codebook_created_at as "codebookCreatedAt",
+        discovery_manifest_json as "discoveryManifestJson",
+        discovery_manifest_digest as "discoveryManifestDigest"
       from ${framingStudies}
       where id = ${studyId} and project_id = ${projectId}
       for update
@@ -480,10 +622,20 @@ export async function lockFramingCodebook(projectId: string, studyId: string) {
     if (!study.codebookCreatedBy || !study.codebookCreatedAt) {
       throw new Error("Save the codebook creator and associations before locking");
     }
+    const manifest = parseDiscoveryManifest(study.discoveryManifestJson);
+    if (!study.discoveryManifestDigest || sha256(manifest) !== study.discoveryManifestDigest) {
+      throw new Error("Discovery manifest is missing or invalid");
+    }
     const now = new Date();
     const [updated] = await tx
       .update(framingStudies)
-      .set({ state: "codebook_locked", codebookLockedAt: now, updatedAt: now })
+      .set({
+        state: "codebook_locked",
+        codebookLockedAt: now,
+        discoveryAttestedBy: study.codebookCreatedBy,
+        discoveryAttestedAt: now,
+        updatedAt: now,
+      })
       .where(and(eq(framingStudies.id, studyId), eq(framingStudies.state, "draft")))
       .returning();
     return updated;
@@ -629,6 +781,11 @@ export async function saveFramingResponseReview(input: {
         annotation.proposalSource !== "ai_span_assist"
       ) {
         throw new Error("Unknown annotation proposal source");
+      }
+      if (annotation.proposalSource === "ai_span_assist") {
+        throw new Error(
+          "Production v1 records human raw-text review only; AI span assist requires a structured proposal record",
+        );
       }
       if (!associationIds.has(annotation.associationId)) {
         throw new Error(`Annotation references unknown locked association: ${annotation.associationId}`);
@@ -882,10 +1039,18 @@ export async function saveFramingGapClassifications(input: {
   projectId: string;
   studyId: string;
   classifiedBy: string;
+  gapOutcome: FramingGapOutcome;
   gaps: FramingGapInput[];
 }) {
   const classifiedBy = input.classifiedBy.trim();
   if (!classifiedBy) throw new Error("Gap analyst identity is required");
+  if (input.gaps.length === 0) throw new Error("Gap review needs at least one explicit decision");
+  if (
+    input.gapOutcome !== "actionable_gap_identified" &&
+    input.gapOutcome !== "no_actionable_gap_identified"
+  ) {
+    throw new Error("Unknown gap review outcome");
+  }
   return db.transaction(async (tx) => {
     const locked = await tx.execute<{
       state: string;
@@ -908,11 +1073,13 @@ export async function saveFramingGapClassifications(input: {
     const associationIds = new Set(
       parseCodebook(study.codebookJson).map((association) => association.associationId),
     );
-    const factIds = new Set(
-      (Array.isArray(study.factSheetSnapshotJson) ? study.factSheetSnapshotJson : [])
-        .map((fact) => (fact as { id?: unknown }).id)
-        .filter((id): id is string => typeof id === "string"),
-    );
+    const facts = (Array.isArray(study.factSheetSnapshotJson) ? study.factSheetSnapshotJson : [])
+      .map((fact) => fact as { id?: unknown; sourceNote?: unknown; sourceUrl?: unknown })
+      .filter((fact): fact is { id: string; sourceNote?: string | null; sourceUrl?: string | null } =>
+        typeof fact.id === "string",
+      );
+    const factIds = new Set(facts.map((fact) => fact.id));
+    const factById = new Map(facts.map((fact) => [fact.id, fact]));
     const rows = input.gaps.map((gap) => {
       if (!(GAP_CLASSIFICATIONS as readonly string[]).includes(gap.classification)) {
         throw new Error(`Unknown gap classification: ${gap.classification}`);
@@ -930,6 +1097,18 @@ export async function saveFramingGapClassifications(input: {
       if (unknownFacts.length > 0) {
         throw new Error("Gap fact references must come from the revealed fact-sheet snapshot");
       }
+      if (gap.classification === "unsupported") {
+        if (gap.factReferences.length === 0) {
+          throw new Error("Unsupported gaps require a sourced fact-sheet reference");
+        }
+        const hasSourcedFact = gap.factReferences.some((id) => {
+          const fact = factById.get(id);
+          return Boolean(fact?.sourceNote?.trim() || fact?.sourceUrl?.trim());
+        });
+        if (!hasSourcedFact) {
+          throw new Error("Unsupported gaps require a fact with a source note or URL");
+        }
+      }
       return {
         framingStudyId: input.studyId,
         classification: gap.classification,
@@ -940,10 +1119,36 @@ export async function saveFramingGapClassifications(input: {
         classifiedBy,
       };
     });
+    const actionable = rows.filter((row) =>
+      row.classification === "missing" ||
+      row.classification === "misframed" ||
+      row.classification === "unsupported",
+    );
+    if (input.gapOutcome === "actionable_gap_identified" && actionable.length === 0) {
+      throw new Error("Actionable gap outcome requires a missing, misframed, or unsupported decision");
+    }
+    if (input.gapOutcome === "no_actionable_gap_identified") {
+      if (actionable.length > 0) {
+        throw new Error("No-actionable-gap outcome cannot contain an actionable decision");
+      }
+      if (!rows.some((row) => row.classification === "non_actionable")) {
+        throw new Error("No-actionable-gap outcome requires an explicit non-actionable decision");
+      }
+    }
     await tx
       .delete(framingGapClassifications)
       .where(eq(framingGapClassifications.framingStudyId, input.studyId));
     if (rows.length > 0) await tx.insert(framingGapClassifications).values(rows);
+    const now = new Date();
+    await tx
+      .update(framingStudies)
+      .set({
+        gapOutcome: input.gapOutcome,
+        gapCompletedBy: classifiedBy,
+        gapCompletedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(framingStudies.id, input.studyId));
     return rows.length;
   });
 }
@@ -956,6 +1161,7 @@ export function verifyFramingEvidenceSnapshotRecord(record: {
   projectId: string;
   framingStudyId: string;
   annotationId: string;
+  gapClassificationId?: string | null;
   responseId: string;
   evidenceJson: unknown;
   sha256: string;
@@ -969,6 +1175,12 @@ export function verifyFramingEvidenceSnapshotRecord(record: {
   ) {
     throw new Error("Framing evidence snapshot linkage does not match its immutable payload");
   }
+  if (
+    payload.snapshotVersion === "m34a-simulation-evidence.v2" &&
+    record.gapClassificationId !== payload.gap.id
+  ) {
+    throw new Error("Framing evidence snapshot gap linkage does not match its immutable payload");
+  }
   if (framingEvidenceSnapshotSha256(payload) !== record.sha256) {
     throw new Error("Framing evidence snapshot hash does not match its immutable payload");
   }
@@ -979,12 +1191,45 @@ export async function createFramingEvidenceSnapshot(input: {
   projectId: string;
   studyId: string;
   annotationId: string;
+  gapClassificationId: string;
 }) {
   const isoTimestamp = (value: Date | string) =>
     value instanceof Date ? value.toISOString() : new Date(value).toISOString();
   const detail = await getFramingStudy(input.projectId, input.studyId);
   if (!detail || detail.study.state !== "completed") {
     throw new Error("Simulation handoff requires a completed framing review");
+  }
+  if (
+    detail.study.gapOutcome !== "actionable_gap_identified" ||
+    !detail.study.gapCompletedAt ||
+    !detail.study.gapCompletedBy
+  ) {
+    throw new Error("Simulation handoff requires a completed actionable-gap decision");
+  }
+  const [sourceRun] = await db
+    .select({
+      id: auditRuns.id,
+      runMode: auditRuns.runMode,
+      repetitions: auditRuns.repetitions,
+    })
+    .from(auditRuns)
+    .where(
+      and(
+        eq(auditRuns.id, detail.study.sourceRunId),
+        eq(auditRuns.projectId, input.projectId),
+      ),
+    );
+  if (!sourceRun || sourceRun.runMode !== "live_audit") {
+    throw new Error("Only a completed live audit may create a client-ready Simulation handoff");
+  }
+  const gap = detail.gaps.find((candidate) => candidate.id === input.gapClassificationId);
+  if (
+    !gap ||
+    (gap.classification !== "missing" &&
+      gap.classification !== "misframed" &&
+      gap.classification !== "unsupported")
+  ) {
+    throw new Error("Simulation handoff requires a selected actionable gap from this study");
   }
   const review = detail.reviews.find((candidate) =>
     candidate.annotations.some((annotation) => annotation.id === input.annotationId),
@@ -1006,11 +1251,21 @@ export async function createFramingEvidenceSnapshot(input: {
   const recurrence = (await computeFramingRecurrence(input.projectId, input.studyId))
     .find((row) => row.associationId === annotation.associationId);
   if (!recurrence) throw new Error("Selected association is absent from the recurrence matrix");
+  if (
+    gap.classification !== "missing" &&
+    gap.associationId !== annotation.associationId
+  ) {
+    throw new Error("Observed actionable gap must match the selected evidence association");
+  }
+  const association = detail.codebook.find(
+    (candidate) => candidate.associationId === annotation.associationId,
+  );
+  if (!association) throw new Error("Selected association is absent from the locked codebook");
   const evidenceText = review.rawText.slice(annotation.startOffset, annotation.endOffset);
   resolveUniqueExactQuote(review.rawText, evidenceText);
   const recurrenceLabel = recurrence.responsesContainingAssociation <= 1
     ? "SINGLE OBSERVED INSTANCE"
-    : `OBSERVED IN ${recurrence.responsesContainingAssociation}/${recurrence.denominator} RESPONSES`;
+    : `OBSERVED IN ${recurrence.responsesContainingAssociation}/${recurrence.denominator} SOURCE JOBS`;
   if (
     !detail.study.codebookLockedAt ||
     !detail.study.revealedAt ||
@@ -1018,13 +1273,37 @@ export async function createFramingEvidenceSnapshot(input: {
     !detail.study.positioningDigest ||
     !detail.study.factSheetDigest ||
     !detail.study.reviewerIdentity ||
-    !detail.study.reviewMethod
+    !detail.study.reviewMethod ||
+    !detail.study.discoveryManifestDigest ||
+    !detail.study.discoveryAttestedBy ||
+    !detail.study.discoveryAttestedAt
   ) {
     throw new Error("Framing review provenance is incomplete");
   }
   assertReviewMethod(detail.study.reviewMethod);
+  const factSnapshot = (Array.isArray(detail.study.factSheetSnapshotJson)
+    ? detail.study.factSheetSnapshotJson
+    : []) as Array<{
+      id?: unknown;
+      statement?: unknown;
+      sourceNote?: unknown;
+      sourceUrl?: unknown;
+    }>;
+  const requestedFactIds = new Set(
+    Array.isArray(gap.factReferencesJson) ? gap.factReferencesJson as string[] : [],
+  );
+  const factReferences = factSnapshot
+    .filter((fact) => typeof fact.id === "string" && requestedFactIds.has(fact.id))
+    .map((fact) => ({
+      id: fact.id as string,
+      statement: typeof fact.statement === "string" ? fact.statement : "",
+      sourceNote: typeof fact.sourceNote === "string" ? fact.sourceNote : null,
+      sourceUrl: typeof fact.sourceUrl === "string" ? fact.sourceUrl : null,
+    }));
+  const availableResponses = detail.reviews.filter((candidate) => candidate.responseId !== null).length;
+  const unavailableJobs = detail.reviews.length - availableResponses;
   const payload = simulationEvidenceSnapshotSchema.parse({
-    snapshotVersion: "m34a-simulation-evidence.v1",
+    snapshotVersion: "m34a-simulation-evidence.v2",
     studyId: detail.study.id,
     projectId: detail.study.projectId,
     promptProtocolVersion: detail.study.promptProtocolVersion,
@@ -1037,6 +1316,20 @@ export async function createFramingEvidenceSnapshot(input: {
       end: annotation.endOffset,
       text: evidenceText,
     },
+    association: {
+      id: association.associationId,
+      label: association.label,
+      definition: association.definition,
+    },
+    gap: {
+      id: gap.id,
+      classification: gap.classification,
+      subject: gap.classification === "missing"
+        ? gap.missingTarget
+        : association.label,
+      rationale: gap.rationale,
+      factReferences,
+    },
     codebook: {
       id: detail.study.codebookId,
       version: String(detail.study.codebookVersion),
@@ -1047,6 +1340,11 @@ export async function createFramingEvidenceSnapshot(input: {
       reviewerId: detail.study.reviewerIdentity,
       reviewMethod: detail.study.reviewMethod,
     },
+    discovery: {
+      manifestDigest: detail.study.discoveryManifestDigest,
+      attestedBy: detail.study.discoveryAttestedBy,
+      attestedAt: detail.study.discoveryAttestedAt.toISOString(),
+    },
     reveal: {
       revealedAt: detail.study.revealedAt.toISOString(),
       revealedBy: detail.study.revealedBy,
@@ -1054,6 +1352,9 @@ export async function createFramingEvidenceSnapshot(input: {
       factSheetDigest: detail.study.factSheetDigest,
     },
     source: {
+      auditRunId: sourceRun.id,
+      runMode: sourceRun.runMode,
+      repetitions: sourceRun.repetitions,
       promptVariant: review.variantKey,
       promptText: review.promptText,
       providerId: review.providerId,
@@ -1062,26 +1363,42 @@ export async function createFramingEvidenceSnapshot(input: {
       observedAt: isoTimestamp(review.observedAt),
     },
     recurrence: {
+      denominatorUnit: "source_jobs",
       numerator: recurrence.responsesContainingAssociation,
       denominator: recurrence.denominator,
+      availableResponses,
+      unavailableJobs,
       promptVariantsContainingAssociation: recurrence.promptVariantsContainingAssociation,
       promptVariantDenominator: recurrence.promptVariantDenominator,
       scopes: recurrence.scopes,
       label: recurrenceLabel,
     },
   });
-  const [snapshot] = await db
+  const inserted = await db
     .insert(framingEvidenceSnapshots)
     .values({
       projectId: input.projectId,
       framingStudyId: input.studyId,
       annotationId: input.annotationId,
+      gapClassificationId: input.gapClassificationId,
       responseId: review.responseId,
       evidenceJson: payload,
       sha256: framingEvidenceSnapshotSha256(payload),
     })
+    .onConflictDoNothing()
     .returning();
-  return { snapshot, payload };
+  const snapshot = inserted[0] ?? (await db
+    .select()
+    .from(framingEvidenceSnapshots)
+    .where(
+      and(
+        eq(framingEvidenceSnapshots.annotationId, input.annotationId),
+        eq(framingEvidenceSnapshots.gapClassificationId, input.gapClassificationId),
+      ),
+    ))[0];
+  if (!snapshot) throw new Error("Simulation evidence snapshot could not be created");
+  const storedPayload = verifyFramingEvidenceSnapshotRecord(snapshot);
+  return { snapshot, payload: storedPayload };
 }
 
 export async function listFramingEvidenceSnapshots(projectId: string) {

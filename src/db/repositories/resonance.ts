@@ -105,6 +105,7 @@ export interface ResonanceStudyResults {
     genericUnconditioned: boolean;
     anchorSetVersion: string;
     anchorSetCalibrated: boolean;
+    panelCount: number;
     baselineProvenance: ResonanceBaselineProvenance;
   };
   run: {
@@ -194,6 +195,7 @@ async function getResonanceBaselineProvenance(input: {
   studyId: string;
   studyState: string;
   categoryArchetype: string;
+  baselineStimulusId?: string | null;
 }): Promise<ResonanceBaselineProvenance> {
   const [row] = await db
     .select({
@@ -201,21 +203,26 @@ async function getResonanceBaselineProvenance(input: {
       projectId: framingEvidenceSnapshots.projectId,
       framingStudyId: framingEvidenceSnapshots.framingStudyId,
       annotationId: framingEvidenceSnapshots.annotationId,
+      gapClassificationId: framingEvidenceSnapshots.gapClassificationId,
       responseId: framingEvidenceSnapshots.responseId,
       evidenceJson: framingEvidenceSnapshots.evidenceJson,
       sha256: framingEvidenceSnapshots.sha256,
+      stimulusId: resonanceStimuli.id,
+      stimulusBody: resonanceStimuli.body,
+      evidenceResponseIdsJson: resonanceStimuli.evidenceResponseIdsJson,
     })
     .from(resonanceStimuli)
     .leftJoin(
       framingEvidenceSnapshots,
       eq(framingEvidenceSnapshots.id, resonanceStimuli.framingEvidenceSnapshotId),
     )
-    .where(
-      and(
-        eq(resonanceStimuli.studyId, input.studyId),
-        eq(resonanceStimuli.kind, "measured_ai"),
-      ),
-    )
+    .where(and(
+      eq(resonanceStimuli.studyId, input.studyId),
+      eq(resonanceStimuli.kind, "measured_ai"),
+      input.studyState !== "draft" && input.baselineStimulusId
+        ? eq(resonanceStimuli.id, input.baselineStimulusId)
+        : undefined,
+    ))
     .orderBy(asc(resonanceStimuli.position))
     .limit(1);
   if (!row?.snapshotId) {
@@ -239,13 +246,26 @@ async function getResonanceBaselineProvenance(input: {
     projectId: row.projectId,
     framingStudyId: row.framingStudyId,
     annotationId: row.annotationId,
+    gapClassificationId: row.gapClassificationId,
     responseId: row.responseId,
     evidenceJson: row.evidenceJson,
     sha256: row.sha256,
   });
+  const evidenceIds = readEvidenceResponseIds(row.evidenceResponseIdsJson);
+  if (
+    row.stimulusBody !== payload.verbatimResponse ||
+    evidenceIds.length !== 1 ||
+    evidenceIds[0] !== payload.responseId
+  ) {
+    throw new Error("Simulation baseline no longer matches its frozen framing evidence (C-15)");
+  }
+  const v2 = payload.snapshotVersion === "m34a-simulation-evidence.v2" ? payload : null;
+  const truthfulLabel = payload.recurrence.numerator <= 1
+    ? "SINGLE OBSERVED INSTANCE"
+    : `OBSERVED IN ${payload.recurrence.numerator}/${payload.recurrence.denominator} SOURCE JOBS`;
   return {
     status: "snapshot",
-    label: payload.recurrence.label,
+    label: v2 ? truthfulLabel : `LEGACY M34A V1 · ${truthfulLabel}`,
     snapshotId: row.snapshotId,
     responseId: payload.responseId,
     associationId: payload.associationId,
@@ -258,6 +278,27 @@ async function getResonanceBaselineProvenance(input: {
     generationMode: payload.source.generationMode,
     reviewMethod: payload.codingRun.reviewMethod,
     codebookVersion: payload.codebook.version,
+    snapshotVersion: payload.snapshotVersion,
+    snapshotSha256: row.sha256,
+    promptProtocolVersion: payload.promptProtocolVersion,
+    observedAt: payload.source.observedAt,
+    sourceRunMode: v2?.source.runMode ?? null,
+    sourceRunId: v2?.source.auditRunId ?? null,
+    sourceRepetitions: v2?.source.repetitions ?? null,
+    availableResponses: v2?.recurrence.availableResponses ?? null,
+    unavailableJobs: v2?.recurrence.unavailableJobs ?? null,
+    associationLabel: v2?.association.label ?? null,
+    associationDefinition: v2?.association.definition ?? null,
+    gapClassification: v2?.gap.classification ?? null,
+    gapSubject: v2?.gap.subject ?? null,
+    gapRationale: v2?.gap.rationale ?? null,
+    scopes: payload.recurrence.scopes.map((scope) => ({
+      providerId: scope.providerId,
+      modelVersion: scope.modelVersion,
+      generationMode: scope.generationMode,
+      numerator: scope.responsesContainingAssociation,
+      denominator: scope.denominator,
+    })),
   };
 }
 
@@ -269,6 +310,7 @@ export async function getResonanceStudyExportLabel(projectId: string, studyId: s
       state: resonanceStudies.state,
       genericUnconditioned: resonanceStudies.genericUnconditioned,
       categoryArchetype: projects.categoryArchetype,
+      baselineStimulusId: resonanceStudies.baselineStimulusId,
     })
     .from(resonanceStudies)
     .innerJoin(projects, eq(projects.id, resonanceStudies.projectId))
@@ -279,7 +321,18 @@ export async function getResonanceStudyExportLabel(projectId: string, studyId: s
     studyId,
     studyState: study.state,
     categoryArchetype: study.categoryArchetype,
+    baselineStimulusId: study.baselineStimulusId,
   });
+  const [snapshotRow] = baselineProvenance.snapshotId
+    ? await db
+        .select()
+        .from(framingEvidenceSnapshots)
+        .where(eq(framingEvidenceSnapshots.id, baselineProvenance.snapshotId))
+        .limit(1)
+    : [];
+  const baselineSnapshotManifest = snapshotRow
+    ? { payload: verifyFramingEvidenceSnapshotRecord(snapshotRow), sha256: snapshotRow.sha256 }
+    : null;
   return {
     id: study.id,
     name: study.name,
@@ -287,6 +340,7 @@ export async function getResonanceStudyExportLabel(projectId: string, studyId: s
     baselineLabel: baselineProvenance.label,
     framingEvidenceSnapshotId: baselineProvenance.snapshotId,
     baselineProvenance,
+    baselineSnapshotManifest,
   };
 }
 
@@ -450,6 +504,7 @@ export async function listResonanceStudies(projectId: string) {
         studyId: study.id,
         studyState: study.state,
         categoryArchetype,
+        baselineStimulusId: study.baselineStimulusId,
       }),
       stimuli: stimuli.filter((s) => s.studyId === study.id),
       matrixVersion,
@@ -540,6 +595,7 @@ export async function getResonanceStudy(projectId: string, studyId: string) {
     studyId,
     studyState: study.state,
     categoryArchetype: project?.categoryArchetype ?? "b2b",
+    baselineStimulusId: study.baselineStimulusId,
   });
   return { study, stimuli, matrixVersion, latestRun, studyRuns, baselineProvenance };
 }
@@ -756,11 +812,13 @@ export async function getResonanceStudyResults(
       genericUnconditioned: study.study.genericUnconditioned,
       anchorSetVersion: study.study.anchorSetVersion,
       anchorSetCalibrated: anchorSet.calibrated,
+      panelCount: panelPersonasSchema.parse(study.study.panelPersonasJson).length,
       baselineProvenance: await getResonanceBaselineProvenance({
         projectId,
         studyId,
         studyState: study.study.state,
         categoryArchetype: study.categoryArchetype,
+        baselineStimulusId: study.study.baselineStimulusId,
       }),
     },
     run,
@@ -988,6 +1046,9 @@ export async function addResonanceStimulus(input: {
         input.projectId,
         input.framingEvidenceSnapshotId,
       );
+      if (snapshot.payload.snapshotVersion !== "m34a-simulation-evidence.v2") {
+        throw new Error("New consumer studies require a live-audit M34A v2 snapshot (C-15)");
+      }
       body = snapshot.payload.verbatimResponse;
       evidenceResponseIds = [snapshot.payload.responseId];
       framingEvidenceSnapshotId = snapshot.row.id;
@@ -1039,6 +1100,9 @@ export async function updateResonanceStimulus(input: {
         input.projectId,
         input.framingEvidenceSnapshotId,
       );
+      if (snapshot.payload.snapshotVersion !== "m34a-simulation-evidence.v2") {
+        throw new Error("New consumer studies require a live-audit M34A v2 snapshot (C-15)");
+      }
       body = snapshot.payload.verbatimResponse;
       evidenceResponseIds = [snapshot.payload.responseId];
       framingEvidenceSnapshotId = snapshot.row.id;
@@ -1193,6 +1257,9 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
           projectId,
           stimulus.framingEvidenceSnapshotId,
         );
+        if (snapshot.payload.snapshotVersion !== "m34a-simulation-evidence.v2") {
+          throw new Error("New consumer approvals require a live-audit M34A v2 snapshot (C-15)");
+        }
         if (stimulus.body !== snapshot.payload.verbatimResponse) {
           throw new Error("Consumer measured-AI baseline must be byte-equal to its snapshotted response (C-15)");
         }

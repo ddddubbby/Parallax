@@ -73,6 +73,7 @@ const RESONANCE_CTX: ResonanceReportContext = {
   anchorSetVersion: "purchase_intent.v1",
   anchorSetCalibrated: false,
   embeddingModel: "mock-fixture",
+  panelCount: 6,
   // D-080: one section per engine — a single-provider run has exactly one.
   providerSections: [
     {

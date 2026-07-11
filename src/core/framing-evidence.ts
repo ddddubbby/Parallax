@@ -226,7 +226,7 @@ export interface GapClassification {
   classifiedAt: string;
 }
 
-export interface SimulationEvidenceSnapshot {
+export interface SimulationEvidenceSnapshotV1 {
   snapshotVersion: "m34a-simulation-evidence.v1";
   studyId: string;
   projectId: string;
@@ -262,7 +262,81 @@ export interface SimulationEvidenceSnapshot {
   };
 }
 
-export const simulationEvidenceSnapshotSchema = z.object({
+export interface SimulationEvidenceSnapshotV2 {
+  snapshotVersion: "m34a-simulation-evidence.v2";
+  studyId: string;
+  projectId: string;
+  promptProtocolVersion: string;
+  responseId: string;
+  annotationId: string;
+  associationId: string;
+  verbatimResponse: string;
+  evidence: { start: number; end: number; text: string };
+  association: { id: string; label: string; definition: string };
+  gap: {
+    id: string;
+    classification: "missing" | "misframed" | "unsupported";
+    subject: string;
+    rationale: string;
+    factReferences: Array<{
+      id: string;
+      statement: string;
+      sourceNote: string | null;
+      sourceUrl: string | null;
+    }>;
+  };
+  codebook: { id: string; version: string; lockedAt: string };
+  codingRun: { id: string; reviewerId: string; reviewMethod: ReviewMethod };
+  discovery: { manifestDigest: string; attestedBy: string; attestedAt: string };
+  reveal: {
+    revealedAt: string;
+    revealedBy: string;
+    positioningDigest: string;
+    factSheetDigest: string;
+  };
+  source: {
+    auditRunId: string;
+    runMode: "live_audit";
+    repetitions: number;
+    promptVariant: string;
+    promptText: string;
+    providerId: string;
+    modelVersion: string;
+    generationMode: "grounded" | "ungrounded";
+    observedAt: string;
+  };
+  recurrence: {
+    denominatorUnit: "source_jobs";
+    numerator: number;
+    denominator: number;
+    availableResponses: number;
+    unavailableJobs: number;
+    promptVariantsContainingAssociation: string[];
+    promptVariantDenominator: number;
+    scopes: RecurrenceScope[];
+    label: string;
+  };
+}
+
+export type SimulationEvidenceSnapshot =
+  | SimulationEvidenceSnapshotV1
+  | SimulationEvidenceSnapshotV2;
+
+const evidenceSpanSchema = z.object({
+  start: z.number().int().nonnegative(),
+  end: z.number().int().positive(),
+  text: z.string().min(1),
+});
+
+const recurrenceScopeSchema = z.object({
+  providerId: z.string(),
+  modelVersion: z.string(),
+  generationMode: z.enum(["grounded", "ungrounded"]),
+  responsesContainingAssociation: z.number().int().nonnegative(),
+  denominator: z.number().int().positive(),
+});
+
+const simulationEvidenceSnapshotV1Schema = z.object({
   snapshotVersion: z.literal("m34a-simulation-evidence.v1"),
   studyId: z.string().min(1),
   projectId: z.string().min(1),
@@ -271,7 +345,7 @@ export const simulationEvidenceSnapshotSchema = z.object({
   annotationId: z.string().min(1),
   associationId: z.string().min(1),
   verbatimResponse: z.string().min(1),
-  evidence: z.object({ start: z.number().int().nonnegative(), end: z.number().int().positive(), text: z.string().min(1) }),
+  evidence: evidenceSpanSchema,
   codebook: z.object({ id: z.string().min(1), version: z.string().min(1), lockedAt: timestampSchema }),
   codingRun: z.object({ id: z.string().min(1), reviewerId: z.string().min(1), reviewMethod: z.enum(REVIEW_METHODS) }),
   reveal: z.object({ revealedAt: timestampSchema, revealedBy: z.string().min(1), positioningDigest: z.string().min(1), factSheetDigest: z.string().min(1) }),
@@ -281,7 +355,7 @@ export const simulationEvidenceSnapshotSchema = z.object({
     denominator: z.number().int().positive(),
     promptVariantsContainingAssociation: z.array(z.string()),
     promptVariantDenominator: z.number().int().positive(),
-    scopes: z.array(z.object({ providerId: z.string(), modelVersion: z.string(), generationMode: z.enum(["grounded", "ungrounded"]), responsesContainingAssociation: z.number().int().nonnegative(), denominator: z.number().int().positive() })),
+    scopes: z.array(recurrenceScopeSchema),
     label: z.string().min(1),
   }),
 }).superRefine((snapshot, ctx) => {
@@ -294,6 +368,77 @@ export const simulationEvidenceSnapshotSchema = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot recurrence numerator exceeds denominator", path: ["recurrence"] });
   }
 });
+
+const simulationEvidenceSnapshotV2Schema = z.object({
+  snapshotVersion: z.literal("m34a-simulation-evidence.v2"),
+  studyId: z.string().min(1),
+  projectId: z.string().min(1),
+  promptProtocolVersion: z.string().min(1),
+  responseId: z.string().min(1),
+  annotationId: z.string().min(1),
+  associationId: z.string().min(1),
+  verbatimResponse: z.string().min(1),
+  evidence: evidenceSpanSchema,
+  association: z.object({ id: z.string().min(1), label: z.string().min(1), definition: z.string().min(1) }),
+  gap: z.object({
+    id: z.string().min(1),
+    classification: z.enum(["missing", "misframed", "unsupported"]),
+    subject: z.string().min(1),
+    rationale: z.string().min(1),
+    factReferences: z.array(z.object({
+      id: z.string().min(1),
+      statement: z.string().min(1),
+      sourceNote: z.string().nullable(),
+      sourceUrl: z.string().nullable(),
+    })),
+  }),
+  codebook: z.object({ id: z.string().min(1), version: z.string().min(1), lockedAt: timestampSchema }),
+  codingRun: z.object({ id: z.string().min(1), reviewerId: z.string().min(1), reviewMethod: z.enum(REVIEW_METHODS) }),
+  discovery: z.object({ manifestDigest: z.string().regex(/^[0-9a-f]{64}$/), attestedBy: z.string().min(1), attestedAt: timestampSchema }),
+  reveal: z.object({ revealedAt: timestampSchema, revealedBy: z.string().min(1), positioningDigest: z.string().min(1), factSheetDigest: z.string().min(1) }),
+  source: z.object({
+    auditRunId: z.string().min(1),
+    runMode: z.literal("live_audit"),
+    repetitions: z.number().int().positive(),
+    promptVariant: z.string().min(1),
+    promptText: z.string().min(1),
+    providerId: z.string().min(1),
+    modelVersion: z.string().min(1),
+    generationMode: z.enum(["grounded", "ungrounded"]),
+    observedAt: timestampSchema,
+  }),
+  recurrence: z.object({
+    denominatorUnit: z.literal("source_jobs"),
+    numerator: z.number().int().nonnegative(),
+    denominator: z.number().int().positive(),
+    availableResponses: z.number().int().nonnegative(),
+    unavailableJobs: z.number().int().nonnegative(),
+    promptVariantsContainingAssociation: z.array(z.string()),
+    promptVariantDenominator: z.number().int().positive(),
+    scopes: z.array(recurrenceScopeSchema),
+    label: z.string().min(1),
+  }),
+}).superRefine((snapshot, ctx) => {
+  if (snapshot.evidence.end <= snapshot.evidence.start || snapshot.evidence.end > snapshot.verbatimResponse.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot evidence offsets are invalid", path: ["evidence"] });
+  } else if (snapshot.verbatimResponse.slice(snapshot.evidence.start, snapshot.evidence.end) !== snapshot.evidence.text) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot evidence text does not match verbatim response", path: ["evidence", "text"] });
+  }
+  if (snapshot.association.id !== snapshot.associationId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot association linkage is invalid", path: ["association"] });
+  }
+  if (snapshot.recurrence.numerator > snapshot.recurrence.denominator) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot recurrence numerator exceeds denominator", path: ["recurrence"] });
+  }
+  if (snapshot.recurrence.availableResponses + snapshot.recurrence.unavailableJobs !== snapshot.recurrence.denominator) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot availability counts do not match denominator", path: ["recurrence"] });
+  }
+});
+
+export const simulationEvidenceSnapshotSchema = z.discriminatedUnion("snapshotVersion", [
+  simulationEvidenceSnapshotV1Schema,
+  simulationEvidenceSnapshotV2Schema,
+]);
 
 function assertTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) throw new Error(`${label} must be a valid timestamp`);

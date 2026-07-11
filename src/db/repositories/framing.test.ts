@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   REPRESENTATION_PROMPTS,
@@ -74,19 +74,32 @@ const made = {
   resonanceVersionIds: [] as string[],
 };
 
+async function forceDeleteSnapshotsForStudy(studyId: string) {
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`set local app.bypass_framing_snapshot_freeze = 'on'`);
+    await tx
+      .delete(framingEvidenceSnapshots)
+      .where(eq(framingEvidenceSnapshots.framingStudyId, studyId));
+  });
+}
+
+async function forceDeleteStimuliForStudy(studyId: string) {
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`set local app.bypass_resonance_stimulus_freeze = 'on'`);
+    await tx.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId));
+  });
+}
+
 afterAll(async () => {
   if (made.resonanceVersionIds.length > 0) {
     await forceDeleteMatrixVersions(made.resonanceVersionIds).catch(() => {});
   }
   for (const studyId of made.resonanceStudyIds) {
-    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId)).catch(() => {});
+    await forceDeleteStimuliForStudy(studyId).catch(() => {});
     await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId)).catch(() => {});
   }
   for (const studyId of made.studyIds) {
-    await db
-      .delete(framingEvidenceSnapshots)
-      .where(eq(framingEvidenceSnapshots.framingStudyId, studyId))
-      .catch(() => {});
+    await forceDeleteSnapshotsForStudy(studyId).catch(() => {});
     const reviewIds = (
       await db
         .select({ id: framingResponseReviews.id })
@@ -198,10 +211,10 @@ async function createSourceAudit() {
     .values({
       projectId: project.id,
       matrixVersionId: version.id,
-      runMode: "mock",
+      runMode: "live_audit",
       state: "completed",
-      repetitions: 1,
-      selectedProvidersJson: ["mock"],
+      repetitions: 5,
+      selectedProvidersJson: ["deepseek"],
       selectedModesJson: ["ungrounded"],
       plannedCalls: 6,
       costCapUsd: "0",
@@ -223,7 +236,7 @@ async function createSourceAudit() {
       .values({
         runId: run.id,
         cellId: cell.id,
-        providerId: "mock",
+        providerId: "deepseek",
         generationMode: "ungrounded",
         repIndex: 0,
         state: "succeeded",
@@ -236,9 +249,9 @@ async function createSourceAudit() {
         jobId: job.id,
         runId: run.id,
         cellId: cell.id,
-        providerId: "mock",
+        providerId: "deepseek",
         generationMode: "ungrounded",
-        modelVersion: "mock-framing-v1",
+        modelVersion: "deepseek-framing-v1",
         rawText: rawTexts[index]!,
       })
       .returning();
@@ -249,7 +262,7 @@ async function createSourceAudit() {
     .values({
       runId: run.id,
       cellId: cells[0]!.id,
-      providerId: "mock",
+      providerId: "deepseek",
       generationMode: "ungrounded",
       repIndex: 1,
       state: "dead_lettered",
@@ -307,7 +320,8 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
         reviewMethod: "single_analyst",
       }),
     ).rejects.toThrow(/after the codebook is locked/i);
-    const locked = await lockFramingCodebook(project.id, study.id);
+    await expect(lockFramingCodebook(project.id, study.id, false)).rejects.toThrow(/attestation/i);
+    const locked = await lockFramingCodebook(project.id, study.id, true);
     expect(locked.state).toBe("codebook_locked");
     await expect(
       revealFramingPositioning({
@@ -370,6 +384,23 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
             associationId: "durability",
             decision: "accepted",
             proposalSource: "ai_span_assist",
+            quote: "It is durable durable.",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/structured proposal record/i);
+    await expect(
+      saveFramingResponseReview({
+        projectId: project.id,
+        studyId: study.id,
+        reviewId: available[1]!.id,
+        outcome: "coded",
+        reviewedBy: "analyst-1",
+        annotations: [
+          {
+            associationId: "durability",
+            decision: "accepted",
+            proposalSource: "human_raw_read",
             quote: "durable",
           },
         ],
@@ -385,7 +416,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
         {
           associationId: "durability",
           decision: "accepted",
-          proposalSource: "ai_span_assist",
+          proposalSource: "human_raw_read",
           quote: "It is durable durable.",
         },
       ],
@@ -415,7 +446,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     expect(recurrence[0]!.scopes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ modelVersion: "generation_unavailable", denominator: 1 }),
-        expect.objectContaining({ modelVersion: "mock-framing-v1", denominator: 5 }),
+        expect.objectContaining({ modelVersion: "deepseek-framing-v1", denominator: 5 }),
       ]),
     );
 
@@ -424,6 +455,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
         projectId: project.id,
         studyId: study.id,
         classifiedBy: "analyst-1",
+        gapOutcome: "actionable_gap_identified",
         gaps: [
           {
             classification: "missing",
@@ -440,6 +472,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
         projectId: project.id,
         studyId: study.id,
         classifiedBy: "analyst-1",
+        gapOutcome: "actionable_gap_identified",
         gaps: [
           {
             classification: "missing",
@@ -456,6 +489,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
         projectId: project.id,
         studyId: study.id,
         classifiedBy: "analyst-1",
+        gapOutcome: "actionable_gap_identified",
         gaps: [
           {
             classification: "missing",
@@ -491,19 +525,58 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     const acceptedAnnotationId = completedDetail!.reviews
       .flatMap((review) => review.annotations)
       .find((annotation) => annotation.decision === "accepted")!.id;
+    const actionableGapId = completedDetail!.gaps
+      .find((gap) => gap.classification === "missing")!.id;
+    for (const nonClientMode of ["mock", "live_validation"] as const) {
+      await db.update(auditRuns).set({ runMode: nonClientMode }).where(eq(auditRuns.id, run.id));
+      await expect(createFramingEvidenceSnapshot({
+        projectId: project.id,
+        studyId: study.id,
+        annotationId: acceptedAnnotationId,
+        gapClassificationId: actionableGapId,
+      })).rejects.toThrow(/live audit/i);
+    }
+    await db.update(auditRuns).set({ runMode: "live_audit" }).where(eq(auditRuns.id, run.id));
     const handoff = await createFramingEvidenceSnapshot({
       projectId: project.id,
       studyId: study.id,
       annotationId: acceptedAnnotationId,
+      gapClassificationId: actionableGapId,
     });
     expect(handoff.payload).toMatchObject({
       projectId: project.id,
       studyId: study.id,
       verbatimResponse: "LensLoop is known for durable action cameras.",
       evidence: { text: "durable action cameras" },
-      recurrence: { numerator: 2, denominator: 6, label: "OBSERVED IN 2/6 RESPONSES" },
+      recurrence: { numerator: 2, denominator: 6, label: "OBSERVED IN 2/6 SOURCE JOBS" },
     });
     expect(await listFramingEvidenceSnapshots(project.id)).toHaveLength(1);
+    const [sameHandoffA, sameHandoffB] = await Promise.all([
+      createFramingEvidenceSnapshot({
+        projectId: project.id,
+        studyId: study.id,
+        annotationId: acceptedAnnotationId,
+        gapClassificationId: actionableGapId,
+      }),
+      createFramingEvidenceSnapshot({
+        projectId: project.id,
+        studyId: study.id,
+        annotationId: acceptedAnnotationId,
+        gapClassificationId: actionableGapId,
+      }),
+    ]);
+    expect(sameHandoffA.snapshot.id).toBe(handoff.snapshot.id);
+    expect(sameHandoffB.snapshot.id).toBe(handoff.snapshot.id);
+    expect(await listFramingEvidenceSnapshots(project.id)).toHaveLength(1);
+    await expect(
+      db.update(framingEvidenceSnapshots)
+        .set({ sha256: "tampered" })
+        .where(eq(framingEvidenceSnapshots.id, handoff.snapshot.id)),
+    ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/append-only/i) } });
+    await expect(
+      db.delete(framingEvidenceSnapshots)
+        .where(eq(framingEvidenceSnapshots.id, handoff.snapshot.id)),
+    ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/append-only/i) } });
     expect(() => verifyFramingEvidenceSnapshotRecord({
       ...handoff.snapshot,
       evidenceJson: { ...handoff.payload, verbatimResponse: "tampered" },
@@ -570,6 +643,14 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
       promptSpread: 2,
       promptDenominator: 5,
     });
+    await expect(
+      db.update(resonanceStimuli)
+        .set({ body: "post-approval mutation" })
+        .where(eq(resonanceStimuli.id, baseline.id)),
+    ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/frozen/i) } });
+    await expect(
+      db.delete(resonanceStimuli).where(eq(resonanceStimuli.id, baseline.id)),
+    ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/frozen/i) } });
   }, 30_000);
 
   it("rejects B2B framing studies even when a source run otherwise has representation cells", async () => {

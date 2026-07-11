@@ -5,6 +5,8 @@ import { AppMenu, AppMenuItem, AppMenuSeparator } from "@/components/ui/menu";
 import { Button, Stamp, Textarea } from "@/components/ui";
 import { csvDatasetsForKind, reportSectionsForKind } from "@/core/report-templates";
 import { SimulatedBadge } from "@/components/simulated-badge";
+import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
+import type { ResonanceBaselineProvenance } from "@/core/resonance";
 import { LocalViewTabs } from "@/components/local-view-tabs";
 import { withViewParam } from "@/core/views";
 import { generateReportForRun, regenerateSectionAction, saveSectionEdit } from "@/modules/report/actions";
@@ -29,6 +31,7 @@ export function ReportClient({
   kind = "audit",
   initialIsStale = false,
   activeSectionKey,
+  baselineProvenance = null,
 }: {
   projectId: string;
   runId: string;
@@ -37,6 +40,7 @@ export function ReportClient({
   initialIsStale?: boolean;
   /** M32 / D-088: one outline section at a time. */
   activeSectionKey: string;
+  baselineProvenance?: ResonanceBaselineProvenance | null;
 }) {
   const [sections, setSections] = useState(initialSections);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -144,8 +148,9 @@ export function ReportClient({
   return (
     <div>
       {kind === "resonance" && (
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <SimulatedBadge />
+          {baselineProvenance && <BaselineProvenance provenance={baselineProvenance} />}
         </div>
       )}
       {initialIsStale && (

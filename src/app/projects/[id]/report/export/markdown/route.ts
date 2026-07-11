@@ -48,8 +48,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return `## ${title}\n\n${content}`;
   }).join("\n\n");
 
-  const baselineDisclosure = resonanceStudy
-    ? `> Baseline provenance: **${resonanceStudy.baselineLabel}**${resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot \`${resonanceStudy.framingEvidenceSnapshotId}\`` : ""}\n\n`
+  const provenance = resonanceStudy?.baselineProvenance;
+  const baselineDisclosure = resonanceStudy && provenance
+    ? [
+        `> Baseline provenance: **${resonanceStudy.baselineLabel}**${resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot \`${resonanceStudy.framingEvidenceSnapshotId}\`` : ""}`,
+        provenance.status === "snapshot" ? `> Selected association: ${provenance.associationLabel ?? provenance.associationId ?? "not available"} · ${provenance.numerator}/${provenance.denominator} sampled source jobs (${provenance.availableResponses ?? "?"} stored; ${provenance.unavailableJobs ?? "?"} unavailable)` : null,
+        provenance.status === "snapshot" ? "> The baseline is one verbatim response containing that association; the full response is not claimed to be representative." : null,
+        provenance.status === "snapshot" ? `> Source: ${provenance.sourceRunMode ?? "unknown"} · ${provenance.providerId}/${provenance.modelVersion}/${provenance.generationMode} · observed ${provenance.observedAt ?? "unknown"} · ${provenance.promptProtocolVersion ?? "protocol unknown"}` : null,
+        provenance.status === "snapshot" ? `> Snapshot: ${provenance.snapshotVersion ?? "unknown"} · SHA-256 \`${provenance.snapshotSha256 ?? "not available"}\`` : null,
+        "",
+      ].filter((line): line is string => line !== null).join("\n")
     : "";
   return new Response(`# ${title}\n\n${baselineDisclosure}${freshnessWarning}${body}\n`, {
     headers: {

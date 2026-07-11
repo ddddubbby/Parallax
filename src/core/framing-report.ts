@@ -9,18 +9,26 @@ export interface FramingReportGap {
 }
 
 export interface FramingReportEvidence {
+  responseId: string;
+  rawText: string;
   associationLabel: string;
   quote: string;
+  startOffset: number;
+  endOffset: number;
   variantKey: string;
   providerId: string;
   modelVersion: string;
   generationMode: string;
+  observedAt: string;
 }
 
 export interface FramingReportModel {
   reportVersion: "m34a-framing-report.v1";
   projectName: string;
   studyId: string;
+  sourceRunId: string;
+  sourceRunMode: "mock" | "live_validation" | "live_audit";
+  sourceRepetitions: number;
   completedDate: string;
   promptProtocolVersion: string;
   promptWording: Array<{ variantKey: string; text: string }>;
@@ -29,6 +37,13 @@ export interface FramingReportModel {
   reviewerIdentity: string;
   reviewMethod: string;
   reviewDisclosure: string;
+  discoveryManifestDigest: string;
+  discoveryAttestation: string;
+  codebookLockedAt: string;
+  revealedAt: string;
+  codebook: Array<{ associationId: string; label: string; definition: string }>;
+  gapOutcome: "actionable_gap_identified" | "no_actionable_gap_identified";
+  reviewOutcomeCounts: Record<string, number>;
   denominator: number;
   availableResponses: number;
   unavailableJobs: number;
@@ -49,24 +64,27 @@ export function renderFramingReportMarkdown(report: FramingReportModel): string 
     `**Study:** ${report.studyId}`,
     `**Completed:** ${report.completedDate}`,
     `**Protocol:** ${report.promptProtocolVersion}`,
+    `**Source mode:** ${report.sourceRunMode}`,
     "",
     "## Decision summary",
     "",
-    report.gaps.length > 0
+    report.gapOutcome === "no_actionable_gap_identified"
+      ? "**No actionable gap was identified.** This report closes without a Simulation handoff."
+      : report.gaps.length > 0
       ? report.gaps.map((gap) => `- **${safe(gap.classification.replaceAll("_", " "))}: ${safe(gap.subject)}.** ${safe(gap.rationale)}`).join("\n")
       : "No post-reveal gap classification was recorded.",
     "",
     "## Descriptive recurrence",
     "",
-    `Denominator: ${report.denominator} source jobs (${report.availableResponses} stored responses; ${report.unavailableJobs} unavailable). Counts are descriptive n/N over reviewed source jobs and do not estimate a wider population.`,
+    `Denominator: ${report.denominator} sampled answer attempts / source jobs (${report.availableResponses} stored responses; ${report.unavailableJobs} unavailable). Counts are descriptive n/N over reviewed source jobs and do not estimate a wider population.`,
     "",
-    "| Association | Responses | Prompt spread | Model / mode scope |",
+    "| Association | Source jobs containing association | Prompt spread | Model / mode scope |",
     "|---|---:|---:|---|",
     ...report.recurrence.map((row) => [
       safe(row.associationLabel),
       `${row.responsesContainingAssociation}/${row.denominator}`,
       `${row.promptVariantsContainingAssociation.length}/${row.promptVariantDenominator}`,
-      safe(row.scopes.map((scope) => `${scope.providerId}/${scope.modelVersion}/${scope.generationMode}`).join("; ")),
+      safe(row.scopes.map((scope) => `${scope.providerId}/${scope.modelVersion}/${scope.generationMode}: ${scope.responsesContainingAssociation}/${scope.denominator}`).join("; ")),
     ].join(" | ").replace(/^/, "| ").replace(/$/, " |")),
     "",
     "## Positioning used for gap analysis",
@@ -83,6 +101,8 @@ export function renderFramingReportMarkdown(report: FramingReportModel): string 
     "",
     `Review: ${safe(report.reviewerIdentity)}; ${safe(report.reviewMethod.replaceAll("_", " "))}. ${safe(report.reviewDisclosure)}`,
     "",
+    `Discovery: metadata-masked packet ${safe(report.discoveryManifestDigest)}; ${safe(report.discoveryAttestation)} The workflow cannot prove the analyst lacked prior knowledge from outside the product.`,
+    "",
     `Fact-sheet scope: ${safe(report.factSheetScope)}`,
     "",
     "Fixed prompts (verbatim):",
@@ -93,7 +113,9 @@ export function renderFramingReportMarkdown(report: FramingReportModel): string 
     "",
     "## Recommended next step",
     "",
-    "Treat the actionable gap as a candidate correction. Pre-screen comparative message variants if useful, then validate the selected fix with real buyers or in-market evidence before deployment.",
+    report.gapOutcome === "actionable_gap_identified"
+      ? "Treat the actionable gap as a candidate correction. Pre-screen comparative message variants if useful, then validate the selected fix with real buyers or in-market evidence before deployment."
+      : "No Simulation handoff is recommended from this review. Re-audit after a material channel or positioning change.",
   ];
   return `${lines.join("\n")}\n`;
 }

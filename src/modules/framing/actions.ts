@@ -14,6 +14,7 @@ import {
   saveFramingGapClassifications,
   saveFramingResponseReview,
   type FramingGapInput,
+  type FramingGapOutcome,
   type FramingReviewAnnotationInput,
 } from "@/db/repositories/framing";
 
@@ -50,10 +51,16 @@ export async function createFramingEvidenceSnapshotAction(
   projectId: string,
   studyId: string,
   annotationId: string,
+  gapClassificationId: string,
 ): Promise<ActionResult> {
-  if (!validIds(projectId, studyId, annotationId)) return { ok: false, error: "Invalid id" };
+  if (!validIds(projectId, studyId, annotationId, gapClassificationId)) return { ok: false, error: "Invalid id" };
   try {
-    const { snapshot } = await createFramingEvidenceSnapshot({ projectId, studyId, annotationId });
+    const { snapshot } = await createFramingEvidenceSnapshot({
+      projectId,
+      studyId,
+      annotationId,
+      gapClassificationId,
+    });
     revalidateFraming(projectId, studyId);
     revalidatePath(`/projects/${projectId}/resonance`);
     return { ok: true, id: snapshot.id };
@@ -81,10 +88,11 @@ export async function saveFramingCodebookAction(input: {
 export async function lockFramingCodebookAction(
   projectId: string,
   studyId: string,
+  discoveryAttested: boolean,
 ): Promise<ActionResult> {
   if (!validIds(projectId, studyId)) return { ok: false, error: "Invalid id" };
   try {
-    await lockFramingCodebook(projectId, studyId);
+    await lockFramingCodebook(projectId, studyId, discoveryAttested);
     revalidateFraming(projectId, studyId);
     return { ok: true };
   } catch (error) {
@@ -149,6 +157,7 @@ export async function saveFramingGapsAction(input: {
   projectId: string;
   studyId: string;
   classifiedBy: string;
+  gapOutcome: FramingGapOutcome;
   gaps: FramingGapInput[];
 }): Promise<ActionResult> {
   if (!validIds(input.projectId, input.studyId)) return { ok: false, error: "Invalid id" };

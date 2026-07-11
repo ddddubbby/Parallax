@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { listMetrics, recomputeMetrics } from "./metrics";
 import { forceDeleteMatrixVersions } from "./matrix.test-helpers";
+import { forceDeleteResonanceStimuliByStudy } from "./resonance.test-helpers";
 
 // D-080 (supersedes D-067): multi-provider resonance recompute. Each selected
 // engine must be scored as its own synthetic population — variant means,
@@ -65,7 +66,7 @@ afterAll(async () => {
     await forceDeleteMatrixVersions(created.versionIds).catch(() => {});
   }
   for (const studyId of created.studyIds) {
-    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId)).catch(() => {});
+    await forceDeleteResonanceStimuliByStudy(studyId).catch(() => {});
     await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId)).catch(() => {});
   }
   for (const projectId of created.projectIds) {
@@ -144,10 +145,9 @@ describe.skipIf(!dbUp)("recomputeResonanceMetrics multi-provider populations (D-
       .values({
         projectId: project.id,
         name: `M24 Multi-Provider Study ${suffix}`,
-        state: "approved",
+        state: "draft",
         anchorSetVersion: "purchase_intent.v1",
         genericUnconditioned: true,
-        approvedAt: new Date(),
       })
       .returning();
     created.studyIds.push(study.id);
@@ -176,7 +176,11 @@ describe.skipIf(!dbUp)("recomputeResonanceMetrics multi-provider populations (D-
     // Baseline is the study's pinned baseline stimulus — same physical
     // stimulus for both providers, but D-080 requires each provider's delta
     // to use ITS OWN mean for that stimulus, never the other provider's.
-    await db.update(resonanceStudies).set({ baselineStimulusId: stimulusA.id }).where(eq(resonanceStudies.id, study.id));
+    await db.update(resonanceStudies).set({
+      baselineStimulusId: stimulusA.id,
+      state: "approved",
+      approvedAt: new Date(),
+    }).where(eq(resonanceStudies.id, study.id));
 
     const [version] = await db
       .insert(matrixVersions)

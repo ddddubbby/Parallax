@@ -4,6 +4,7 @@ import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
 import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
+import { forceDeleteResonanceStimuliByIds } from "@/db/repositories/resonance.test-helpers";
 import { createPendingExtraction, recordExtractionAttemptCost } from "@/db/repositories/extraction";
 import { claimJobs, createRun, getProviderSpendToday, recordSuccess } from "@/db/repositories/runner";
 import {
@@ -65,9 +66,7 @@ afterAll(async () => {
     // rejected by migration 0010 without the test-only escape hatch.
     await forceDeleteMatrixVersions(createdVersionIds);
   }
-  for (const stimulusId of createdResonanceStimulusIds) {
-    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.id, stimulusId));
-  }
+  await forceDeleteResonanceStimuliByIds(createdResonanceStimulusIds);
   for (const studyId of createdResonanceStudyIds) {
     await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId));
   }
@@ -313,7 +312,7 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
       .values({
         projectId,
         name: "Budget SSR wall",
-        state: "approved",
+        state: "draft",
         panelPersonasJson: [
           {
             key: "budget_owner",
@@ -330,7 +329,6 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
         // exercises SSR-spend budget attribution. Unaffected by the approval
         // guard becoming unconditional.
         genericUnconditioned: true,
-        approvedAt: new Date(),
       })
       .returning();
     createdResonanceStudyIds.push(study.id);
@@ -346,6 +344,10 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
       })
       .returning();
     createdResonanceStimulusIds.push(stimulus.id);
+    await db.update(resonanceStudies).set({
+      state: "approved",
+      approvedAt: new Date(),
+    }).where(eq(resonanceStudies.id, study.id));
     const [version] = await db
       .insert(matrixVersions)
       .values({

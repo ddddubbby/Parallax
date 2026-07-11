@@ -12,6 +12,7 @@ import {
   updateResonanceStudy,
 } from "@/db/repositories/resonance";
 import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
+import { forceDeleteResonanceStimuliByStudy } from "@/db/repositories/resonance.test-helpers";
 import {
   auditRuns,
   extractions,
@@ -69,7 +70,7 @@ afterAll(async () => {
     await forceDeleteMatrixVersions(createdVersionIds).catch(() => {});
   }
   for (const studyId of createdStudyIds) {
-    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId)).catch(() => {});
+    await forceDeleteResonanceStimuliByStudy(studyId).catch(() => {});
     await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId)).catch(() => {});
   }
   await pool.end().catch(() => {});

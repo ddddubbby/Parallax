@@ -36,6 +36,10 @@ export const framingStudies = pgTable(
     codebookCreatedBy: text("codebook_created_by"),
     codebookCreatedAt: timestamp("codebook_created_at", { withTimezone: true }),
     codebookLockedAt: timestamp("codebook_locked_at", { withTimezone: true }),
+    discoveryManifestJson: jsonb("discovery_manifest_json"),
+    discoveryManifestDigest: text("discovery_manifest_digest"),
+    discoveryAttestedBy: text("discovery_attested_by"),
+    discoveryAttestedAt: timestamp("discovery_attested_at", { withTimezone: true }),
     positioningText: text("positioning_text"),
     positioningDigest: text("positioning_digest"),
     factSheetSnapshotJson: jsonb("fact_sheet_snapshot_json"),
@@ -46,6 +50,9 @@ export const framingStudies = pgTable(
     reviewMethod: text("review_method"),
     reviewStartedAt: timestamp("review_started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    gapOutcome: text("gap_outcome"),
+    gapCompletedBy: text("gap_completed_by"),
+    gapCompletedAt: timestamp("gap_completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -61,6 +68,10 @@ export const framingStudies = pgTable(
       sql`${t.state} in ('draft', 'codebook_locked', 'revealed', 'reviewing', 'completed')`,
     ),
     check("framing_studies_codebook_version_ck", sql`${t.codebookVersion} > 0`),
+    check(
+      "framing_studies_gap_outcome_ck",
+      sql`${t.gapOutcome} is null or ${t.gapOutcome} in ('actionable_gap_identified', 'no_actionable_gap_identified')`,
+    ),
   ],
 );
 
@@ -94,7 +105,7 @@ export const framingResponseReviews = pgTable(
     index("framing_response_reviews_response_idx").on(t.responseId),
     check(
       "framing_response_reviews_outcome_ck",
-      sql`${t.outcome} in ('pending', 'coded', 'none', 'ambiguous', 'entity_ambiguous', 'generation_unavailable')`,
+      sql`${t.outcome} in ('pending', 'coded', 'none', 'other', 'ambiguous', 'entity_ambiguous', 'insufficient_evidence', 'generation_unavailable')`,
     ),
   ],
 );
@@ -178,6 +189,9 @@ export const framingEvidenceSnapshots = pgTable(
     annotationId: uuid("annotation_id")
       .notNull()
       .references((): AnyPgColumn => framingAnnotations.id),
+    gapClassificationId: uuid("gap_classification_id").references(
+      (): AnyPgColumn => framingGapClassifications.id,
+    ),
     responseId: uuid("response_id")
       .notNull()
       .references((): AnyPgColumn => responses.id),
@@ -189,6 +203,9 @@ export const framingEvidenceSnapshots = pgTable(
     index("framing_evidence_snapshots_project_idx").on(t.projectId),
     index("framing_evidence_snapshots_study_idx").on(t.framingStudyId),
     index("framing_evidence_snapshots_response_idx").on(t.responseId),
+    uniqueIndex("framing_evidence_snapshots_handoff_uq")
+      .on(t.annotationId, t.gapClassificationId)
+      .where(sql`${t.gapClassificationId} is not null`),
     check(
       "framing_evidence_snapshots_sha256_ck",
       sql`${t.sha256} ~ '^[0-9a-f]{64}$'`,

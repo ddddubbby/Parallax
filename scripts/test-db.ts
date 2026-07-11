@@ -75,6 +75,15 @@ const UNREACHABLE_CONNECTION_STRING = "postgres://postgres:postgres@127.0.0.1:1/
  * not silently skip 96+ DB-backed tests and report green.
  */
 export async function startEphemeralTestDb(): Promise<TestDbHandle> {
+  const external = process.env.TEST_DATABASE_URL;
+  if (external) {
+    const parsed = new URL(external);
+    if (!parsed.pathname.toLowerCase().includes("test")) {
+      throw new Error("TEST_DATABASE_URL must name a dedicated database containing 'test'");
+    }
+    await migrateAndSeed(external);
+    return { connectionString: external, stop: async () => {} };
+  }
   const databaseDir = join(tmpdir(), `parallax-test-pg-${process.pid}-${Date.now()}`);
   const pg = new EmbeddedPostgres({
     databaseDir,

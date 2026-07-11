@@ -16,6 +16,7 @@ import {
 } from "@/db/repositories/dashboard";
 import { getExportCitations } from "@/db/repositories/export";
 import { forceDeletePromptCellsByIds } from "@/db/repositories/matrix.test-helpers";
+import { forceDeleteResonanceStimuliByIds } from "@/db/repositories/resonance.test-helpers";
 import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import { getCellBrandPresence } from "@/db/repositories/findings";
 import {
@@ -81,9 +82,7 @@ afterAll(async () => {
   for (const versionId of created.versionIds) {
     await db.delete(matrixVersions).where(eq(matrixVersions.id, versionId)).catch(() => {});
   }
-  for (const stimulusId of created.stimulusIds) {
-    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.id, stimulusId)).catch(() => {});
-  }
+  await forceDeleteResonanceStimuliByIds(created.stimulusIds).catch(() => {});
   for (const studyId of created.studyIds) {
     await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId)).catch(() => {});
   }
@@ -115,7 +114,7 @@ async function createCompletedResonanceResponse() {
     .values({
       projectId: project.id,
       name: `Dashboard Resonance Wall ${suffix}`,
-      state: "approved",
+      state: "draft",
       panelPersonasJson: [
         {
           key: "budget_owner",
@@ -133,7 +132,6 @@ async function createCompletedResonanceResponse() {
       // fixture whose only purpose is exercising the C-12 audit/resonance read
       // wall below. Unaffected by the approval guard becoming unconditional.
       genericUnconditioned: true,
-      approvedAt: new Date(),
     })
     .returning();
   created.studyIds.push(study.id);
@@ -150,6 +148,10 @@ async function createCompletedResonanceResponse() {
     })
     .returning();
   created.stimulusIds.push(stimulus.id);
+  await db.update(resonanceStudies).set({
+    state: "approved",
+    approvedAt: new Date(),
+  }).where(eq(resonanceStudies.id, study.id));
 
   const [version] = await db
     .insert(matrixVersions)
@@ -777,7 +779,7 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
       .values({
         projectId,
         name: `Shared-project sim ${suffix}`,
-        state: "approved",
+        state: "draft",
         panelPersonasJson: [
           {
             key: "budget_owner",
@@ -790,7 +792,6 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
         ],
         anchorSetVersion: "purchase_intent.v1",
         genericUnconditioned: true,
-        approvedAt: new Date(),
       })
       .returning();
     created.studyIds.push(study.id);
@@ -807,6 +808,10 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
       })
       .returning();
     created.stimulusIds.push(stimulus.id);
+    await db.update(resonanceStudies).set({
+      state: "approved",
+      approvedAt: new Date(),
+    }).where(eq(resonanceStudies.id, study.id));
 
     const [version] = await db
       .insert(matrixVersions)

@@ -74,7 +74,7 @@ function RankingSection({ group }: { group: ResonanceProviderSummaryGroup }) {
               <span className="label-mono text-xs text-ink/45">#{idx + 1}</span>
               <strong className="label-mono text-sm">{variant.label}</strong>
               <Stamp tone="ink">{variant.stimulusKind}</Stamp>
-              {!variant.sufficientN && <Stamp tone="warn">DIRECTIONAL</Stamp>}
+              <Stamp tone={variant.sufficientN ? "ink" : "warn"}>{variant.sufficientN ? "DRAW FLOOR MET" : "BELOW DRAW FLOOR"}</Stamp>
             </div>
             <div className="grid gap-3 md:grid-cols-[7rem_1fr_4rem] md:items-end">
               <div>
@@ -131,7 +131,7 @@ function DeltasSection({ group }: { group: ResonanceProviderSummaryGroup }) {
                 <td className="px-3 py-2 text-right tabular-nums">{formatDelta(delta.deltaPiMean)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{delta.n}</td>
                 <td className="px-3 py-2">
-                  {delta.directionalOnly ? <Stamp tone="warn">DIRECTIONAL</Stamp> : <Stamp tone="ok">AGGREGATE</Stamp>}
+                  {delta.directionalOnly ? <Stamp tone="warn">BELOW DRAW FLOOR</Stamp> : <Stamp tone="ink">DRAW FLOOR MET</Stamp>}
                 </td>
               </tr>
             ))}
@@ -171,7 +171,7 @@ function SegmentsSection({ group }: { group: ResonanceProviderSummaryGroup }) {
                 <td className="px-3 py-2 text-right tabular-nums">{formatPi(row.piMean)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{row.n}</td>
                 <td className="px-3 py-2">
-                  {row.directionalOnly ? <Stamp tone="warn">DIRECTIONAL</Stamp> : <Stamp tone="ok">AGGREGATE</Stamp>}
+                  <Stamp tone="warn">DIRECTIONAL SLICE</Stamp>
                 </td>
               </tr>
             ))}
@@ -233,10 +233,13 @@ export function StudyResultsPanel({
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="label-mono text-xs font-semibold text-ink/70">Simulation Layer results</h3>
         <SimulatedBadge />
+        <Stamp tone="warn">MODEL-IMPLIED</Stamp>
+        <Stamp tone="warn">{results.study.anchorSetCalibrated ? "CALIBRATED CONSTRUCT" : "UNCALIBRATED"}</Stamp>
+        <Stamp tone="ink">COMPARATIVE</Stamp>
         {results.study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
         <Stamp tone={results.run.runMode === "mock" ? "accent" : "ink"}>{results.run.runMode}</Stamp>
         <span className="font-mono text-xs text-ink/45">
-          run {results.run.id.slice(0, 8)} · k={results.run.repetitions}
+          run {results.run.id.slice(0, 8)} · {results.study.panelCount} profiles × {results.run.repetitions} completions = {results.study.panelCount * results.run.repetitions} model draws per variant/provider
         </span>
         <Link
           href={`/projects/${projectId}/report?runId=${results.run.id}`}
@@ -247,7 +250,8 @@ export function StudyResultsPanel({
       </div>
       <BaselineProvenance provenance={results.study.baselineProvenance} />
       <p className="font-mono text-xs leading-5 text-ink/55">
-        Mean PI and ΔPI are simulated Likert-scale survey-construct scores. They compare stimulus
+        Mean PI and ΔPI are model-implied Likert-scale survey-construct scores. The n≥30 marker is
+        only a minimum model-signal draw floor, not aggregate-grade evidence. Scores compare stimulus
         variants within one engine&rsquo;s population; they are never pooled across engines and are
         not forecasts of buying behavior or business outcomes.
       </p>

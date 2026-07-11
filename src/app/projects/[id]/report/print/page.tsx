@@ -97,8 +97,13 @@ export default async function ReportPrintPage({
       </h1>
       {resonanceStudy && (
         <div style={{ border: "1px solid color-mix(in srgb, var(--color-ink) 20%, transparent)", padding: "0.75rem", marginBottom: "2rem", fontFamily: "ui-monospace, monospace", fontSize: "0.75rem" }}>
-          Baseline provenance: {resonanceStudy.baselineLabel}
-          {resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot ${resonanceStudy.framingEvidenceSnapshotId}` : ""}
+          <div>Baseline provenance: {resonanceStudy.baselineLabel}{resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot ${resonanceStudy.framingEvidenceSnapshotId}` : ""}</div>
+          {resonanceStudy.baselineProvenance.status === "snapshot" && <>
+            <div>Selected association: {resonanceStudy.baselineProvenance.associationLabel ?? resonanceStudy.baselineProvenance.associationId} · {resonanceStudy.baselineProvenance.numerator}/{resonanceStudy.baselineProvenance.denominator} sampled source jobs ({resonanceStudy.baselineProvenance.availableResponses ?? "?"} stored; {resonanceStudy.baselineProvenance.unavailableJobs ?? "?"} unavailable)</div>
+            <div>The baseline is one verbatim response containing that association; the full response is not claimed to be representative.</div>
+            <div>{resonanceStudy.baselineProvenance.sourceRunMode ?? "unknown"} · {resonanceStudy.baselineProvenance.providerId}/{resonanceStudy.baselineProvenance.modelVersion}/{resonanceStudy.baselineProvenance.generationMode} · observed {resonanceStudy.baselineProvenance.observedAt ?? "unknown"}</div>
+            <div>{resonanceStudy.baselineProvenance.snapshotVersion ?? "unknown"} · SHA-256 {resonanceStudy.baselineProvenance.snapshotSha256 ?? "not available"}</div>
+          </>}
         </div>
       )}
 

@@ -9,7 +9,7 @@ import {
   getFramingStudy,
   listFramingEvidenceSnapshots,
 } from "@/db/repositories/framing";
-import { getProjectSummary } from "@/db/repositories/runner";
+import { getProjectSummary, getRun } from "@/db/repositories/runner";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +34,8 @@ export default async function FramingStudyPage({
     listFramingEvidenceSnapshots(id),
   ]);
   if (!project || !detail) notFound();
+  const sourceRun = await getRun(detail.study.sourceRunId);
+  if (!sourceRun || sourceRun.projectId !== id) notFound();
   const blindPacket = detail.study.state === "draft"
     ? await getBlindDiscoveryPacket(id, studyId)
     : null;
@@ -63,7 +65,7 @@ export default async function FramingStudyPage({
         <h1 className="label-mono text-lg font-semibold">Framing review {studyId.slice(0, 8).toUpperCase()}</h1>
         <Stamp tone={detail.study.state === "completed" ? "ok" : "ink"}>{detail.study.state}</Stamp>
         <Stamp tone="ink">{detail.study.promptProtocolVersion}</Stamp>
-        {detail.study.state === "completed" && (
+        {detail.study.state === "completed" && detail.study.gapOutcome && (
           <Link href={`/projects/${id}/framing/${studyId}/report`} className="label-mono ml-auto rounded-full bg-accent px-4 py-2 text-xs text-paper">
             Open client report →
           </Link>
@@ -83,7 +85,7 @@ export default async function FramingStudyPage({
           </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left font-mono text-xs">
-              <thead><tr className="border-b border-ink/15 text-ink/45"><th className="px-2 py-2">Association</th><th className="px-2 py-2">Responses</th><th className="px-2 py-2">Prompt spread</th><th className="px-2 py-2">Scope</th></tr></thead>
+              <thead><tr className="border-b border-ink/15 text-ink/45"><th className="px-2 py-2">Association</th><th className="px-2 py-2">Source jobs</th><th className="px-2 py-2">Prompt spread</th><th className="px-2 py-2">Scope</th></tr></thead>
               <tbody>{recurrence.map((row) => <tr key={row.associationId} className="border-b border-ink/10"><td className="px-2 py-3 text-ink/80">{row.associationLabel}</td><td className="px-2 py-3">{row.responsesContainingAssociation}/{row.denominator}</td><td className="px-2 py-3">{row.promptVariantsContainingAssociation.length}/{row.promptVariantDenominator} prompts</td><td className="px-2 py-3 text-ink/55">{row.scopes.map((scope) => `${scope.providerId}/${scope.modelVersion}/${scope.generationMode}`).join(" · ")}</td></tr>)}</tbody>
             </table>
           </div>
@@ -122,12 +124,15 @@ export default async function FramingStudyPage({
           })),
         }))}
         gaps={detail.gaps.map((gap) => ({
+          id: gap.id,
           classification: gap.classification,
           associationId: gap.associationId,
           missingTarget: gap.missingTarget,
           rationale: gap.rationale,
           factReferences: (gap.factReferencesJson as string[]) ?? [],
         }))}
+        gapOutcome={detail.study.gapOutcome}
+        sourceRunMode={sourceRun.runMode}
         facts={facts}
         reviewerIdentity={detail.study.reviewerIdentity}
         reviewMethod={detail.study.reviewMethod}
@@ -139,6 +144,9 @@ export default async function FramingStudyPage({
           .map((snapshot) => ({
             id: snapshot.id,
             annotationId: snapshot.payload.annotationId,
+            gapClassificationId: snapshot.payload.snapshotVersion === "m34a-simulation-evidence.v2"
+              ? snapshot.payload.gap.id
+              : null,
             label: snapshot.payload.recurrence.label,
           }))}
       />

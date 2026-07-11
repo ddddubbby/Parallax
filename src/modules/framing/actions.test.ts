@@ -41,6 +41,7 @@ const STUDY_ID = "00000000-0000-4000-8000-000000000003";
 const REVIEW_ID = "00000000-0000-4000-8000-000000000004";
 const ANNOTATION_ID = "00000000-0000-4000-8000-000000000005";
 const SNAPSHOT_ID = "00000000-0000-4000-8000-000000000006";
+const GAP_ID = "00000000-0000-4000-8000-000000000007";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -60,12 +61,12 @@ describe("framing action RPC boundaries", () => {
       ok: false,
       error: "Invalid id",
     });
-    await expect(lockFramingCodebookAction(PROJECT_ID, "bad")).resolves.toEqual({
+    await expect(lockFramingCodebookAction(PROJECT_ID, "bad", true)).resolves.toEqual({
       ok: false,
       error: "Invalid id",
     });
     await expect(
-      createFramingEvidenceSnapshotAction(PROJECT_ID, STUDY_ID, "bad"),
+      createFramingEvidenceSnapshotAction(PROJECT_ID, STUDY_ID, "bad", GAP_ID),
     ).resolves.toEqual({ ok: false, error: "Invalid id" });
     await expect(
       saveFramingResponseReviewAction({
@@ -98,7 +99,7 @@ describe("framing action RPC boundaries", () => {
         ],
       }),
     ).resolves.toEqual({ ok: true });
-    await expect(lockFramingCodebookAction(PROJECT_ID, STUDY_ID)).resolves.toEqual({ ok: true });
+    await expect(lockFramingCodebookAction(PROJECT_ID, STUDY_ID, true)).resolves.toEqual({ ok: true });
     await expect(
       revealFramingPositioningAction({
         projectId: PROJECT_ID,
@@ -121,13 +122,14 @@ describe("framing action RPC boundaries", () => {
     ).resolves.toEqual({ ok: true });
     await expect(completeFramingReviewAction(PROJECT_ID, STUDY_ID)).resolves.toEqual({ ok: true });
     await expect(
-      createFramingEvidenceSnapshotAction(PROJECT_ID, STUDY_ID, ANNOTATION_ID),
+      createFramingEvidenceSnapshotAction(PROJECT_ID, STUDY_ID, ANNOTATION_ID, GAP_ID),
     ).resolves.toEqual({ ok: true, id: SNAPSHOT_ID });
     await expect(
       saveFramingGapsAction({
         projectId: PROJECT_ID,
         studyId: STUDY_ID,
         classifiedBy: "analyst",
+        gapOutcome: "actionable_gap_identified",
         gaps: [
           {
             classification: "missing",
@@ -148,7 +150,7 @@ describe("framing action RPC boundaries", () => {
 
   it("returns repository gate failures without bypassing them", async () => {
     mocks.lockCodebook.mockRejectedValueOnce(new Error("Only a draft codebook can be locked"));
-    await expect(lockFramingCodebookAction(PROJECT_ID, STUDY_ID)).resolves.toEqual({
+    await expect(lockFramingCodebookAction(PROJECT_ID, STUDY_ID, true)).resolves.toEqual({
       ok: false,
       error: "Only a draft codebook can be locked",
     });

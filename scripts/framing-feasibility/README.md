@@ -1,4 +1,9 @@
-# M34 Phase 0 — framing feasibility harness
+# M34 Phase 0 — framing feasibility harness (historical)
+
+> D-099 retired automated framing certification. The v1-v4 scripts below are
+> preserved for reproducibility, not as a product workflow. Package entrypoints
+> fail closed unless `ALLOW_RETIRED_M34_RESEARCH=1` is set after explicit
+> approval. Production M34A runs through the normal audit and Framing UI.
 
 Throwaway analysis scripts (D-086 §8). Not wired into the app. Protocol fixtures under `fixtures/framing/` stay after milestone close; these scripts may be deleted.
 

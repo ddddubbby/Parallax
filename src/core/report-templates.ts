@@ -148,6 +148,7 @@ export interface ResonanceReportContext {
   genericUnconditioned: boolean;
   baselineProvenance: import("./resonance").ResonanceBaselineProvenance;
   repetitions: number;
+  panelCount: number;
   providers: string[];
   modes: string[];
   anchorSetVersion: string;
@@ -498,13 +499,14 @@ function pmfText(pmf: number[]): string {
 
 function generateResonanceMethod(ctx: ResonanceReportContext): string {
   const provenance = ctx.baselineProvenance;
-  return `${resonanceBadgeLine(ctx)}This Simulation Layer study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). The figures are comparative and directional: ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior.
+  return `${resonanceBadgeLine(ctx)}**MODEL-IMPLIED · ${ctx.anchorSetCalibrated ? "CALIBRATED CONSTRUCT" : "UNCALIBRATED"} · COMPARATIVE.** This Simulation Layer study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior. The n>=30 marker is only a minimum model-signal draw floor, not aggregate-grade evidence.
 
 | Field | Value |
 |---|---|
 | Study | ${escapeModelText(ctx.studyName)} |
 | Baseline provenance | ${escapeModelText(provenance.label)} |
-| Reviewed recurrence at handoff | ${provenance.numerator === null ? "not available" : `${provenance.numerator}/${provenance.denominator} responses`} |
+| Selected-association recurrence at handoff | ${provenance.numerator === null ? "not available" : `${provenance.numerator}/${provenance.denominator} sampled source jobs`} |
+| Baseline representativeness | One verbatim response containing the selected association; the full response is not claimed representative |
 | Prompt spread at handoff | ${provenance.promptSpread === null ? "not available" : `${provenance.promptSpread}/${provenance.promptDenominator} prompts`} |
 | Baseline model scope | ${provenance.providerId ? escapeModelText(`${provenance.providerId}/${provenance.modelVersion}/${provenance.generationMode}`) : "not available"} |
 | Review method / codebook | ${provenance.reviewMethod ? `${escapeModelText(provenance.reviewMethod.replaceAll("_", " "))} / v${escapeModelText(provenance.codebookVersion ?? "unknown")}` : "not available"} |
@@ -512,6 +514,7 @@ function generateResonanceMethod(ctx: ResonanceReportContext): string {
 | Run date | ${escapeModelText(ctx.runDate)} |
 | Run mode | ${escapeModelText(ctx.runMode)} |
 | Repetitions per cell | ${ctx.repetitions} |
+| Model-draw structure | ${ctx.panelCount} profiles × ${ctx.repetitions} completions = ${ctx.panelCount * ctx.repetitions} model draws per variant/provider |
 | Providers | ${escapedList(ctx.providers)} |
 | Modes | ${escapedList(ctx.modes)} |
 | SSR anchor version | ${escapeModelText(ctx.anchorSetVersion)} |
@@ -528,13 +531,13 @@ function generateResonanceResultsSection(section: ResonanceProviderSection): str
   const variantRows = section.variants
     .map(
       (v) =>
-        `| ${escapeModelText(v.label)} | ${escapeModelText(v.stimulusKind)} | ${v.piMean.toFixed(2)} | ${v.n} | ${pmfText(v.pmf)} | ${v.sufficientN ? "aggregate" : "directional"} |`,
+        `| ${escapeModelText(v.label)} | ${escapeModelText(v.stimulusKind)} | ${v.piMean.toFixed(2)} | ${v.n} | ${pmfText(v.pmf)} | ${v.sufficientN ? "draw floor met" : "below draw floor"} |`,
     )
     .join("\n");
   const deltaRows = section.deltas
     .map(
       (d) =>
-        `| ${escapeModelText(d.label)} | ${escapeModelText(d.baselineLabel)} | ${d.deltaPiMean > 0 ? "+" : ""}${d.deltaPiMean.toFixed(2)} | ${d.n} | ${d.directionalOnly ? "directional" : "aggregate"} |`,
+        `| ${escapeModelText(d.label)} | ${escapeModelText(d.baselineLabel)} | ${d.deltaPiMean > 0 ? "+" : ""}${d.deltaPiMean.toFixed(2)} | ${d.n} | ${d.directionalOnly ? "below draw floor" : "draw floor met"} |`,
     )
     .join("\n");
   const personaRows = section.personaRows

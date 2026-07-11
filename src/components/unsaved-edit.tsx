@@ -13,6 +13,8 @@ import {
 type UnsavedEditContextValue = {
   dirty: boolean;
   setDirty: (dirty: boolean) => void;
+  setDirtySource: (key: string, dirty: boolean) => void;
+  clearDirty: () => void;
 };
 
 const UnsavedEditContext = createContext<UnsavedEditContextValue | null>(null);
@@ -22,9 +24,21 @@ const UnsavedEditContext = createContext<UnsavedEditContextValue | null>(null);
  * Autosaved intake is exempt — only wire this around Edit/Save changes flows.
  */
 export function UnsavedEditProvider({ children }: { children: ReactNode }) {
-  const [dirty, setDirtyState] = useState(false);
-  const setDirty = useCallback((next: boolean) => setDirtyState(next), []);
-  const value = useMemo(() => ({ dirty, setDirty }), [dirty, setDirty]);
+  const [dirtySources, setDirtySources] = useState<Set<string>>(() => new Set());
+  const dirty = dirtySources.size > 0;
+  const setDirtySource = useCallback((key: string, next: boolean) => {
+    setDirtySources((current) => {
+      const updated = new Set(current);
+      if (next) updated.add(key); else updated.delete(key);
+      return updated;
+    });
+  }, []);
+  const setDirty = useCallback((next: boolean) => setDirtySource("legacy", next), [setDirtySource]);
+  const clearDirty = useCallback(() => setDirtySources(new Set()), []);
+  const value = useMemo(
+    () => ({ dirty, setDirty, setDirtySource, clearDirty }),
+    [dirty, setDirty, setDirtySource, clearDirty],
+  );
 
   useEffect(() => {
     if (!dirty) return;
@@ -45,6 +59,8 @@ export function useUnsavedEdit() {
     return {
       dirty: false,
       setDirty: (_dirty: boolean) => {},
+      setDirtySource: (_key: string, _dirty: boolean) => {},
+      clearDirty: () => {},
     };
   }
   return ctx;

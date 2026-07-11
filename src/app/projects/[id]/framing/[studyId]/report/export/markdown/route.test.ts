@@ -10,10 +10,14 @@ const PROJECT_ID = "00000000-0000-4000-8000-000000000001";
 const STUDY_ID = "00000000-0000-4000-8000-000000000002";
 const report: FramingReportModel = {
   reportVersion: "m34a-framing-report.v1", projectName: "LensLoop", studyId: STUDY_ID,
+  sourceRunId: "00000000-0000-4000-8000-000000000003", sourceRunMode: "live_audit", sourceRepetitions: 1,
   completedDate: "2026-07-11", promptProtocolVersion: "representation-prompts.v4",
   promptWording: [{ variantKey: "a1", text: "What is LensLoop?" }],
   positioningText: "CLIENT-SUPPLIED POSITIONING — direct-to-share video.", positioningSource: "client-supplied",
   reviewerIdentity: "Analyst", reviewMethod: "single_analyst", reviewDisclosure: "Single analyst.",
+  discoveryManifestDigest: "abc123", discoveryAttestation: "Attested before lock.",
+  codebookLockedAt: "2026-07-11T01:00:00.000Z", revealedAt: "2026-07-11T02:00:00.000Z",
+  codebook: [], gapOutcome: "no_actionable_gap_identified", reviewOutcomeCounts: { none: 5 },
   denominator: 5, availableResponses: 5, unavailableJobs: 0, recurrence: [], gaps: [], evidence: [], factSheetScope: "One fact.",
 };
 

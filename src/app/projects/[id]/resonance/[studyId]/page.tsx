@@ -293,13 +293,15 @@ export default async function ResonanceStudyPage({
               id: row.id,
               excerpt: excerpt(row.rawText),
             }))}
-            snapshotOptions={snapshotOptions.map((snapshot) => ({
+            snapshotOptions={snapshotOptions
+              .filter((snapshot) => snapshot.payload.snapshotVersion === "m34a-simulation-evidence.v2")
+              .map((snapshot) => ({
               id: snapshot.id,
               label: snapshot.payload.recurrence.label,
               associationId: snapshot.payload.associationId,
               excerpt: excerpt(snapshot.payload.evidence.text),
               verbatimResponse: snapshot.payload.verbatimResponse,
-            }))}
+              }))}
             requiresFramingSnapshot={project.categoryArchetype !== "b2b"}
           />
         ) : (

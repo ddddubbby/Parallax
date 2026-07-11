@@ -7,7 +7,8 @@ import { reportSectionsForKind } from "@/core/report-templates";
 import { parseReportView } from "@/core/views";
 import { listCompletedResonanceRuns, listCompletedRuns } from "@/db/repositories/dashboard";
 import { getReportFreshness, getReportSections } from "@/db/repositories/report";
-import { getProjectSummary } from "@/db/repositories/runner";
+import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
+import { getProjectSummary, getRunMatrixKind } from "@/db/repositories/runner";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +42,14 @@ export default async function ReportPage({
     ? (runs.find((r) => r.id === requestedRunId) ?? defaultRun)
     : defaultRun;
   const runId = selectedRun.id;
-  const [sections, freshness] = await Promise.all([
+  const [sections, freshness, runKind] = await Promise.all([
     getReportSections(runId),
     getReportFreshness(runId),
+    getRunMatrixKind(runId),
   ]);
+  const resonanceStudy = runKind?.kind === "resonance" && runKind.resonanceStudyId
+    ? await getResonanceStudyExportLabel(id, runKind.resonanceStudyId)
+    : null;
   const activeSectionKey = parseReportView(viewRaw, selectedRun.matrixKind);
   // Ensure the selected key exists in the kind's outline (parser already does).
   const outline = reportSectionsForKind(selectedRun.matrixKind);
@@ -77,6 +82,7 @@ export default async function ReportPage({
         kind={selectedRun.matrixKind}
         initialIsStale={freshness.stale}
         activeSectionKey={sectionKey}
+        baselineProvenance={resonanceStudy?.baselineProvenance ?? null}
       />
     </main>
   );

@@ -92,4 +92,22 @@ describe("migration metadata", () => {
     expect(structureSql).toContain("'representation'");
     expect(structureSql).not.toContain("ALTER TYPE");
   });
+
+  it("ships M34A assurance as a forward-only migration with database freeze walls", () => {
+    const migrationsDir = join(process.cwd(), "src", "db", "migrations");
+    const assuranceSql = readFileSync(
+      join(migrationsDir, "0015_m34a_assurance.sql"),
+      "utf8",
+    );
+
+    expect(assuranceSql).toContain('ADD COLUMN "discovery_manifest_json"');
+    expect(assuranceSql).toContain('ADD COLUMN "gap_outcome"');
+    expect(assuranceSql).toContain('ADD COLUMN "gap_classification_id"');
+    expect(assuranceSql).toContain("framing_evidence_snapshots_handoff_uq");
+    expect(assuranceSql).toContain("framing_evidence_snapshots_freeze_trigger");
+    expect(assuranceSql).toContain("resonance_stimuli_freeze_trigger");
+    expect(assuranceSql).toContain("app.bypass_framing_snapshot_freeze");
+    expect(assuranceSql).toContain("app.bypass_resonance_stimulus_freeze");
+    expect(assuranceSql).not.toContain("DROP TABLE");
+  });
 });
