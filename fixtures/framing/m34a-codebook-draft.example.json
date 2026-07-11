@@ -1,0 +1,20 @@
+{
+  "codebookId": "example-codebook",
+  "studyId": "m34a-example",
+  "discoveryPacketId": "example-packet",
+  "version": "v1",
+  "createdBy": "example-analyst",
+  "createdAt": "2026-07-11T00:10:00.000Z",
+  "associations": [
+    {
+      "associationId": "casual-shoes",
+      "label": "Casual shoes",
+      "definition": "Frames the brand as casual footwear."
+    },
+    {
+      "associationId": "durability",
+      "label": "Durability",
+      "definition": "Frames the brand as durable."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "studyId": "m34a-example",
+  "codebookId": "example-codebook",
+  "codebookVersion": "v1",
+  "revealedAt": "2026-07-11T00:21:00.000Z",
+  "revealedBy": "example-analyst",
+  "positioningDigest": "synthetic-positioning-digest",
+  "factSheetDigest": "synthetic-fact-sheet-digest"
+}

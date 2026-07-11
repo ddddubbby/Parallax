@@ -73,6 +73,9 @@ Stack: Next.js 15 + TypeScript + Tailwind + shadcn/ui, Drizzle ORM, Zod, Vitest,
 | `pnpm test:db` | Boot the same ephemeral test-DB instance standalone in the foreground, for manual poking (mirrors `pnpm db:dev`'s UX; D-078) |
 | `pnpm db:migrate` | Apply Drizzle migrations |
 | `pnpm db:studio` | Inspect data with Drizzle Studio |
+| `pnpm framing:m34a:collect` | Bounded live M34A neutral-evidence collection with raw provenance, span assistance, and harness-side C-2 ledger; never runs semantic eligibility |
+| `pnpm framing:m34a:workflow` | Build blind packet, lock codebook, generate recurrence matrix, or create C-15 evidence snapshot from M34A artifacts |
+| `pnpm framing:m34a:report` | Render descriptive M34A recurrence and actionable-gap report from locked human-reviewed coding |
 
 This table is a snapshot of daily-driver commands. The canonical, complete command list — lint, typecheck, seed, and per-milestone acceptance commands — lives in `DEVELOPMENT_GUIDELINES.md` section F.
 

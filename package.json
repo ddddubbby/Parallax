@@ -37,7 +37,10 @@
     "framing:v3:review": "tsx scripts/framing-feasibility/v3-review.ts",
     "framing:v3:map": "tsx scripts/framing-feasibility/v3-map.ts",
     "framing:v3:analyze": "tsx scripts/framing-feasibility/v3-analyze.ts",
-    "framing:v3:gold": "tsx scripts/framing-feasibility/v3-gold-packet.ts"
+    "framing:v3:gold": "tsx scripts/framing-feasibility/v3-gold-packet.ts",
+    "framing:m34a:collect": "tsx scripts/framing-feasibility/m34a-collect.ts",
+    "framing:m34a:workflow": "tsx scripts/framing-feasibility/m34a-workflow.ts",
+    "framing:m34a:report": "tsx scripts/framing-feasibility/m34a-report.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",

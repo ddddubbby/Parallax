@@ -1,0 +1,84 @@
+{
+  "codingRunId": "example-coding-v1",
+  "studyId": "m34a-example",
+  "codebookId": "example-codebook",
+  "codebookVersion": "v1",
+  "reviewerId": "example-analyst",
+  "reviewMethod": "single_analyst",
+  "createdAt": "2026-07-11T00:22:00.000Z",
+  "responseReviews": [
+    { "responseId": "r-1", "outcome": "coded", "reviewedBy": "example-analyst", "reviewedAt": "2026-07-11T00:22:00.000Z" },
+    { "responseId": "r-2", "outcome": "coded", "reviewedBy": "example-analyst", "reviewedAt": "2026-07-11T00:22:00.000Z" },
+    { "responseId": "r-3", "outcome": "entity_ambiguous", "reviewedBy": "example-analyst", "reviewedAt": "2026-07-11T00:22:00.000Z" }
+  ],
+  "annotations": [
+    {
+      "annotationId": "example-a1",
+      "responseId": "r-1",
+      "associationId": "casual-shoes",
+      "decision": "accepted",
+      "proposalSource": "ai_span_assist",
+      "start": 42,
+      "end": 54,
+      "reviewedBy": "example-analyst",
+      "reviewedAt": "2026-07-11T00:22:00.000Z",
+      "note": null
+    },
+    {
+      "annotationId": "example-a2",
+      "responseId": "r-2",
+      "associationId": "casual-shoes",
+      "decision": "accepted",
+      "proposalSource": "human_raw_read",
+      "start": 37,
+      "end": 49,
+      "reviewedBy": "example-analyst",
+      "reviewedAt": "2026-07-11T00:22:00.000Z",
+      "note": null
+    },
+    {
+      "annotationId": "example-a3",
+      "responseId": "r-1",
+      "associationId": "durability",
+      "decision": "accepted",
+      "proposalSource": "ai_span_assist",
+      "start": 20,
+      "end": 27,
+      "reviewedBy": "example-analyst",
+      "reviewedAt": "2026-07-11T00:22:00.000Z",
+      "note": null
+    }
+  ],
+  "consistencyChecks": [
+    {
+      "checkId": "example-intra",
+      "type": "intra_rater_consistency",
+      "status": "not_run",
+      "comparisonCount": 0,
+      "agreementCount": 0,
+      "completedAt": null,
+      "reviewerDescription": "Not run in this synthetic example.",
+      "note": "No consistency result is represented."
+    },
+    {
+      "checkId": "example-machine",
+      "type": "machine_discrepancy_check",
+      "status": "not_run",
+      "comparisonCount": 0,
+      "agreementCount": 0,
+      "completedAt": null,
+      "reviewerDescription": "No machine comparison was run.",
+      "note": "A machine discrepancy check is not an independent coder."
+    },
+    {
+      "checkId": "example-inter",
+      "type": "inter_rater_reliability",
+      "status": "not_run",
+      "comparisonCount": 0,
+      "agreementCount": 0,
+      "completedAt": null,
+      "reviewerDescription": "No second human reviewer was used.",
+      "note": "No inter-rater reliability is claimed."
+    }
+  ]
+}

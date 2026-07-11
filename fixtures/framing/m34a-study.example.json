@@ -1,0 +1,46 @@
+{
+  "studyId": "m34a-example",
+  "projectId": "example-project",
+  "projectLabel": "Example consumer brand",
+  "observedBrandName": "Example Brand",
+  "promptProtocolVersion": "representation-prompts.v4",
+  "createdAt": "2026-07-11T00:00:00.000Z",
+  "responses": [
+    {
+      "responseId": "r-1",
+      "rawText": "Example Brand makes durable everyday shoes for casual wear.",
+      "lane": "neutral_elicited",
+      "promptVariant": "a1",
+      "promptText": "What is Example Brand?",
+      "providerId": "deepseek",
+      "modelVersion": "example-model-a",
+      "generationMode": "ungrounded",
+      "observedAt": "2026-07-11T00:01:00.000Z",
+      "terminalState": "ok"
+    },
+    {
+      "responseId": "r-2",
+      "rawText": "Example Brand is known for comfortable casual shoes.",
+      "lane": "neutral_elicited",
+      "promptVariant": "a2",
+      "promptText": "Describe Example Brand.",
+      "providerId": "deepseek",
+      "modelVersion": "example-model-a",
+      "generationMode": "ungrounded",
+      "observedAt": "2026-07-11T00:02:00.000Z",
+      "terminalState": "ok"
+    },
+    {
+      "responseId": "r-3",
+      "rawText": "I cannot tell which Example Brand you mean.",
+      "lane": "neutral_elicited",
+      "promptVariant": "a3",
+      "promptText": "Tell me about Example Brand.",
+      "providerId": "openai",
+      "modelVersion": "example-model-b",
+      "generationMode": "ungrounded",
+      "observedAt": "2026-07-11T00:03:00.000Z",
+      "terminalState": "entity_ambiguous"
+    }
+  ]
+}

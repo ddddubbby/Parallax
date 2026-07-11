@@ -1,0 +1,22 @@
+[
+  {
+    "gapId": "example-gap-1",
+    "kind": "missing",
+    "associationId": null,
+    "targetAssociation": "All-day walking comfort",
+    "rationale": "Synthetic example only: the revealed positioning is absent from reviewed evidence.",
+    "factSheetReferences": ["synthetic-fact-1"],
+    "classifiedBy": "example-analyst",
+    "classifiedAt": "2026-07-11T00:23:00.000Z"
+  },
+  {
+    "gapId": "example-gap-2",
+    "kind": "reinforced",
+    "associationId": "casual-shoes",
+    "targetAssociation": null,
+    "rationale": "Synthetic example only: reviewed evidence aligns with intended casual-footwear positioning.",
+    "factSheetReferences": [],
+    "classifiedBy": "example-analyst",
+    "classifiedAt": "2026-07-11T00:23:00.000Z"
+  }
+]
