@@ -104,6 +104,7 @@ Silk-smooth means fast, eased, and rare:
 - **Wizard:** progress rail as numbered mono stops (`01 BRAND`, `02 COMPETITORS`…), completed stops get a dot-matrix check. Autosave indicator is a quiet mono timestamp (`SAVED 14:02:11`), never a toast.
 - **Forms:** 8px-radius fields, hairline borders, accent focus ring; field-level Zod errors in `--danger` mono beneath the field. No placeholder-as-label.
 - **Dashboard:** scorecard numbers oversized mono with CI ranges rendered directly beneath in muted mono (`0.42 [0.31–0.54]`). "Insufficient data" states use the dot-matrix glyph + mono explanation, not grayed-out fake charts.
+- **Loading states:** route- and panel-level loading surfaces speak dossier, not skeleton — a quiet mono placeholder line (`LOADING RUN 014…`) or the dot-matrix glyph, never generic gray `animate-pulse` blocks. Same law as the empty-state rule above: no grayed-out fake content (D-105).
 - **Debug console:** the one full-terminal surface — ink, mono everything, `run_events` as a tailing log with level-colored stamps.
 
 ## 9. Data visualization
@@ -125,7 +126,7 @@ Silk-smooth means fast, eased, and rare:
 
 | ID | Rule |
 |---|---|
-| V-1 | Badge styles for `MOCK`, `VALIDATION-ONLY`, `UNGROUNDED`, `PARTIAL`, `DIRECTIONAL`, `SIMULATED`, `GENERIC` are reserved: minimum 12px mono uppercase, AA contrast, never hidden, shrunk, or restyled per-view. They exist to enforce C-9, D-008, D-015, and C-12/C-13 visually. `SIMULATED` in particular appears on every lower-funnel surface and export and is never suppressed to make a simulation read as measurement. |
+| V-1 | Badge styles for `MOCK`, `VALIDATION-ONLY`, `UNGROUNDED`, `PARTIAL`, `DIRECTIONAL`, `SIMULATED`, `GENERIC` are reserved: minimum 12px mono uppercase, AA contrast, never hidden, shrunk, or restyled per-view. They exist to enforce C-9, D-008, D-015, and C-12/C-13 visually. `SIMULATED` in particular appears on every lower-funnel surface and export and is never suppressed to make a simulation read as measurement. Reserved stamps render only through the shared `Stamp` component (`src/components/ui.tsx`) — never re-implemented per view (D-105). |
 | V-2 | Accent orange never encodes verdicts, severity, or destruction. Semantic colors never appear in non-semantic decoration. |
 | V-3 | Metric text, CI ranges, and table numerals meet 4.5:1 contrast on their surface. Muted text is for labels, never for values. |
 | V-4 | Client-facing report preview and all exports are paper-surface, texture-free, and conservatively styled. The cyberpunk register is operator-only. |
@@ -137,6 +138,7 @@ Silk-smooth means fast, eased, and rare:
 | V-10 | All color, radius, spacing, and motion values live as tokens in the global CSS variable file consumed by Tailwind/shadcn. A raw hex or ad-hoc duration in a component is a review-blocking defect. |
 | V-11 | Legibility beats vibe: body ≥14px/1.5, uppercase only for short labels, no mono paragraphs, no text over texture. |
 | V-12 | Aesthetic changes follow A3 surgical-change rules — restyling a component is its own diff, never a rider on a feature diff. |
+| V-13 | The generic-AI-default vocabulary is banned and sits at zero occurrences in `src/`; it stays at zero: decorative multi-hue gradients (backgrounds, buttons, or clipped headline text), stock framework semantic-palette utilities (blue-info / amber-tip / green-success / red-error), backdrop-blur/glassmorphism surfaces, decorative emoji in chrome, pulsing or glowing status dots, decorative badge pills, and mascot/blob SVG marks. Any occurrence in a diff is a review-blocking defect, same weight as V-10's raw hex. The mono/pill/dossier register itself is exempt — it is this product's chosen, defended system (§1, D-019/D-055), not a default (D-105). |
 
 ## 12. Implementation notes
 

@@ -58,6 +58,7 @@ Every surface below was grep/read-verified to still exist in the current tree (2
 | Migration 0015 freeze triggers + named maintenance bypasses | D-103 | Application immutability was insufficient; snapshots are append-only and approved-study stimuli reject direct SQL mutation. The bypasses exist only for controlled maintenance/test cleanup and must not enter normal repositories or actions. | HIGH |
 | `resonance-panel.v2` untrusted research-input envelope + model-draw-floor language | D-103 (C-14) | Verbatim AI text is required evidence but is untrusted model input. Keep JSON escaping and the explicit data boundary; n>=30 remains a draw floor with persona×completion structure, never aggregate-grade evidence. | HIGH |
 | Canonical SHA creation + legacy-digest verification fallback in `framing.ts` | D-104 (D-103) | Canonical ordering prevents JSONB/object-key order from invalidating legitimate evidence, while the legacy fallback keeps existing immutable v1/v2 records readable. Do not simplify to canonical-only verification or backfill stored hashes. | HIGH |
+| `Stamp` component — `src/components/ui.tsx`, sole implementation of every reserved V-1 badge (`MOCK`, `SIMULATED`, `PARTIAL`, …) | D-105 (V-1) | Not "just a styled span" to inline, split per-view, or duplicate: V-1's reserved stamp styles are pinned to this one shared implementation (32 call sites) so a badge's contrast/size/visibility can never drift per-surface. Any per-view re-implementation is the defect the pin exists to block. | HIGH |
 
 ---
 
