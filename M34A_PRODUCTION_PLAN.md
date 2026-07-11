@@ -1,6 +1,6 @@
 # M34A Production Integration Plan
 
-> **APPROVED — D-101 / 2026-07-11.** This plan implements D-099's
+> **IMPLEMENTED — D-101/D-102 / 2026-07-11.** This plan implements D-099's
 > human-reviewed framing evidence in production. It does not revive M34B,
 > semantic eligibility, clustering, medoids, or automated stability claims.
 

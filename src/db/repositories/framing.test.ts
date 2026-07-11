@@ -310,6 +310,16 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     const locked = await lockFramingCodebook(project.id, study.id);
     expect(locked.state).toBe("codebook_locked");
     await expect(
+      revealFramingPositioning({
+        projectId: project.id,
+        studyId: study.id,
+        positioningText: "CLIENT-SUPPLIED POSITIONING — Direct-to-share action video.",
+        revealedBy: "analyst-1",
+        reviewerIdentity: "analyst-1",
+        reviewMethod: "inter_rater_reliability",
+      }),
+    ).rejects.toThrow(/structured verification record/i);
+    await expect(
       saveFramingCodebookDraft({
         projectId: project.id,
         studyId: study.id,

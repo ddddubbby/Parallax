@@ -508,6 +508,11 @@ export async function revealFramingPositioning(input: {
     throw new Error("Positioning must begin with CLIENT-SUPPLIED POSITIONING or OFFICIAL-PUBLIC POSITIONING");
   }
   assertReviewMethod(input.reviewMethod);
+  if (input.reviewMethod !== "single_analyst") {
+    throw new Error(
+      "Production v1 supports single-analyst review only; consistency or reliability claims require a structured verification record",
+    );
+  }
   return db.transaction(async (tx) => {
     const locked = await tx.execute<{ state: string; codebookLockedAt: Date | null }>(sql`
       select state, codebook_locked_at as "codebookLockedAt"
