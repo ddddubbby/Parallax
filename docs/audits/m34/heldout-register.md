@@ -48,3 +48,18 @@ specified in advance.
 |---|---:|---:|---:|---|
 | Crocs | No | No | No | Held-out — untouched |
 | Xiaomi | No | No | No | Held-out — untouched |
+
+## v4 carry-over addendum (2026-07-11, D-098)
+
+`framing-protocol.v3` was rejected at its own development-data clause-sensitivity
+gate (D-097) **before any held-out contact**. Per rule 5 above, held-outs burn only
+when held-out *results* prompt a protocol change — that did not happen. **Crocs and
+Xiaomi therefore carry over to framing-protocol.v4 as sealed held-outs**, with every
+rule in this register applying to v4 exactly as written for v3 (read "v3" as "the
+frozen protocol under test").
+
+Option-B compatibility rule (D-098): ordinary Evidence-Layer audits of Crocs/Xiaomi
+MAY be generated before v4 freezes, for descriptive/demo value. The framing pipeline
+must not run on those responses and framing patterns must not be inspected before
+freeze. Any such audit, and any access to its data, is recorded in the execution
+table above (add rows/columns as needed — append-only).

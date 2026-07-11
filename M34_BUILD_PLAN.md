@@ -1,8 +1,8 @@
 # M34_BUILD_PLAN.md — Baseline Framing Integrity
 
-> **Status:** Approved planning canon, not yet built. Execution playbook for milestone M34.
+> **Status:** Approved planning canon, re-scoped by D-098 after Phase 0 rejected protocols v1–v3 (D-095/D-097). Production Phases 1–6 are **blocked pending a frozen `framing-protocol.v4`** (design brief: `docs/audits/m34/framing-protocol-v4-brief.md`); migration 0013's frame-extraction schema must be the v4 span-offset shape, not the label-identity shape written below. Under D-098 the representation lane ships early as a **descriptive framing profile** (no eligibility/certification claim), and the demo arc unblocks on that basis; eligibility machinery and C-15 wait for held-out validation, then shadow-first rollout (D-096).
 > **Branch:** `m34-baseline-framing` (cut from `main` at the M33-merge commit).
-> **Decision record:** D-094 (`MASTER_CONTEXT.md` §9); new hard constraint C-15 (§4).
+> **Decision record:** D-094 (`MASTER_CONTEXT.md` §9), amended by D-095/D-096/D-097/D-098; new hard constraint C-15 (§4).
 > **Qualifies for a standalone plan file under D-090:** multi-phase with per-phase acceptance, ships a migration and a second worker state machine, realistically spans several sessions/agents, and exceeds ~300 lines. This is the earned exception, not the default.
 
 ---
