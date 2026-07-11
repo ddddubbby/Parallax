@@ -108,8 +108,8 @@ async function main() {
   }
   log(SCOPE, `generations=${generations.length}, $${cost.toFixed(4)}`);
 
-  // Extract v4 spans (DeepSeek extractor, temp 0, offset-verified).
-  const dsCreds = await resolveLiveCredentials("deepseek");
+  // Extract v4 spans (gpt-5.4-nano, offset-verified — D-098 engine switch).
+  const exCreds = await resolveLiveCredentials("openai");
   const existingEx = loadExistingOrNull<{ records: ExtractRecord[] }>(OUT_PATH);
   const records: ExtractRecord[] = existingEx?.records ?? [];
   const doneEx = new Set(records.map((r) => r.genId));
@@ -129,7 +129,7 @@ async function main() {
     let droppedSpans = 0;
     let callCost = 0;
     try {
-      const r = await callV4SpanExtraction(dsCreds, { observedBrandName: brandName, rawText: g.rawText });
+      const r = await callV4SpanExtraction(exCreds, { observedBrandName: brandName, rawText: g.rawText });
       state = r.state;
       spans = r.spans;
       droppedSpans = r.droppedSpans;

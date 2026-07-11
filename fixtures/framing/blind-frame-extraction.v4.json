@@ -2,20 +2,60 @@
   "version": "blind-frame-extraction.v4",
   "status": "ratified-pre-cal",
   "schemaVersion": 4,
-  "note": "Span-offset extraction (D-098 §1). The model authors NO identity — only offset spans into the immutable raw text. Server validates raw_text[start:end] reproduces exactly; unsupported spans are rejected and counted, never stitched/normalized. Free-form gloss is reviewer-convenience only, zero role in mapping/eligibility/reporting.",
-  "inputContract": ["observedBrandName", "rawText"],
-  "forbiddenInputs": ["fact sheet", "desired attributes", "competitors", "original prompt", "operator labels", "campaign goals", "corrected narratives"],
+  "note": "Span-offset extraction (D-098 \u00a71). The model authors NO identity \u2014 only offset spans into the immutable raw text. Server validates raw_text[start:end] reproduces exactly; unsupported spans are rejected and counted, never stitched/normalized. Free-form gloss is reviewer-convenience only, zero role in mapping/eligibility/reporting.",
+  "inputContract": [
+    "observedBrandName",
+    "rawText"
+  ],
+  "forbiddenInputs": [
+    "fact sheet",
+    "desired attributes",
+    "competitors",
+    "original prompt",
+    "operator labels",
+    "campaign goals",
+    "corrected narratives"
+  ],
   "span": {
     "start": "int offset into raw_text",
     "end": "int offset into raw_text (exclusive); raw_text[start:end] must reproduce exactly",
-    "dimension": ["category", "offering", "audience", "occasion", "attribute", "differentiator", "concern", "uncertainty"],
-    "stance": ["stated", "implied", "hedged"],
+    "dimension": [
+      "category",
+      "offering",
+      "audience",
+      "occasion",
+      "attribute",
+      "differentiator",
+      "concern",
+      "uncertainty"
+    ],
+    "stance": [
+      "stated",
+      "implied",
+      "hedged"
+    ],
     "gloss": "<=60 chars, reviewer convenience only"
   },
-  "envelopeStates": ["ok", "no_frame", "uncertain", "insufficient_evidence", "entity_ambiguous", "malformed"],
-  "entityAmbiguousScopeThreshold": 0.40,
+  "envelopeStates": [
+    "ok",
+    "no_frame",
+    "uncertain",
+    "insufficient_evidence",
+    "entity_ambiguous",
+    "malformed"
+  ],
+  "entityAmbiguousScopeThreshold": 0.4,
   "salvage": "per-span: a span failing offset validation is rejected+counted; envelope malformed only if unparseable",
   "deadlineMs": 90000,
   "retries": 1,
-  "frozenAt": null
+  "frozenAt": null,
+  "extractionEngine": {
+    "provider": "openai",
+    "model": "gpt-5.4-nano",
+    "pricePer1M": {
+      "in": 0.2,
+      "out": 1.25
+    }
+  },
+  "engineNote": "Switched from deepseek-v4-flash after CAL surfaced a DeepSeek json_object output-size ceiling (D-098). gpt-5.4-nano one-shots long responses, cheapest OpenAI tier. Audit extractor unaffected, stays DeepSeek (D-041)."
 }

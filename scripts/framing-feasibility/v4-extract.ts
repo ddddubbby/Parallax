@@ -6,8 +6,23 @@
  * reviewer-convenience only. Blind input: raw text + observed brand name + schema.
  */
 import { z } from "zod";
-import { callDeepSeekChat, type DeepSeekCallCredentials } from "../../src/providers/deepseek";
+import { createOpenAIProvider } from "../../src/providers/openai";
+import type { LiveCredentials } from "../../src/providers/shared";
 import { HARNESS_PROVIDER_TIMEOUT_MS, withProviderRetry } from "./shared";
+
+/**
+ * Extraction engine (pinned protocol parameter, D-098). Switched from
+ * deepseek-v4-flash to gpt-5.4-nano after CAL surfaced a DeepSeek json_object
+ * ceiling: v4 span extraction emits a span list that GROWS with response
+ * length, and DeepSeek returns an empty/non-JSON 200 for large json outputs
+ * (~23% of dev responses >6000 chars failed; DeepSeek also proved intermittently
+ * unreliable at any length). gpt-5.4-nano one-shots the longest responses, is
+ * the cheapest OpenAI tier ($0.20/$1.25 per 1M), and is cheaper per-call than
+ * DeepSeek was. The bounded-output AUDIT extractor is unaffected and stays on
+ * DeepSeek (D-041) — verified: 168 long audit responses all extracted valid.
+ */
+export const V4_EXTRACTION_MODEL = "gpt-5.4-nano";
+const V4_EXTRACTION_PRICE = { in: 0.2, out: 1.25 }; // USD per 1M tokens, gpt-5.4-nano (2026-07)
 
 export const V4_DIMENSIONS = [
   "category",
@@ -94,23 +109,26 @@ ${V4_SCHEMA_INSTRUCTIONS}`;
 }
 
 export async function callV4SpanExtraction(
-  credentials: DeepSeekCallCredentials,
+  credentials: LiveCredentials,
   input: { observedBrandName: string; rawText: string },
 ): Promise<V4ExtractionResult> {
   const extractorInput = buildV4ExtractionPrompt(input);
-  const result = await withProviderRetry(
-    () =>
-      callDeepSeekChat(
-        credentials,
-        {
-          messages: [{ role: "user", content: extractorInput }],
-          temperature: 0,
-          response_format: { type: "json_object" },
-        },
-        AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS),
-      ),
+  // gpt-5.4-nano via /v1/responses (no per-model json mode needed — the schema
+  // says "return ONLY a JSON object" and salvage parsing handles the rest).
+  // Cost is recomputed with nano pricing (the OpenAI adapter's costUsd uses
+  // gpt-5.5 defaults, wrong for nano).
+  const provider = createOpenAIProvider({ ...credentials, defaultModel: V4_EXTRACTION_MODEL });
+  const gen = await withProviderRetry(
+    () => provider.generate({ promptText: extractorInput, mode: "ungrounded" }, AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS)),
     "v4-extract",
   );
+  const result = {
+    text: gen.text,
+    model: gen.modelVersion,
+    tokensIn: gen.tokensIn,
+    tokensOut: gen.tokensOut,
+    costUsd: (gen.tokensIn / 1e6) * V4_EXTRACTION_PRICE.in + (gen.tokensOut / 1e6) * V4_EXTRACTION_PRICE.out,
+  };
 
   let state: V4State = "malformed";
   const spans: VerifiedSpan[] = [];
