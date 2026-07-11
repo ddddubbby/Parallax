@@ -47,7 +47,7 @@ interface PromptSet {
 
 interface AssistRecord {
   responseId: string;
-  state: FramingResponse["terminalState"];
+  state: FramingResponse["terminalState"] | "not_requested";
   spans: V4ExtractionResult["spans"];
   droppedSpans: number;
   parseError: string | null;
@@ -81,7 +81,7 @@ interface M34ACollectionArtifact {
     note: string;
   }>;
   rawTextSha256: Record<string, string>;
-  costs: { generationUsd: number; extractionUsd: number; totalUsd: number; capUsd: number };
+  costs: { generationUsd: number; extractionUsd: number; totalUsd: number; reservedSpendUsd: number; capUsd: number };
 }
 
 function requiredArg(name: string): string {
@@ -102,6 +102,12 @@ function parseProjectKey(value: string): ProjectKey {
 function parseProvider(value: string): LiveProvider {
   if (value !== "deepseek" && value !== "openai") throw new Error("--provider must be deepseek or openai");
   return value;
+}
+
+function parseSpanAssist(value: string | null): boolean {
+  if (value === null || value === "on") return true;
+  if (value === "off") return false;
+  throw new Error("--span-assist must be on or off");
 }
 
 function parsePositiveInt(value: string, label: string, maximum: number): number {
@@ -164,10 +170,13 @@ function updateCosts(artifact: M34ACollectionArtifact): void {
     0,
   );
   const extractionUsd = artifact.assist.reduce((sum, record) => sum + record.costUsd, 0);
+  const reservedSpendUsd = listM34ARunLedgerEntries(artifact.collection.runId)
+    .reduce((sum, entry) => sum + (entry.actualUsd ?? entry.reservedUsd), 0);
   artifact.costs = {
     generationUsd: Number(generationUsd.toFixed(6)),
     extractionUsd: Number(extractionUsd.toFixed(6)),
     totalUsd: Number((generationUsd + extractionUsd).toFixed(6)),
+    reservedSpendUsd: Number(reservedSpendUsd.toFixed(6)),
     capUsd: artifact.collection.capUsd,
   };
 }
@@ -185,9 +194,10 @@ async function main() {
   const reps = parsePositiveInt(optionalArg("reps") ?? "5", "--reps", 5);
   const capUsd = parsePositiveNumber(optionalArg("cap-usd") ?? "5", "--cap-usd", 25);
   const maxCalls = parsePositiveInt(optionalArg("max-calls") ?? "50", "--max-calls", 50);
+  const spanAssistEnabled = parseSpanAssist(optionalArg("span-assist"));
   const outputPath = optionalArg("out") ?? join(OUT_DIR, `m34a-${runId}.json`);
   const promptSet = requireAdoptedPromptSet();
-  const requiredProviders: LiveProvider[] = providerId === "openai" ? ["openai"] : ["deepseek", "openai"];
+  const requiredProviders: LiveProvider[] = spanAssistEnabled && providerId !== "openai" ? ["deepseek", "openai"] : [providerId];
   await preflightCredentials(requiredProviders);
   const project = await loadProject(projectKey);
   const requestedCollection: M34ACollectionArtifact["collection"] = {
@@ -219,13 +229,18 @@ async function main() {
     assist: [],
     unavailability: [],
     rawTextSha256: {},
-    costs: { generationUsd: 0, extractionUsd: 0, totalUsd: 0, capUsd },
+    costs: { generationUsd: 0, extractionUsd: 0, totalUsd: 0, reservedSpendUsd: 0, capUsd },
   };
   artifact.unavailability ??= [];
   const ledgerEntries = listM34ARunLedgerEntries(runId);
   const generatedIds = new Set(artifact.study.responses.map((response) => response.responseId));
   const assistedIds = new Set(artifact.assist.map((record) => record.responseId));
   const unavailableIds = new Set(artifact.unavailability.map((entry) => `${entry.stage}|${entry.responseId}`));
+  for (const assist of artifact.assist) {
+    if (assist.state !== "not_requested") continue;
+    const response = artifact.study.responses.find((candidate) => candidate.responseId === assist.responseId);
+    if (response && response.rawText !== null) response.terminalState = "span_assist_not_requested";
+  }
   for (const prompt of promptSet.admission) {
     const promptText = resolvePrompt(prompt.text, project.brandName);
     for (let rep = 1; rep <= reps; rep += 1) {
@@ -286,7 +301,7 @@ async function main() {
     }
   }
   writeArtifact(outputPath, artifact);
-  const assistantCredentials = await resolveLiveCredentials("openai");
+  const assistantCredentials = spanAssistEnabled ? await resolveLiveCredentials("openai") : null;
   let callsMade = 0;
 
   const checkpointAndStop = async () => {
@@ -335,6 +350,23 @@ async function main() {
       if (callsMade >= maxCalls) return checkpointAndStop();
       const response = artifact.study.responses.find((candidate) => candidate.responseId === responseId)!;
       if (response.rawText === null) continue;
+      if (!spanAssistEnabled) {
+        response.terminalState = "span_assist_not_requested";
+        artifact.assist.push({
+          responseId,
+          state: "not_requested",
+          spans: [],
+          droppedSpans: 0,
+          parseError: "Span assistance was intentionally not requested; human raw-text review is required.",
+          model: V4_EXTRACTION_MODEL,
+          costUsd: 0,
+          tokensIn: 0,
+          tokensOut: 0,
+        });
+        assistedIds.add(responseId);
+        writeArtifact(outputPath, artifact);
+        continue;
+      }
       const reservationId = await reserveM34ASpend({
         runId,
         providerId: "openai",
@@ -346,7 +378,7 @@ async function main() {
       callsMade += 1;
       let assist: AssistRecord;
       try {
-        const extracted = await callV4SpanExtraction(assistantCredentials, {
+        const extracted = await callV4SpanExtraction(assistantCredentials!, {
           observedBrandName: project.brandName,
           rawText: response.rawText,
         });

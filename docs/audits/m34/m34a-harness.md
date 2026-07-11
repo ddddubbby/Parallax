@@ -46,5 +46,8 @@ They document the input shapes; they are not client evidence.
   deliberately cleared for the repository.
 - The harness ledger reserves an estimated amount before every paid call and
   settles actual cost after success; a failed call remains reserved.
+- Span assistance is optional. `--span-assist=off` records `not_requested`
+  against the affected raw responses and leaves them for mandatory human
+  review; it is never presented as a missing denominator or a coding result.
 - Recurrence is descriptive `n/N` evidence. Never render it as an interval,
   synthetic respondent count, eligibility verdict, or population estimate.

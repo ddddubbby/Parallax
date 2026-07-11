@@ -49,6 +49,7 @@ Every surface below was grep/read-verified to still exist in the current tree (2
 | `extractions.schema_version` kept as `integer default 1` (`src/db/schema/extraction.ts:35`); SSR rows discriminated by `extracted_json.kind='ssr'`, never a string version | D-066 | Deliberately not migrated to a text version string; rejected: "Migrating `schema_version` to text (pointless churn against an integer default that audit rows rely on)." | REVIEW |
 | `recommendation_rate` metric key (`src/core/semantic.ts` glossary/metrics) — display label is "Organic Recommendation Rate" | D-054 | Key deliberately not renamed to match its label; rejected: "renaming the `recommendation_rate` key (consumers churn for no semantic gain — the glossary label carries the meaning)." | REVIEW |
 | `fixtures/calibration/example-paired.json` — synthetic, marked `"SYNTHETIC EXAMPLE DATA"` | D-082 | The paired-data format's living spec, asserted by its own test to never carry a `calibrated` key; not a stray/leftover fixture. | REVIEW |
+| M34A interrupted-call accounting — `scripts/framing-feasibility/m34a-budget.ts`, `generation_unavailable` in `src/core/framing-evidence.ts`, plus `span_assist_not_requested` | D-100 (D-099) | A paid call that cannot be checkpointed as immutable raw text stays as an explicit unavailable denominator observation with a conservative ledger reservation; it is never automatically retried, deleted, or transformed into raw text. Optional span assistance remains visibly optional and cannot exclude a raw response from human coding. | HIGH |
 
 ---
 

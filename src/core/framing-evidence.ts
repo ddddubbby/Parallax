@@ -18,6 +18,7 @@ export const FRAMING_RESPONSE_STATES = [
   "entity_ambiguous",
   "malformed",
   "extraction_failed",
+  "span_assist_not_requested",
   "generation_unavailable",
 ] as const;
 export type FramingResponseState = (typeof FRAMING_RESPONSE_STATES)[number];

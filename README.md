@@ -59,6 +59,8 @@ Useful scripts:
 - `pnpm archive:evidence <runId>` — writes an off-Render evidence pack for a delivered audit or resonance run.
 - `pnpm test:db` — boots the same ephemeral test-DB instance standalone in the foreground for manual poking (D-078).
 - `pnpm recompute:resonance` — one-shot dev-DB sweep migrating existing resonance runs' metric rows to the current composite scope-key format (D-080).
+- `pnpm framing:m34a:collect` — bounded, explicitly capped M34A development collection using the adopted bare prompts; retains raw provenance and treats offset-span extraction as optional human-review assistance.
+- `pnpm framing:m34a:workflow` / `pnpm framing:m34a:report` — local blind-packet, codebook-lock, recurrence, C-15 snapshot, and descriptive-gap workflow. See `docs/audits/m34/m34a-harness.md`.
 
 The canonical per-milestone acceptance command list lives in `DEVELOPMENT_GUIDELINES.md` section F.
 

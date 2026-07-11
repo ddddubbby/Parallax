@@ -51,11 +51,13 @@ function main() {
   const classifications = readJson<GapClassification[]>(requiredArg("gaps"));
   assertGapClassifications({ codebook, reveal, classifications });
   const matrix = computeRecurrenceMatrix({ study, codebook, coding });
+  const rawResponseCount = study.responses.filter((response) => response.rawText !== null).length;
+  const unavailableGenerationCount = study.responses.length - rawResponseCount;
   const associationLabel = new Map(matrix.map((row) => [row.associationId, row.associationLabel]));
   const lines = [
     `# M34A Framing Evidence & Actionable Gap — ${study.projectLabel}`,
     "",
-    `> Descriptive, human-reviewed evidence. Neutral-elicited lane; ${study.responses.length} responses; prompt protocol \`${study.promptProtocolVersion}\`.`,
+    `> Descriptive, human-reviewed evidence. Neutral-elicited lane; ${study.responses.length} denominator responses (${rawResponseCount} stored raw responses${unavailableGenerationCount > 0 ? `, ${unavailableGenerationCount} generation-unavailable` : ""}); prompt protocol \`${study.promptProtocolVersion}\`.`,
     `> Coding: ${coding.reviewMethod.replaceAll("_", " ")} by ${coding.reviewerId}. This report contains no confidence interval, synthetic-respondent count, semantic eligibility verdict, or automated stability claim.`,
     "",
     "## Recurrence matrix",

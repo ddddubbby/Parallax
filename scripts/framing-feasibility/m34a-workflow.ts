@@ -53,12 +53,13 @@ function readStudy(path: string): FramingStudy {
 }
 
 function sampleResponseIds(study: FramingStudy, size: number): string[] {
-  if (!Number.isInteger(size) || size < 1 || size > study.responses.length) {
-    throw new Error(`--sample-size must be an integer from 1 to ${study.responses.length}`);
+  const available = study.responses.filter((response) => response.rawText !== null);
+  if (!Number.isInteger(size) || size < 1 || size > available.length) {
+    throw new Error(`--sample-size must be an integer from 1 to ${available.length} stored raw responses`);
   }
   // Stable selection before packet shuffling. It considers only response ids,
   // not provider, prompt, outcome, or response content/frequency.
-  return [...study.responses]
+  return [...available]
     .sort((a, b) => a.responseId.localeCompare(b.responseId))
     .slice(0, size)
     .map((response) => response.responseId);
@@ -145,7 +146,7 @@ function usage(): never {
 
 try {
   ensureDirs();
-  const command = process.argv[2];
+  const command = process.argv.slice(2).find((arg) => arg !== "--" && !arg.startsWith("--"));
   if (command === "packet") commandPacket();
   else if (command === "lock") commandLock();
   else if (command === "matrix") commandMatrix();

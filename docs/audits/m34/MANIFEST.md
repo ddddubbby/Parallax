@@ -26,3 +26,17 @@
 - `v3-development-insta360-dev-clause-r2-deepseek-with_uncertainty_clause-concept-map.locked.json` — sha256 `9ea09c20c7edcdbdfa9397ac32a9bd3fb9825b7a5f7d81dd8fa3e966262471c9` — 15,266 bytes
 - `v3-development-insta360-dev-clause-r2-deepseek-with_uncertainty_clause-analysis.json` — sha256 `3286518ef7ce4789e90c6254d980d2f94bd99f3fcb3ae4e7b7567eda51e72e05` — 3,501 bytes
 - `v3-development-insta360-dev-deepseek-with_uncertainty_clause.json` *(abandoned after batch-failure isolation defect; never scored)* — sha256 `243892ed87e20c3c88604ff1e43233a3e6bf29d2c7c4003d4dc2ac3144983a75` — 29,623 bytes
+
+## M34A development collection — 2026-07-11
+
+> M34A uses these as human-reviewed workflow-development inputs, never as
+> automated-instrument validation. Raw model text and blinded-packet material
+> remain local/ignored; the committed hashes anchor the evidence record.
+
+- `m34a-insta360-m34a-dev-20260711.json` — sha256 `2b168c1376eab4116dd071d6fc3162fb8bb5ab5ab1b647c2d5f5ab91f5b44b9f` — 374,264 bytes
+- `m34a-heytea-m34a-dev-20260711.json` — sha256 `8f5f78140ca40e56643dbff733ac0ddddb6720f29f6182c19f4760441d838635` — 248,431 bytes
+- `m34a-insta360-m34a-dev-20260711-insta360-discovery-v1-blind-packet.json` — sha256 `ef47d84b18a49e851df3bc92d6fc85b9c2489e2ab2fa5949c79e3817a6f65fb0` — 44,514 bytes
+- `m34a-insta360-m34a-dev-20260711-insta360-discovery-v1-blind-key.json` — sha256 `e7615567f15f5e09dcc66f3289017ac24b035e7cf498cfda5c83b71924b2efd8` — 959 bytes
+- `m34a-heytea-m34a-dev-20260711-heytea-discovery-v1-blind-packet.json` — sha256 `113a441c9e9dd1030092f20258a7976e8c91bbeb5049f470a5cab08815693f6e` — 41,872 bytes
+- `m34a-heytea-m34a-dev-20260711-heytea-discovery-v1-blind-key.json` — sha256 `f76ae1c0483e405f0a6f0522f143e183ba7fa50e465f7f87f333b4d686c30fcc` — 955 bytes
+- `m34a-spend-ledger.json` — sha256 `e52781ad1d193ab8cfaa4cb73307ba25711c69ce3a1fd233a007e00c29508bc5` — 31,955 bytes
