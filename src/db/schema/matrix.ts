@@ -101,7 +101,7 @@ export const promptCells = pgTable(
     index("prompt_cells_version_intent_idx").on(t.matrixVersionId, t.intent),
     check(
       "prompt_cells_audit_resonance_shape_ck",
-      sql`(${t.intent} = 'simulation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is not null and ${t.panelPersonaKey} is not null) or (${t.intent} = 'representation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is null and ${t.panelPersonaKey} is null) or (${t.intent} not in ('simulation', 'representation') and ${t.stimulusId} is null and ${t.panelPersonaKey} is null)`,
+      sql`(${t.intent}::text = 'simulation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is not null and ${t.panelPersonaKey} is not null) or (${t.intent}::text = 'representation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is null and ${t.panelPersonaKey} is null) or (${t.intent}::text not in ('simulation', 'representation') and ${t.stimulusId} is null and ${t.panelPersonaKey} is null)`,
     ),
   ],
 );
