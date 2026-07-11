@@ -67,9 +67,17 @@ export const CATEGORY_ARCHETYPES: Record<
 };
 
 export function intentToPillar(intent: Intent): Pillar {
-  if (intent === "discovery" || intent === "consideration") return "presence";
-  if (intent === "comparison") return "position";
-  return "perception";
+  switch (intent) {
+    case "discovery":
+    case "consideration":
+      return "presence";
+    case "comparison":
+      return "position";
+    case "validation":
+    case "objection":
+    case "representation":
+      return "perception";
+  }
 }
 
 /**
@@ -78,21 +86,95 @@ export function intentToPillar(intent: Intent): Pillar {
  * from intent — PM-9 guarantees unbranded intents contain no tracked brand
  * terms at approval, so the mapping is enforceable, not aspirational.
  */
-export type PromptFrame = "unbranded" | "client_branded" | "comparative";
+export type PromptFrame =
+  | "unbranded"
+  | "client_branded"
+  | "comparative"
+  | "neutral_branded";
 
 export const PROMPT_FRAMES: Record<PromptFrame, { label: string; plants: string }> = {
   unbranded: { label: "Unbranded", plants: "nothing — no tracked brand appears in the prompt" },
   client_branded: { label: "Client-branded", plants: "the client brand (validation also names desired attributes)" },
   comparative: { label: "Comparative", plants: "the client and all competitors" },
+  neutral_branded: { label: "Neutral branded", plants: "the client brand, but no quality, attribute, or evaluation premise" },
 };
 
 export function intentToFrame(intent: Intent): PromptFrame {
   if (intent === "discovery" || intent === "consideration") return "unbranded";
   if (intent === "comparison") return "comparative";
+  if (intent === "representation") return "neutral_branded";
   return "client_branded";
 }
 
 const UNBRANDED_INTENTS: Intent[] = ["discovery", "consideration"];
+const STANDARD_AUDIT_INTENTS: Intent[] = [
+  "discovery",
+  "consideration",
+  "comparison",
+  "validation",
+  "objection",
+];
+
+export type AuditMetricFamily =
+  | "mention_rate"
+  | "recommendation_rate"
+  | "share_of_voice"
+  | "avg_first_position"
+  | "comparative_win_rate"
+  | "citation_share"
+  | "accuracy_rate"
+  | "stability_index"
+  | "sentiment_organic"
+  | "sentiment_solicited"
+  | "attribute";
+
+function intentPolicy(allowed: readonly Intent[]): Record<Intent, boolean> {
+  return Object.fromEntries(
+    (["discovery", "consideration", "comparison", "validation", "objection", "representation"] as Intent[])
+      .map((intent) => [intent, allowed.includes(intent)]),
+  ) as Record<Intent, boolean>;
+}
+
+/**
+ * D-094/D-101 wall: every emitted audit metric family declares every audit
+ * intent explicitly. Representation is allowed only for factual accuracy.
+ */
+export const METRIC_INTENT_POLICY: Record<
+  AuditMetricFamily,
+  Record<Intent, boolean>
+> = {
+  mention_rate: intentPolicy(UNBRANDED_INTENTS),
+  recommendation_rate: intentPolicy(UNBRANDED_INTENTS),
+  share_of_voice: intentPolicy(UNBRANDED_INTENTS),
+  avg_first_position: intentPolicy(UNBRANDED_INTENTS),
+  comparative_win_rate: intentPolicy(["comparison"]),
+  citation_share: intentPolicy(UNBRANDED_INTENTS),
+  accuracy_rate: intentPolicy([...STANDARD_AUDIT_INTENTS, "representation"]),
+  stability_index: intentPolicy(STANDARD_AUDIT_INTENTS),
+  sentiment_organic: intentPolicy(UNBRANDED_INTENTS),
+  sentiment_solicited: intentPolicy(["validation"]),
+  attribute: intentPolicy(STANDARD_AUDIT_INTENTS),
+};
+
+export function metricFamily(metricKey: string): AuditMetricFamily {
+  if (metricKey.startsWith("sentiment_organic_")) return "sentiment_organic";
+  if (metricKey.startsWith("sentiment_solicited_")) return "sentiment_solicited";
+  if (metricKey.startsWith("attribute_")) return "attribute";
+  if (metricKey in METRIC_INTENT_POLICY) return metricKey as AuditMetricFamily;
+  throw new Error(`No intent policy declared for metric: ${metricKey}`);
+}
+
+export function metricAllowsIntent(
+  metricKey: string,
+  intent: Intent | null,
+  intentPure = false,
+): boolean {
+  if (!intent) return false;
+  // Preserve existing transparent intent drill-downs, except that the new
+  // neutral-branded lane stays walled from every family but accuracy.
+  if (intentPure && intent !== "representation") return true;
+  return METRIC_INTENT_POLICY[metricFamily(metricKey)][intent];
+}
 
 /**
  * D-054: the intents whose samples may feed a metric's denominator at
@@ -103,19 +185,9 @@ const UNBRANDED_INTENTS: Intent[] = ["discovery", "consideration"];
  * that granularity and stay computed within their own intent.
  */
 export function metricIntentFilter(metricKey: string): Intent[] | null {
-  if (
-    metricKey === "mention_rate" ||
-    metricKey === "share_of_voice" ||
-    metricKey === "avg_first_position" ||
-    metricKey === "recommendation_rate" ||
-    metricKey === "citation_share" ||
-    metricKey.startsWith("sentiment_organic_")
-  ) {
-    return UNBRANDED_INTENTS;
-  }
-  if (metricKey === "comparative_win_rate") return ["comparison"];
-  if (metricKey.startsWith("sentiment_solicited_")) return ["validation"];
-  return null;
+  const policy = METRIC_INTENT_POLICY[metricFamily(metricKey)];
+  const allowed = (Object.keys(policy) as Intent[]).filter((intent) => policy[intent]);
+  return allowed.length === Object.keys(policy).length ? null : allowed;
 }
 
 export type DirectionOfGood = "higher" | "lower" | "neutral";

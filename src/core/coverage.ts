@@ -16,6 +16,7 @@ export const FRAME_ASPECT_LABELS: Record<FrameAspect, string> = {
   positioning: "Positioning",
   perception_attributes: "Perception attributes",
   factual_claims: "Factual claims",
+  framing_associations: "Framing associations",
   pricing: "Pricing",
   promotions: "Promotions",
 };

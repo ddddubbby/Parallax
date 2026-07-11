@@ -17,8 +17,10 @@ import {
 import { getExportCitations } from "@/db/repositories/export";
 import { forceDeletePromptCellsByIds } from "@/db/repositories/matrix.test-helpers";
 import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
+import { getCellBrandPresence } from "@/db/repositories/findings";
 import {
   auditRuns,
+  brandMentions,
   brands,
   claimsFound,
   extractions,
@@ -50,9 +52,13 @@ const created = {
   jobIds: [] as string[],
   responseIds: [] as string[],
   claimIds: [] as string[],
+  mentionIds: [] as string[],
 };
 
 afterAll(async () => {
+  for (const mentionId of created.mentionIds) {
+    await db.delete(brandMentions).where(eq(brandMentions.id, mentionId)).catch(() => {});
+  }
   for (const claimId of created.claimIds) {
     await db.delete(claimsFound).where(eq(claimsFound.id, claimId)).catch(() => {});
   }
@@ -374,6 +380,149 @@ async function createCompletedAuditCitationResponse() {
   return { run };
 }
 
+async function createRepresentationOnlyAuditResponse() {
+  const suffix = randomUUID().slice(0, 8);
+  const [project] = await db
+    .insert(projects)
+    .values({
+      name: `Representation Metric Wall ${suffix}`,
+      slug: `representation-metric-wall-${suffix}`,
+      category: "action cameras",
+      categoryArchetype: "consumer_product",
+      jobToBeDone: "test the neutral-branded metric wall",
+      status: "active",
+    })
+    .returning();
+  created.projectIds.push(project.id);
+
+  const [client] = await db
+    .insert(brands)
+    .values({ projectId: project.id, role: "client", name: "LensLoop" })
+    .returning();
+  created.brandIds.push(client.id);
+
+  const [version] = await db
+    .insert(matrixVersions)
+    .values({
+      projectId: project.id,
+      version: 1,
+      state: "approved",
+      kind: "audit",
+      cellCount: 1,
+      approvedAt: new Date(),
+    })
+    .returning();
+  created.versionIds.push(version.id);
+
+  const [cell] = await db
+    .insert(promptCells)
+    .values({
+      matrixVersionId: version.id,
+      intent: "representation",
+      personaId: null,
+      marketId: null,
+      variantKey: "a1",
+      resolvedText: "What is LensLoop?",
+      competitorOrderJson: [],
+    })
+    .returning();
+  created.cellIds.push(cell.id);
+
+  const [run] = await db
+    .insert(auditRuns)
+    .values({
+      projectId: project.id,
+      matrixVersionId: version.id,
+      runMode: "mock",
+      state: "completed",
+      repetitions: 1,
+      selectedProvidersJson: ["mock"],
+      selectedModesJson: ["grounded"],
+      plannedCalls: 1,
+      costCapUsd: "0",
+      completedAt: new Date(),
+    })
+    .returning();
+  created.runIds.push(run.id);
+
+  const [job] = await db
+    .insert(jobs)
+    .values({
+      runId: run.id,
+      cellId: cell.id,
+      providerId: "mock",
+      generationMode: "grounded",
+      repIndex: 0,
+      state: "succeeded",
+    })
+    .returning();
+  created.jobIds.push(job.id);
+
+  const [response] = await db
+    .insert(responses)
+    .values({
+      jobId: job.id,
+      runId: run.id,
+      cellId: cell.id,
+      providerId: "mock",
+      generationMode: "grounded",
+      modelVersion: "mock-representation-v1",
+      rawText: "LensLoop is a durable action-camera brand.",
+    })
+    .returning();
+  created.responseIds.push(response.id);
+
+  const [extraction] = await db
+    .insert(extractions)
+    .values({
+      responseId: response.id,
+      extractionVersion: 1,
+      state: "valid",
+      extractedJson: {
+        refusal: false,
+        citations: [
+          {
+            url: "https://planted.example/lensloop",
+            domain: "planted.example",
+            title: "Planted representation citation",
+            cited_for_brand_ids: [client.id],
+          },
+        ],
+      },
+    })
+    .returning();
+
+  const [mention] = await db
+    .insert(brandMentions)
+    .values({
+      extractionId: extraction.id,
+      brandId: client.id,
+      observedName: "LensLoop",
+      position: 1,
+      recommended: true,
+      recommendationStrength: "strong",
+      sentiment: "positive",
+      attributesJson: ["durable"],
+    })
+    .returning();
+  created.mentionIds.push(mention.id);
+
+  const [claim] = await db
+    .insert(claimsFound)
+    .values({
+      extractionId: extraction.id,
+      brandId: client.id,
+      claimText: "LensLoop makes action cameras.",
+      claimType: "company_fact",
+      extractedVerdict: "supported",
+      extractedSeverity: "none",
+    })
+    .returning();
+  created.claimIds.push(claim.id);
+
+  return { run };
+}
+
 async function createAuditResponseWithStaleMisinformationClaim() {
   const suffix = randomUUID().slice(0, 8);
   const [project] = await db
@@ -539,6 +688,32 @@ describe.skipIf(!dbUp)("dashboard audit/resonance read wall (C-12)", () => {
 
     const exported = await getExportCitations(run.id);
     expect(exported.map((row) => row.domain)).toEqual(["proof.example", "proof.example", "proof.example"]);
+  });
+
+  it("walls representation samples from every standard metric and finding except accuracy", async () => {
+    const { run } = await createRepresentationOnlyAuditResponse();
+
+    await recomputeMetrics(run.id);
+    const rows = await listMetrics(run.id);
+    expect(new Set(rows.map((row) => row.metricKey))).toEqual(new Set(["accuracy_rate"]));
+    expect(rows.every((row) => row.n === 1 && row.value === 1)).toBe(true);
+    expect(await getCitedSources(run.id)).toEqual([]);
+    expect(await getExportCitations(run.id)).toEqual([]);
+    expect(await getCellBrandPresence(run.id)).toEqual([]);
+    expect(
+      await getResponsesForMetric(
+        run.id,
+        { scopeType: "intent", scopeKey: "representation", metricKey: "mention_rate" },
+        25,
+      ),
+    ).toEqual([]);
+    expect(
+      await getResponsesForMetric(
+        run.id,
+        { scopeType: "intent", scopeKey: "representation", metricKey: "accuracy_rate" },
+        25,
+      ),
+    ).toHaveLength(1);
   });
 
   it("ignores stale misinformation claims from superseded extraction versions (D-014/C-3)", async () => {

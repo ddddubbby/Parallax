@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  type AnyPgColumn,
   check,
   index,
   integer,
@@ -86,7 +87,7 @@ export const promptCells = pgTable(
     intent: intent("intent").notNull(),
     personaId: uuid("persona_id").references(() => personas.id),
     marketId: uuid("market_id").references(() => markets.id),
-    stimulusId: uuid("stimulus_id").references(() => resonanceStimuli.id),
+    stimulusId: uuid("stimulus_id").references((): AnyPgColumn => resonanceStimuli.id),
     panelPersonaKey: text("panel_persona_key"),
     variantKey: text("variant_key").notNull(),
     resolvedText: text("resolved_text").notNull(),
@@ -100,7 +101,7 @@ export const promptCells = pgTable(
     index("prompt_cells_version_intent_idx").on(t.matrixVersionId, t.intent),
     check(
       "prompt_cells_audit_resonance_shape_ck",
-      sql`(${t.intent} = 'simulation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is not null and ${t.panelPersonaKey} is not null) or (${t.intent} <> 'simulation' and ${t.stimulusId} is null and ${t.panelPersonaKey} is null)`,
+      sql`(${t.intent} = 'simulation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is not null and ${t.panelPersonaKey} is not null) or (${t.intent} = 'representation' and ${t.personaId} is null and ${t.marketId} is null and ${t.stimulusId} is null and ${t.panelPersonaKey} is null) or (${t.intent} not in ('simulation', 'representation') and ${t.stimulusId} is null and ${t.panelPersonaKey} is null)`,
     ),
   ],
 );

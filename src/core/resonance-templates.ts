@@ -36,7 +36,7 @@ export const RESONANCE_STUDY_TEMPLATES: ResonanceStudyTemplate[] = [
     guidance:
       "Use this when the audit found a weak or inaccurate AI framing. Keep the measured variant tied to stored evidence, then test corrected language before changing market-facing material.",
     default: true,
-    requiredAspect: "perception_attributes",
+    requiredAspect: "framing_associations",
     stimuli: [
       {
         kind: "measured_ai",

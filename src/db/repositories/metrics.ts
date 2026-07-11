@@ -19,7 +19,7 @@ import { pmfMean } from "@/core/ssr";
 import { stabilityIndex, topTrackedBrandSet, type ExtractedBrand } from "@/core/extraction";
 import { containsPhrase, normalizePhrase } from "@/core/intake";
 import type { Intent } from "@/core/matrix";
-import { metricIntentFilter } from "@/core/semantic";
+import { metricAllowsIntent } from "@/core/semantic";
 import { db } from "../client";
 import {
   attributes as attributesTable,
@@ -84,10 +84,9 @@ function frameFilter<T extends { intent: Intent | null }>(
   metricKey: string,
   scope: MetricScope,
 ): T[] {
-  if (isIntentPureScope(scope)) return items;
-  const allowed = metricIntentFilter(metricKey);
-  if (!allowed) return items;
-  return items.filter((s) => s.intent !== null && allowed.includes(s.intent));
+  return items.filter((sample) =>
+    metricAllowsIntent(metricKey, sample.intent, isIntentPureScope(scope)),
+  );
 }
 
 /** C-3: metrics are disposable — recompute deletes and rebuilds for the run. */
@@ -155,8 +154,8 @@ export async function recomputeMetrics(runId: string) {
   const citationSamples: Array<{ clientCitationCount: number; trackedCitationCount: number; scopes: MetricScope[]; intent: Intent | null; grounded: boolean }> = [];
   const clientSentiments: Array<{ sentiment: Sentiment; scopes: MetricScope[]; intent: Intent | null }> = [];
   const clientAttributeSets: Array<{ attrs: string[]; scopes: MetricScope[]; intent: Intent | null; promptText: string }> = [];
-  const claimVerdicts: Array<{ verdict: string; scopes: MetricScope[] }> = [];
-  const stabilityByCell = new Map<string, Set<string>[]>();
+  const claimVerdicts: Array<{ verdict: string; scopes: MetricScope[]; intent: Intent | null }> = [];
+  const stabilityByCell = new Map<string, { intent: Intent; sets: Set<string>[] }>();
 
   // CS-1 per-brand accumulators (D-054 frames applied per brand). Presence
   // metrics count unbranded samples only; comparative win rate counts
@@ -233,14 +232,14 @@ export async function recomputeMetrics(runId: string) {
     for (const claim of claims) {
       const verdict = claim.operatorVerdict ?? claim.extractedVerdict;
       if (verdict === "not_checked" || verdict === "ambiguous") continue;
-      claimVerdicts.push({ verdict, scopes });
+      claimVerdicts.push({ verdict, scopes, intent });
     }
 
-    if (cell) {
+    if (cell && intent && metricAllowsIntent("stability_index", intent)) {
       const key = `${cell.id}|${e.providerId}|${e.generationMode}`;
       const set = topTrackedBrandSet(mentions.map(toExtractedBrandShape));
-      if (!stabilityByCell.has(key)) stabilityByCell.set(key, []);
-      stabilityByCell.get(key)!.push(set);
+      if (!stabilityByCell.has(key)) stabilityByCell.set(key, { intent, sets: [] });
+      stabilityByCell.get(key)!.sets.push(set);
     }
 
     // CS-1: per-brand tallies under D-054 frames.
@@ -285,10 +284,14 @@ export async function recomputeMetrics(runId: string) {
     // D-054: presence/position rates count only samples whose prompts could
     // not have planted the signal (frameFilter is a no-op at intent-pure
     // scopes, which stay as transparent per-intent drill-down rows).
-    push(scope, "mention_rate", mentionRate(frameFilter(inScope, "mention_rate", scope)));
-    push(scope, "recommendation_rate", recommendationRate(frameFilter(inScope, "recommendation_rate", scope)));
-    push(scope, "share_of_voice", shareOfVoice(frameFilter(inScope, "share_of_voice", scope)));
-    push(scope, "avg_first_position", avgFirstPosition(frameFilter(inScope, "avg_first_position", scope)));
+    const mentionSamples = frameFilter(inScope, "mention_rate", scope);
+    if (mentionSamples.length > 0) push(scope, "mention_rate", mentionRate(mentionSamples));
+    const recommendationSamples = frameFilter(inScope, "recommendation_rate", scope);
+    if (recommendationSamples.length > 0) push(scope, "recommendation_rate", recommendationRate(recommendationSamples));
+    const voiceSamples = frameFilter(inScope, "share_of_voice", scope);
+    if (voiceSamples.length > 0) push(scope, "share_of_voice", shareOfVoice(voiceSamples));
+    const positionSamples = frameFilter(inScope, "avg_first_position", scope);
+    if (positionSamples.length > 0) push(scope, "avg_first_position", avgFirstPosition(positionSamples));
 
     // Comparative win rate exists only at cross-intent scopes — at an
     // intent-pure scope it would either duplicate (intent=comparison) or
@@ -309,8 +312,11 @@ export async function recomputeMetrics(runId: string) {
     ).filter((s) => s.grounded);
     if (citIn.length > 0) push(scope, "citation_share", citationShare(citIn));
 
-    const verdictsIn = claimVerdicts
-      .filter((v) => v.scopes.some((x) => sameScope(x, scope)))
+    const verdictsIn = frameFilter(
+      claimVerdicts.filter((v) => v.scopes.some((x) => sameScope(x, scope))),
+      "accuracy_rate",
+      scope,
+    )
       .map((v) => v.verdict as "supported" | "contradicted" | "outdated" | "unsupported");
     if (verdictsIn.length > 0) push(scope, "accuracy_rate", accuracyRate(verdictsIn));
 
@@ -335,7 +341,11 @@ export async function recomputeMetrics(runId: string) {
     // a planted attribute (validation's {attribute_list}, or an operator
     // edit) is not perception. Matching runs against stored resolved text,
     // normalized the same way PM-9 normalizes brand terms.
-    const attrSamplesIn = clientAttributeSets.filter((s) => s.scopes.some((x) => sameScope(x, scope)));
+    const attrSamplesIn = frameFilter(
+      clientAttributeSets.filter((s) => s.scopes.some((x) => sameScope(x, scope))),
+      "attribute_placeholder",
+      scope,
+    );
     if (attrSamplesIn.length > 0) {
       for (const attr of projectAttributes) {
         // Word-boundary match so a short attribute isn't over-excluded by
@@ -353,7 +363,7 @@ export async function recomputeMetrics(runId: string) {
   // stability groups, so the scope_key must carry the full grouping key,
   // not just the cell id, or a second mode collides on the unique index.
   const perCellValues: number[] = [];
-  for (const [key, sets] of stabilityByCell) {
+  for (const [key, { sets }] of stabilityByCell) {
     const value = stabilityIndex(sets);
     perCellValues.push(value);
     rows.push({

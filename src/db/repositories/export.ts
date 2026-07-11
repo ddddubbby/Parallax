@@ -1,6 +1,8 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
+import type { Intent } from "@/core/matrix";
+import { metricAllowsIntent } from "@/core/semantic";
 import { db } from "../client";
-import { brands, extractions, metrics, responses } from "../schema";
+import { auditRuns, brands, extractions, metrics, promptCells, responses } from "../schema";
 import { getEligibleExtractionsForRun } from "./extraction";
 
 /** EX-3: raw responses for a run — the base evidence every other export trace back to (C-3). */
@@ -88,9 +90,18 @@ export async function getExportBrandMetrics(runId: string) {
 
 /** Citations are embedded per-extraction JSON, not a separate table — flatten them for export. */
 export async function getExportCitations(runId: string) {
-  const extractionRows = await getEligibleExtractionsForRun(runId);
+  const [extractionRows, cellRows] = await Promise.all([
+    getEligibleExtractionsForRun(runId),
+    db
+      .select({ id: promptCells.id, intent: promptCells.intent })
+      .from(promptCells)
+      .innerJoin(auditRuns, eq(auditRuns.matrixVersionId, promptCells.matrixVersionId))
+      .where(eq(auditRuns.id, runId)),
+  ]);
+  const intentByCell = new Map(cellRows.map((cell) => [cell.id, cell.intent as Intent]));
   const rows: Array<{ responseId: string; url: string; domain: string; title: string | null; citedForBrandIds: string }> = [];
   for (const ext of extractionRows) {
+    if (!metricAllowsIntent("citation_share", intentByCell.get(ext.cellId) ?? null)) continue;
     const payload = ext.extractedJson as { citations?: Array<{ url: string; domain: string; title: string | null; cited_for_brand_ids: string[] }> } | null;
     for (const c of payload?.citations ?? []) {
       rows.push({

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  type AnyPgColumn,
   check,
   index,
   integer,
@@ -12,6 +13,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { projects } from "./intake";
+import { framingEvidenceSnapshots } from "./framing";
 
 export const resonanceStudies = pgTable(
   "resonance_studies",
@@ -47,6 +49,9 @@ export const resonanceStimuli = pgTable(
     label: text("label").notNull(),
     body: text("body").notNull(),
     evidenceResponseIdsJson: jsonb("evidence_response_ids_json").notNull().default([]),
+    framingEvidenceSnapshotId: uuid("framing_evidence_snapshot_id").references(
+      (): AnyPgColumn => framingEvidenceSnapshots.id,
+    ),
     position: integer("position").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

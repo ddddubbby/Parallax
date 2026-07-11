@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  type AnyPgColumn,
   index,
   integer,
   jsonb,
@@ -75,7 +76,7 @@ export const jobs = pgTable(
       .references(() => auditRuns.id),
     cellId: uuid("cell_id")
       .notNull()
-      .references(() => promptCells.id),
+      .references((): AnyPgColumn => promptCells.id),
     providerId: providerId("provider_id").notNull(),
     generationMode: generationMode("generation_mode").notNull(),
     repIndex: integer("rep_index").notNull(),
@@ -114,13 +115,13 @@ export const responses = pgTable(
     jobId: uuid("job_id")
       .notNull()
       .unique()
-      .references(() => jobs.id),
+      .references((): AnyPgColumn => jobs.id),
     runId: uuid("run_id")
       .notNull()
       .references(() => auditRuns.id),
     cellId: uuid("cell_id")
       .notNull()
-      .references(() => promptCells.id),
+      .references((): AnyPgColumn => promptCells.id),
     providerId: providerId("provider_id").notNull(),
     generationMode: generationMode("generation_mode").notNull(),
     modelVersion: text("model_version").notNull(),

@@ -124,6 +124,7 @@ export default async function MatrixPage({
         versions={versions}
         packCoverage={packCoverage}
         activeCompetitorCount={inputs.competitors.length}
+        supportsFramingEvidence={inputs.project.categoryArchetype !== "b2b"}
         staleDraft={staleDraft}
         view={view}
         focus={

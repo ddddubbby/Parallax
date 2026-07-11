@@ -14,6 +14,7 @@ export type FrameAspect =
   | "positioning"
   | "perception_attributes"
   | "factual_claims"
+  | "framing_associations"
   | "pricing"
   | "promotions";
 
@@ -24,6 +25,7 @@ export const DEFAULT_FRAME_ASPECTS: Record<Intent, FrameAspect[]> = {
   comparison: ["positioning"],
   validation: ["perception_attributes", "factual_claims"],
   objection: ["perception_attributes"],
+  representation: ["framing_associations"],
 };
 
 export interface PromptTemplateSeed {
@@ -113,6 +115,11 @@ export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "consumer_product", intent: "objection", variantKey: "v1", text: "What concerns should a {persona} have before choosing {client_brand}?" },
   { archetype: "consumer_product", intent: "objection", variantKey: "v2", text: "What do people most often criticize about {client_brand}?" },
   { archetype: "consumer_product", intent: "objection", variantKey: "v3", text: "Why might a {persona} decide not to choose {client_brand}?" },
+  { archetype: "consumer_product", intent: "representation", variantKey: "a1", text: "What is {client_brand}?", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_product", intent: "representation", variantKey: "a2", text: "Describe {client_brand}.", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_product", intent: "representation", variantKey: "a3", text: "Tell me about {client_brand}.", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_product", intent: "representation", variantKey: "a4", text: "Give an overview of {client_brand}.", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_product", intent: "representation", variantKey: "a5", text: "Explain {client_brand}.", frameAspects: ["framing_associations"] },
 
   { archetype: "consumer_venue", intent: "discovery", variantKey: "v1", text: "Where should a {persona} in {market} go for {job_to_be_done}?" },
   { archetype: "consumer_venue", intent: "discovery", variantKey: "v2", text: "What {category} places should a {persona} in {market} consider?" },
@@ -129,6 +136,11 @@ export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "consumer_venue", intent: "objection", variantKey: "v1", text: "What concerns should a {persona} have before choosing {client_brand}?" },
   { archetype: "consumer_venue", intent: "objection", variantKey: "v2", text: "What do visitors most often criticize about {client_brand}?" },
   { archetype: "consumer_venue", intent: "objection", variantKey: "v3", text: "Why might a {persona} decide not to go to {client_brand}?" },
+  { archetype: "consumer_venue", intent: "representation", variantKey: "a1", text: "What is {client_brand}?", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_venue", intent: "representation", variantKey: "a2", text: "Describe {client_brand}.", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_venue", intent: "representation", variantKey: "a3", text: "Tell me about {client_brand}.", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_venue", intent: "representation", variantKey: "a4", text: "Give an overview of {client_brand}.", frameAspects: ["framing_associations"] },
+  { archetype: "consumer_venue", intent: "representation", variantKey: "a5", text: "Explain {client_brand}.", frameAspects: ["framing_associations"] },
 
   // M23 (D-079): opt-in price/promo variants, active:false by default so the
   // default 40-cell allocation, golden dataset, and mock-e2e expectations

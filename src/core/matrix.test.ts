@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   allocateMatrix,
+  ALLOCATED_INTENT_ORDER,
   type BrandTerms,
   type CellPlan,
   findBrandTerms,
@@ -8,10 +9,12 @@ import {
   intentQuotas,
   type MatrixContext,
   renderTemplate,
+  renderRepresentationTemplate,
   scanUnbrandedCells,
   shuffle,
   type TemplateInput,
 } from "./matrix";
+import { TEMPLATE_SEED } from "./prompt-templates";
 
 // Deterministic RNG for PM-8 tests.
 function seededRng(seed = 42): () => number {
@@ -70,6 +73,7 @@ describe("intentQuotas (PM-2)", () => {
       validation: 8,
       objection: 6,
       discovery: 4,
+      representation: 0,
     });
   });
 
@@ -152,6 +156,61 @@ describe("allocateMatrix", () => {
     expect(allocateMatrix(TEMPLATES, [], markets(1), CTX)).toEqual([]);
     expect(allocateMatrix(TEMPLATES, personas(1), [], CTX)).toEqual([]);
   });
+
+  it("appends each fixed representation prompt once without persona or market", () => {
+    const representation: TemplateInput[] = [
+      ["a1", "What is {client_brand}?"],
+      ["a2", "Describe {client_brand}."],
+      ["a3", "Tell me about {client_brand}."],
+      ["a4", "Give an overview of {client_brand}."],
+      ["a5", "Explain {client_brand}."],
+    ].map(([variantKey, templateText]) => ({
+      intent: "representation" as const,
+      variantKey,
+      templateText,
+    }));
+    const cells = allocateMatrix(
+      [...TEMPLATES, ...representation],
+      personas(2),
+      markets(2),
+      CTX,
+      { rng: seededRng() },
+    );
+    expect(cells).toHaveLength(45);
+    expect(cells.filter((cell) => cell.intent !== "representation")).toHaveLength(40);
+    expect(cells.filter((cell) => cell.intent === "representation")).toEqual(
+      representation.map((template) => ({
+        intent: "representation",
+        personaId: null,
+        marketId: null,
+        variantKey: template.variantKey,
+        resolvedText: renderRepresentationTemplate(template.templateText, "LedgerFox"),
+        competitorOrder: [],
+      })),
+    );
+    expect(ALLOCATED_INTENT_ORDER).not.toContain("representation");
+  });
+
+  it("allocates 45 cells for seeded consumer packs and 40 for B2B", () => {
+    const templatesFor = (archetype: "b2b" | "consumer_product") =>
+      TEMPLATE_SEED.filter(
+        (template) => template.archetype === archetype && template.active !== false,
+      ).map((template) => ({
+        intent: template.intent,
+        variantKey: template.variantKey,
+        templateText: template.text,
+      }));
+    expect(
+      allocateMatrix(templatesFor("consumer_product"), personas(2), markets(2), CTX, {
+        rng: seededRng(),
+      }),
+    ).toHaveLength(45);
+    expect(
+      allocateMatrix(templatesFor("b2b"), personas(2), markets(2), CTX, {
+        rng: seededRng(),
+      }),
+    ).toHaveLength(40);
+  });
 });
 
 describe("renderTemplate (PM-1)", () => {
@@ -178,6 +237,17 @@ describe("renderTemplate (PM-1)", () => {
       competitorOrder: [],
     });
     expect(text).toBe("VP wants {unknown_thing}");
+  });
+});
+
+describe("renderRepresentationTemplate (M34A FE-1)", () => {
+  it("replaces only the client brand and rejects any other placeholder", () => {
+    expect(renderRepresentationTemplate("What is {client_brand}?", "LedgerFox")).toBe(
+      "What is LedgerFox?",
+    );
+    expect(() =>
+      renderRepresentationTemplate("Describe {client_brand} in {market}.", "LedgerFox"),
+    ).toThrow(/only use \{client_brand\}/i);
   });
 });
 
@@ -216,6 +286,7 @@ describe("scanUnbrandedCells (PM-9)", () => {
         { id: "b", intent: "comparison", resolvedText: "LedgerFox vs SpendPilot" },
         { id: "c", intent: "consideration", resolvedText: "Best expense tools?" },
         { id: "d", intent: "consideration", resolvedText: "Is spendpilot a fit?" },
+        { id: "e", intent: "representation", resolvedText: "What is LedgerFox?" },
       ],
       brands,
     );

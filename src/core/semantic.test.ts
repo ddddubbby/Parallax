@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TEMPLATE_SEED } from "./prompt-templates";
-import { INTENT_ORDER } from "./matrix";
+import { ALLOCATED_INTENT_ORDER, INTENT_ORDER } from "./matrix";
 import {
   CATEGORY_ARCHETYPES,
   METRIC_GLOSSARY,
@@ -8,6 +8,7 @@ import {
   intentToFrame,
   intentToPillar,
   metricIntentFilter,
+  metricAllowsIntent,
   PILLAR_ORDER,
   pillarMetricLabels,
   resolveGlossary,
@@ -22,6 +23,7 @@ describe("semantic layer (M11)", () => {
       validation: "perception",
       objection: "perception",
       discovery: "presence",
+      representation: "perception",
     });
   });
 
@@ -37,14 +39,34 @@ describe("semantic layer (M11)", () => {
     // active:false) are additional, asserted separately below so this
     // count keeps proving the original PRD 8.4 seed contract.
     for (const archetype of Object.keys(CATEGORY_ARCHETYPES) as CategoryArchetype[]) {
-      for (const intent of INTENT_ORDER) {
+      for (const intent of ALLOCATED_INTENT_ORDER) {
         const variants = TEMPLATE_SEED.filter(
           (t) => t.archetype === archetype && t.intent === intent && t.active !== false,
         );
         expect(variants, `${archetype}/${intent}`).toHaveLength(3);
       }
     }
-    expect(TEMPLATE_SEED.filter((t) => t.active !== false)).toHaveLength(45);
+    expect(TEMPLATE_SEED.filter((t) => t.active !== false)).toHaveLength(55);
+    for (const archetype of ["consumer_product", "consumer_venue"] as const) {
+      const representation = TEMPLATE_SEED.filter(
+        (template) => template.archetype === archetype && template.intent === "representation",
+      );
+      expect(representation.map((template) => template.variantKey)).toEqual([
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+      ]);
+      expect(representation.every((template) =>
+        template.frameAspects?.includes("framing_associations"),
+      )).toBe(true);
+    }
+    expect(
+      TEMPLATE_SEED.filter(
+        (template) => template.archetype === "b2b" && template.intent === "representation",
+      ),
+    ).toHaveLength(0);
   });
 
   it("seeds opt-in price/promo variants inactive by default (D-016 risk mitigation)", () => {
@@ -58,7 +80,14 @@ describe("semantic layer (M11)", () => {
         expect(t.intent, `${archetype} opt-in templates live within an existing intent`).toBe("comparison");
       }
     }
-    expect(TEMPLATE_SEED).toHaveLength(51);
+    expect(TEMPLATE_SEED).toHaveLength(61);
+  });
+
+  it("keeps every seed natural key unique for seed-twice idempotency", () => {
+    const keys = TEMPLATE_SEED.map(
+      (template) => `${template.archetype}|${template.intent}|${template.variantKey}`,
+    );
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("keeps consumer prompt packs out of B2B procurement idiom (AT-3)", () => {
@@ -83,6 +112,7 @@ describe("prompt-frame rule (D-054)", () => {
     expect(intentToFrame("comparison")).toBe("comparative");
     expect(intentToFrame("validation")).toBe("client_branded");
     expect(intentToFrame("objection")).toBe("client_branded");
+    expect(intentToFrame("representation")).toBe("neutral_branded");
   });
 
   it("presence and position rates count only intents that cannot plant their signal", () => {
@@ -94,10 +124,27 @@ describe("prompt-frame rule (D-054)", () => {
     expect(metricIntentFilter("sentiment_solicited_negative")).toEqual(["validation"]);
   });
 
-  it("frame-agnostic metrics (unplantable signals) are unfiltered", () => {
-    for (const key of ["accuracy_rate", "stability_index", "attribute_low cost"]) {
-      expect(metricIntentFilter(key), key).toBeNull();
+  it("allows representation only for factual accuracy, including intent-pure scopes", () => {
+    expect(metricIntentFilter("accuracy_rate")).toBeNull();
+    expect(metricIntentFilter("stability_index")).not.toContain("representation");
+    expect(metricIntentFilter("attribute_low cost")).not.toContain("representation");
+    for (const key of [
+      "mention_rate",
+      "recommendation_rate",
+      "share_of_voice",
+      "avg_first_position",
+      "comparative_win_rate",
+      "citation_share",
+      "stability_index",
+      "sentiment_organic_positive",
+      "sentiment_solicited_positive",
+      "attribute_low cost",
+    ]) {
+      expect(metricAllowsIntent(key, "representation"), key).toBe(false);
+      expect(metricAllowsIntent(key, "representation", true), `${key} intent-pure`).toBe(false);
     }
+    expect(metricAllowsIntent("accuracy_rate", "representation")).toBe(true);
+    expect(metricAllowsIntent("accuracy_rate", "representation", true)).toBe(true);
   });
 
   it("objection intent feeds no sentiment group (solicited-negative by design)", () => {

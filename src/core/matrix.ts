@@ -14,16 +14,22 @@ export type Intent =
   | "consideration"
   | "comparison"
   | "validation"
-  | "objection";
+  | "objection"
+  | "representation";
 
 export type CellIntent = Intent | "simulation";
 
-export const INTENT_ORDER: Intent[] = [
+export const ALLOCATED_INTENT_ORDER = [
   "comparison",
   "consideration",
   "validation",
   "objection",
   "discovery",
+] as const satisfies readonly Intent[];
+
+export const INTENT_ORDER: Intent[] = [
+  ...ALLOCATED_INTENT_ORDER,
+  "representation",
 ];
 
 const INTENT_SET = new Set<string>(INTENT_ORDER);
@@ -66,8 +72,8 @@ export interface MatrixContext {
 
 export interface CellPlan {
   intent: Intent;
-  personaId: string;
-  marketId: string;
+  personaId: string | null;
+  marketId: string | null;
   variantKey: string;
   resolvedText: string;
   competitorOrder: string[];
@@ -106,13 +112,25 @@ export function renderTemplate(
   );
 }
 
+/** M34A FE-1: representation prompts interpolate the client brand only. */
+export function renderRepresentationTemplate(
+  templateText: string,
+  clientBrand: string,
+): string {
+  const rendered = templateText.replaceAll("{client_brand}", clientBrand);
+  if (/\{\w+\}/.test(rendered)) {
+    throw new Error("Representation templates may only use {client_brand}");
+  }
+  return rendered;
+}
+
 /**
  * PM-2 quotas scaled to the target with largest-remainder rounding.
  * At the default 40-cell target this returns the PM-2 table exactly.
  */
 export function intentQuotas(target: number): Record<Intent, number> {
   const capped = Math.min(target, MAX_CELLS_PER_RUN);
-  const shares = INTENT_ORDER.map((intent) => ({
+  const shares = ALLOCATED_INTENT_ORDER.map((intent) => ({
     intent,
     exact: (DEFAULT_INTENT_ALLOCATION[intent] / DEFAULT_MATRIX_CELLS) * capped,
   }));
@@ -128,7 +146,10 @@ export function intentQuotas(target: number): Record<Intent, number> {
     quotas.set(s.intent, (quotas.get(s.intent) ?? 0) + 1);
     remaining--;
   }
-  return Object.fromEntries(quotas) as Record<Intent, number>;
+  return {
+    ...Object.fromEntries(quotas),
+    representation: 0,
+  } as Record<Intent, number>;
 }
 
 interface Combo {
@@ -174,12 +195,18 @@ export function allocateMatrix(
   ctx: MatrixContext,
   opts: { target?: number; rng?: () => number } = {},
 ): CellPlan[] {
-  const target = Math.min(opts.target ?? DEFAULT_MATRIX_CELLS, MAX_CELLS_PER_RUN);
+  const representationTemplates = templates
+    .filter((t) => t.intent === "representation")
+    .sort((a, b) => a.variantKey.localeCompare(b.variantKey));
+  const target = Math.min(
+    opts.target ?? DEFAULT_MATRIX_CELLS,
+    MAX_CELLS_PER_RUN - representationTemplates.length,
+  );
   const rng = opts.rng ?? Math.random;
   if (personas.length === 0 || markets.length === 0) return [];
 
   const variantsByIntent = new Map<Intent, TemplateInput[]>();
-  for (const intent of INTENT_ORDER) {
+  for (const intent of ALLOCATED_INTENT_ORDER) {
     variantsByIntent.set(
       intent,
       templates
@@ -190,7 +217,7 @@ export function allocateMatrix(
 
   const quotas = intentQuotas(target);
   const queues = new Map<Intent, Combo[]>();
-  for (const intent of INTENT_ORDER) {
+  for (const intent of ALLOCATED_INTENT_ORDER) {
     const variants = variantsByIntent.get(intent) ?? [];
     queues.set(
       intent,
@@ -200,7 +227,7 @@ export function allocateMatrix(
     );
   }
 
-  const taken = new Map<Intent, Combo[]>(INTENT_ORDER.map((i) => [i, []]));
+  const taken = new Map<Intent, Combo[]>(ALLOCATED_INTENT_ORDER.map((i) => [i, []]));
   const takeFrom = (intent: Intent, count: number): number => {
     const queue = queues.get(intent) ?? [];
     const grabbed = queue.splice(0, count);
@@ -209,14 +236,14 @@ export function allocateMatrix(
   };
 
   let total = 0;
-  for (const intent of INTENT_ORDER) {
+  for (const intent of ALLOCATED_INTENT_ORDER) {
     total += takeFrom(intent, quotas[intent]);
   }
   // PM-11: redistribute shortfall to intents that still have combos.
-  let guard = INTENT_ORDER.length * MAX_CELLS_PER_RUN;
+  let guard = ALLOCATED_INTENT_ORDER.length * MAX_CELLS_PER_RUN;
   while (total < target && guard-- > 0) {
     let progressed = false;
-    for (const intent of INTENT_ORDER) {
+    for (const intent of ALLOCATED_INTENT_ORDER) {
       if (total >= target) break;
       if (takeFrom(intent, 1) === 1) {
         total++;
@@ -228,7 +255,7 @@ export function allocateMatrix(
 
   const cells: CellPlan[] = [];
   const competitorNames = ctx.competitors.map((c) => c.name);
-  for (const intent of INTENT_ORDER) {
+  for (const intent of ALLOCATED_INTENT_ORDER) {
     const variants = variantsByIntent.get(intent) ?? [];
     for (const combo of taken.get(intent) ?? []) {
       const persona = personas[combo.personaIdx];
@@ -250,6 +277,19 @@ export function allocateMatrix(
         competitorOrder,
       });
     }
+  }
+  for (const template of representationTemplates) {
+    cells.push({
+      intent: "representation",
+      personaId: null,
+      marketId: null,
+      variantKey: template.variantKey,
+      resolvedText: renderRepresentationTemplate(
+        template.templateText,
+        ctx.clientBrand.name,
+      ),
+      competitorOrder: [],
+    });
   }
   return cells.slice(0, MAX_CELLS_PER_RUN);
 }

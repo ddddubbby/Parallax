@@ -10,6 +10,7 @@ import {
   type Intent,
   isAuditIntent,
   type MatrixContext,
+  renderRepresentationTemplate,
   renderTemplate,
   scanUnbrandedCells,
   shuffle,
@@ -130,6 +131,36 @@ export async function addCell(
       .filter((c) => c.intent === intent)
       .map((c) => `${c.personaId}|${c.marketId}|${c.variantKey}`),
   );
+  if (intent === "representation") {
+    const template = variants.find(
+      (candidate) =>
+        !used.has(`null|null|${candidate.variantKey}`),
+    );
+    if (!template) {
+      return { ok: false, error: "All fixed representation prompts are already present" };
+    }
+    try {
+      await insertCell(
+        versionId,
+        {
+          intent,
+          personaId: null,
+          marketId: null,
+          variantKey: template.variantKey,
+          resolvedText: renderRepresentationTemplate(
+            template.templateText,
+            loaded.ctx.clientBrand.name,
+          ),
+          competitorOrder: [],
+        },
+        projectId,
+      );
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Add cell failed" };
+    }
+    revalidatePath(`/projects/${projectId}/matrix`);
+    return { ok: true };
+  }
   for (const persona of loaded.personas) {
     for (const market of loaded.markets) {
       for (const template of variants) {
@@ -173,6 +204,12 @@ export async function saveCellText(
   if (!validIds(projectId, versionId, cellId)) return { ok: false, error: "Invalid id" };
   const text = resolvedText.trim();
   if (!text) return { ok: false, error: "Prompt text cannot be empty" };
+  const existing = await getVersionWithCells(versionId, projectId);
+  const cell = existing?.cells.find((candidate) => candidate.id === cellId);
+  if (!cell) return { ok: false, error: "Cell not found in this version" };
+  if (cell.intent === "representation") {
+    return { ok: false, error: "Representation prompts are fixed by the pinned protocol" };
+  }
   try {
     const updated = await updateCellText(versionId, cellId, text, projectId);
     if (updated === 0) return { ok: false, error: "Cell not found in this version" };
@@ -194,6 +231,10 @@ export async function regenerateCell(
   const existing = await getVersionWithCells(versionId, projectId);
   const cell = existing?.cells.find((c) => c.id === cellId);
   if (!loaded || !existing || !cell) return { ok: false, error: "Not found" };
+
+  if (cell.intent === "representation") {
+    return { ok: false, error: "Representation prompts are fixed by the pinned protocol" };
+  }
 
   if (cell.intent === "comparison" && loaded.ctx.competitors.length === 0)
     return { ok: false, error: NO_ACTIVE_COMPETITORS_ERROR };
@@ -248,6 +289,12 @@ export async function removeCell(
   cellId: string,
 ): Promise<ActionResult> {
   if (!validIds(projectId, versionId, cellId)) return { ok: false, error: "Invalid id" };
+  const existing = await getVersionWithCells(versionId, projectId);
+  const cell = existing?.cells.find((candidate) => candidate.id === cellId);
+  if (!cell) return { ok: false, error: "Cell not found" };
+  if (cell.intent === "representation") {
+    return { ok: false, error: "Representation prompts are fixed by the pinned protocol" };
+  }
   try {
     const deleted = await deleteCell(versionId, cellId, projectId);
     if (deleted === 0) return { ok: false, error: "Cell not found in this version" };

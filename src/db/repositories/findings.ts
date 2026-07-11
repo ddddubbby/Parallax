@@ -35,7 +35,7 @@ export async function getCellBrandPresence(runId: string): Promise<CellBrandPres
   const groups = new Map<string, { cellId: string; intent: string; samples: typeof allMentions[] }>();
   for (const e of eligible) {
     const cell = cellById.get(e.cellId);
-    if (!cell) continue;
+    if (!cell || cell.intent === "representation") continue;
     const key = `${e.cellId}|${e.generationMode}`;
     if (!groups.has(key)) groups.set(key, { cellId: e.cellId, intent: cell.intent, samples: [] });
     groups.get(key)!.samples.push(mentionsByExtraction.get(e.extractionId) ?? []);

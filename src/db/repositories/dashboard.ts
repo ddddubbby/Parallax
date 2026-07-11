@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { containsPhrase } from "@/core/intake";
 import type { Intent } from "@/core/matrix";
-import { metricIntentFilter } from "@/core/semantic";
+import { metricAllowsIntent } from "@/core/semantic";
 import { db } from "../client";
 import {
   auditRuns,
@@ -193,15 +193,21 @@ export async function reviewClaim(
 export async function getCitedSources(runId: string) {
   const run = await getRunForDashboard(runId);
   if (!run) return [];
-  const [eligible, projectBrands] = await Promise.all([
+  const [eligible, projectBrands, cellRows] = await Promise.all([
     getEligibleExtractionsForRun(runId),
     db.select({ id: brands.id, role: brands.role }).from(brands).where(eq(brands.projectId, run.projectId)),
+    db
+      .select({ id: promptCells.id, intent: promptCells.intent })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, run.matrixVersionId)),
   ]);
+  const intentByCell = new Map(cellRows.map((cell) => [cell.id, cell.intent as Intent]));
   const clientBrandId = projectBrands.find((brand) => brand.role === "client")?.id ?? null;
   const competitorBrandIds = new Set(projectBrands.filter((brand) => brand.role === "competitor").map((brand) => brand.id));
   const domainCounts = new Map<string, { domain: string; total: number; citesClient: number; citesCompetitor: number; responseIds: Set<string> }>();
 
   for (const e of eligible) {
+    if (!metricAllowsIntent("citation_share", intentByCell.get(e.cellId) ?? null)) continue;
     const payload = e.extractedJson as {
       citations?: Array<{ domain: string; cited_for_brand_ids: string[] }>;
     } | null;
@@ -330,7 +336,6 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
   // exemption, same grounded gate for citations, same planted-attribute
   // exclusion. Evidence that doesn't match the number is worse than none.
   const intentPure = filter.scopeType === "intent" || filter.scopeType === "intent_persona";
-  const allowedIntents = intentPure ? null : metricIntentFilter(filter.metricKey);
   const plantedAttribute = filter.metricKey.startsWith("attribute_")
     ? filter.metricKey.slice("attribute_".length)
     : null;
@@ -339,7 +344,7 @@ export async function getResponsesForMetric(runId: string, filter: DrilldownFilt
     .filter((e) => eligibleMatchesDrilldownScope(e, cellById.get(e.cellId), filter))
     .filter((e) => {
       const cell = cellById.get(e.cellId);
-      if (allowedIntents && !(cell && allowedIntents.includes(cell.intent as Intent))) return false;
+      if (!metricAllowsIntent(filter.metricKey, (cell?.intent as Intent | undefined) ?? null, intentPure)) return false;
       if (filter.metricKey === "citation_share" && e.generationMode !== "grounded") return false;
       // Word-boundary match, same as recomputeMetrics (audit finding).
       if (plantedAttribute && containsPhrase(cell?.resolvedText ?? "", plantedAttribute)) return false;

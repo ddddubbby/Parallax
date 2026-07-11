@@ -34,12 +34,12 @@ describe("pack coverage contract (M23/D-079)", () => {
     expect(priceResult.cellCount).toBe(1);
   });
 
-  it("today's default 45-template matrix covers ai_framing_repair and message_claim_variants but not price/promo", () => {
+  it("a consumer matrix covers framing repair and message claims but not price/promo", () => {
     // Reproduces the verified gap from LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md
     // 2c using the real default-active template set (no opt-in price/promo
     // templates activated) across all five intents for one archetype.
     const defaultAspects = TEMPLATE_SEED.filter(
-      (t) => t.archetype === "b2b" && t.active !== false,
+      (t) => t.archetype === "consumer_product" && t.active !== false,
     ).map((t) => frameAspectsForTemplate(t));
     const counts = countAspects(defaultAspects);
     const results = evaluatePackCoverage(counts);

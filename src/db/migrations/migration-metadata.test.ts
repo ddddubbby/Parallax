@@ -60,4 +60,36 @@ describe("migration metadata", () => {
     expect(snapshot).toContain("matrix_versions_kind_study_ck");
     expect(snapshot).toContain("prompt_cells_audit_resonance_shape_ck");
   });
+
+  it("splits M34A enum creation from every use of representation", () => {
+    const migrationsDir = join(process.cwd(), "src", "db", "migrations");
+    const enumSql = readFileSync(
+      join(migrationsDir, "0013_add_representation_intent.sql"),
+      "utf8",
+    );
+    const structureSql = readFileSync(
+      join(migrationsDir, "0014_m34a_framing_evidence.sql"),
+      "utf8",
+    );
+
+    expect(enumSql.trim()).toMatch(
+      /^ALTER TYPE "public"\."intent" ADD VALUE 'representation' BEFORE 'simulation';$/,
+    );
+    expect(enumSql).not.toContain("CREATE TABLE");
+    expect(enumSql).not.toContain("prompt_cells");
+
+    for (const table of [
+      "framing_studies",
+      "framing_response_reviews",
+      "framing_annotations",
+      "framing_gap_classifications",
+      "framing_evidence_snapshots",
+    ]) {
+      expect(structureSql).toContain(`CREATE TABLE "${table}"`);
+    }
+    expect(structureSql).toContain("framing_evidence_snapshot_id");
+    expect(structureSql).toContain("prompt_cells_audit_resonance_shape_ck");
+    expect(structureSql).toContain("'representation'");
+    expect(structureSql).not.toContain("ALTER TYPE");
+  });
 });

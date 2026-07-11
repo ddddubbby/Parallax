@@ -59,6 +59,7 @@ export function MatrixBoard({
   focus,
   packCoverage,
   activeCompetitorCount,
+  supportsFramingEvidence,
   staleDraft,
   view = "overview",
 }: {
@@ -69,6 +70,8 @@ export function MatrixBoard({
   packCoverage: PackCoverageResult[];
   /** M27/D-084: active (non-archived) competitor count from Setup. */
   activeCompetitorCount: number;
+  /** M34A: representation prompts exist only for consumer archetypes. */
+  supportsFramingEvidence: boolean;
   /** M27/D-084: the focused draft was generated before the last Setup edit. */
   staleDraft: boolean;
   /** M32 / D-088: overview = summary/actions; pillar views = cells only. */
@@ -82,11 +85,14 @@ export function MatrixBoard({
 
   const isDraft = focus?.state === "draft";
   const count = focus?.cells.length ?? 0;
+  const standardCellCount = focus?.cells.filter((cell) => cell.intent !== "representation").length ?? 0;
   const atCap = count >= MAX_CELLS_PER_RUN;
+  const hasAllRepresentationPrompts =
+    (focus?.cells.filter((cell) => cell.intent === "representation").length ?? 0) >= 5;
   const pillarCounts = (["presence", "position", "perception", "proof"] as Pillar[]).map((pillar) => ({
     pillar,
     count: pillar === "proof"
-      ? count
+      ? standardCellCount
       : focus?.cells.filter((c) => intentToPillar(c.intent) === pillar).length ?? 0,
   }));
   const violationCount =
@@ -198,7 +204,7 @@ export function MatrixBoard({
         <div className="rounded-xl border border-ink/15 p-10 text-center">
           <p className="label-mono text-sm text-ink/60">No matrix on file</p>
           <p className="mt-1 mb-4 font-mono text-xs text-ink/45">
-            generate the default 40-cell, bottom-funnel-weighted matrix
+            generate the default audit matrix with consumer framing evidence where applicable
           </p>
           <Button
             disabled={pending || projectStatus !== "active"}
@@ -218,11 +224,13 @@ export function MatrixBoard({
             {isDraft ? (
               <>
                 {/* PM-5: add-cell disabled at 50. */}
-                {INTENT_ORDER.map((intent) => (
+                {INTENT_ORDER.filter(
+                  (intent) => intent !== "representation" || supportsFramingEvidence,
+                ).map((intent) => (
                   <Button
                     key={intent}
                     variant="secondary"
-                    disabled={pending || atCap}
+                    disabled={pending || atCap || (intent === "representation" && hasAllRepresentationPrompts)}
                     onClick={() => run(() => addCell(projectId, focus.id, intent))}
                   >
                     + {intent}
@@ -297,8 +305,9 @@ export function MatrixBoard({
                   })}
                 </div>
                 <p className="mt-2 font-mono text-[11px] text-ink/45">
-                  Proof draws on every response&rsquo;s claims and citations, so all {count} cells
-                  count toward it (D-051). A pillar under {SMALL_N_GATE} still renders per-cell and
+                  Proof&rsquo;s shared projection uses the {standardCellCount} standard audit cells.
+                  Representation cells feed factual-claim accuracy only and never citation or
+                  Stability Index denominators. A pillar under {SMALL_N_GATE} still renders per-cell and
                   directional findings, just no aggregate claim (D-015).
                 </p>
               </div>
@@ -400,7 +409,7 @@ export function MatrixBoard({
                               </Stamp>
                             )}
                           </span>
-                          {isDraft && (
+                          {isDraft && cell.intent !== "representation" && (
                             <span className="flex gap-1">
                               <Button
                                 variant="ghost"
@@ -433,7 +442,14 @@ export function MatrixBoard({
                             </span>
                           )}
                         </div>
-                        {editingId === cell.id ? (
+                        {cell.intent === "representation" ? (
+                          <div>
+                            <p className="text-sm text-ink/85">{cell.resolvedText}</p>
+                            <p className="mt-1 font-mono text-[11px] text-ink/45">
+                              Fixed neutral-branded prompt · representation-prompts.v4
+                            </p>
+                          </div>
+                        ) : editingId === cell.id ? (
                           <div className="flex flex-col gap-2">
                             <Textarea
                               value={editText}
