@@ -109,8 +109,31 @@ export interface FramingReviewRow {
   }>;
 }
 
-function sha256(value: unknown): string {
+function legacySha256(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function canonicalJsonValue(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(canonicalJsonValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, canonicalJsonValue(item)]),
+    );
+  }
+  return value;
+}
+
+function canonicalSha256(value: unknown): string {
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalJsonValue(value)))
+    .digest("hex");
+}
+
+function digestMatches(value: unknown, digest: string): boolean {
+  return canonicalSha256(value) === digest || legacySha256(value) === digest;
 }
 
 function parseDiscoveryManifest(value: unknown): DiscoveryManifest {
@@ -325,7 +348,7 @@ export async function createFramingStudy(projectId: string, sourceRunId: string)
       })
       .returning();
     const manifest = buildDiscoveryManifest({ studyId: study.id, rows: denominatorRows, createdAt });
-    const manifestDigest = sha256(manifest);
+    const manifestDigest = canonicalSha256(manifest);
     await tx
       .update(framingStudies)
       .set({ discoveryManifestJson: manifest, discoveryManifestDigest: manifestDigest })
@@ -524,7 +547,7 @@ export async function getBlindDiscoveryPacket(projectId: string, studyId: string
     throw new Error("Blind discovery is available only before the codebook is locked");
   }
   const manifest = parseDiscoveryManifest(detail.study.discoveryManifestJson);
-  if (sha256(manifest) !== detail.study.discoveryManifestDigest) {
+  if (!detail.study.discoveryManifestDigest || !digestMatches(manifest, detail.study.discoveryManifestDigest)) {
     throw new Error("Discovery manifest digest does not match its stored payload");
   }
   const byJobId = new Map(detail.reviews.map((review) => [review.jobId, review]));
@@ -623,7 +646,7 @@ export async function lockFramingCodebook(
       throw new Error("Save the codebook creator and associations before locking");
     }
     const manifest = parseDiscoveryManifest(study.discoveryManifestJson);
-    if (!study.discoveryManifestDigest || sha256(manifest) !== study.discoveryManifestDigest) {
+    if (!study.discoveryManifestDigest || !digestMatches(manifest, study.discoveryManifestDigest)) {
       throw new Error("Discovery manifest is missing or invalid");
     }
     const now = new Date();
@@ -694,9 +717,9 @@ export async function revealFramingPositioning(input: {
       .set({
         state: "revealed",
         positioningText,
-        positioningDigest: sha256(positioningText),
+        positioningDigest: canonicalSha256(positioningText),
         factSheetSnapshotJson: facts,
-        factSheetDigest: sha256(facts),
+        factSheetDigest: canonicalSha256(facts),
         revealedBy,
         revealedAt: now,
         reviewerIdentity,
@@ -1154,7 +1177,7 @@ export async function saveFramingGapClassifications(input: {
 }
 
 export function framingEvidenceSnapshotSha256(payload: SimulationEvidenceSnapshot): string {
-  return sha256(payload);
+  return canonicalSha256(payload);
 }
 
 export function verifyFramingEvidenceSnapshotRecord(record: {
@@ -1181,7 +1204,7 @@ export function verifyFramingEvidenceSnapshotRecord(record: {
   ) {
     throw new Error("Framing evidence snapshot gap linkage does not match its immutable payload");
   }
-  if (framingEvidenceSnapshotSha256(payload) !== record.sha256) {
+  if (!digestMatches(payload, record.sha256)) {
     throw new Error("Framing evidence snapshot hash does not match its immutable payload");
   }
   return payload;

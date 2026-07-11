@@ -26,6 +26,12 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-081 / 2026-07-12 / M34A.1: canonical digest compatibility (D-104)
+GOAL: Resolve the post-ship review's JSON key-order footgun without invalidating immutable historical evidence.
+DONE: Canonical sorted-key SHA creation added for new manifests/snapshots; verifier accepts canonical or legacy exact-serialization digests. Focused DB tests prove reordered payload equivalence, legacy manifest/snapshot compatibility, tamper failure, successful draft-time approval ordering, post-approval stimulus freeze, and 0012→0015 migration preservation. Full Vitest remains 548 passed/12 skipped, golden 36/36; 500-job mock E2E completed with 499 succeeded/1 deliberate dead letter, retry + stale-lock reclaim, and no duplicates.
+REJECTED: Canonical-only verification; hash backfill; removing SHA as redundant with triggers.
+NEXT: Commit and push the compatibility fix to PR #3.
+
 ## S-080 / 2026-07-11 / M34A.1: pre-merge assurance complete (D-103)
 GOAL: Close the claim, admission, provenance, immutability, migration, and browser risks found in the post-M34A review without rebuilding M34B.
 DONE: Forward migration 0015, v2 gap-linked snapshots, persisted metadata-masked discovery/attestation, explicit gap outcomes and abstentions, source-job denominator language, live-audit/actionable-gap admission, untrusted Simulation prompt envelope, immutable provenance across reports/exports, database freeze triggers, and retired-research guards implemented. Permanent tests now exercise 0012→0015 data-preserving upgrade, direct-SQL freezes, concurrent handoff idempotency, mock/live-validation rejection, adversarial stimulus containment, and the browser path through Simulation snapshot selection. Verification: typecheck/lint/build green; Vitest 548/560 passed with 12 intentional skips; 500-job mock E2E green; Playwright smoke/M34A/axe/mobile 4/4 green. Acceptance record: `docs/audits/m34/m34a-assurance-acceptance.md`.

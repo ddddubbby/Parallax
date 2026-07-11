@@ -1,6 +1,6 @@
 # PROTECTED_REGISTER.md — M30 Cleanup Audit, Pass 0
 
-> **41 protected surfaces found across Decision Log entries** (D-001 … D-103) — including M31/D-087 route/wall protections, M33/D-093 drawer + CI floors, and the implemented M34A/D-102/D-103 evidence boundaries. M34's older automated-certification machinery remains retired by D-099; the protected M34A surfaces below are the human-review/provenance replacements, not a revival of eligibility law, clustering, or medoids.
+> **42 protected surfaces found across Decision Log entries** (D-001 … D-104) — including M31/D-087 route/wall protections, M33/D-093 drawer + CI floors, and the implemented M34A/D-102–D-104 evidence boundaries. M34's older automated-certification machinery remains retired by D-099; the protected M34A surfaces below are the human-review/provenance replacements, not a revival of eligibility law, clustering, or medoids.
 
 This document is the output of Pass 0 of the M30 whole-repo cleanup audit. It lists every code surface — file, function, column, flag, enum value, route, test helper, script, or name — that the Decision Log **explicitly argued into continued existence**: a session already considered removing, renaming, merging, or simplifying it, and recorded in the "alternatives rejected" column why it must stay. Each surface looks dead, redundant, inconsistent, or over-built to a naive `rg`-for-callers pass — and each one is a settled decision, not an oversight.
 
@@ -57,6 +57,7 @@ Every surface below was grep/read-verified to still exist in the current tree (2
 | `m34a-simulation-evidence.v2` + annotation×gap uniqueness + `live_audit`/actionable-gap admission | D-103 (D-102/C-15) | The v2 handoff separates association recurrence from full-response representativeness and carries the decision gap that justified Simulation. Mock, validation-only, no-action, and v1 consumer records cannot create/approve new client-ready handoffs. Do not weaken this into a generic response selector. | HIGH |
 | Migration 0015 freeze triggers + named maintenance bypasses | D-103 | Application immutability was insufficient; snapshots are append-only and approved-study stimuli reject direct SQL mutation. The bypasses exist only for controlled maintenance/test cleanup and must not enter normal repositories or actions. | HIGH |
 | `resonance-panel.v2` untrusted research-input envelope + model-draw-floor language | D-103 (C-14) | Verbatim AI text is required evidence but is untrusted model input. Keep JSON escaping and the explicit data boundary; n>=30 remains a draw floor with persona×completion structure, never aggregate-grade evidence. | HIGH |
+| Canonical SHA creation + legacy-digest verification fallback in `framing.ts` | D-104 (D-103) | Canonical ordering prevents JSONB/object-key order from invalidating legitimate evidence, while the legacy fallback keeps existing immutable v1/v2 records readable. Do not simplify to canonical-only verification or backfill stored hashes. | HIGH |
 
 ---
 

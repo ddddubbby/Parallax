@@ -44,3 +44,7 @@ PASS. The assurance patch closes the identified client-claim and enforcement gap
 3. A raw SQL `coalesce` timestamp decoded as text; repository output now normalizes it to `Date`.
 4. Existing tests fabricated approved studies before inserting stimuli; fixtures now follow draft → stimuli → approved, preserving the strict database freeze.
 5. Shared `Field` captions were visual spans rather than accessible labels; the wrapper is now a semantic label and the browser workflow targets controls by name.
+
+## Post-review addendum — canonical digest compatibility
+
+D-104 replaces key-order-sensitive digest creation with recursively sorted-key canonical JSON. Verification deliberately accepts both canonical and legacy exact-serialization hashes, preserving immutable v1/v2 evidence without a backfill. Tests cover reordered payloads, legacy snapshots, and legacy discovery manifests. The review's approval-order concern was also rechecked: stimuli are verified while the study remains draft, the study flips to approved last, and direct post-approval stimulus mutation remains database-blocked.

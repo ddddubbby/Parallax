@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import {
@@ -39,6 +39,7 @@ import {
   computeFramingRecurrence,
   createFramingStudy,
   createFramingEvidenceSnapshot,
+  framingEvidenceSnapshotSha256,
   getBlindDiscoveryPacket,
   getFramingStudy,
   getFramingReviewRows,
@@ -288,6 +289,12 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     });
     expect(await getFramingStudy(randomUUID(), study.id)).toBeNull();
 
+    const legacyManifestDigest = createHash("sha256")
+      .update(JSON.stringify(study.discoveryManifestJson))
+      .digest("hex");
+    await db.update(framingStudies)
+      .set({ discoveryManifestDigest: legacyManifestDigest })
+      .where(eq(framingStudies.id, study.id));
     const packet = await getBlindDiscoveryPacket(project.id, study.id);
     expect(packet?.items).toHaveLength(5);
     expect(JSON.stringify(packet)).not.toMatch(/providerId|variantKey|responseId|promptText/);
@@ -568,6 +575,32 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     expect(sameHandoffA.snapshot.id).toBe(handoff.snapshot.id);
     expect(sameHandoffB.snapshot.id).toBe(handoff.snapshot.id);
     expect(await listFramingEvidenceSnapshots(project.id)).toHaveLength(1);
+    const reverseObjectKeys = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(reverseObjectKeys);
+      if (value !== null && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value)
+            .reverse()
+            .map(([key, item]) => [key, reverseObjectKeys(item)]),
+        );
+      }
+      return value;
+    };
+    const reorderedPayload = reverseObjectKeys(handoff.payload);
+    expect(framingEvidenceSnapshotSha256(
+      reorderedPayload as Parameters<typeof framingEvidenceSnapshotSha256>[0],
+    )).toBe(handoff.snapshot.sha256);
+    expect(() => verifyFramingEvidenceSnapshotRecord({
+      ...handoff.snapshot,
+      evidenceJson: reorderedPayload,
+    })).not.toThrow();
+    const legacyDigest = createHash("sha256")
+      .update(JSON.stringify(handoff.payload))
+      .digest("hex");
+    expect(() => verifyFramingEvidenceSnapshotRecord({
+      ...handoff.snapshot,
+      sha256: legacyDigest,
+    })).not.toThrow();
     await expect(
       db.update(framingEvidenceSnapshots)
         .set({ sha256: "tampered" })
