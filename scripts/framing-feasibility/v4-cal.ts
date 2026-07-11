@@ -114,16 +114,37 @@ async function main() {
   const records: ExtractRecord[] = existingEx?.records ?? [];
   const doneEx = new Set(records.map((r) => r.genId));
   let exCost = records.reduce((s, r) => s + r.costUsd, 0);
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  let permanentlyFailed = 0;
   for (const g of generations) {
     if (doneEx.has(g.id)) continue;
     if (cost + exCost >= DEV_CAP_USD) throw new Error(`Dev cap $${DEV_CAP_USD} reached during extraction at ${g.id}`);
     log(SCOPE, `extract ${g.id}`);
-    const r = await callV4SpanExtraction(dsCreds, { observedBrandName: brandName, rawText: g.rawText });
-    exCost += r.costUsd;
-    records.push({ genId: g.id, kind: g.kind, variantKey: g.variantKey, providerId: g.providerId, state: r.state, spans: r.spans, droppedSpans: r.droppedSpans, costUsd: r.costUsd });
+    // Dead-letter tolerance (production parity, D-095): a single response that
+    // fails extraction even after backoff-retries must not crash the whole run.
+    // Record it as `extraction_failed` — it counts in the denominator (D-096
+    // honesty) but contributes no spans — and continue.
+    let state: string;
+    let spans: VerifiedSpan[] = [];
+    let droppedSpans = 0;
+    let callCost = 0;
+    try {
+      const r = await callV4SpanExtraction(dsCreds, { observedBrandName: brandName, rawText: g.rawText });
+      state = r.state;
+      spans = r.spans;
+      droppedSpans = r.droppedSpans;
+      callCost = r.costUsd;
+    } catch (err) {
+      state = "extraction_failed";
+      permanentlyFailed += 1;
+      log(SCOPE, `extraction permanently failed for ${g.id} (${err instanceof Error ? err.message : String(err)}) — recorded, continuing`);
+    }
+    exCost += callCost;
+    records.push({ genId: g.id, kind: g.kind, variantKey: g.variantKey, providerId: g.providerId, state, spans, droppedSpans, costUsd: callCost });
     writeJson(OUT_PATH, { records });
+    await sleep(400); // ease burst pressure on the provider (rate-limit-shaped failures)
   }
-  log(SCOPE, `extractions=${records.length}, extract $${exCost.toFixed(4)}`);
+  log(SCOPE, `extractions=${records.length} (${permanentlyFailed} permanently failed), extract $${exCost.toFixed(4)}`);
 
   // --- CAL-1: dedup'd span count per scope (project×provider), admission spans only ---
   const cal1: Record<string, { dedupSpans: number; totalSpans: number; droppedSpans: number; withinBudget: boolean }> = {};

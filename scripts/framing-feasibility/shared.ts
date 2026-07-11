@@ -28,6 +28,31 @@ export const FIXTURES_DIR = join(process.cwd(), "fixtures", "framing");
 /** Deadline for every harness provider call (D-039 parity — no call runs undeadlined). */
 export const HARNESS_PROVIDER_TIMEOUT_MS = 90_000;
 
+/**
+ * Retry a provider call with backoff. Retry-once-immediately is too weak: a
+ * brief provider degradation window (e.g. an empty/non-JSON 200 under load —
+ * `malformed_output`, seen live during v4 CAL) swallows two rapid attempts at
+ * once. Backoff spans the window. Mirrors the production worker's D-042
+ * backoff discipline rather than reinventing bare retries.
+ */
+export async function withProviderRetry<T>(fn: () => Promise<T>, label: string, attempts = 3): Promise<T> {
+  const backoffMs = [0, 800, 2500];
+  let lastErr: unknown;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts) {
+        const wait = backoffMs[i] ?? 2500;
+        log(label, `attempt ${i}/${attempts} failed (${err instanceof Error ? err.message : String(err)}); backing off ${wait}ms`);
+        await new Promise((r) => setTimeout(r, wait));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export function ensureDirs() {
   mkdirSync(OUT_DIR, { recursive: true });
   mkdirSync(FIXTURES_DIR, { recursive: true });
@@ -339,41 +364,29 @@ export async function generateUngrounded(
   // the parameter entirely, which is NOT the same as sending a value.
   const { temperature } = NEUTRAL_SAMPLING[providerId];
 
-  if (providerId === "deepseek") {
-    const result = await callDeepSeekChat(
-      creds,
-      {
-        messages: [{ role: "user", content: promptText }],
-        ...(temperature !== undefined ? { temperature } : {}),
-      },
+  // Retry-once on a provider call, same as the extraction path. A generation
+  // call can hit a transient transport error (a non-JSON envelope from a 429/5xx
+  // — malformed_output at the provider layer, seen live during CAL); no retry
+  // here crashed the whole run on one blip (D-011/D-039: transport → retry).
+  const callOnce = async (): Promise<{ text: string; model: string; costUsd: number; tokensIn: number; tokensOut: number }> => {
+    if (providerId === "deepseek") {
+      const r = await callDeepSeekChat(
+        creds,
+        { messages: [{ role: "user", content: promptText }], ...(temperature !== undefined ? { temperature } : {}) },
+        AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS),
+      );
+      return { text: r.text, model: r.model, costUsd: r.costUsd, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
+    }
+    const provider = createOpenAIProvider(creds);
+    const r = await provider.generate(
+      { promptText, mode: "ungrounded", ...(temperature !== undefined ? { temperature } : {}) },
       AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS),
     );
-    return {
-      text: result.text,
-      model: result.model,
-      costUsd: result.costUsd,
-      tokensIn: result.tokensIn,
-      tokensOut: result.tokensOut,
-      temperature,
-    };
-  }
-  const provider = createOpenAIProvider(creds);
-  const result = await provider.generate(
-    {
-      promptText,
-      mode: "ungrounded",
-      ...(temperature !== undefined ? { temperature } : {}),
-    },
-    AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS),
-  );
-  return {
-    text: result.text,
-    model: result.modelVersion,
-    costUsd: result.costUsd,
-    tokensIn: result.tokensIn,
-    tokensOut: result.tokensOut,
-    temperature,
+    return { text: r.text, model: r.modelVersion, costUsd: r.costUsd, tokensIn: r.tokensIn, tokensOut: r.tokensOut };
   };
+
+  const result = await withProviderRetry(callOnce, "generate");
+  return { ...result, temperature };
 }
 
 /**

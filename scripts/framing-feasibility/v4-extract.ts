@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { callDeepSeekChat, type DeepSeekCallCredentials } from "../../src/providers/deepseek";
-import { HARNESS_PROVIDER_TIMEOUT_MS, log } from "./shared";
+import { HARNESS_PROVIDER_TIMEOUT_MS, withProviderRetry } from "./shared";
 
 export const V4_DIMENSIONS = [
   "category",
@@ -98,23 +98,19 @@ export async function callV4SpanExtraction(
   input: { observedBrandName: string; rawText: string },
 ): Promise<V4ExtractionResult> {
   const extractorInput = buildV4ExtractionPrompt(input);
-  const callOnce = () =>
-    callDeepSeekChat(
-      credentials,
-      {
-        messages: [{ role: "user", content: extractorInput }],
-        temperature: 0,
-        response_format: { type: "json_object" },
-      },
-      AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS),
-    );
-  let result: Awaited<ReturnType<typeof callOnce>>;
-  try {
-    result = await callOnce();
-  } catch (err) {
-    log("v4-extract", `extraction failed (${err instanceof Error ? err.message : String(err)}); retrying once`);
-    result = await callOnce();
-  }
+  const result = await withProviderRetry(
+    () =>
+      callDeepSeekChat(
+        credentials,
+        {
+          messages: [{ role: "user", content: extractorInput }],
+          temperature: 0,
+          response_format: { type: "json_object" },
+        },
+        AbortSignal.timeout(HARNESS_PROVIDER_TIMEOUT_MS),
+      ),
+    "v4-extract",
+  );
 
   let state: V4State = "malformed";
   const spans: VerifiedSpan[] = [];
