@@ -8,7 +8,7 @@ import { OUT_DIR, readJson, writeJson } from "./shared";
 export const M34A_CALL_RESERVATION_USD = 0.1;
 const LEDGER_PATH = join(OUT_DIR, "m34a-spend-ledger.json");
 
-interface LedgerEntry {
+export interface M34ALedgerEntry {
   reservationId: string;
   runId: string;
   providerId: string;
@@ -21,7 +21,7 @@ interface LedgerEntry {
 
 interface Ledger {
   ledgerVersion: "m34a-spend-ledger.v1";
-  entries: LedgerEntry[];
+  entries: M34ALedgerEntry[];
 }
 
 function todayUtc(value: string): string {
@@ -37,14 +37,14 @@ function loadLedger(): Ledger {
   return ledger;
 }
 
-function recordedSpend(entries: readonly LedgerEntry[], providerId: string, at: string): number {
+function recordedSpend(entries: readonly M34ALedgerEntry[], providerId: string, at: string): number {
   const day = todayUtc(at);
   return entries
     .filter((entry) => entry.providerId === providerId && todayUtc(entry.createdAt) === day)
     .reduce((sum, entry) => sum + (entry.actualUsd ?? entry.reservedUsd), 0);
 }
 
-function runReservedSpend(entries: readonly LedgerEntry[], runId: string): number {
+function runReservedSpend(entries: readonly M34ALedgerEntry[], runId: string): number {
   return entries
     .filter((entry) => entry.runId === runId)
     .reduce((sum, entry) => sum + (entry.actualUsd ?? entry.reservedUsd), 0);
@@ -53,7 +53,7 @@ function runReservedSpend(entries: readonly LedgerEntry[], runId: string): numbe
 export async function reserveM34ASpend(input: {
   runId: string;
   providerId: string;
-  kind: LedgerEntry["kind"];
+  kind: M34ALedgerEntry["kind"];
   responseId: string;
   runCapUsd: number;
 }): Promise<string> {
@@ -100,4 +100,9 @@ export function settleM34ASpend(reservationId: string, actualUsd: number): void 
   entry.actualUsd = actualUsd;
   entry.settledAt = new Date().toISOString();
   writeJson(LEDGER_PATH, ledger);
+}
+
+/** Used on resume to preserve an interrupted paid call as an explicit denominator outcome. */
+export function listM34ARunLedgerEntries(runId: string): M34ALedgerEntry[] {
+  return loadLedger().entries.filter((entry) => entry.runId === runId);
 }

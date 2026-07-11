@@ -18,6 +18,7 @@ export const FRAMING_RESPONSE_STATES = [
   "entity_ambiguous",
   "malformed",
   "extraction_failed",
+  "generation_unavailable",
 ] as const;
 export type FramingResponseState = (typeof FRAMING_RESPONSE_STATES)[number];
 
@@ -30,6 +31,7 @@ export const RESPONSE_REVIEW_OUTCOMES = [
   "no_frame",
   "uncertain",
   "insufficient_evidence",
+  "generation_unavailable",
 ] as const;
 export type ResponseReviewOutcome = (typeof RESPONSE_REVIEW_OUTCOMES)[number];
 
@@ -61,7 +63,7 @@ const timestampSchema = z.string().min(1);
 
 export const framingResponseSchema = z.object({
   responseId: z.string().min(1),
-  rawText: z.string().min(1),
+  rawText: z.string().min(1).nullable(),
   lane: z.enum(FRAMING_LANES),
   promptVariant: z.string().min(1),
   promptText: z.string().min(1),
@@ -70,6 +72,13 @@ export const framingResponseSchema = z.object({
   generationMode: z.enum(["grounded", "ungrounded"]),
   observedAt: timestampSchema,
   terminalState: z.enum(FRAMING_RESPONSE_STATES),
+}).superRefine((response, ctx) => {
+  if (response.terminalState === "generation_unavailable" && response.rawText !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "generation_unavailable responses must not fabricate raw text", path: ["rawText"] });
+  }
+  if (response.terminalState !== "generation_unavailable" && response.rawText === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "stored responses require immutable raw text", path: ["rawText"] });
+  }
 });
 export type FramingResponse = z.infer<typeof framingResponseSchema>;
 
@@ -303,10 +312,10 @@ export function createBlindDiscoveryPacket(input: {
         "Do not use client positioning, desired attributes, fact sheet, response frequency, or simulation candidates.",
         "Develop a small association codebook; other, ambiguous, and no relevant association are valid outcomes.",
       ],
-      items: ordered.map((response, index) => ({
-        blindId: entries[index]!.blindId,
-        rawText: response.rawText,
-      })),
+      items: ordered.map((response, index) => {
+        if (response.rawText === null) throw new Error(`Discovery packet cannot include unavailable response ${response.responseId}`);
+        return { blindId: entries[index]!.blindId, rawText: response.rawText };
+      }),
     },
     key: {
       packetVersion: "m34a-blind-discovery-key.v1",
@@ -355,7 +364,7 @@ function validateAcceptedAnnotation(input: {
   if (!annotation.associationId || !associationIds.has(annotation.associationId)) {
     throw new Error(`Accepted annotation ${annotation.annotationId} must reference a locked codebook association`);
   }
-  if (annotation.start === null || annotation.end === null || annotation.start >= annotation.end || annotation.end > response.rawText.length) {
+  if (response.rawText === null || annotation.start === null || annotation.end === null || annotation.start >= annotation.end || annotation.end > response.rawText.length) {
     throw new Error(`Accepted annotation ${annotation.annotationId} needs an exact in-bounds source span`);
   }
   if (response.rawText.slice(annotation.start, annotation.end).trim().length === 0) {
@@ -420,6 +429,12 @@ export function assertCompleteCoding(input: {
   for (const responseId of acceptedResponseIds) {
     if (reviewByResponseId.get(responseId)?.outcome !== "coded") {
       throw new Error(`response ${responseId} has accepted evidence but is not marked coded`);
+    }
+  }
+  for (const review of input.coding.responseReviews) {
+    const response = responseById.get(review.responseId)!;
+    if (response.terminalState === "generation_unavailable" && review.outcome !== "generation_unavailable") {
+      throw new Error(`unavailable response ${review.responseId} must be recorded as generation_unavailable`);
     }
   }
 }
@@ -509,7 +524,7 @@ export function createSimulationEvidenceSnapshot(input: {
   }
   if (annotation.responseId !== input.responseId) throw new Error("simulation response does not match the selected annotation");
   const response = input.study.responses.find((candidate) => candidate.responseId === input.responseId);
-  if (!response || annotation.start === null || annotation.end === null) throw new Error("simulation handoff source evidence is missing");
+  if (!response || response.rawText === null || annotation.start === null || annotation.end === null) throw new Error("simulation handoff source evidence is missing");
   const recurrence = computeRecurrenceMatrix(input).find((row) => row.associationId === annotation.associationId);
   if (!recurrence) throw new Error("simulation handoff association is absent from the recurrence matrix");
   const label = recurrence.responsesContainingAssociation <= 1

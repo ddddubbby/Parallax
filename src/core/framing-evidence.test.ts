@@ -215,6 +215,31 @@ describe("M34A framing evidence workflow (D-099)", () => {
     ]);
   });
 
+  it("keeps an uncheckpointed generation visible in the denominator without fabricating raw text", () => {
+    const unavailableStudy = structuredClone(study);
+    unavailableStudy.responses.push({
+      responseId: "r-4",
+      rawText: null,
+      lane: "neutral_elicited",
+      promptVariant: "a4",
+      promptText: "Give an overview of Example Brand.",
+      providerId: "deepseek",
+      modelVersion: "unavailable-before-checkpoint",
+      generationMode: "ungrounded",
+      observedAt: "2026-07-11T00:04:00.000Z",
+      terminalState: "generation_unavailable",
+    });
+    const unavailableCoding = structuredClone(coding);
+    unavailableCoding.responseReviews.push({
+      responseId: "r-4",
+      outcome: "generation_unavailable",
+      reviewedBy: "analyst-1",
+      reviewedAt: "2026-07-11T00:22:00.000Z",
+    });
+    assertCompleteCoding({ study: unavailableStudy, codebook, coding: unavailableCoding });
+    expect(computeRecurrenceMatrix({ study: unavailableStudy, codebook, coding: unavailableCoding })[0]!.denominator).toBe(4);
+  });
+
   it("requires a response-review record for every response", () => {
     expect(() => assertCompleteCoding({ study, codebook, coding: { ...coding, responseReviews: coding.responseReviews.slice(0, 2) } })).toThrow(/every study response/i);
   });

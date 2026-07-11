@@ -9,7 +9,7 @@
  *
  * Example:
  *   pnpm framing:m34a:collect -- --project=insta360 --provider=deepseek \
- *     --run-id=insta360-m34a-dev-20260711 --reps=5 --cap-usd=2
+ *     --run-id=insta360-m34a-dev-20260711 --reps=5 --cap-usd=5 --max-calls=2
  */
 import "../../src/env-bootstrap";
 import { createHash } from "node:crypto";
@@ -34,7 +34,7 @@ import {
   writeJson,
 } from "./shared";
 import { V4_EXTRACTION_MODEL, callV4SpanExtraction, type V4ExtractionResult } from "./v4-extract";
-import { reserveM34ASpend, settleM34ASpend } from "./m34a-budget";
+import { listM34ARunLedgerEntries, reserveM34ASpend, settleM34ASpend } from "./m34a-budget";
 
 type ProjectKey = keyof typeof FEASIBILITY_PROJECTS;
 type LiveProvider = "deepseek" | "openai";
@@ -73,6 +73,13 @@ interface M34ACollectionArtifact {
   };
   study: FramingStudy;
   assist: AssistRecord[];
+  unavailability: Array<{
+    responseId: string;
+    stage: "generation" | "span_assist";
+    reservationId: string;
+    recordedAt: string;
+    note: string;
+  }>;
   rawTextSha256: Record<string, string>;
   costs: { generationUsd: number; extractionUsd: number; totalUsd: number; capUsd: number };
 }
@@ -177,6 +184,7 @@ async function main() {
   const runId = requiredArg("run-id");
   const reps = parsePositiveInt(optionalArg("reps") ?? "5", "--reps", 5);
   const capUsd = parsePositiveNumber(optionalArg("cap-usd") ?? "5", "--cap-usd", 25);
+  const maxCalls = parsePositiveInt(optionalArg("max-calls") ?? "50", "--max-calls", 50);
   const outputPath = optionalArg("out") ?? join(OUT_DIR, `m34a-${runId}.json`);
   const promptSet = requireAdoptedPromptSet();
   const requiredProviders: LiveProvider[] = providerId === "openai" ? ["openai"] : ["deepseek", "openai"];
@@ -209,18 +217,90 @@ async function main() {
       responses: [],
     },
     assist: [],
+    unavailability: [],
     rawTextSha256: {},
     costs: { generationUsd: 0, extractionUsd: 0, totalUsd: 0, capUsd },
   };
+  artifact.unavailability ??= [];
+  const ledgerEntries = listM34ARunLedgerEntries(runId);
   const generatedIds = new Set(artifact.study.responses.map((response) => response.responseId));
   const assistedIds = new Set(artifact.assist.map((record) => record.responseId));
+  const unavailableIds = new Set(artifact.unavailability.map((entry) => `${entry.stage}|${entry.responseId}`));
+  for (const prompt of promptSet.admission) {
+    const promptText = resolvePrompt(prompt.text, project.brandName);
+    for (let rep = 1; rep <= reps; rep += 1) {
+      const responseId = `${providerId}-${prompt.variantKey}-r${rep}`;
+      const generationReservation = `${runId}|${providerId}|generation|${responseId}`;
+      if (!generatedIds.has(responseId) && ledgerEntries.some((entry) => entry.reservationId === generationReservation)) {
+        artifact.study.responses.push({
+          responseId,
+          rawText: null,
+          lane: "neutral_elicited",
+          promptVariant: prompt.variantKey,
+          promptText,
+          providerId,
+          modelVersion: "unavailable-before-checkpoint",
+          generationMode: "ungrounded",
+          observedAt: ledgerEntries.find((entry) => entry.reservationId === generationReservation)!.settledAt
+            ?? ledgerEntries.find((entry) => entry.reservationId === generationReservation)!.createdAt,
+          terminalState: "generation_unavailable",
+        });
+        generatedIds.add(responseId);
+        if (!unavailableIds.has(`generation|${responseId}`)) {
+          artifact.unavailability.push({
+            responseId,
+            stage: "generation",
+            reservationId: generationReservation,
+            recordedAt: new Date().toISOString(),
+            note: "A paid or in-flight generation reservation existed without a checkpointed raw response. It is retained in the denominator and is never silently retried.",
+          });
+        }
+      }
+      const response = artifact.study.responses.find((candidate) => candidate.responseId === responseId);
+      if (!response) continue;
+      const assistReservation = `${runId}|openai|span_assist|${responseId}`;
+      if (response.rawText !== null && !assistedIds.has(responseId) && ledgerEntries.some((entry) => entry.reservationId === assistReservation)) {
+        response.terminalState = "extraction_failed";
+        artifact.assist.push({
+          responseId,
+          state: "extraction_failed",
+          spans: [],
+          droppedSpans: 0,
+          parseError: "Span-assist reservation existed without a checkpointed result; human raw-text review is required.",
+          model: V4_EXTRACTION_MODEL,
+          costUsd: 0,
+          tokensIn: 0,
+          tokensOut: 0,
+        });
+        assistedIds.add(responseId);
+        if (!unavailableIds.has(`span_assist|${responseId}`)) {
+          artifact.unavailability.push({
+            responseId,
+            stage: "span_assist",
+            reservationId: assistReservation,
+            recordedAt: new Date().toISOString(),
+            note: "Span-assist output was not checkpointed. This never blocks human review of the stored raw response.",
+          });
+        }
+      }
+    }
+  }
+  writeArtifact(outputPath, artifact);
   const assistantCredentials = await resolveLiveCredentials("openai");
+  let callsMade = 0;
+
+  const checkpointAndStop = async () => {
+    writeArtifact(outputPath, artifact);
+    log("m34a-collect", `checkpoint ${artifact.study.responses.length} responses / ${artifact.assist.length} assists after ${callsMade} provider call(s); rerun the identical command to resume`);
+    await pool.end();
+  };
 
   for (const prompt of promptSet.admission) {
     const promptText = resolvePrompt(prompt.text, project.brandName);
     for (let rep = 1; rep <= reps; rep += 1) {
       const responseId = `${providerId}-${prompt.variantKey}-r${rep}`;
       if (!generatedIds.has(responseId)) {
+        if (callsMade >= maxCalls) return checkpointAndStop();
         const reservationId = await reserveM34ASpend({
           runId,
           providerId,
@@ -230,6 +310,7 @@ async function main() {
         });
         log("m34a-collect", `generate ${responseId}`);
         const generated = await generateUngrounded(providerId, promptText);
+        callsMade += 1;
         settleM34ASpend(reservationId, generated.costUsd);
         const response: FramingResponse & { generationCostUsd: number } = {
           responseId,
@@ -251,7 +332,9 @@ async function main() {
       }
 
       if (assistedIds.has(responseId)) continue;
+      if (callsMade >= maxCalls) return checkpointAndStop();
       const response = artifact.study.responses.find((candidate) => candidate.responseId === responseId)!;
+      if (response.rawText === null) continue;
       const reservationId = await reserveM34ASpend({
         runId,
         providerId: "openai",
@@ -260,6 +343,7 @@ async function main() {
         runCapUsd: capUsd,
       });
       log("m34a-collect", `span assist ${responseId}`);
+      callsMade += 1;
       let assist: AssistRecord;
       try {
         const extracted = await callV4SpanExtraction(assistantCredentials, {
@@ -301,8 +385,9 @@ async function main() {
   }
   updateCosts(artifact);
   const expected = promptSet.admission.length * reps;
-  if (artifact.study.responses.length !== expected || artifact.assist.length !== expected) {
-    throw new Error(`Collection incomplete: responses=${artifact.study.responses.length}/${expected}; assist=${artifact.assist.length}/${expected}`);
+  const rawResponseCount = artifact.study.responses.filter((response) => response.rawText !== null).length;
+  if (artifact.study.responses.length !== expected || artifact.assist.length !== rawResponseCount) {
+    throw new Error(`Collection incomplete: responses=${artifact.study.responses.length}/${expected}; assists=${artifact.assist.length}/${rawResponseCount} raw responses`);
   }
   if (artifact.costs.totalUsd > capUsd) {
     throw new Error(`M34A collection reached $${artifact.costs.totalUsd}, exceeding its $${capUsd} cap; do not continue without a new run`);
