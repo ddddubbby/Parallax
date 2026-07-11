@@ -249,6 +249,56 @@ export async function listFramingStudies(projectId: string) {
     .orderBy(sql`${framingStudies.createdAt} desc`);
 }
 
+export async function listFramingSourceRuns(projectId: string) {
+  const runs = await db
+    .select({
+      id: auditRuns.id,
+      runMode: auditRuns.runMode,
+      completedAt: auditRuns.completedAt,
+      createdAt: auditRuns.createdAt,
+      selectedProvidersJson: auditRuns.selectedProvidersJson,
+      selectedModesJson: auditRuns.selectedModesJson,
+      repetitions: auditRuns.repetitions,
+      matrixVersionId: auditRuns.matrixVersionId,
+    })
+    .from(auditRuns)
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        eq(auditRuns.projectId, projectId),
+        eq(auditRuns.state, "completed"),
+        eq(matrixVersions.kind, "audit"),
+      ),
+    )
+    .orderBy(sql`${auditRuns.completedAt} desc nulls last`, sql`${auditRuns.createdAt} desc`);
+  return Promise.all(
+    runs.map(async (run) => {
+      const [counts] = await db
+        .select({
+          representationCells: sql<number>`count(distinct ${promptCells.id})::int`,
+          representationJobs: sql<number>`count(distinct ${jobs.id})::int`,
+        })
+        .from(promptCells)
+        .leftJoin(
+          jobs,
+          and(eq(jobs.cellId, promptCells.id), eq(jobs.runId, run.id)),
+        )
+        .where(
+          and(
+            eq(promptCells.matrixVersionId, run.matrixVersionId),
+            eq(promptCells.intent, "representation"),
+          ),
+        );
+      return {
+        ...run,
+        representationCells: counts?.representationCells ?? 0,
+        representationJobs: counts?.representationJobs ?? 0,
+        ready: counts?.representationCells === 5 && (counts?.representationJobs ?? 0) > 0,
+      };
+    }),
+  );
+}
+
 export async function getFramingReviewRows(
   projectId: string,
   studyId: string,
@@ -450,6 +500,9 @@ export async function revealFramingPositioning(input: {
   const reviewerIdentity = input.reviewerIdentity.trim();
   if (!positioningText || !revealedBy || !reviewerIdentity) {
     throw new Error("Positioning, revealer, and reviewer identity are required");
+  }
+  if (!/^(CLIENT-SUPPLIED|OFFICIAL-PUBLIC) POSITIONING\b/i.test(positioningText)) {
+    throw new Error("Positioning must begin with CLIENT-SUPPLIED POSITIONING or OFFICIAL-PUBLIC POSITIONING");
   }
   assertReviewMethod(input.reviewMethod);
   return db.transaction(async (tx) => {

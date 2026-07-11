@@ -6,6 +6,8 @@ import {
   REPRESENTATION_PROMPT_PROTOCOL_VERSION,
 } from "@/core/prompt-templates";
 import { renderRepresentationTemplate } from "@/core/matrix";
+import { renderFramingReportMarkdown } from "@/core/framing-report";
+import { buildFramingReport } from "@/modules/framing/report";
 import { db, pool } from "../client";
 import {
   auditRuns,
@@ -273,7 +275,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
       revealFramingPositioning({
         projectId: project.id,
         studyId: study.id,
-        positioningText: "Direct-to-share action video without mandatory reframing.",
+        positioningText: "CLIENT-SUPPLIED POSITIONING — Direct-to-share action video without mandatory reframing.",
         revealedBy: "analyst-1",
         reviewerIdentity: "analyst-1",
         reviewMethod: "single_analyst",
@@ -292,7 +294,7 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     const revealed = await revealFramingPositioning({
       projectId: project.id,
       studyId: study.id,
-      positioningText: "Direct-to-share action video without mandatory reframing.",
+      positioningText: "CLIENT-SUPPLIED POSITIONING — Direct-to-share action video without mandatory reframing.",
       revealedBy: "analyst-1",
       reviewerIdentity: "analyst-1",
       reviewMethod: "single_analyst",
@@ -437,6 +439,18 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
       }),
     ).resolves.toBe(2);
     expect((await getFramingStudy(project.id, study.id))?.gaps).toHaveLength(2);
+    const report = await buildFramingReport(project.id, study.id);
+    expect(report).toMatchObject({
+      denominator: 6,
+      availableResponses: 5,
+      unavailableJobs: 1,
+      positioningSource: "client-supplied",
+      promptProtocolVersion: REPRESENTATION_PROMPT_PROTOCOL_VERSION,
+    });
+    const markdown = renderFramingReportMarkdown(report!);
+    expect(markdown).toContain("What is LensLoop?");
+    expect(markdown).toContain("2/6");
+    expect(markdown).toContain("single analyst");
   }, 30_000);
 
   it("rejects B2B framing studies even when a source run otherwise has representation cells", async () => {

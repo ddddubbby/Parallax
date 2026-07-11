@@ -13,6 +13,12 @@ describe("nav config (M32 / D-088)", () => {
   it("exposes Setup / Execution / Results hierarchy", () => {
     expect(groups.map((g) => g.id)).toEqual(["setup", "execution", "results"]);
     expect(groups[0]?.items.map((i) => i.id)).toEqual(["inputs", "matrix", "studies"]);
+    expect(groups[2]?.items.map((i) => i.id)).toEqual([
+      "dashboard",
+      "sim-results",
+      "framing",
+      "report",
+    ]);
   });
 
   it("distinguishes Evidence dashboard from Simulation results via view param", () => {

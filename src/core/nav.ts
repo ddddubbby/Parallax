@@ -73,6 +73,12 @@ export function projectNavGroups(projectId: string): NavGroup[] {
           match: [`${base}/dashboard`],
         },
         {
+          id: "framing",
+          label: "Framing evidence",
+          href: `${base}/framing`,
+          match: [`${base}/framing`],
+        },
+        {
           id: "report",
           label: "Reports",
           href: `${base}/report`,

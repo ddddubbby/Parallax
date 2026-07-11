@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { CodebookAssociation } from "@/core/framing-evidence";
 import { isUuid } from "@/core/id";
 import {
@@ -141,4 +142,12 @@ export async function saveFramingGapsAction(input: {
   } catch (error) {
     return errorResult(error, "Gap classification save failed");
   }
+}
+
+export async function createFramingStudyFormAction(projectId: string, formData: FormData) {
+  const sourceRunId = String(formData.get("sourceRunId") ?? "");
+  const result = await createFramingStudyAction(projectId, sourceRunId);
+  if (!result.ok) throw new Error(result.error);
+  if (!result.id) throw new Error("Framing study create failed");
+  redirect(`/projects/${projectId}/framing/${result.id}`);
 }
