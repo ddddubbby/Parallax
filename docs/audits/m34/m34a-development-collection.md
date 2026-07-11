@@ -36,9 +36,15 @@ key. Packet inspection confirmed absence of `responseId`, provider, and prompt
 variant metadata. Neither packet contains the client positioning, desired
 attributes, fact sheet, response frequencies, or Simulation candidates.
 
-## Next workflow step
+## Workflow status
 
-A human analyst must create a small project-specific codebook from each blind
-packet, lock and timestamp it, then record the positioning/fact-sheet reveal
-before full-sample coding. No association, recurrence matrix, gap
-classification, or Simulation baseline has yet been created.
+- **Insta360 complete as workflow-development evidence:** the project lead
+  approved an eight-association blind codebook before lock/reveal, then reviewed
+  and approved all 25 response rows. The harness produced a descriptive
+  recurrence matrix, gap report, and immutable C-15 snapshot. The positioning
+  reference was disclosed official-public material because no client-authored
+  brief was stored; findings are therefore against public intended positioning.
+- **HEYTEA next:** its blind packet remains uncoded. No HEYTEA association,
+  recurrence claim, gap classification, or Simulation baseline exists yet.
+- Production schema/UI/migration integration remains deferred until the
+  development workflow has also been exercised on HEYTEA.

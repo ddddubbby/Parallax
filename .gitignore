@@ -22,3 +22,4 @@ playwright/.cache
 docs/audits/m34/*.json
 docs/audits/m34/*.json.bak
 docs/audits/m34/*.bak.json
+docs/audits/m34/*-coding-review-*.md

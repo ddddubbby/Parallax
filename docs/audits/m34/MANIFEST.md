@@ -40,3 +40,21 @@
 - `m34a-heytea-m34a-dev-20260711-heytea-discovery-v1-blind-packet.json` — sha256 `113a441c9e9dd1030092f20258a7976e8c91bbeb5049f470a5cab08815693f6e` — 41,872 bytes
 - `m34a-heytea-m34a-dev-20260711-heytea-discovery-v1-blind-key.json` — sha256 `f76ae1c0483e405f0a6f0522f143e183ba7fa50e465f7f87f333b4d686c30fcc` — 955 bytes
 - `m34a-spend-ledger.json` — sha256 `e52781ad1d193ab8cfaa4cb73307ba25711c69ce3a1fd233a007e00c29508bc5` — 31,955 bytes
+
+## M34A Insta360 reviewed workflow — 2026-07-11
+
+> The project lead approved the blind codebook before the official-public
+> positioning reveal, then reviewed and approved all 25 response rows. Coding
+> and review artifacts remain local/ignored; the client-safe gap report is
+> committed separately.
+
+- `m34a-insta360-codebook-draft-v1.json` — sha256 `6d6548e8ad90047ec3cc1cd4e19f46fbc9b511ef383a37afd6a127f194371685` — 2,479 bytes
+- `insta360-framing-codebook-v1-locked.json` — sha256 `e801eac0b5789d63a6f46e6714126212cc427b4625ab2d20f2ccf1584ca0c480` — 2,543 bytes
+- `m34a-insta360-public-positioning-source-20260711.json` — sha256 `ee6c61b68af8129be1b2fc1d05d0c721827c896b88e85196396a04c7f665e857` — 2,154 bytes
+- `m34a-insta360-positioning-reveal-v1.json` — sha256 `9bd7c4a0ef143be207da13b899469f7bb07fb5c132c905d6b28a45ffb773f1e2` — 425 bytes
+- `m34a-insta360-coding-proposals-v1.json` — sha256 `4af9ab546dade934baaa93096c95f7c21c5601e020893421776b16ba6bbab288` — 43,270 bytes
+- `m34a-insta360-coding-review-v1.md` — sha256 `5b421967c185350b691f9ce5d1d15322e824a32bffd3faed371bafb012991a2b` — 31,422 bytes
+- `m34a-insta360-coding-v1.json` — sha256 `9e9a798134a50894418d523a7a1dbf16192befc147ff88c9b3526939b20b4994` — 60,366 bytes
+- `m34a-insta360-m34a-dev-20260711-insta360-coding-v1-recurrence-matrix.json` — sha256 `27155719abc2370adc847ad472433dfa85f3b27c21010258b1a65723e5fcede5` — 5,504 bytes
+- `m34a-insta360-gaps-v1.json` — sha256 `77db7a5c71ade13b21fd608ce4ba8f74cae177e42ca972062b2c7d7f1caae081` — 4,764 bytes
+- `m34a-insta360-m34a-dev-20260711-insta360-a-049-simulation-evidence.json` — sha256 `275bc0be3d5cfac9eabf8b18b81c45d61bb993d6e3cdb863ed647dc91a2c851b` — 1,616 bytes
