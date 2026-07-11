@@ -44,7 +44,13 @@ attributes, fact sheet, response frequencies, or Simulation candidates.
   recurrence matrix, gap report, and immutable C-15 snapshot. The positioning
   reference was disclosed official-public material because no client-authored
   brief was stored; findings are therefore against public intended positioning.
-- **HEYTEA next:** its blind packet remains uncoded. No HEYTEA association,
-  recurrence claim, gap classification, or Simulation baseline exists yet.
-- Production schema/UI/migration integration remains deferred until the
-  development workflow has also been exercised on HEYTEA.
+- **HEYTEA complete as workflow-development evidence:** the project lead
+  approved a nine-association blind codebook before lock/reveal, then reviewed
+  and approved all 25 denominator rows (24 stored responses plus one retained
+  generation-unavailable row). The harness produced a descriptive recurrence
+  matrix, gap report, and immutable C-15 snapshot. The positioning reference
+  was disclosed official-public/company-authored material because no client
+  brief was stored.
+- The development workflow has now been exercised end to end on both brands.
+  Production schema/UI/migration integration is the next design step; this
+  evidence does not revive automated semantic eligibility.

@@ -58,3 +58,21 @@
 - `m34a-insta360-m34a-dev-20260711-insta360-coding-v1-recurrence-matrix.json` — sha256 `27155719abc2370adc847ad472433dfa85f3b27c21010258b1a65723e5fcede5` — 5,504 bytes
 - `m34a-insta360-gaps-v1.json` — sha256 `77db7a5c71ade13b21fd608ce4ba8f74cae177e42ca972062b2c7d7f1caae081` — 4,764 bytes
 - `m34a-insta360-m34a-dev-20260711-insta360-a-049-simulation-evidence.json` — sha256 `275bc0be3d5cfac9eabf8b18b81c45d61bb993d6e3cdb863ed647dc91a2c851b` — 1,616 bytes
+
+## M34A HEYTEA reviewed workflow — 2026-07-11
+
+> The project lead approved the blind codebook before the official-public
+> positioning reveal, then reviewed and approved all 25 denominator rows,
+> including the retained generation-unavailable row. Coding and review
+> artifacts remain local/ignored; the client-safe gap report is committed.
+
+- `m34a-heytea-codebook-draft-v1.json` — sha256 `e173c7619db08a6d90ec8a096e724098073edb37084d4bd54e43ca490afd34c3` — 2,366 bytes
+- `heytea-framing-codebook-v1-locked.json` — sha256 `40b0edf03a67fc49d44928049839587be248f5f7bc66a0c004ae96eb277e2794` — 2,430 bytes
+- `m34a-heytea-public-positioning-source-20260711.json` — sha256 `f544920625872b49f0d1576b7161bd61e75e3cdbf674f149109170ed16011ae5` — 3,424 bytes
+- `m34a-heytea-positioning-reveal-v1.json` — sha256 `63b8b3b2f70f21f78bdb73c28a3491741c023fdb7be9d756f66fe568bfefb49d` — 421 bytes
+- `m34a-heytea-coding-proposals-v1.json` — sha256 `4a4af040425da463ef9a44f9dea9550fa7fc7005f1598eb8ccfbbbca6185947d` — 65,865 bytes
+- `m34a-heytea-coding-review-v1.md` — sha256 `1d2b50b4323850235ca11d3ff6714a00db82606e88ea2aba4858861dee75713d` — 47,210 bytes
+- `m34a-heytea-coding-v1.json` — sha256 `b69a7a9417cd57a756890f1071fcdc8845d7beccaec291ea671bf4c2600add28` — 88,184 bytes
+- `m34a-heytea-m34a-dev-20260711-heytea-coding-v1-recurrence-matrix.json` — sha256 `0a1688cc99348544fbf2c1ee7df3721c1d2eb778fe6ee13892b645167c0eb475` — 8,181 bytes
+- `m34a-heytea-gaps-v1.json` — sha256 `915995abe759e78d486fc0d328a3ea89090896aacd310f0bc48da1a1bf91c2c5` — 5,304 bytes
+- `m34a-heytea-m34a-dev-20260711-heytea-a-050-simulation-evidence.json` — sha256 `a228db82068ec2830a091e75425ebf84aa61c0bbc5ddbe11e0051c02568a8354` — 1,873 bytes
