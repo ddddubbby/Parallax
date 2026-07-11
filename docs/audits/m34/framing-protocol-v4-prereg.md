@@ -1,5 +1,7 @@
-# framing-protocol.v4 — Preregistration (§§1–11 RATIFIED & LOCKED)
+# framing-protocol.v4 — Preregistration (RETIRED at calibration, D-099 — never frozen, never scored)
 
+> **RETIREMENT (2026-07-11, D-099):** v4 stopped during CAL — 771 dedup'd spans vs the 60 budget, 12/70 malformed envelopes, $0.669 spent — demonstrating operational infeasibility of blinded span-mapping, NOT a completed scientific-validation failure. No control, ablation, gold, or held-out was ever scored. The certification program is descoped (D-099); **v5 is not started**. Salvaged into M34A: the bare admission prompts (CAL-2-validated non-steering), offset-verified span extraction (1.2% drop), provenance controls, and harness resilience.
+>
 > **Status: RATIFIED 2026-07-11 (lead).** §§1–11 are LOCKED — no value changes without a
 > v5 bump; a change after any scoring is a new protocol, never an amendment. Two dev-data
 > calibration steps remain before **freeze** (CAL-1 span budget, CAL-2 prompt wording, both

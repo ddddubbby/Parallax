@@ -1,8 +1,8 @@
 {
   "version": "blind-frame-extraction.v4",
-  "status": "ratified-pre-cal",
+  "status": "adopted-m34a-span-assist",
   "schemaVersion": 4,
-  "note": "Span-offset extraction (D-098 \u00a71). The model authors NO identity \u2014 only offset spans into the immutable raw text. Server validates raw_text[start:end] reproduces exactly; unsupported spans are rejected and counted, never stitched/normalized. Free-form gloss is reviewer-convenience only, zero role in mapping/eligibility/reporting.",
+  "note": "Span-offset extraction (D-098 \u00a71). The model authors NO identity \u2014 only offset spans into the immutable raw text. Server validates raw_text[start:end] reproduces exactly; unsupported spans are rejected and counted, never stitched/normalized. Free-form gloss is reviewer-convenience only, zero role in mapping/eligibility/reporting. 2026-07-11 D-099: retained as the M34A span-ASSIST layer (AI proposes offset-verified spans; a human accepts/rejects every code; extraction failure degrades to human reading raw text \u2014 no state-machine gate).",
   "inputContract": [
     "observedBrandName",
     "rawText"

@@ -1,9 +1,9 @@
 {
   "protocolVersion": "framing-protocol.v4",
-  "status": "ratified-pre-cal",
+  "status": "retired-descope-d099",
   "ratifiedAt": "2026-07-11",
   "frozenAt": null,
-  "goNoGo": null,
+  "goNoGo": "RETIRED-AT-CAL",
   "promptProtocolVersion": "representation-prompts.v4",
   "extractionVersion": "blind-frame-extraction.v4",
   "admissionPromptCount": 5,
@@ -52,7 +52,8 @@
     "\u00a7\u00a71\u201311 ratified & locked 2026-07-11 (D-098). CAL-1/CAL-2 pending on Insta360; nothing scored until frozen.",
     "Eligibility is profile-not-winner: multiple stable concepts are the profile; a tie is never instability (D-096).",
     "The clause-agreement ablation is a PERMANENT freeze gate for all future versions (D-097).",
-    "Extraction engine = gpt-5.4-nano (D-098): CAL found deepseek-v4-flash json_object fails on the large span-list outputs long responses produce; nano one-shots them. Cheapest working option; audit extractor stays DeepSeek (bounded output, unaffected)."
+    "Extraction engine = gpt-5.4-nano (D-098): CAL found deepseek-v4-flash json_object fails on the large span-list outputs long responses produce; nano one-shots them. Cheapest working option; audit extractor stays DeepSeek (bounded output, unaffected).",
+    "2026-07-11 D-099: retired at calibration (771 dedup'd spans vs 60 budget; 12/70 malformed; $0.669). Never frozen, never scored. Certification program descoped to M34A human-reviewed evidence; v5 not started."
   ],
   "extractionEngine": "openai/gpt-5.4-nano"
 }

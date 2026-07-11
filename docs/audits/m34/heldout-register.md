@@ -63,3 +63,14 @@ MAY be generated before v4 freezes, for descriptive/demo value. The framing pipe
 must not run on those responses and framing patterns must not be inspected before
 freeze. Any such audit, and any access to its data, is recorded in the execution
 table above (add rows/columns as needed — append-only).
+
+## Register closed (2026-07-11, D-099)
+
+The automated framing ontology this register existed to validate is **cancelled** by
+the D-099 descope; the scientific seal is formally released. Crocs and Xiaomi are
+repurposed as fresh **workflow pilots** for M34A (human-reviewed framing evidence):
+they test usability, bounded review time, and whether the output yields an actionable
+framing gap. **They do not validate a universal framing instrument**, and no deliverable
+may describe them as validation brands. Insta360 and HEYTEA (development data) are used
+first for workflow development; the fresh-brand pilots are spent only once the workflow
+is stable. All provenance/blinding rules of M34A (FE-1..FE-12) apply to pilot runs.
