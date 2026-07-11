@@ -259,6 +259,25 @@ function assertUnique(values: readonly string[], label: string): void {
   }
 }
 
+/**
+ * M34A FE-2/FE-6: a pasted evidence quote is accepted only when it resolves
+ * to exactly one literal occurrence. There is deliberately no fuzzy path.
+ */
+export function resolveUniqueExactQuote(
+  rawText: string,
+  quote: string,
+): { start: number; end: number } {
+  if (!quote || quote.trim().length === 0) {
+    throw new Error("Evidence quote cannot be blank");
+  }
+  const start = rawText.indexOf(quote);
+  if (start < 0) throw new Error("Evidence quote does not occur literally in the stored response");
+  if (rawText.indexOf(quote, start + 1) >= 0) {
+    throw new Error("Evidence quote occurs more than once; paste a longer unique quote");
+  }
+  return { start, end: start + quote.length };
+}
+
 function assertStudy(study: FramingStudy): void {
   framingStudySchema.parse(study);
   assertUnique(study.responses.map((response) => response.responseId), "responseId");

@@ -47,6 +47,15 @@ export interface PromptTemplateSeed {
   active?: boolean;
 }
 
+export const REPRESENTATION_PROMPT_PROTOCOL_VERSION = "representation-prompts.v4";
+export const REPRESENTATION_PROMPTS = [
+  { variantKey: "a1", text: "What is {client_brand}?" },
+  { variantKey: "a2", text: "Describe {client_brand}." },
+  { variantKey: "a3", text: "Tell me about {client_brand}." },
+  { variantKey: "a4", text: "Give an overview of {client_brand}." },
+  { variantKey: "a5", text: "Explain {client_brand}." },
+] as const;
+
 export function frameAspectsForTemplate(t: Pick<PromptTemplateSeed, "intent" | "frameAspects">): FrameAspect[] {
   return t.frameAspects ?? DEFAULT_FRAME_ASPECTS[t.intent];
 }
@@ -115,11 +124,12 @@ export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "consumer_product", intent: "objection", variantKey: "v1", text: "What concerns should a {persona} have before choosing {client_brand}?" },
   { archetype: "consumer_product", intent: "objection", variantKey: "v2", text: "What do people most often criticize about {client_brand}?" },
   { archetype: "consumer_product", intent: "objection", variantKey: "v3", text: "Why might a {persona} decide not to choose {client_brand}?" },
-  { archetype: "consumer_product", intent: "representation", variantKey: "a1", text: "What is {client_brand}?", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_product", intent: "representation", variantKey: "a2", text: "Describe {client_brand}.", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_product", intent: "representation", variantKey: "a3", text: "Tell me about {client_brand}.", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_product", intent: "representation", variantKey: "a4", text: "Give an overview of {client_brand}.", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_product", intent: "representation", variantKey: "a5", text: "Explain {client_brand}.", frameAspects: ["framing_associations"] },
+  ...REPRESENTATION_PROMPTS.map((prompt) => ({
+    archetype: "consumer_product" as const,
+    intent: "representation" as const,
+    ...prompt,
+    frameAspects: ["framing_associations" as const],
+  })),
 
   { archetype: "consumer_venue", intent: "discovery", variantKey: "v1", text: "Where should a {persona} in {market} go for {job_to_be_done}?" },
   { archetype: "consumer_venue", intent: "discovery", variantKey: "v2", text: "What {category} places should a {persona} in {market} consider?" },
@@ -136,11 +146,12 @@ export const TEMPLATE_SEED: PromptTemplateSeed[] = [
   { archetype: "consumer_venue", intent: "objection", variantKey: "v1", text: "What concerns should a {persona} have before choosing {client_brand}?" },
   { archetype: "consumer_venue", intent: "objection", variantKey: "v2", text: "What do visitors most often criticize about {client_brand}?" },
   { archetype: "consumer_venue", intent: "objection", variantKey: "v3", text: "Why might a {persona} decide not to go to {client_brand}?" },
-  { archetype: "consumer_venue", intent: "representation", variantKey: "a1", text: "What is {client_brand}?", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_venue", intent: "representation", variantKey: "a2", text: "Describe {client_brand}.", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_venue", intent: "representation", variantKey: "a3", text: "Tell me about {client_brand}.", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_venue", intent: "representation", variantKey: "a4", text: "Give an overview of {client_brand}.", frameAspects: ["framing_associations"] },
-  { archetype: "consumer_venue", intent: "representation", variantKey: "a5", text: "Explain {client_brand}.", frameAspects: ["framing_associations"] },
+  ...REPRESENTATION_PROMPTS.map((prompt) => ({
+    archetype: "consumer_venue" as const,
+    intent: "representation" as const,
+    ...prompt,
+    frameAspects: ["framing_associations" as const],
+  })),
 
   // M23 (D-079): opt-in price/promo variants, active:false by default so the
   // default 40-cell allocation, golden dataset, and mock-e2e expectations

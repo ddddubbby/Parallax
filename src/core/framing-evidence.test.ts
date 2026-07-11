@@ -6,6 +6,7 @@ import {
   computeRecurrenceMatrix,
   createBlindDiscoveryPacket,
   createSimulationEvidenceSnapshot,
+  resolveUniqueExactQuote,
   lockCodebook,
   type CodingRecord,
   type FramingStudy,
@@ -171,6 +172,14 @@ const coding: CodingRecord = {
 };
 
 describe("M34A framing evidence workflow (D-099)", () => {
+  it("resolves only one literal quote occurrence and never falls back to fuzzy matching", () => {
+    expect(resolveUniqueExactQuote("Alpha exact evidence omega", "exact evidence")).toEqual({
+      start: 6,
+      end: 20,
+    });
+    expect(() => resolveUniqueExactQuote("Alpha evidence", "alpha evidence")).toThrow(/literally/i);
+    expect(() => resolveUniqueExactQuote("repeat and repeat", "repeat")).toThrow(/more than once/i);
+  });
   it("builds a discovery packet that carries only blind text and a separate key", () => {
     const { packet, key } = createBlindDiscoveryPacket({
       study,
