@@ -311,8 +311,8 @@ export function StudyWizard({
           <p className="mb-3 max-w-2xl text-sm leading-6 text-ink/70">
             Add at least <strong>two framings</strong> to compare — for example, what AI says about you today vs. a
             corrected or repositioned version. The panel reacts to each. At least one framing must be a{" "}
-            <strong>Measured AI framing</strong> citing real audit evidence — that is the study&rsquo;s baseline
-            (C-13).
+            <strong>Measured AI framing</strong> linked to reviewed framing evidence — that is the study&rsquo;s baseline
+            ({requiresFramingSnapshot ? "C-15" : "C-13"}).
           </p>
 
           <div className="flex flex-col gap-4">
@@ -412,7 +412,11 @@ function FramingCard({
     <div className="rounded-lg border border-ink/10 p-4">
       <div className="mb-3 grid gap-3 md:grid-cols-[16rem_1fr]">
         <Field label="Framing type" hint={KIND_META[kind].help}>
-          <Select value={kind} onChange={(e) => setKind(e.target.value as StimulusKind)}>
+          <Select value={kind} onChange={(e) => {
+            const nextKind = e.target.value as StimulusKind;
+            setKind(nextKind);
+            if (nextKind !== "measured_ai") setSnapshotId("");
+          }}>
             {STIMULUS_KINDS.map((k) => (
               <option key={k} value={k}>
                 {KIND_META[k].label}
