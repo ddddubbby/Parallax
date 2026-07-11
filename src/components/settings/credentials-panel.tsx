@@ -52,6 +52,7 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"add" | "rotate">("add");
@@ -70,6 +71,7 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     setBaseUrl("");
     setDefaultModel("");
     setError(null);
+    setNotice(null);
     setDialogOpen(true);
   }
 
@@ -81,6 +83,7 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     setBaseUrl(row.baseUrl ?? "");
     setDefaultModel(row.defaultModel ?? "");
     setError(null);
+    setNotice(null);
     setDialogOpen(true);
   }
 
@@ -107,17 +110,22 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
 
   function handleVerify(id: string, provider: ProviderId) {
     setError(null);
+    setNotice(null);
     setBusyId(id);
     startTransition(async () => {
+      // A successful verify used to render nothing at all — the only signal was
+      // the "Last verified" cell quietly changing, which reads as a dead button.
       const result = await verifyCredential(id, provider);
       setBusyId(null);
-      if (!result.ok) setError(result.error);
+      if (result.ok) setNotice(`${provider} key verified — live call succeeded`);
+      else setError(result.error);
       router.refresh();
     });
   }
 
   function handleDisable(id: string) {
     setError(null);
+    setNotice(null);
     setBusyId(id);
     startTransition(async () => {
       const result = await disableCredential(id);
@@ -129,6 +137,7 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
 
   function handleEnable(id: string) {
     setError(null);
+    setNotice(null);
     setBusyId(id);
     startTransition(async () => {
       const result = await enableCredential(id);
@@ -140,6 +149,7 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
 
   function handleDelete(id: string) {
     setError(null);
+    setNotice(null);
     setBusyId(id);
     startTransition(async () => {
       const result = await deleteCredential(id);
@@ -162,6 +172,12 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
 
       {error && !dialogOpen && (
         <p className="mb-4 font-mono text-xs text-danger">{error}</p>
+      )}
+
+      {notice && !dialogOpen && (
+        <p role="status" className="mb-4 font-mono text-xs text-ok">
+          {notice}
+        </p>
       )}
 
       {credentials.length === 0 ? (

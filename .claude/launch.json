@@ -3,8 +3,12 @@
   "configurations": [
     {
       "name": "parallax-web",
-      "runtimeExecutable": "/bin/sh",
-      "runtimeArgs": ["/Users/tapp/Documents/Parallax/scripts/dev-server.sh"],
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": [
+        "PATH=/Users/tapp/.local/share/node-v22/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "/Users/tapp/.local/share/node-v22/bin/pnpm",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     }
