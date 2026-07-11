@@ -1,0 +1,20 @@
+{
+  "version": "representation-prompts.v4",
+  "status": "ratified-pre-cal",
+  "note": "Bare open paraphrases, NO shared instruction sentence (D-098 §2.1). Hedging is captured by the `hedged` stance at extraction; thin answers -> no_frame/insufficient_evidence; entity confusion -> entity_ambiguous. CAL-2 may adjust surface wording on Insta360 dev data to remove accidental steering, never to tune an outcome.",
+  "admission": [
+    { "variantKey": "a1", "text": "What is {client_brand}?" },
+    { "variantKey": "a2", "text": "Describe {client_brand}." },
+    { "variantKey": "a3", "text": "Tell me about {client_brand}." },
+    { "variantKey": "a4", "text": "Give an overview of {client_brand}." },
+    { "variantKey": "a5", "text": "Explain {client_brand}." }
+  ],
+  "diagnosticProbes": [
+    { "variantKey": "p_offering", "text": "What does {client_brand} make or offer?" },
+    { "variantKey": "p_audience", "text": "Who is {client_brand} typically for?" }
+  ],
+  "diagnosticProbesAreNeverAdmissionEvidence": true,
+  "generationsPerPrompt": 5,
+  "mode": "ungrounded",
+  "frozenAt": null
+}
