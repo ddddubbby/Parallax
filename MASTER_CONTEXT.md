@@ -73,9 +73,9 @@ Stack: Next.js 15 + TypeScript + Tailwind + shadcn/ui, Drizzle ORM, Zod, Vitest,
 | `pnpm test:db` | Boot the same ephemeral test-DB instance standalone in the foreground, for manual poking (mirrors `pnpm db:dev`'s UX; D-078) |
 | `pnpm db:migrate` | Apply Drizzle migrations |
 | `pnpm db:studio` | Inspect data with Drizzle Studio |
-| `pnpm framing:m34a:collect` | Bounded live M34A neutral-evidence collection with raw provenance, span assistance, and harness-side C-2 ledger; never runs semantic eligibility |
-| `pnpm framing:m34a:workflow` | Build blind packet, lock codebook, generate recurrence matrix, or create C-15 evidence snapshot from M34A artifacts |
-| `pnpm framing:m34a:report` | Render descriptive M34A recurrence and actionable-gap report from locked human-reviewed coding |
+| `pnpm research:m34a:collect` | Bounded live M34A neutral-evidence collection with raw provenance, span assistance, and harness-side C-2 ledger; never runs semantic eligibility |
+| `pnpm research:m34a:workflow` | Build blind packet, lock codebook, generate recurrence matrix, or create C-15 evidence snapshot from M34A artifacts |
+| `pnpm research:m34a:report` | Render descriptive M34A recurrence and actionable-gap report from locked human-reviewed coding |
 
 This table is a snapshot of daily-driver commands. The canonical, complete command list — lint, typecheck, seed, and per-milestone acceptance commands — lives in `DEVELOPMENT_GUIDELINES.md` section F.
 
@@ -91,6 +91,7 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 /src/modules/extraction  Structured extraction and claim matching
 /src/modules/analysis    Metrics, findings, stability calculations
 /src/modules/resonance   Simulation Layer studies: compile, SSR scoring, resonance metrics (M17+)
+/src/modules/framing     M34A framing evidence: study workflow, blind human coding, recurrence, gap classification, C-15 handoff (D-099/D-102)
 /src/modules/report      Report section generation and export helpers
 /src/modules/auth        Login/session (M8, D-034)
 /src/modules/settings    Provider credentials UI/service (M8, D-017/D-021)
