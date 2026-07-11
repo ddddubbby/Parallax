@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SimulatedBadge } from "@/components/simulated-badge";
+import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import { Stamp } from "@/components/ui";
 import type { StudyResultSection } from "@/core/views";
 import { withViewParam } from "@/core/views";
@@ -244,6 +245,7 @@ export function StudyResultsPanel({
           Report →
         </Link>
       </div>
+      <BaselineProvenance provenance={results.study.baselineProvenance} />
       <p className="font-mono text-xs leading-5 text-ink/55">
         Mean PI and ΔPI are simulated Likert-scale survey-construct scores. They compare stimulus
         variants within one engine&rsquo;s population; they are never pooled across engines and are

@@ -38,6 +38,15 @@ interface StimulusRow {
   label: string;
   body: string;
   evidenceResponseIdsJson: string[] | null;
+  framingEvidenceSnapshotId: string | null;
+}
+
+interface SnapshotOption {
+  id: string;
+  label: string;
+  associationId: string;
+  excerpt: string;
+  verbatimResponse: string;
 }
 
 const STEPS = [
@@ -66,12 +75,16 @@ export function StudyWizard({
   initialPersonas,
   stimuli,
   evidenceOptions,
+  snapshotOptions,
+  requiresFramingSnapshot,
 }: {
   projectId: string;
   study: { id: string; name: string };
   initialPersonas: PersonaRow[];
   stimuli: StimulusRow[];
   evidenceOptions: Array<{ id: string; excerpt: string }>;
+  snapshotOptions: SnapshotOption[];
+  requiresFramingSnapshot: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -136,9 +149,12 @@ export function StudyWizard({
 
   function addFraming() {
     const fd = new FormData();
-    fd.set("kind", "measured_ai");
+    const snapshot = snapshotOptions[0];
+    const kind = requiresFramingSnapshot && !snapshot ? "custom" : "measured_ai";
+    fd.set("kind", kind);
     fd.set("label", "New framing");
-    fd.set("body", "Paste the framing the panel should react to.");
+    fd.set("body", snapshot?.verbatimResponse ?? "Paste the framing the panel should react to.");
+    if (snapshot) fd.set("framingEvidenceSnapshotId", snapshot.id);
     runAction(() => addStimulusAction(projectId, study.id, fd));
   }
 
@@ -149,6 +165,9 @@ export function StudyWizard({
     fd.set("label", merged.label);
     fd.set("body", merged.body);
     for (const eid of evidenceIds) fd.append("evidenceResponseIds", eid);
+    if (merged.framingEvidenceSnapshotId) {
+      fd.set("framingEvidenceSnapshotId", merged.framingEvidenceSnapshotId);
+    }
     runAction(() => updateStimulusAction(projectId, study.id, row.id, fd));
   }
 
@@ -168,17 +187,23 @@ export function StudyWizard({
   if (stimuli.length < 2) readiness.push("Add at least two framings to compare (step 3).");
   // C-13 hard rule (M22/D-078): every study needs a Measured AI framing
   // with real evidence attached before it can be approved — no exceptions.
-  const hasEvidencedMeasuredAi = stimuli.some(
-    (s) => s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length > 0,
+  const hasEvidencedMeasuredAi = stimuli.some((s) =>
+    s.kind === "measured_ai" && (requiresFramingSnapshot
+      ? Boolean(s.framingEvidenceSnapshotId)
+      : (s.evidenceResponseIdsJson ?? []).length > 0),
   );
   if (!hasEvidencedMeasuredAi) {
     readiness.push(
-      "Attach a Measured AI framing with at least one real audit response as evidence before approval (step 3, C-13).",
+      requiresFramingSnapshot
+        ? "Attach a reviewed framing-evidence snapshot as the Measured AI baseline before approval (step 3, C-15)."
+        : "Attach a Measured AI framing with at least one real audit response as evidence before approval (step 3, C-13).",
     );
   }
   for (const s of stimuli) {
-    if (s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length === 0) {
-      readiness.push(`"${s.label}" is a Measured AI framing but has no evidence attached (step 3).`);
+    if (s.kind === "measured_ai" && (requiresFramingSnapshot
+      ? !s.framingEvidenceSnapshotId
+      : (s.evidenceResponseIdsJson ?? []).length === 0)) {
+      readiness.push(`"${s.label}" is a Measured AI framing but has no ${requiresFramingSnapshot ? "reviewed snapshot" : "evidence"} attached (step 3).`);
     }
   }
 
@@ -296,6 +321,8 @@ export function StudyWizard({
                 key={s.id}
                 stimulus={s}
                 evidenceOptions={evidenceOptions}
+                snapshotOptions={snapshotOptions}
+                requiresFramingSnapshot={requiresFramingSnapshot}
                 pending={pending}
                 onSave={(patch, evidenceIds) => saveFraming(s, patch, evidenceIds)}
                 onDelete={() => runAction(() => deleteStimulusAction(projectId, study.id, s.id))}
@@ -359,12 +386,16 @@ export function StudyWizard({
 function FramingCard({
   stimulus,
   evidenceOptions,
+  snapshotOptions,
+  requiresFramingSnapshot,
   pending,
   onSave,
   onDelete,
 }: {
   stimulus: StimulusRow;
   evidenceOptions: Array<{ id: string; excerpt: string }>;
+  snapshotOptions: SnapshotOption[];
+  requiresFramingSnapshot: boolean;
   pending: boolean;
   onSave: (patch: Partial<StimulusRow>, evidenceIds: string[]) => void;
   onDelete: () => void;
@@ -373,8 +404,9 @@ function FramingCard({
   const [label, setLabel] = useState(stimulus.label);
   const [body, setBody] = useState(stimulus.body);
   const [evidence, setEvidence] = useState<Set<string>>(new Set(stimulus.evidenceResponseIdsJson ?? []));
+  const [snapshotId, setSnapshotId] = useState(stimulus.framingEvidenceSnapshotId ?? "");
 
-  const needsEvidence = kind === "measured_ai" && evidence.size === 0;
+  const needsEvidence = kind === "measured_ai" && (requiresFramingSnapshot ? !snapshotId : evidence.size === 0);
 
   return (
     <div className="rounded-lg border border-ink/10 p-4">
@@ -392,17 +424,34 @@ function FramingCard({
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Measured AI framing" />
         </Field>
       </div>
-      <Field label="Framing text" hint="Paste the exact wording the panel should react to.">
-        <Textarea value={body} rows={4} onChange={(e) => setBody(e.target.value)} />
+      <Field label="Framing text" hint={kind === "measured_ai" && requiresFramingSnapshot ? "Copied verbatim from the immutable reviewed response." : "Paste the exact wording the panel should react to."}>
+        <Textarea value={body} rows={4} readOnly={kind === "measured_ai" && requiresFramingSnapshot} onChange={(e) => setBody(e.target.value)} />
       </Field>
 
       {needsEvidence && (
         <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
-          A Measured AI framing needs at least one real response attached below (C-13).
+          A Measured AI framing needs {requiresFramingSnapshot ? "a reviewed framing-evidence snapshot" : "at least one real response"} attached below ({requiresFramingSnapshot ? "C-15" : "C-13"}).
         </p>
       )}
 
-      {kind === "measured_ai" && evidenceOptions.length > 0 && (
+      {kind === "measured_ai" && requiresFramingSnapshot && (
+        <div className="mt-3">
+          <Field label="Reviewed baseline snapshot" hint="Selecting one copies its full stored AI response as the immutable baseline stimulus.">
+            <Select value={snapshotId} onChange={(event) => {
+              const nextId = event.target.value;
+              setSnapshotId(nextId);
+              const selected = snapshotOptions.find((option) => option.id === nextId);
+              if (selected) setBody(selected.verbatimResponse);
+            }}>
+              <option value="">Select reviewed evidence…</option>
+              {snapshotOptions.map((option) => <option key={option.id} value={option.id}>{option.associationId} · {option.label} · {option.excerpt}</option>)}
+            </Select>
+          </Field>
+          {snapshotOptions.length === 0 && <p className="mt-2 font-mono text-xs text-warn">Complete a consumer Framing Evidence review and create a handoff snapshot first.</p>}
+        </div>
+      )}
+
+      {kind === "measured_ai" && !requiresFramingSnapshot && evidenceOptions.length > 0 && (
         <div className="mt-3">
           <span className="label-mono text-xs text-ink/60">Evidence — the real AI responses this framing quotes</span>
           <div className="mt-2 grid gap-2">
@@ -430,7 +479,7 @@ function FramingCard({
           type="button"
           variant="secondary"
           disabled={pending}
-          onClick={() => onSave({ kind, label, body }, [...evidence])}
+          onClick={() => onSave({ kind, label, body, framingEvidenceSnapshotId: snapshotId || null }, [...evidence])}
         >
           Save framing
         </Button>

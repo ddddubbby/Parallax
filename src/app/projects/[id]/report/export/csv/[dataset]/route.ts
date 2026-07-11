@@ -24,6 +24,17 @@ function withResonanceExportColumns<T extends Record<string, unknown>>(
     genericUnconditioned: metadata?.genericUnconditioned ?? null,
     studyId: metadata?.studyId ?? null,
     studyName: metadata?.studyName ?? null,
+    baselineLabel: metadata?.baselineLabel ?? null,
+    framingEvidenceSnapshotId: metadata?.framingEvidenceSnapshotId ?? null,
+    baselineNumerator: metadata?.baselineProvenance?.numerator ?? null,
+    baselineDenominator: metadata?.baselineProvenance?.denominator ?? null,
+    baselinePromptSpread: metadata?.baselineProvenance?.promptSpread ?? null,
+    baselinePromptDenominator: metadata?.baselineProvenance?.promptDenominator ?? null,
+    baselineModelScope: metadata?.baselineProvenance?.providerId
+      ? `${metadata.baselineProvenance.providerId}/${metadata.baselineProvenance.modelVersion}/${metadata.baselineProvenance.generationMode}`
+      : null,
+    baselineReviewMethod: metadata?.baselineProvenance?.reviewMethod ?? null,
+    baselineCodebookVersion: metadata?.baselineProvenance?.codebookVersion ?? null,
     ...row,
   }));
 }
@@ -39,7 +50,7 @@ async function buildCsv(
       case "resonance_responses": {
         const rows = withResonanceExportColumns(await getExportResponses(runId), resonanceStudy);
         return toCsv(rows, [
-          "simulationLabel", "genericUnconditioned", "studyId", "studyName",
+          "simulationLabel", "genericUnconditioned", "studyId", "studyName", "baselineLabel", "framingEvidenceSnapshotId", "baselineNumerator", "baselineDenominator", "baselinePromptSpread", "baselinePromptDenominator", "baselineModelScope", "baselineReviewMethod", "baselineCodebookVersion",
           "id", "cellId", "providerId", "generationMode", "modelVersion",
           "tokensIn", "tokensOut", "costUsd", "latencyMs", "rawText", "createdAt",
         ]);
@@ -57,7 +68,7 @@ async function buildCsv(
           resonanceStudy,
         );
         return toCsv(rows, [
-          "simulationLabel", "genericUnconditioned", "studyId", "studyName",
+          "simulationLabel", "genericUnconditioned", "studyId", "studyName", "baselineLabel", "framingEvidenceSnapshotId", "baselineNumerator", "baselineDenominator", "baselinePromptSpread", "baselinePromptDenominator", "baselineModelScope", "baselineReviewMethod", "baselineCodebookVersion",
           "providerId", "scopeType", "scopeKey", "metricKey", "n", "value", "ciLow", "ciHigh", "metadataJson", "computedAt",
         ]);
       }

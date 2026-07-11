@@ -6,6 +6,7 @@ import type { CodebookAssociation } from "@/core/framing-evidence";
 import { isUuid } from "@/core/id";
 import {
   completeFramingReview,
+  createFramingEvidenceSnapshot,
   createFramingStudy,
   lockFramingCodebook,
   revealFramingPositioning,
@@ -42,6 +43,22 @@ export async function createFramingStudyAction(
     return { ok: true, id: study.id };
   } catch (error) {
     return errorResult(error, "Framing study create failed");
+  }
+}
+
+export async function createFramingEvidenceSnapshotAction(
+  projectId: string,
+  studyId: string,
+  annotationId: string,
+): Promise<ActionResult> {
+  if (!validIds(projectId, studyId, annotationId)) return { ok: false, error: "Invalid id" };
+  try {
+    const { snapshot } = await createFramingEvidenceSnapshot({ projectId, studyId, annotationId });
+    revalidateFraming(projectId, studyId);
+    revalidatePath(`/projects/${projectId}/resonance`);
+    return { ok: true, id: snapshot.id };
+  } catch (error) {
+    return errorResult(error, "Simulation evidence snapshot failed");
   }
 }
 

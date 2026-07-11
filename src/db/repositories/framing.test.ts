@@ -14,6 +14,7 @@ import {
   brands,
   factClaims,
   framingAnnotations,
+  framingEvidenceSnapshots,
   framingGapClassifications,
   framingResponseReviews,
   framingStudies,
@@ -22,21 +23,33 @@ import {
   projects,
   promptCells,
   responses,
+  resonanceStimuli,
+  resonanceStudies,
 } from "../schema";
-import { forceDeletePromptCellsByIds } from "./matrix.test-helpers";
+import { forceDeleteMatrixVersions, forceDeletePromptCellsByIds } from "./matrix.test-helpers";
+import {
+  addResonanceStimulus,
+  approveAndCompileResonanceStudy,
+  createResonanceStudy,
+  getResonanceStudy,
+  updateResonanceStimulus,
+} from "./resonance";
 import {
   completeFramingReview,
   computeFramingRecurrence,
   createFramingStudy,
+  createFramingEvidenceSnapshot,
   getBlindDiscoveryPacket,
   getFramingStudy,
   getFramingReviewRows,
   listFramingStudies,
+  listFramingEvidenceSnapshots,
   lockFramingCodebook,
   revealFramingPositioning,
   saveFramingCodebookDraft,
   saveFramingGapClassifications,
   saveFramingResponseReview,
+  verifyFramingEvidenceSnapshotRecord,
 } from "./framing";
 
 let dbUp = false;
@@ -57,10 +70,23 @@ const made = {
   jobIds: [] as string[],
   responseIds: [] as string[],
   studyIds: [] as string[],
+  resonanceStudyIds: [] as string[],
+  resonanceVersionIds: [] as string[],
 };
 
 afterAll(async () => {
+  if (made.resonanceVersionIds.length > 0) {
+    await forceDeleteMatrixVersions(made.resonanceVersionIds).catch(() => {});
+  }
+  for (const studyId of made.resonanceStudyIds) {
+    await db.delete(resonanceStimuli).where(eq(resonanceStimuli.studyId, studyId)).catch(() => {});
+    await db.delete(resonanceStudies).where(eq(resonanceStudies.id, studyId)).catch(() => {});
+  }
   for (const studyId of made.studyIds) {
+    await db
+      .delete(framingEvidenceSnapshots)
+      .where(eq(framingEvidenceSnapshots.framingStudyId, studyId))
+      .catch(() => {});
     const reviewIds = (
       await db
         .select({ id: framingResponseReviews.id })
@@ -451,6 +477,89 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     expect(markdown).toContain("What is LensLoop?");
     expect(markdown).toContain("2/6");
     expect(markdown).toContain("single analyst");
+    const completedDetail = await getFramingStudy(project.id, study.id);
+    const acceptedAnnotationId = completedDetail!.reviews
+      .flatMap((review) => review.annotations)
+      .find((annotation) => annotation.decision === "accepted")!.id;
+    const handoff = await createFramingEvidenceSnapshot({
+      projectId: project.id,
+      studyId: study.id,
+      annotationId: acceptedAnnotationId,
+    });
+    expect(handoff.payload).toMatchObject({
+      projectId: project.id,
+      studyId: study.id,
+      verbatimResponse: "LensLoop is known for durable action cameras.",
+      evidence: { text: "durable action cameras" },
+      recurrence: { numerator: 2, denominator: 6, label: "OBSERVED IN 2/6 RESPONSES" },
+    });
+    expect(await listFramingEvidenceSnapshots(project.id)).toHaveLength(1);
+    expect(() => verifyFramingEvidenceSnapshotRecord({
+      ...handoff.snapshot,
+      evidenceJson: { ...handoff.payload, verbatimResponse: "tampered" },
+    })).toThrow(/hash|offsets/i);
+
+    const simulation = await createResonanceStudy(project.id, "M34A snapshot handoff");
+    made.resonanceStudyIds.push(simulation.id);
+    await expect(addResonanceStimulus({
+      projectId: project.id,
+      studyId: simulation.id,
+      kind: "measured_ai",
+      label: "Measured baseline",
+      body: "operator-authored text must not survive",
+      evidenceResponseIds: [],
+    })).rejects.toThrow(/reviewed framing snapshot/i);
+    const baseline = await addResonanceStimulus({
+      projectId: project.id,
+      studyId: simulation.id,
+      kind: "measured_ai",
+      label: "Measured baseline",
+      body: "operator-authored text must not survive",
+      evidenceResponseIds: [],
+      framingEvidenceSnapshotId: handoff.snapshot.id,
+    });
+    await addResonanceStimulus({
+      projectId: project.id,
+      studyId: simulation.id,
+      kind: "corrected",
+      label: "Corrected framing",
+      body: "LensLoop exports direct-to-share flat video.",
+      evidenceResponseIds: [],
+    });
+    const [storedBaseline] = await db
+      .select()
+      .from(resonanceStimuli)
+      .where(eq(resonanceStimuli.id, baseline.id));
+    expect(storedBaseline).toMatchObject({
+      body: handoff.payload.verbatimResponse,
+      evidenceResponseIdsJson: [handoff.payload.responseId],
+      framingEvidenceSnapshotId: handoff.snapshot.id,
+    });
+    await db
+      .update(resonanceStimuli)
+      .set({ body: "tampered after handoff" })
+      .where(eq(resonanceStimuli.id, baseline.id));
+    await expect(approveAndCompileResonanceStudy(project.id, simulation.id)).rejects.toThrow(/byte-equal/i);
+    await updateResonanceStimulus({
+      projectId: project.id,
+      studyId: simulation.id,
+      stimulusId: baseline.id,
+      kind: "measured_ai",
+      label: "Measured baseline",
+      body: "still ignored",
+      evidenceResponseIds: [],
+      framingEvidenceSnapshotId: handoff.snapshot.id,
+    });
+    const compiled = await approveAndCompileResonanceStudy(project.id, simulation.id);
+    made.resonanceVersionIds.push(compiled.id);
+    expect((await getResonanceStudy(project.id, simulation.id))?.baselineProvenance).toMatchObject({
+      status: "snapshot",
+      snapshotId: handoff.snapshot.id,
+      numerator: 2,
+      denominator: 6,
+      promptSpread: 2,
+      promptDenominator: 5,
+    });
   }, 30_000);
 
   it("rejects B2B framing studies even when a source run otherwise has representation cells", async () => {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NewStudyDialog } from "@/components/resonance/new-study-dialog";
+import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
@@ -58,7 +59,7 @@ export default async function ResonanceLibraryPage({
         </section>
       ) : (
         <div className="flex flex-col gap-3">
-          {studies.map(({ study, stimuli, matrixVersion, latestRun }) => {
+          {studies.map(({ study, baselineProvenance, stimuli, matrixVersion, latestRun }) => {
             const personas = study.panelPersonasJson as PanelPersona[];
             const isDraft = study.state === "draft";
             const href = `/projects/${id}/resonance/${study.id}${isDraft ? "?view=design" : ""}`;
@@ -101,6 +102,7 @@ export default async function ResonanceLibraryPage({
                     <span>no run yet</span>
                   ) : null}
                 </div>
+                <div className="mt-3"><BaselineProvenance provenance={baselineProvenance} /></div>
               </section>
             );
           })}

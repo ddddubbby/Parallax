@@ -5,10 +5,12 @@ import {
   GAP_CLASSIFICATIONS,
   resolveUniqueExactQuote,
   REVIEW_METHODS,
+  simulationEvidenceSnapshotSchema,
   type CodebookAssociation,
   type GapClassificationKind,
   type RecurrenceRow,
   type ReviewMethod,
+  type SimulationEvidenceSnapshot,
 } from "@/core/framing-evidence";
 import { stableHash } from "@/core/hash";
 import {
@@ -22,6 +24,7 @@ import {
   brands,
   factClaims,
   framingAnnotations,
+  framingEvidenceSnapshots,
   framingGapClassifications,
   framingResponseReviews,
   framingStudies,
@@ -938,4 +941,153 @@ export async function saveFramingGapClassifications(input: {
     if (rows.length > 0) await tx.insert(framingGapClassifications).values(rows);
     return rows.length;
   });
+}
+
+export function framingEvidenceSnapshotSha256(payload: SimulationEvidenceSnapshot): string {
+  return sha256(payload);
+}
+
+export function verifyFramingEvidenceSnapshotRecord(record: {
+  projectId: string;
+  framingStudyId: string;
+  annotationId: string;
+  responseId: string;
+  evidenceJson: unknown;
+  sha256: string;
+}): SimulationEvidenceSnapshot {
+  const payload = simulationEvidenceSnapshotSchema.parse(record.evidenceJson);
+  if (
+    payload.projectId !== record.projectId ||
+    payload.studyId !== record.framingStudyId ||
+    payload.annotationId !== record.annotationId ||
+    payload.responseId !== record.responseId
+  ) {
+    throw new Error("Framing evidence snapshot linkage does not match its immutable payload");
+  }
+  if (framingEvidenceSnapshotSha256(payload) !== record.sha256) {
+    throw new Error("Framing evidence snapshot hash does not match its immutable payload");
+  }
+  return payload;
+}
+
+export async function createFramingEvidenceSnapshot(input: {
+  projectId: string;
+  studyId: string;
+  annotationId: string;
+}) {
+  const isoTimestamp = (value: Date | string) =>
+    value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  const detail = await getFramingStudy(input.projectId, input.studyId);
+  if (!detail || detail.study.state !== "completed") {
+    throw new Error("Simulation handoff requires a completed framing review");
+  }
+  const review = detail.reviews.find((candidate) =>
+    candidate.annotations.some((annotation) => annotation.id === input.annotationId),
+  );
+  const annotation = review?.annotations.find((candidate) => candidate.id === input.annotationId);
+  if (
+    !review ||
+    !annotation ||
+    annotation.decision !== "accepted" ||
+    review.outcome !== "coded" ||
+    !review.responseId ||
+    review.rawText === null ||
+    review.modelVersion === null ||
+    annotation.startOffset === null ||
+    annotation.endOffset === null
+  ) {
+    throw new Error("Simulation handoff requires an accepted reviewed annotation with immutable source text");
+  }
+  const recurrence = (await computeFramingRecurrence(input.projectId, input.studyId))
+    .find((row) => row.associationId === annotation.associationId);
+  if (!recurrence) throw new Error("Selected association is absent from the recurrence matrix");
+  const evidenceText = review.rawText.slice(annotation.startOffset, annotation.endOffset);
+  resolveUniqueExactQuote(review.rawText, evidenceText);
+  const recurrenceLabel = recurrence.responsesContainingAssociation <= 1
+    ? "SINGLE OBSERVED INSTANCE"
+    : `OBSERVED IN ${recurrence.responsesContainingAssociation}/${recurrence.denominator} RESPONSES`;
+  if (
+    !detail.study.codebookLockedAt ||
+    !detail.study.revealedAt ||
+    !detail.study.revealedBy ||
+    !detail.study.positioningDigest ||
+    !detail.study.factSheetDigest ||
+    !detail.study.reviewerIdentity ||
+    !detail.study.reviewMethod
+  ) {
+    throw new Error("Framing review provenance is incomplete");
+  }
+  assertReviewMethod(detail.study.reviewMethod);
+  const payload = simulationEvidenceSnapshotSchema.parse({
+    snapshotVersion: "m34a-simulation-evidence.v1",
+    studyId: detail.study.id,
+    projectId: detail.study.projectId,
+    promptProtocolVersion: detail.study.promptProtocolVersion,
+    responseId: review.responseId,
+    annotationId: annotation.id,
+    associationId: annotation.associationId,
+    verbatimResponse: review.rawText,
+    evidence: {
+      start: annotation.startOffset,
+      end: annotation.endOffset,
+      text: evidenceText,
+    },
+    codebook: {
+      id: detail.study.codebookId,
+      version: String(detail.study.codebookVersion),
+      lockedAt: detail.study.codebookLockedAt.toISOString(),
+    },
+    codingRun: {
+      id: detail.study.id,
+      reviewerId: detail.study.reviewerIdentity,
+      reviewMethod: detail.study.reviewMethod,
+    },
+    reveal: {
+      revealedAt: detail.study.revealedAt.toISOString(),
+      revealedBy: detail.study.revealedBy,
+      positioningDigest: detail.study.positioningDigest,
+      factSheetDigest: detail.study.factSheetDigest,
+    },
+    source: {
+      promptVariant: review.variantKey,
+      promptText: review.promptText,
+      providerId: review.providerId,
+      modelVersion: review.modelVersion,
+      generationMode: review.generationMode,
+      observedAt: isoTimestamp(review.observedAt),
+    },
+    recurrence: {
+      numerator: recurrence.responsesContainingAssociation,
+      denominator: recurrence.denominator,
+      promptVariantsContainingAssociation: recurrence.promptVariantsContainingAssociation,
+      promptVariantDenominator: recurrence.promptVariantDenominator,
+      scopes: recurrence.scopes,
+      label: recurrenceLabel,
+    },
+  });
+  const [snapshot] = await db
+    .insert(framingEvidenceSnapshots)
+    .values({
+      projectId: input.projectId,
+      framingStudyId: input.studyId,
+      annotationId: input.annotationId,
+      responseId: review.responseId,
+      evidenceJson: payload,
+      sha256: framingEvidenceSnapshotSha256(payload),
+    })
+    .returning();
+  return { snapshot, payload };
+}
+
+export async function listFramingEvidenceSnapshots(projectId: string) {
+  const rows = await db
+    .select()
+    .from(framingEvidenceSnapshots)
+    .where(eq(framingEvidenceSnapshots.projectId, projectId))
+    .orderBy(sql`${framingEvidenceSnapshots.createdAt} desc`);
+  return rows.map((row) => ({
+    id: row.id,
+    createdAt: row.createdAt,
+    payload: verifyFramingEvidenceSnapshotRecord(row),
+  }));
 }

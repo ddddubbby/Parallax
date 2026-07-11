@@ -168,6 +168,7 @@ async function buildResonanceReportContext(runId: string): Promise<ResonanceRepo
     runDate: (run.completedAt ?? run.createdAt).toISOString().slice(0, 10),
     isMock: run.runMode === "mock",
     genericUnconditioned: results.study.genericUnconditioned,
+    baselineProvenance: results.study.baselineProvenance,
     repetitions: run.repetitions,
     providers: (run.selectedProvidersJson as string[]) ?? [],
     modes: (run.selectedModesJson as string[]) ?? [],

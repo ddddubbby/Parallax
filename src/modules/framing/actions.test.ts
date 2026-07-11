@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
+  createSnapshot: vi.fn(),
   saveCodebook: vi.fn(),
   lockCodebook: vi.fn(),
   reveal: vi.fn(),
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/db/repositories/framing", () => ({
   createFramingStudy: mocks.create,
+  createFramingEvidenceSnapshot: mocks.createSnapshot,
   saveFramingCodebookDraft: mocks.saveCodebook,
   lockFramingCodebook: mocks.lockCodebook,
   revealFramingPositioning: mocks.reveal,
@@ -24,6 +26,7 @@ vi.mock("@/db/repositories/framing", () => ({
 
 import {
   completeFramingReviewAction,
+  createFramingEvidenceSnapshotAction,
   createFramingStudyAction,
   lockFramingCodebookAction,
   revealFramingPositioningAction,
@@ -36,10 +39,13 @@ const PROJECT_ID = "00000000-0000-4000-8000-000000000001";
 const RUN_ID = "00000000-0000-4000-8000-000000000002";
 const STUDY_ID = "00000000-0000-4000-8000-000000000003";
 const REVIEW_ID = "00000000-0000-4000-8000-000000000004";
+const ANNOTATION_ID = "00000000-0000-4000-8000-000000000005";
+const SNAPSHOT_ID = "00000000-0000-4000-8000-000000000006";
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.create.mockResolvedValue({ id: STUDY_ID });
+  mocks.createSnapshot.mockResolvedValue({ snapshot: { id: SNAPSHOT_ID } });
   mocks.saveCodebook.mockResolvedValue({ id: STUDY_ID });
   mocks.lockCodebook.mockResolvedValue({ id: STUDY_ID });
   mocks.reveal.mockResolvedValue({ id: STUDY_ID });
@@ -59,6 +65,9 @@ describe("framing action RPC boundaries", () => {
       error: "Invalid id",
     });
     await expect(
+      createFramingEvidenceSnapshotAction(PROJECT_ID, STUDY_ID, "bad"),
+    ).resolves.toEqual({ ok: false, error: "Invalid id" });
+    await expect(
       saveFramingResponseReviewAction({
         projectId: PROJECT_ID,
         studyId: STUDY_ID,
@@ -70,6 +79,7 @@ describe("framing action RPC boundaries", () => {
     ).resolves.toEqual({ ok: false, error: "Invalid id" });
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.lockCodebook).not.toHaveBeenCalled();
+    expect(mocks.createSnapshot).not.toHaveBeenCalled();
     expect(mocks.saveReview).not.toHaveBeenCalled();
   });
 
@@ -111,6 +121,9 @@ describe("framing action RPC boundaries", () => {
     ).resolves.toEqual({ ok: true });
     await expect(completeFramingReviewAction(PROJECT_ID, STUDY_ID)).resolves.toEqual({ ok: true });
     await expect(
+      createFramingEvidenceSnapshotAction(PROJECT_ID, STUDY_ID, ANNOTATION_ID),
+    ).resolves.toEqual({ ok: true, id: SNAPSHOT_ID });
+    await expect(
       saveFramingGapsAction({
         projectId: PROJECT_ID,
         studyId: STUDY_ID,
@@ -130,6 +143,7 @@ describe("framing action RPC boundaries", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       `/projects/${PROJECT_ID}/framing/${STUDY_ID}`,
     );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(`/projects/${PROJECT_ID}/resonance`);
   });
 
   it("returns repository gate failures without bypassing them", async () => {

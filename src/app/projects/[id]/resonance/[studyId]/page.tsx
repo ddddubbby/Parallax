@@ -4,6 +4,7 @@ import { LocalViewTabs } from "@/components/local-view-tabs";
 import { EvidenceFilters } from "@/components/resonance/evidence-filters";
 import { StudyResultsPanel } from "@/components/resonance/study-results-panel";
 import { StudyWizard } from "@/components/resonance/study-wizard";
+import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
@@ -21,6 +22,7 @@ import {
   listResonanceEvidencePage,
 } from "@/db/repositories/resonance";
 import { getProjectSummary } from "@/db/repositories/runner";
+import { listFramingEvidenceSnapshots } from "@/db/repositories/framing";
 
 export const dynamic = "force-dynamic";
 
@@ -74,11 +76,13 @@ function LockedDefinition({
   personas,
   stimuli,
   genericUnconditioned,
+  baselineProvenance,
 }: {
   studyName: string;
   personas: PanelPersona[];
   stimuli: Array<{ id: string; kind: string; label: string; body: string }>;
   genericUnconditioned: boolean;
+  baselineProvenance: import("@/core/resonance").ResonanceBaselineProvenance;
 }) {
   return (
     <div className="space-y-5 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
@@ -91,6 +95,7 @@ function LockedDefinition({
       <p className="font-mono text-xs text-ink/55">
         Approved studies are immutable (C-13). Create a new study to change the panel or framings.
       </p>
+      <BaselineProvenance provenance={baselineProvenance} />
       <div>
         <h3 className="label-mono mb-2 text-xs text-ink/55">Study</h3>
         <p className="text-sm text-ink/80">{studyName}</p>
@@ -152,17 +157,20 @@ export default async function ResonanceStudyPage({
   const [project, detail] = await Promise.all([getProjectSummary(id), getResonanceStudy(id, studyId)]);
   if (project === null || detail === null) notFound();
 
-  const { study, stimuli, matrixVersion, latestRun, studyRuns } = detail;
+  const { study, stimuli, matrixVersion, latestRun, studyRuns, baselineProvenance } = detail;
   const personas = study.panelPersonasJson as PanelPersona[];
   const isDraft = study.state === "draft";
   const base = `/projects/${id}/resonance/${studyId}`;
 
   const needsResults = view === "results" || view === "overview" || view === "evidence";
-  const [results, evidenceOptions, evidencePageData] = await Promise.all([
+  const [results, evidenceOptions, snapshotOptions, evidencePageData] = await Promise.all([
     needsResults
       ? getResonanceStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
       : Promise.resolve(null),
     view === "design" && isDraft ? listAuditEvidenceResponses(id) : Promise.resolve([]),
+    view === "design" && isDraft && project.categoryArchetype !== "b2b"
+      ? listFramingEvidenceSnapshots(id)
+      : Promise.resolve([]),
     view === "evidence"
       ? listResonanceEvidencePage({
           projectId: id,
@@ -208,6 +216,7 @@ export default async function ResonanceStudyPage({
     label: s.label,
     body: s.body,
     evidenceResponseIdsJson: (s.evidenceResponseIdsJson as string[] | null) ?? null,
+    framingEvidenceSnapshotId: s.framingEvidenceSnapshotId,
   }));
   const personaRows = personas.map(
     ({ label, ageBand, incomeBand, locationContext, behavioralProfile }) => ({
@@ -260,6 +269,7 @@ export default async function ResonanceStudyPage({
             {stimuli.length === 1 ? "" : "s"}
             {matrixVersion ? ` · matrix v${matrixVersion.version} (${matrixVersion.cellCount} cells)` : ""}
           </p>
+          <BaselineProvenance provenance={baselineProvenance} />
           <div>
             <p className="label-mono mb-2 text-xs text-ink/55">Next action</p>
             <Link
@@ -283,6 +293,14 @@ export default async function ResonanceStudyPage({
               id: row.id,
               excerpt: excerpt(row.rawText),
             }))}
+            snapshotOptions={snapshotOptions.map((snapshot) => ({
+              id: snapshot.id,
+              label: snapshot.payload.recurrence.label,
+              associationId: snapshot.payload.associationId,
+              excerpt: excerpt(snapshot.payload.evidence.text),
+              verbatimResponse: snapshot.payload.verbatimResponse,
+            }))}
+            requiresFramingSnapshot={project.categoryArchetype !== "b2b"}
           />
         ) : (
           <LockedDefinition
@@ -295,6 +313,7 @@ export default async function ResonanceStudyPage({
               body: s.body,
             }))}
             genericUnconditioned={study.genericUnconditioned}
+            baselineProvenance={baselineProvenance}
           />
         ))}
 

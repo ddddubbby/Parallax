@@ -95,6 +95,12 @@ export default async function ReportPrintPage({
           ? `Simulation Report${resonanceLabel ? ` — ${resonanceLabel}` : ""}`
           : "AI Visibility Audit"}{client ? ` — ${client.name}` : ""}
       </h1>
+      {resonanceStudy && (
+        <div style={{ border: "1px solid color-mix(in srgb, var(--color-ink) 20%, transparent)", padding: "0.75rem", marginBottom: "2rem", fontFamily: "ui-monospace, monospace", fontSize: "0.75rem" }}>
+          Baseline provenance: {resonanceStudy.baselineLabel}
+          {resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot ${resonanceStudy.framingEvidenceSnapshotId}` : ""}
+        </div>
+      )}
 
       {freshness.stale && (
         <div

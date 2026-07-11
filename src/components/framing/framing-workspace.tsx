@@ -10,6 +10,7 @@ import {
 import type { CodebookAssociation } from "@/core/framing-evidence";
 import {
   completeFramingReviewAction,
+  createFramingEvidenceSnapshotAction,
   lockFramingCodebookAction,
   revealFramingPositioningAction,
   saveFramingCodebookAction,
@@ -31,6 +32,7 @@ export interface FramingWorkspaceReview {
   rawText: string | null;
   modelVersion: string | null;
   annotations: Array<{
+    id?: string;
     associationId: string;
     decision: "accepted" | "rejected";
     proposalSource: "human_raw_read" | "ai_span_assist";
@@ -78,6 +80,7 @@ function WorkspaceInner({
   reviewedCount,
   denominator,
   elapsedLabel,
+  snapshots,
 }: {
   projectId: string;
   studyId: string;
@@ -92,6 +95,7 @@ function WorkspaceInner({
   reviewedCount: number;
   denominator: number;
   elapsedLabel: string;
+  snapshots: Array<{ id: string; annotationId: string; label: string }>;
 }) {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>(defaultStage(state, initialGaps.length > 0));
@@ -195,7 +199,7 @@ function WorkspaceInner({
         />
       )}
       {stage === "Handoff" && (
-        <section className="rounded-xl border border-ink/15 p-5">
+        <section className="space-y-4 rounded-xl border border-ink/15 p-5">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2 className="label-mono text-sm font-semibold">Simulation handoff</h2>
             <Stamp tone="ink">C-15 PROVENANCE</Stamp>
@@ -205,12 +209,37 @@ function WorkspaceInner({
             The snapshot will preserve the reviewed n/N, prompt spread, model scope, codebook,
             reveal order, and verbatim source response used by Simulation.
           </p>
-          <p className="mt-3 font-mono text-xs text-ink/45">
+          <p className="font-mono text-xs text-ink/45">
             {reviews.flatMap((review) => review.annotations).filter((annotation) => annotation.decision === "accepted").length} accepted evidence spans available
           </p>
-          <p className="mt-4 font-mono text-xs text-warn">
-            Snapshot attachment is enabled in the next integration stage; no provisional handoff is created here.
-          </p>
+          <div className="grid gap-3">
+            {reviews.flatMap((review) => review.annotations
+              .filter((annotation) => annotation.decision === "accepted" && annotation.id)
+              .map((annotation) => ({ review, annotation })))
+              .map(({ review, annotation }) => {
+                const annotationId = annotation.id as string;
+                const existing = snapshots.find((snapshot) => snapshot.annotationId === annotationId);
+                return (
+                  <article key={annotationId} className="rounded-lg border border-ink/10 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="label-mono text-xs">{annotation.associationId}</strong>
+                      <span className="font-mono text-[11px] text-ink/45">{review.variantKey} · REP {review.repIndex + 1}</span>
+                      {existing && <Stamp tone="ok">{existing.label}</Stamp>}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-ink/70">{annotation.quote}</p>
+                    <Button
+                      className="mt-3"
+                      type="button"
+                      variant="secondary"
+                      disabled={pending || Boolean(existing)}
+                      onClick={() => run(() => createFramingEvidenceSnapshotAction(projectId, studyId, annotationId))}
+                    >
+                      {existing ? "Snapshot created" : "Create immutable handoff"}
+                    </Button>
+                  </article>
+                );
+              })}
+          </div>
         </section>
       )}
     </div>

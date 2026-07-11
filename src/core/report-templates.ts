@@ -146,6 +146,7 @@ export interface ResonanceReportContext {
   runDate: string;
   isMock: boolean;
   genericUnconditioned: boolean;
+  baselineProvenance: import("./resonance").ResonanceBaselineProvenance;
   repetitions: number;
   providers: string[];
   modes: string[];
@@ -496,11 +497,18 @@ function pmfText(pmf: number[]): string {
 }
 
 function generateResonanceMethod(ctx: ResonanceReportContext): string {
+  const provenance = ctx.baselineProvenance;
   return `${resonanceBadgeLine(ctx)}This Simulation Layer study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). The figures are comparative and directional: ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior.
 
 | Field | Value |
 |---|---|
 | Study | ${escapeModelText(ctx.studyName)} |
+| Baseline provenance | ${escapeModelText(provenance.label)} |
+| Reviewed recurrence at handoff | ${provenance.numerator === null ? "not available" : `${provenance.numerator}/${provenance.denominator} responses`} |
+| Prompt spread at handoff | ${provenance.promptSpread === null ? "not available" : `${provenance.promptSpread}/${provenance.promptDenominator} prompts`} |
+| Baseline model scope | ${provenance.providerId ? escapeModelText(`${provenance.providerId}/${provenance.modelVersion}/${provenance.generationMode}`) : "not available"} |
+| Review method / codebook | ${provenance.reviewMethod ? `${escapeModelText(provenance.reviewMethod.replaceAll("_", " "))} / v${escapeModelText(provenance.codebookVersion ?? "unknown")}` : "not available"} |
+| Evidence snapshot | ${provenance.snapshotId ? `\`${provenance.snapshotId}\`` : "not available"} |
 | Run date | ${escapeModelText(ctx.runDate)} |
 | Run mode | ${escapeModelText(ctx.runMode)} |
 | Repetitions per cell | ${ctx.repetitions} |

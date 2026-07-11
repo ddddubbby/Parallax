@@ -7,6 +7,7 @@ import {
   computeFramingRecurrence,
   getBlindDiscoveryPacket,
   getFramingStudy,
+  listFramingEvidenceSnapshots,
 } from "@/db/repositories/framing";
 import { getProjectSummary } from "@/db/repositories/runner";
 
@@ -27,9 +28,10 @@ export default async function FramingStudyPage({
 }) {
   const { id, studyId } = await params;
   if (!isUuid(id) || !isUuid(studyId)) notFound();
-  const [project, detail] = await Promise.all([
+  const [project, detail, projectSnapshots] = await Promise.all([
     getProjectSummary(id),
     getFramingStudy(id, studyId),
+    listFramingEvidenceSnapshots(id),
   ]);
   if (!project || !detail) notFound();
   const blindPacket = detail.study.state === "draft"
@@ -108,6 +110,7 @@ export default async function FramingStudyPage({
           rawText: review.rawText,
           modelVersion: review.modelVersion,
           annotations: review.annotations.map((annotation) => ({
+            id: annotation.id,
             associationId: annotation.associationId,
             decision: annotation.decision,
             proposalSource: annotation.proposalSource,
@@ -131,6 +134,13 @@ export default async function FramingStudyPage({
         reviewedCount={reviewedCount}
         denominator={detail.reviews.length}
         elapsedLabel={elapsedLabel(detail.study.reviewStartedAt, detail.study.completedAt)}
+        snapshots={projectSnapshots
+          .filter((snapshot) => snapshot.payload.studyId === studyId)
+          .map((snapshot) => ({
+            id: snapshot.id,
+            annotationId: snapshot.payload.annotationId,
+            label: snapshot.payload.recurrence.label,
+          }))}
       />
     </main>
   );

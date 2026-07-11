@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   panelPersonasSchema,
+  historicalBaselineProvenance,
   parsePanelPersonaLines,
   resonanceExportLabel,
   resonanceExportMetadata,
@@ -86,6 +87,27 @@ describe("Resonance core (M17)", () => {
       studyName: "Generic simulation",
       genericUnconditioned: true,
       label: "SIMULATED GENERIC",
+      baselineLabel: null,
+      framingEvidenceSnapshotId: null,
+      baselineProvenance: null,
+    });
+  });
+
+  it("labels historical consumer and B2B baseline paths without inventing provenance", () => {
+    expect(historicalBaselineProvenance({ state: "draft", categoryArchetype: "consumer_product" })).toMatchObject({
+      status: "pre_m34",
+      label: "PRE-M34 BASELINE",
+      snapshotId: null,
+    });
+    expect(historicalBaselineProvenance({ state: "approved", categoryArchetype: "consumer_service" })).toMatchObject({
+      status: "legacy",
+      label: "LEGACY BASELINE",
+      snapshotId: null,
+    });
+    expect(historicalBaselineProvenance({ state: "approved", categoryArchetype: "b2b" })).toMatchObject({
+      status: "b2b_evidence_id",
+      label: "EVIDENCE-ID BASELINE",
+      snapshotId: null,
     });
   });
 });

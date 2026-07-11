@@ -1,9 +1,11 @@
 import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
 import {
+  historicalBaselineProvenance,
   type PanelPersona,
   panelPersonasSchema,
   renderResonancePrompt,
   type StimulusKind,
+  type ResonanceBaselineProvenance,
   validateResonanceCellCount,
 } from "@/core/resonance";
 import { isUuid } from "@/core/id";
@@ -15,15 +17,18 @@ import { db } from "../client";
 import {
   auditRuns,
   extractions,
+  framingEvidenceSnapshots,
   metrics,
   matrixVersions,
   promptCells,
+  projects,
   resonanceStimuli,
   resonanceStudies,
   responses,
 } from "../schema";
 import { getEligibleExtractionsForRun } from "./extraction";
 import { recomputeMetrics } from "./metrics";
+import { verifyFramingEvidenceSnapshotRecord } from "./framing";
 
 export interface ResonanceStudyPatch {
   name?: string;
@@ -100,6 +105,7 @@ export interface ResonanceStudyResults {
     genericUnconditioned: boolean;
     anchorSetVersion: string;
     anchorSetCalibrated: boolean;
+    baselineProvenance: ResonanceBaselineProvenance;
   };
   run: {
     id: string;
@@ -183,16 +189,105 @@ function stripResponsesFromResults(results: ResonanceStudyResults): ResonanceStu
   };
 }
 
+async function getResonanceBaselineProvenance(input: {
+  projectId: string;
+  studyId: string;
+  studyState: string;
+  categoryArchetype: string;
+}): Promise<ResonanceBaselineProvenance> {
+  const [row] = await db
+    .select({
+      snapshotId: framingEvidenceSnapshots.id,
+      projectId: framingEvidenceSnapshots.projectId,
+      framingStudyId: framingEvidenceSnapshots.framingStudyId,
+      annotationId: framingEvidenceSnapshots.annotationId,
+      responseId: framingEvidenceSnapshots.responseId,
+      evidenceJson: framingEvidenceSnapshots.evidenceJson,
+      sha256: framingEvidenceSnapshots.sha256,
+    })
+    .from(resonanceStimuli)
+    .leftJoin(
+      framingEvidenceSnapshots,
+      eq(framingEvidenceSnapshots.id, resonanceStimuli.framingEvidenceSnapshotId),
+    )
+    .where(
+      and(
+        eq(resonanceStimuli.studyId, input.studyId),
+        eq(resonanceStimuli.kind, "measured_ai"),
+      ),
+    )
+    .orderBy(asc(resonanceStimuli.position))
+    .limit(1);
+  if (!row?.snapshotId) {
+    return historicalBaselineProvenance({
+      state: input.studyState,
+      categoryArchetype: input.categoryArchetype,
+    });
+  }
+  if (
+    !row.projectId ||
+    !row.framingStudyId ||
+    !row.annotationId ||
+    !row.responseId ||
+    !row.evidenceJson ||
+    !row.sha256 ||
+    row.projectId !== input.projectId
+  ) {
+    throw new Error("Simulation baseline snapshot is incomplete or belongs to another project (C-15)");
+  }
+  const payload = verifyFramingEvidenceSnapshotRecord({
+    projectId: row.projectId,
+    framingStudyId: row.framingStudyId,
+    annotationId: row.annotationId,
+    responseId: row.responseId,
+    evidenceJson: row.evidenceJson,
+    sha256: row.sha256,
+  });
+  return {
+    status: "snapshot",
+    label: payload.recurrence.label,
+    snapshotId: row.snapshotId,
+    responseId: payload.responseId,
+    associationId: payload.associationId,
+    numerator: payload.recurrence.numerator,
+    denominator: payload.recurrence.denominator,
+    promptSpread: payload.recurrence.promptVariantsContainingAssociation.length,
+    promptDenominator: payload.recurrence.promptVariantDenominator,
+    providerId: payload.source.providerId,
+    modelVersion: payload.source.modelVersion,
+    generationMode: payload.source.generationMode,
+    reviewMethod: payload.codingRun.reviewMethod,
+    codebookVersion: payload.codebook.version,
+  };
+}
+
 export async function getResonanceStudyExportLabel(projectId: string, studyId: string) {
   const [study] = await db
     .select({
       id: resonanceStudies.id,
       name: resonanceStudies.name,
+      state: resonanceStudies.state,
       genericUnconditioned: resonanceStudies.genericUnconditioned,
+      categoryArchetype: projects.categoryArchetype,
     })
     .from(resonanceStudies)
+    .innerJoin(projects, eq(projects.id, resonanceStudies.projectId))
     .where(and(eq(resonanceStudies.id, studyId), eq(resonanceStudies.projectId, projectId)));
-  return study ?? null;
+  if (!study) return null;
+  const baselineProvenance = await getResonanceBaselineProvenance({
+    projectId,
+    studyId,
+    studyState: study.state,
+    categoryArchetype: study.categoryArchetype,
+  });
+  return {
+    id: study.id,
+    name: study.name,
+    genericUnconditioned: study.genericUnconditioned,
+    baselineLabel: baselineProvenance.label,
+    framingEvidenceSnapshotId: baselineProvenance.snapshotId,
+    baselineProvenance,
+  };
 }
 
 type PmfMetricMetadata = {
@@ -290,11 +385,17 @@ function readEvidenceResponseIds(value: unknown) {
 }
 
 export async function listResonanceStudies(projectId: string) {
-  const studies = await db
-    .select()
-    .from(resonanceStudies)
-    .where(eq(resonanceStudies.projectId, projectId))
-    .orderBy(desc(resonanceStudies.createdAt));
+  const [studies, projectRows] = await Promise.all([
+    db
+      .select()
+      .from(resonanceStudies)
+      .where(eq(resonanceStudies.projectId, projectId))
+      .orderBy(desc(resonanceStudies.createdAt)),
+    db
+      .select({ categoryArchetype: projects.categoryArchetype })
+      .from(projects)
+      .where(eq(projects.id, projectId)),
+  ]);
 
   if (studies.length === 0) return [];
   const studyIds = studies.map((s) => s.id);
@@ -338,11 +439,18 @@ export async function listResonanceStudies(projectId: string) {
     if (!latestRunByVersion.has(run.matrixVersionId)) latestRunByVersion.set(run.matrixVersionId, run);
   }
 
-  return studies.map((study) => {
+  const categoryArchetype = projectRows[0]?.categoryArchetype ?? "b2b";
+  return Promise.all(studies.map(async (study) => {
     const matrixVersion = versions.find((v) => v.studyId === study.id && v.state === "approved") ?? null;
     const latestRun = matrixVersion ? (latestRunByVersion.get(matrixVersion.id) ?? null) : null;
     return {
       study,
+      baselineProvenance: await getResonanceBaselineProvenance({
+        projectId,
+        studyId: study.id,
+        studyState: study.state,
+        categoryArchetype,
+      }),
       stimuli: stimuli.filter((s) => s.studyId === study.id),
       matrixVersion,
       latestRun: latestRun
@@ -354,7 +462,7 @@ export async function listResonanceStudies(projectId: string) {
           }
         : null,
     };
-  });
+  }));
 }
 
 /** Load one study with ownership check (projectId + studyId). */
@@ -364,6 +472,10 @@ export async function getResonanceStudy(projectId: string, studyId: string) {
     .from(resonanceStudies)
     .where(and(eq(resonanceStudies.id, studyId), eq(resonanceStudies.projectId, projectId)));
   if (!study) return null;
+  const [project] = await db
+    .select({ categoryArchetype: projects.categoryArchetype })
+    .from(projects)
+    .where(eq(projects.id, projectId));
 
   const [stimuli, versions] = await Promise.all([
     db
@@ -423,7 +535,13 @@ export async function getResonanceStudy(projectId: string, studyId: string) {
       : null;
   }
 
-  return { study, stimuli, matrixVersion, latestRun, studyRuns };
+  const baselineProvenance = await getResonanceBaselineProvenance({
+    projectId,
+    studyId,
+    studyState: study.state,
+    categoryArchetype: project?.categoryArchetype ?? "b2b",
+  });
+  return { study, stimuli, matrixVersion, latestRun, studyRuns, baselineProvenance };
 }
 
 export async function getResonanceStudyResults(
@@ -433,8 +551,9 @@ export async function getResonanceStudyResults(
   options: { refreshMetrics?: boolean } = {},
 ): Promise<ResonanceStudyResults | null> {
   const [study] = await db
-    .select()
+    .select({ study: resonanceStudies, categoryArchetype: projects.categoryArchetype })
     .from(resonanceStudies)
+    .innerJoin(projects, eq(projects.id, resonanceStudies.projectId))
     .where(and(eq(resonanceStudies.id, studyId), eq(resonanceStudies.projectId, projectId)));
   if (!study) return null;
 
@@ -511,8 +630,8 @@ export async function getResonanceStudyResults(
           .from(responses)
           .where(inArray(responses.id, responseIds));
 
-  const personas = study.panelPersonasJson as PanelPersona[];
-  const anchorSet = getSsrAnchorSet(study.anchorSetVersion);
+  const personas = study.study.panelPersonasJson as PanelPersona[];
+  const anchorSet = getSsrAnchorSet(study.study.anchorSetVersion);
   const cellById = new Map(cellRows.map((cell) => [cell.id, cell]));
   const responseById = new Map(responseRows.map((response) => [response.id, response]));
   // D-080: evidence is keyed WITH the provider id — a stimulus run under two
@@ -632,11 +751,17 @@ export async function getResonanceStudyResults(
 
   return {
     study: {
-      id: study.id,
-      name: study.name,
-      genericUnconditioned: study.genericUnconditioned,
-      anchorSetVersion: study.anchorSetVersion,
+      id: study.study.id,
+      name: study.study.name,
+      genericUnconditioned: study.study.genericUnconditioned,
+      anchorSetVersion: study.study.anchorSetVersion,
       anchorSetCalibrated: anchorSet.calibrated,
+      baselineProvenance: await getResonanceBaselineProvenance({
+        projectId,
+        studyId,
+        studyState: study.study.state,
+        categoryArchetype: study.categoryArchetype,
+      }),
     },
     run,
     providers,
@@ -804,11 +929,12 @@ async function lockStudyForMutation(
   projectId: string,
   studyId: string,
 ) {
-  const locked = await tx.execute<{ state: string }>(sql`
-    select state
-    from ${resonanceStudies}
-    where id = ${studyId}
-      and project_id = ${projectId}
+  const locked = await tx.execute<{ state: string; categoryArchetype: string }>(sql`
+    select s.state, p.category_archetype as "categoryArchetype"
+    from ${resonanceStudies} s
+    join ${projects} p on p.id = s.project_id
+    where s.id = ${studyId}
+      and s.project_id = ${projectId}
     for update
   `);
   const row = locked.rows[0];
@@ -816,6 +942,26 @@ async function lockStudyForMutation(
   if (row.state !== "draft") {
     throw new Error("This study is approved and frozen (C-4); create a new study to change stimuli");
   }
+  return row;
+}
+
+async function loadVerifiedFramingSnapshot(
+  tx: Pick<typeof db, "select">,
+  projectId: string,
+  snapshotId: string,
+) {
+  if (!isUuid(snapshotId)) throw new Error("Invalid framing evidence snapshot id");
+  const [row] = await tx
+    .select()
+    .from(framingEvidenceSnapshots)
+    .where(
+      and(
+        eq(framingEvidenceSnapshots.id, snapshotId),
+        eq(framingEvidenceSnapshots.projectId, projectId),
+      ),
+    );
+  if (!row) throw new Error("Framing evidence snapshot not found in this project (C-15)");
+  return { row, payload: verifyFramingEvidenceSnapshotRecord(row) };
 }
 
 export async function addResonanceStimulus(input: {
@@ -825,10 +971,29 @@ export async function addResonanceStimulus(input: {
   label: string;
   body: string;
   evidenceResponseIds: string[];
+  framingEvidenceSnapshotId?: string | null;
 }) {
   assertEvidenceResponseIdShape(input.evidenceResponseIds);
   return db.transaction(async (tx) => {
-    await lockStudyForMutation(tx, input.projectId, input.studyId);
+    const study = await lockStudyForMutation(tx, input.projectId, input.studyId);
+    let body = input.body;
+    let evidenceResponseIds = input.evidenceResponseIds;
+    let framingEvidenceSnapshotId: string | null = null;
+    if (input.kind === "measured_ai" && study.categoryArchetype !== "b2b") {
+      if (!input.framingEvidenceSnapshotId) {
+        throw new Error("Consumer measured-AI stimuli must select a reviewed framing snapshot (C-15)");
+      }
+      const snapshot = await loadVerifiedFramingSnapshot(
+        tx,
+        input.projectId,
+        input.framingEvidenceSnapshotId,
+      );
+      body = snapshot.payload.verbatimResponse;
+      evidenceResponseIds = [snapshot.payload.responseId];
+      framingEvidenceSnapshotId = snapshot.row.id;
+    } else if (input.framingEvidenceSnapshotId) {
+      throw new Error("Framing snapshots may attach only to consumer measured-AI stimuli");
+    }
     const [{ latest }] = await tx
       .select({ latest: max(resonanceStimuli.position) })
       .from(resonanceStimuli)
@@ -839,8 +1004,9 @@ export async function addResonanceStimulus(input: {
         studyId: input.studyId,
         kind: input.kind,
         label: input.label,
-        body: input.body,
-        evidenceResponseIdsJson: input.evidenceResponseIds,
+        body,
+        evidenceResponseIdsJson: evidenceResponseIds,
+        framingEvidenceSnapshotId,
         position: (latest ?? 0) + 1,
       })
       .returning({ id: resonanceStimuli.id });
@@ -856,17 +1022,37 @@ export async function updateResonanceStimulus(input: {
   label: string;
   body: string;
   evidenceResponseIds: string[];
+  framingEvidenceSnapshotId?: string | null;
 }) {
   assertEvidenceResponseIdShape(input.evidenceResponseIds);
   return db.transaction(async (tx) => {
-    await lockStudyForMutation(tx, input.projectId, input.studyId);
+    const study = await lockStudyForMutation(tx, input.projectId, input.studyId);
+    let body = input.body;
+    let evidenceResponseIds = input.evidenceResponseIds;
+    let framingEvidenceSnapshotId: string | null = null;
+    if (input.kind === "measured_ai" && study.categoryArchetype !== "b2b") {
+      if (!input.framingEvidenceSnapshotId) {
+        throw new Error("Consumer measured-AI stimuli must select a reviewed framing snapshot (C-15)");
+      }
+      const snapshot = await loadVerifiedFramingSnapshot(
+        tx,
+        input.projectId,
+        input.framingEvidenceSnapshotId,
+      );
+      body = snapshot.payload.verbatimResponse;
+      evidenceResponseIds = [snapshot.payload.responseId];
+      framingEvidenceSnapshotId = snapshot.row.id;
+    } else if (input.framingEvidenceSnapshotId) {
+      throw new Error("Framing snapshots may attach only to consumer measured-AI stimuli");
+    }
     const updated = await tx
       .update(resonanceStimuli)
       .set({
         kind: input.kind,
         label: input.label,
-        body: input.body,
-        evidenceResponseIdsJson: input.evidenceResponseIds,
+        body,
+        evidenceResponseIdsJson: evidenceResponseIds,
+        framingEvidenceSnapshotId,
         updatedAt: new Date(),
       })
       .where(and(eq(resonanceStimuli.id, input.stimulusId), eq(resonanceStimuli.studyId, input.studyId)))
@@ -944,15 +1130,18 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
       panelPersonasJson: unknown;
       anchorSetVersion: string;
       genericUnconditioned: boolean;
+      categoryArchetype: string;
     }>(sql`
       select
         state,
         panel_personas_json as "panelPersonasJson",
         anchor_set_version as "anchorSetVersion",
-        generic_unconditioned as "genericUnconditioned"
-      from ${resonanceStudies}
-      where id = ${studyId}
-        and project_id = ${projectId}
+        generic_unconditioned as "genericUnconditioned",
+        p.category_archetype as "categoryArchetype"
+      from ${resonanceStudies} s
+      join ${projects} p on p.id = s.project_id
+      where s.id = ${studyId}
+        and s.project_id = ${projectId}
       for update
     `);
     const study = locked.rows[0];
@@ -988,12 +1177,40 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
     if (measured.length === 0) {
       throw new Error("Evidence-conditioned studies need a measured_ai stimulus citing stored audit evidence (C-13)");
     }
+    for (const stimulus of stimuli) {
+      if (stimulus.kind !== "measured_ai" && stimulus.framingEvidenceSnapshotId) {
+        throw new Error("Only a measured-AI stimulus may carry framing evidence provenance (C-15)");
+      }
+    }
     for (const stimulus of measured) {
       const evidenceIds = readEvidenceResponseIds(stimulus.evidenceResponseIdsJson);
-      if (evidenceIds.length === 0) {
-        throw new Error("measured_ai stimuli must cite at least one stored audit response (C-13)");
+      if (study.categoryArchetype !== "b2b") {
+        if (!stimulus.framingEvidenceSnapshotId) {
+          throw new Error("Consumer measured-AI baselines require a reviewed framing snapshot (C-15)");
+        }
+        const snapshot = await loadVerifiedFramingSnapshot(
+          tx,
+          projectId,
+          stimulus.framingEvidenceSnapshotId,
+        );
+        if (stimulus.body !== snapshot.payload.verbatimResponse) {
+          throw new Error("Consumer measured-AI baseline must be byte-equal to its snapshotted response (C-15)");
+        }
+        if (
+          evidenceIds.length !== 1 ||
+          evidenceIds[0] !== snapshot.payload.responseId
+        ) {
+          throw new Error("Consumer measured-AI evidence ids must match the framing snapshot (C-15)");
+        }
+      } else {
+        if (stimulus.framingEvidenceSnapshotId) {
+          throw new Error("B2B uses the evidence-response-id baseline path, not consumer framing snapshots");
+        }
+        if (evidenceIds.length === 0) {
+          throw new Error("measured_ai stimuli must cite at least one stored audit response (C-13)");
+        }
+        await assertEvidenceIds(projectId, evidenceIds);
       }
-      await assertEvidenceIds(projectId, evidenceIds);
     }
 
     const [{ latest }] = await tx

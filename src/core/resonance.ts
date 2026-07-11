@@ -8,6 +8,9 @@ export interface ResonanceExportStudyLabel {
   id: string;
   name: string;
   genericUnconditioned: boolean;
+  baselineLabel?: string;
+  framingEvidenceSnapshotId?: string | null;
+  baselineProvenance?: ResonanceBaselineProvenance;
 }
 
 export function resonanceExportLabel(genericUnconditioned: boolean) {
@@ -21,8 +24,50 @@ export function resonanceExportMetadata(study: ResonanceExportStudyLabel | null)
         studyName: study.name,
         genericUnconditioned: study.genericUnconditioned,
         label: resonanceExportLabel(study.genericUnconditioned),
+        baselineLabel: study.baselineLabel ?? null,
+        framingEvidenceSnapshotId: study.framingEvidenceSnapshotId ?? null,
+        baselineProvenance: study.baselineProvenance ?? null,
       }
     : null;
+}
+
+export type ResonanceBaselineProvenance = {
+  status: "snapshot" | "legacy" | "pre_m34" | "b2b_evidence_id";
+  label: string;
+  snapshotId: string | null;
+  responseId: string | null;
+  associationId: string | null;
+  numerator: number | null;
+  denominator: number | null;
+  promptSpread: number | null;
+  promptDenominator: number | null;
+  providerId: string | null;
+  modelVersion: string | null;
+  generationMode: string | null;
+  reviewMethod: string | null;
+  codebookVersion: string | null;
+};
+
+export function historicalBaselineProvenance(input: {
+  state: string;
+  categoryArchetype: string;
+}): ResonanceBaselineProvenance {
+  if (input.categoryArchetype === "b2b") {
+    return {
+      status: "b2b_evidence_id", label: "EVIDENCE-ID BASELINE", snapshotId: null,
+      responseId: null, associationId: null, numerator: null, denominator: null,
+      promptSpread: null, promptDenominator: null, providerId: null, modelVersion: null,
+      generationMode: null, reviewMethod: null, codebookVersion: null,
+    };
+  }
+  const approved = input.state !== "draft";
+  return {
+    status: approved ? "legacy" : "pre_m34",
+    label: approved ? "LEGACY BASELINE" : "PRE-M34 BASELINE",
+    snapshotId: null, responseId: null, associationId: null, numerator: null, denominator: null,
+    promptSpread: null, promptDenominator: null, providerId: null, modelVersion: null,
+    generationMode: null, reviewMethod: null, codebookVersion: null,
+  };
 }
 
 export const panelPersonaSchema = z.object({

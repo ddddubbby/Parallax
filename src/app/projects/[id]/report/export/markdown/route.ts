@@ -48,7 +48,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return `## ${title}\n\n${content}`;
   }).join("\n\n");
 
-  return new Response(`# ${title}\n\n${freshnessWarning}${body}\n`, {
+  const baselineDisclosure = resonanceStudy
+    ? `> Baseline provenance: **${resonanceStudy.baselineLabel}**${resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot \`${resonanceStudy.framingEvidenceSnapshotId}\`` : ""}\n\n`
+    : "";
+  return new Response(`# ${title}\n\n${baselineDisclosure}${freshnessWarning}${body}\n`, {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "Content-Disposition": `attachment; filename="report-${runId}.md"`,

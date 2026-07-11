@@ -230,13 +230,28 @@ export interface SimulationEvidenceSnapshot {
   snapshotVersion: "m34a-simulation-evidence.v1";
   studyId: string;
   projectId: string;
+  promptProtocolVersion: string;
   responseId: string;
   annotationId: string;
   associationId: string;
+  verbatimResponse: string;
   evidence: { start: number; end: number; text: string };
   codebook: { id: string; version: string; lockedAt: string };
   codingRun: { id: string; reviewerId: string; reviewMethod: ReviewMethod };
-  reveal: { revealedAt: string; revealedBy: string };
+  reveal: {
+    revealedAt: string;
+    revealedBy: string;
+    positioningDigest: string;
+    factSheetDigest: string;
+  };
+  source: {
+    promptVariant: string;
+    promptText: string;
+    providerId: string;
+    modelVersion: string;
+    generationMode: "grounded" | "ungrounded";
+    observedAt: string;
+  };
   recurrence: {
     numerator: number;
     denominator: number;
@@ -246,6 +261,39 @@ export interface SimulationEvidenceSnapshot {
     label: string;
   };
 }
+
+export const simulationEvidenceSnapshotSchema = z.object({
+  snapshotVersion: z.literal("m34a-simulation-evidence.v1"),
+  studyId: z.string().min(1),
+  projectId: z.string().min(1),
+  promptProtocolVersion: z.string().min(1),
+  responseId: z.string().min(1),
+  annotationId: z.string().min(1),
+  associationId: z.string().min(1),
+  verbatimResponse: z.string().min(1),
+  evidence: z.object({ start: z.number().int().nonnegative(), end: z.number().int().positive(), text: z.string().min(1) }),
+  codebook: z.object({ id: z.string().min(1), version: z.string().min(1), lockedAt: timestampSchema }),
+  codingRun: z.object({ id: z.string().min(1), reviewerId: z.string().min(1), reviewMethod: z.enum(REVIEW_METHODS) }),
+  reveal: z.object({ revealedAt: timestampSchema, revealedBy: z.string().min(1), positioningDigest: z.string().min(1), factSheetDigest: z.string().min(1) }),
+  source: z.object({ promptVariant: z.string().min(1), promptText: z.string().min(1), providerId: z.string().min(1), modelVersion: z.string().min(1), generationMode: z.enum(["grounded", "ungrounded"]), observedAt: timestampSchema }),
+  recurrence: z.object({
+    numerator: z.number().int().nonnegative(),
+    denominator: z.number().int().positive(),
+    promptVariantsContainingAssociation: z.array(z.string()),
+    promptVariantDenominator: z.number().int().positive(),
+    scopes: z.array(z.object({ providerId: z.string(), modelVersion: z.string(), generationMode: z.enum(["grounded", "ungrounded"]), responsesContainingAssociation: z.number().int().nonnegative(), denominator: z.number().int().positive() })),
+    label: z.string().min(1),
+  }),
+}).superRefine((snapshot, ctx) => {
+  if (snapshot.evidence.end <= snapshot.evidence.start || snapshot.evidence.end > snapshot.verbatimResponse.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot evidence offsets are invalid", path: ["evidence"] });
+  } else if (snapshot.verbatimResponse.slice(snapshot.evidence.start, snapshot.evidence.end) !== snapshot.evidence.text) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot evidence text does not match verbatim response", path: ["evidence", "text"] });
+  }
+  if (snapshot.recurrence.numerator > snapshot.recurrence.denominator) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "snapshot recurrence numerator exceeds denominator", path: ["recurrence"] });
+  }
+});
 
 function assertTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) throw new Error(`${label} must be a valid timestamp`);
@@ -550,13 +598,15 @@ export function createSimulationEvidenceSnapshot(input: {
   const label = recurrence.responsesContainingAssociation <= 1
     ? "SINGLE OBSERVED INSTANCE"
     : `OBSERVED IN ${recurrence.responsesContainingAssociation}/${recurrence.denominator} RESPONSES`;
-  return {
+  const snapshot: SimulationEvidenceSnapshot = {
     snapshotVersion: "m34a-simulation-evidence.v1",
     studyId: input.study.studyId,
     projectId: input.study.projectId,
+    promptProtocolVersion: input.study.promptProtocolVersion,
     responseId: response.responseId,
     annotationId: annotation.annotationId,
     associationId: annotation.associationId,
+    verbatimResponse: response.rawText,
     evidence: {
       start: annotation.start,
       end: annotation.end,
@@ -564,7 +614,20 @@ export function createSimulationEvidenceSnapshot(input: {
     },
     codebook: { id: input.codebook.codebookId, version: input.codebook.version, lockedAt: input.codebook.lockedAt },
     codingRun: { id: input.coding.codingRunId, reviewerId: input.coding.reviewerId, reviewMethod: input.coding.reviewMethod },
-    reveal: { revealedAt: input.reveal.revealedAt, revealedBy: input.reveal.revealedBy },
+    reveal: {
+      revealedAt: input.reveal.revealedAt,
+      revealedBy: input.reveal.revealedBy,
+      positioningDigest: input.reveal.positioningDigest,
+      factSheetDigest: input.reveal.factSheetDigest,
+    },
+    source: {
+      promptVariant: response.promptVariant,
+      promptText: response.promptText,
+      providerId: response.providerId,
+      modelVersion: response.modelVersion,
+      generationMode: response.generationMode,
+      observedAt: response.observedAt,
+    },
     recurrence: {
       numerator: recurrence.responsesContainingAssociation,
       denominator: recurrence.denominator,
@@ -574,4 +637,5 @@ export function createSimulationEvidenceSnapshot(input: {
       label,
     },
   };
+  return simulationEvidenceSnapshotSchema.parse(snapshot);
 }

@@ -42,6 +42,12 @@ function evidenceIds(formData: FormData) {
     .filter(Boolean);
 }
 
+function framingSnapshotId(formData: FormData) {
+  const value = textField(formData, "framingEvidenceSnapshotId");
+  if (value && !isUuid(value)) throw new Error("Invalid framing evidence snapshot id");
+  return value || null;
+}
+
 export async function createStudyAction(projectId: string, formData: FormData): Promise<ActionResult> {
   if (!validIds(projectId)) return { ok: false, error: "Invalid id" };
   try {
@@ -114,6 +120,7 @@ export async function addStimulusAction(
       label,
       body,
       evidenceResponseIds,
+      framingEvidenceSnapshotId: framingSnapshotId(formData),
     });
     revalidateStudyPaths(projectId, studyId);
     return { ok: true, id: stimulus.id };
@@ -143,6 +150,7 @@ export async function updateStimulusAction(
       label,
       body,
       evidenceResponseIds,
+      framingEvidenceSnapshotId: framingSnapshotId(formData),
     });
     if (updated === 0) return { ok: false, error: "Stimulus not found" };
   } catch (err) {

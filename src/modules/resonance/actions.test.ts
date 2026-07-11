@@ -80,6 +80,25 @@ describe("resonance actions", () => {
     });
   });
 
+  it("rejects malformed framing snapshot ids before stimulus repository mutation", async () => {
+    const form = new FormData();
+    form.set("kind", "measured_ai");
+    form.set("label", "Measured baseline");
+    form.set("body", "Verbatim response");
+    form.set("framingEvidenceSnapshotId", "not-a-snapshot-id");
+
+    await expect(addStimulusAction(VALID_ID, VALID_ID, form)).resolves.toEqual({
+      ok: false,
+      error: "Invalid framing evidence snapshot id",
+    });
+    await expect(updateStimulusAction(VALID_ID, VALID_ID, VALID_ID, form)).resolves.toEqual({
+      ok: false,
+      error: "Invalid framing evidence snapshot id",
+    });
+    expect(mocks.addResonanceStimulus).not.toHaveBeenCalled();
+    expect(mocks.updateResonanceStimulus).not.toHaveBeenCalled();
+  });
+
   it("rejects direct study updates with an empty name before repository mutation", async () => {
     const form = new FormData();
     form.set("name", "");
