@@ -5,7 +5,6 @@ import {
   type ChainGateway,
   type CrashPoint,
   type EffectPayload,
-  type EffectState,
   type EffectStore,
   type EffectType,
   type OnChainJob,
