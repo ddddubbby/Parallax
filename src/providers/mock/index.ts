@@ -1,6 +1,6 @@
 import { stableIndex } from "@/core/hash";
 import { RESONANCE_PROMPT_MARKER } from "@/core/resonance";
-import type { GenerationRequest, GenerationResult, LLMProvider } from "../types";
+import type { GenerationRequest, GenerationResult, LLMProvider, ProviderId } from "../types";
 import { loadMockFixtures, loadMockResonanceFixtures } from "./fixtures";
 
 // Mock is provider #0 (D-002): always available, zero-cost, permanently
@@ -15,38 +15,52 @@ const MOCK_COST_PER_CALL_USD = 0.0006;
 // mock runs well under the MK-6 two-minute budget.
 const MOCK_LATENCY_MS = Number(process.env.MOCK_LATENCY_MS ?? 15);
 
-export const mockProvider: LLMProvider = {
-  id: "mock",
-  displayName: "Mock",
-  supportsGrounded: true,
-  supportsUngrounded: true,
-  defaultModel: MOCK_MODEL_VERSION,
-  concurrency: 8,
+/**
+ * Build a mock provider that keys its fixture selection by `fixtureProviderId`.
+ * Normally that is "mock"; when a mock RUN fans across the GEO agent's three
+ * engines (M36), each is served by a mock provider bound to its own id so the
+ * D-016 key (resolved_text, provider_id, rep) actually varies fixtures per
+ * engine — otherwise every engine would return identical text. The `id` field
+ * carries the same value; the worker records job.providerId regardless, so this
+ * only affects fixture selection.
+ */
+export function createMockProviderFor(fixtureProviderId: ProviderId): LLMProvider {
+  return {
+    id: fixtureProviderId,
+    displayName: "Mock",
+    supportsGrounded: true,
+    supportsUngrounded: true,
+    defaultModel: MOCK_MODEL_VERSION,
+    concurrency: 8,
 
-  async generate(req: GenerationRequest): Promise<GenerationResult> {
-    const resonance = req.promptText.includes(RESONANCE_PROMPT_MARKER);
-    const auditFixtures = resonance ? null : loadMockFixtures();
-    const resonanceFixtures = resonance ? loadMockResonanceFixtures() : null;
-    const fixtures = resonanceFixtures ?? auditFixtures ?? [];
-    const key = buildFixtureSelectionKey(req.promptText, "mock", req.repIndex ?? 0);
-    const idx = stableIndex(key, fixtures.length);
-    const fixture = fixtures[idx];
-    await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-    return {
-      text: fixture.text,
-      citations: auditFixtures && req.mode === "grounded" ? auditFixtures[idx].citations : [],
-      modelVersion: MOCK_MODEL_VERSION,
-      tokensIn: Math.ceil(req.promptText.length / 4),
-      tokensOut: Math.ceil(fixture.text.length / 4),
-      costUsd: MOCK_COST_PER_CALL_USD,
-      latencyMs: MOCK_LATENCY_MS,
-    };
-  },
+    async generate(req: GenerationRequest): Promise<GenerationResult> {
+      const resonance = req.promptText.includes(RESONANCE_PROMPT_MARKER);
+      const auditFixtures = resonance ? null : loadMockFixtures();
+      const resonanceFixtures = resonance ? loadMockResonanceFixtures() : null;
+      const fixtures = resonanceFixtures ?? auditFixtures ?? [];
+      const key = buildFixtureSelectionKey(req.promptText, fixtureProviderId, req.repIndex ?? 0);
+      const idx = stableIndex(key, fixtures.length);
+      const fixture = fixtures[idx];
+      await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
+      return {
+        text: fixture.text,
+        citations: auditFixtures && req.mode === "grounded" ? auditFixtures[idx].citations : [],
+        modelVersion: MOCK_MODEL_VERSION,
+        tokensIn: Math.ceil(req.promptText.length / 4),
+        tokensOut: Math.ceil(fixture.text.length / 4),
+        costUsd: MOCK_COST_PER_CALL_USD,
+        latencyMs: MOCK_LATENCY_MS,
+      };
+    },
 
-  estimateCostUsd(): number {
-    return MOCK_COST_PER_CALL_USD;
-  },
-};
+    estimateCostUsd(): number {
+      return MOCK_COST_PER_CALL_USD;
+    },
+  };
+}
+
+// Provider #0 (D-002): always available, zero-cost, permanently registered.
+export const mockProvider: LLMProvider = createMockProviderFor("mock");
 
 /** D-016 selection key: stable hash input is (resolved_text, provider_id, rep_index). */
 export function buildFixtureSelectionKey(

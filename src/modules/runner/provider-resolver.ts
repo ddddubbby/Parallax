@@ -3,10 +3,11 @@ import { decryptApiKey } from "@/modules/settings/crypto";
 import { createAnthropicProvider } from "@/providers/anthropic";
 import { createDeepSeekProvider } from "@/providers/deepseek";
 import { createGoogleProvider } from "@/providers/google";
-import { mockProvider } from "@/providers/mock";
+import { createMockProviderFor } from "@/providers/mock";
 import { createOpenAIProvider } from "@/providers/openai";
 import { createOpenAIEmbeddingProvider } from "@/providers/openai/embeddings";
 import { createPerplexityProvider } from "@/providers/perplexity";
+import type { RunMode } from "@/core/runner";
 import { type LiveCredentials, ProviderCallError, validateProviderBaseUrlOverride } from "@/providers/shared";
 import type { EmbeddingProvider, LLMProvider, ProviderId } from "@/providers/types";
 import { embeddingProviderId, extractionProviderId } from "./provider-ids";
@@ -51,8 +52,15 @@ async function resolveLiveCredentials(providerId: ProviderId): Promise<LiveCrede
 }
 
 /** Credential-resolved provider instance for an actual generation call — worker-only. */
-export async function resolveRuntimeProvider(providerId: ProviderId): Promise<LLMProvider> {
-  if (providerId === "mock") return mockProvider;
+export async function resolveRuntimeProvider(
+  providerId: ProviderId,
+  runMode?: RunMode,
+): Promise<LLMProvider> {
+  // A mock run serves every engine from fixtures, bound to the engine's id so
+  // D-016 keying (resolved_text, provider_id, rep) varies fixtures per engine.
+  // run_mode=mock is the aggregate gate — this never leaks fixture output into
+  // live metrics (C-9).
+  if (runMode === "mock" || providerId === "mock") return createMockProviderFor(providerId);
   const factory = LIVE_FACTORIES[providerId];
   if (!factory) {
     throw new ProviderCallError("unsupported_mode", `No runtime adapter for provider "${providerId}"`);

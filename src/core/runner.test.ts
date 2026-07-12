@@ -116,9 +116,14 @@ describe("findUnsupportedEngineModePairs (C-10/PV-5)", () => {
 });
 
 describe("isProviderAllowedForRunMode (C-9, both directions)", () => {
-  it("mock runs allow only the mock provider — a live provider would be real spend under a MOCK label", () => {
+  it("mock runs allow any registered provider — all are fixture-served, and run_mode gates aggregates (M36)", () => {
     expect(isProviderAllowedForRunMode("mock", "mock")).toBe(true);
-    expect(isProviderAllowedForRunMode("mock", "deepseek")).toBe(false);
+    // The GEO agent's three engines run mock-first before any live credential.
+    expect(isProviderAllowedForRunMode("mock", "openai")).toBe(true);
+    expect(isProviderAllowedForRunMode("mock", "google")).toBe(true);
+    expect(isProviderAllowedForRunMode("mock", "xai")).toBe(true);
+    // But an unregistered id is still rejected.
+    expect(isProviderAllowedForRunMode("mock", "not_a_provider")).toBe(false);
   });
 
   it("live runs never allow the mock provider — fixtures must not mix into live aggregates", () => {

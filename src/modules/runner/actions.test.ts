@@ -168,6 +168,9 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
   });
 
   it("rejects direct repository run creation that bypasses C-9 and cap sanity action guards", async () => {
+    // M36: a mock run MAY name a live engine (all fixture-served, run_mode gates
+    // aggregates), so C-9 no longer blocks this — it proceeds past the run-mode
+    // guard and fails on the fake matrix version instead.
     await expect(
       createRunRepo(
         {
@@ -182,7 +185,7 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
         [{ id: "deepseek", supportsGrounded: false, supportsUngrounded: true }],
         1,
       ),
-    ).rejects.toThrow(/MOCK label|C-9/);
+    ).rejects.toThrow(/Matrix version not found/);
 
     await expect(
       createRunRepo(
@@ -217,7 +220,7 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
     ).rejects.toThrow(/finite non-negative/);
   });
 
-  it("rejects a mock run that includes a live provider — real spend must never hide under a MOCK label", async () => {
+  it("accepts a mock run that names live engines — all fixture-served, run_mode gates aggregates (M36)", async () => {
     const { createRun } = await import("./actions");
     const projectId = await ensureProject();
     await ensureApprovedVersion(projectId);
@@ -228,8 +231,9 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
       repetitions: 1,
       costCapUsd: 25,
     });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain("C-9");
+    expect(result.ok).toBe(true);
+    // Register the created run so afterAll clears its jobs before deleting cells.
+    if (result.ok && result.runId) createdRunIds.push(result.runId);
   });
 
   it("rejects a live run that includes the mock provider — fixtures must never mix into live aggregates", async () => {

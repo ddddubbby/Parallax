@@ -76,14 +76,20 @@ export function resolvePauseReason(runState: string, events: readonly PauseReaso
 }
 
 /**
- * C-9 in both directions: a mock run must use only the mock provider
- * (anything else is real spend hidden under a MOCK badge), and a live run
- * must never include the mock provider (fixture output mixed into live
- * aggregates). Enforced at run creation and again per job in the worker,
- * since scripts/tests can insert job rows without going through the action.
+ * C-9's load-bearing wall is the LIVE side: a live run must never include the
+ * mock provider (fixture output must not mix into live aggregates). Enforced at
+ * run creation and again per job in the worker, since scripts/tests can insert
+ * job rows without going through the action.
+ *
+ * A mock run may name ANY registered provider (M36): every one is served from
+ * fixtures at runtime (mockProvider), so it costs nothing, and run_mode=mock is
+ * the aggregate gate — a mock job labeled `openai` never enters a live metric.
+ * This lets the GEO agent's mock-first run exercise its real three-engine
+ * topology (OpenAI/Gemini/Grok) with D-016 per-engine fixture keying, before
+ * any live credential exists.
  */
 export function isProviderAllowedForRunMode(runMode: RunMode, providerId: string): boolean {
-  return runMode === "mock" ? providerId === "mock" : providerId !== "mock";
+  return runMode === "mock" ? isProviderId(providerId) : providerId !== "mock";
 }
 
 export const EXTRACTION_ENGINE_MOCK_COST_USD = 0;

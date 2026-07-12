@@ -265,7 +265,10 @@ async function processJob(job: ClaimedJob) {
   // dead-letters and feeds the provider-down counter (D-042).
   let result: GenerationResult;
   try {
-    const provider = await resolveRuntimeProvider(job.providerId as ProviderId);
+    const provider = await resolveRuntimeProvider(
+      job.providerId as ProviderId,
+      config?.runMode as RunMode | undefined,
+    );
     result = await provider.generate(
       {
         promptText: job.resolvedText,
