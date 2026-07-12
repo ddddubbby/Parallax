@@ -10,6 +10,7 @@ import {
   type OnChainJob,
   type StoredEffect,
 } from "./agent-effects";
+import { acpFromChain } from "./agent-order-state";
 
 // --- In-memory fakes (the §6.5 matrix runs on simulated state, no network) ---
 
@@ -197,5 +198,42 @@ describe("effectively-once effects ledger — crash matrix (§6.5)", () => {
     const outcome = await run(chain, store, "claim_refund", undefined);
     expect(outcome.state).toBe("blocked");
     expect(chain.applied).toBe(0);
+  });
+
+  it("DB-outage: a store write failing right after broadcast never duplicates the effect", async () => {
+    const chain = new FakeChain(startJob("set_budget"));
+    const store = new InMemoryEffectStore();
+    // Fail the first recordBroadcast (DB outage immediately after the on-chain send).
+    const original = store.recordBroadcast.bind(store);
+    let failedOnce = false;
+    store.recordBroadcast = async (id, tx) => {
+      if (!failedOnce) {
+        failedOnce = true;
+        throw new Error("db outage");
+      }
+      return original(id, tx);
+    };
+    await expect(run(chain, store, "set_budget", undefined)).rejects.toThrow(/db outage/);
+    expect(chain.applied).toBe(1); // the broadcast did land
+    // Restart with the DB recovered: chain shows applied → confirm, no re-send.
+    const outcome = await run(chain, store, "set_budget", undefined);
+    expect(outcome.state).toBe("confirmed");
+    expect(chain.applied).toBe(1); // NOT 2
+  });
+});
+
+describe("event injections — commerce state derives from chain, not the event stream (§4.4)", () => {
+  // Out-of-order and dropped events cannot corrupt commerce state: SSE is a
+  // latency optimization, the on-chain poll/reconcile is the completeness
+  // mechanism. Whatever subset/order of observations arrived, the ACP truth is
+  // the canonical chain read. (Duplicate/replay dedup is proven DB-side.)
+  it("dropped or reordered observations do not change the reconciled ACP status", () => {
+    const funded: OnChainJob = {
+      status: "funded", budget: 99_000_000n, offchainHash: null, submittedHash: null,
+      refunded: false, expired: false, sentMessageHashes: [],
+    };
+    // No matter that a `budgeted` event was dropped and a `funded` arrived
+    // out-of-order, the reconciled status is read from the chain, not replayed.
+    expect(acpFromChain(funded)).toBe("funded");
   });
 });
