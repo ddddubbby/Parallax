@@ -138,7 +138,7 @@ A milestone's build plan is a special case of the same rule (D-090). A milestone
 
 Boot ritual for implementation sessions:
 
-> Read `MASTER_CONTEXT.md`, then the section for milestone M<N> in `PRD.md`, then that milestone's named approved build plan when the PRD or Documents index names one, then `DEVELOPMENT_GUIDELINES.md` section A, then the active milestone's entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `STATUS.md` FIRST — it names the active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then the active product's PRD (`AGENT_PRD.md` for the GEO agent; the parked track's `PRD.md` §M<N> only when working that track), then the build plan `STATUS.md` names as TRACKER source, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 
@@ -282,7 +282,7 @@ Operational hazards, every session:
 
 ## 10. Current state
 
-Milestone status has exactly one home: the milestone tracker and progress notes in `PRD.md` section 11. Do not record status here.
+Live status has exactly one home: `STATUS.md` — active product, branch, current gate, gate state, next action, parked-product pointer (D-107). Static gate definitions live in the active build plan (`AGENT_BUILD_PLAN.md`); `STATUS.md` never duplicates them, only their state. The parked product's milestone tracker remains `PRD.md` section 11 as a closed historical record. Do not record status in this file.
 
 ## 11. Cross-platform wiring
 

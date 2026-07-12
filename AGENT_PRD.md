@@ -1,6 +1,8 @@
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: product contract for `resonance_geo_v1` — input schema, prompt matrix, extraction rules, metrics, exclusions · TRACKER: STATUS.md
+
 # AGENT_PRD.md — Resonance GEO Agent (`resonance_geo_v1`)
 
-> **STATUS: ARCHITECTURE FROZEN (conditional approval, 2026-07-12).** This document is the product source of truth for the autonomous agent offering. It is written for implementing agents: small steps, explicit MUST/NEVER rules, no implied context. The protocol/deployment build plan owns HOW (gates, ACP gateway, wallet, Render); this document owns WHAT. Commercial kill/scale criteria and GTM live in `AGENT_STRATEGY_MEMO.md`, not here. The Resonance product PRD (`PRD.md`) is parked, not replaced. Log D-106 before implementation starts.
+> **STATUS: ARCHITECTURE FROZEN (conditional approval, 2026-07-12).** This document is the product source of truth for the autonomous agent offering. It is written for implementing agents: small steps, explicit MUST/NEVER rules, no implied context. `AGENT_BUILD_PLAN.md` owns HOW (gates, ACP gateway, wallet, Render); live gate state lives in `STATUS.md`; this document owns WHAT. Commercial kill/scale criteria and GTM live in `AGENT_STRATEGY_MEMO.md`, not here. The Resonance product PRD (`PRD.md`) is parked, not replaced (D-106).
 
 ---
 

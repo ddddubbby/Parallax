@@ -1,0 +1,132 @@
+> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: gate sequence, ACP gateway/persistence architecture, wallet & deployment topology, test plan, stop-lines for `resonance_geo_v1` · TRACKER: STATUS.md
+
+# AGENT_BUILD_PLAN.md — Resonance GEO Agent, 0→1 Virtuals ACP build
+
+> **Provenance:** recovered from the final reviewed build plan (2026-07-12 review cycle) and reconciled with the operator's ruling of the same date (§8 lists every delta). The product contract — input schema, prompt matrix, lexicons, metrics, exclusions — lives in `AGENT_PRD.md` and is NOT duplicated here; where this plan and the PRD overlap, the PRD wins. Live gate state lives in `STATUS.md`, never here. Written for implementing agents: explicit steps, MUST/NEVER rules.
+
+---
+
+## 1. Scope and authority order
+
+**Locked v1 scope (build-relevant items; product scope is PRD §1–§2):**
+- One autonomous ACP offering, `resonance_geo_v1`, on Virtuals. ACP commerce settles ONLY on Base mainnet (chain `8453`); audited-asset chains are Base and Ethereum.
+- Fixed price `99_000_000` micro-USDC. Offering SLA: 90 minutes from on-chain job creation.
+- `requiredFunds=false`; hook MUST be the zero address. Never accept trading capital, launch funds, swaps, or custody.
+- Production evaluator MUST be the zero address (§4.2). No tokenization, subscription, OKX integration, direct checkout, tracking SKU, or Solana resolver in v1.
+- Manual wallet registration, graduation, treasury withdrawal, incident response, and support are administrative operations outside the serving path. No operator reviews, edits, approves, or releases individual reports.
+
+**Authority order for protocol facts** (the whitepaper mixes legacy ACP APIs with the current runtime; resolve conflicts in this order):
+1. Verified live Base contract state and transaction receipts.
+2. Exact pinned SDK behavior and source.
+3. Current ACP CLI behavior.
+4. Whitepaper guidance where it agrees with 1–3.
+
+**SDK discipline:** runtime uses `@virtuals-protocol/acp-node-v2` pinned to an exact version with lockfile integrity and commit recorded. The legacy `@virtuals-protocol/acp-node`, callback handlers, WebSocket daemon, and `WHITELISTED_WALLET_PRIVATE_KEY` model are forbidden. The v2 package is a young 0.x SDK with no meaningful upstream tests: ALL interaction sits behind a local `VirtualsGatewayClient` compatibility boundary (§4.4) with fixture-based contract tests, so an SDK upgrade cannot silently change lifecycle or signer behavior.
+
+## 2. Offering manifest and registration
+
+Check in an immutable manifest containing: name (`resonance_geo_v1`); description (descriptive audit, three engines, **no legitimacy/safety/investment/price/trading advice**, zero-address auto-approval required, terms URL); fixed price; SLA; Base settlement; zero hook; zero evaluator; no required funds; the requirement and deliverable schemas (generated from the Zod sources in `AGENT_PRD.md` §2/§9 — Zod is the application-side source of truth; the SDK's internal AJV is left alone); examples; terms version; methodology version; model catalog; lexicon versions; SHA-256 digests of each.
+
+Registration/drift rules:
+- Visibility stays Hidden/Restricted until graduation; production requires Shown.
+- Every startup plus a two-minute reconciliation loop compares the live registry record with the manifest. Drift in price, SLA, description, schema, privacy, visibility, evaluator policy, or required-funds **disables admissions**.
+- Future changes NEVER mutate in place: new hidden offering version → approval → drain → visibility switch.
+- Requirement handling: first valid requirement stored canonically; identical replay ignored; conflicting second requirement rejects the job. Missing requirement after 30 s, unknown offering, string payloads, payloads > 2 KB, extra fields: reject before budget.
+- Deliverable envelope: canonical JSON in the SDK's string field, `type`/`value` fields retained, < 2 KB, report URL with 256-bit capability token, constant-time hash validation, immutable ETag = `report_sha256`, ≥ 365-day retention. Report links are durable but not confidential. Sandbox acceptance must prove the exact registered schema and maximum payload size end-to-end (Virtuals publishes no authoritative message-size limit).
+
+## 3. Cost guard and settlement economics
+
+- Provisional envelope: expected variable cost ≈ $6.80/job; retry reserve 25%; reserved COGS $8.50; **hard cap $9.00**. Gate A runs the complete matrix on VIRTUAL/Base, TOSHI/Base, PEPE/Ethereum and re-pins the cap to max(measured max + 25%, $9.00). Pricing facts come from official vendor pages confirmed by measured billable calls — third-party aggregators are never canonical.
+- Stop at cap: never shrink k, never drop an engine, never deliver partial — reject/refund.
+- Admission requires: `actual wallet credit == expected contract settlement ± $0.01`; `total effective fee ≤ 20%`; `provider net ≥ 3 × hard job COGS`. Fee basis points are read from the live contract (mutable — the whitepaper's 80/20 split is NOT safe to hardcode); any fee/payment-token/pause/implementation change freezes admissions until reviewed.
+- Escrow is not revenue. Revenue recognizes only after `completed` + transaction confirmation + wallet-credit reconciliation. Rejected/expired jobs yield zero revenue and retain incurred calls as wasted COGS.
+
+## 4. ACP gateway, payments, persistence
+
+### 4.1 Contract guard
+Pin chain `8453` and hold the ACP proxy, implementation, and Base USDC addresses as **expectations, not truths**: every startup and readiness check reads and verifies chain ID, deployed code, EIP-1967 implementation slot, payment token, fee basis points, pause state, and expiry grace. Mismatch fails readiness and freezes admissions. Poll before every budget and every minute.
+
+### 4.2 Evaluator policy
+Production accepts ONLY `evaluator == zero address` — verified in SDK source: omission defaults to zero and a successful `submit` auto-completes the job and releases funds. This gives: no buyer-controlled post-delivery rejection; atomic submit→complete→payment; provider-authorized funded rejection/refund; no human evaluation dependency. **No buyer self-evaluation fallback exists**: if zero-evaluator settlement fails live verification (Gate 0), launch is blocked until Virtuals resolves it. Graduation mode may allowlist ONLY the confirmed DevRel evaluator wallet (`ACP_GRADUATION_EVALUATOR_ALLOWLIST`); a real Butler job must prove it can preserve zero evaluation before public launch.
+
+### 4.3 Durable data model (additive migration; enum rules in PRD §12)
+- `agent_orders`: unique `(settlement_chain_id, onchain_job_id)`; buyer/provider/evaluator; offering version/digest; canonical requirement; asset identity snapshot; `expired_at`; ACP status; internal execution status; result state; run link; cost; terminal attribution.
+- `agent_order_events`: append-only SSE/history/poll observations, unique canonical fingerprint, raw payload.
+- `agent_effects`: `set_budget` / `reject` / `submit` / `claim_refund` / `message`; payload hash, precondition, lease, attempts, transaction hash, confirmed/unknown/reverted state.
+- `agent_deliverables`: immutable canonical envelope + report artifact, SHA-256, ACP hash, capability hash, publication/revocation state.
+- `agent_settlements`: gross micro-USDC (bigint), contract/fee snapshot, expected vs actual provider credit, fee recipients, tx/log references, COGS, wasted COGS, reconciliation time.
+- `service_heartbeats` + `agent_runtime_control`: service state plus an authenticated admissions kill switch.
+Agent orders link to existing runs — never a parallel evidence engine.
+
+### 4.4 Gateway/runtime boundary
+A dedicated `agent-service` entrypoint alone receives the wallet signer and owns all ACP actions. Worker owns model calls; web owns report retrieval and back office. `VirtualsGatewayClient` wraps: agent construction/start/stop; hardened SSE transport + authenticated API reads; full history and active-job reads; direct on-chain job/contract/fee/balance reads; registry verification; awaited messaging; `setBudget`/`submit`/`reject` and direct-ABI `claimRefund`; transaction-hash and receipt capture.
+
+Transport hardening (local-adapter REQUIREMENTS — the raw SDK has an unbounded dedupe set, omits job ID from its dedupe key, hides reconnect health, doesn't reliably check HTTP status, invokes handlers concurrently, and discards action tx hashes):
+- 10 s initial HTTP timeout; bounded exponential reconnect with jitter; explicit connection state.
+- Event fingerprint = chain + job + kind/type + sender + content hash + timestamp; bounded 10,000-entry/24 h LRU in addition to durable DB dedupe.
+- Poll active jobs every 15 s — SSE is a latency optimization, never the completeness mechanism.
+- Reconcile all local nonterminal orders directly on-chain every 60 s and at startup; recreate the full agent after any failed start/fatal disconnect.
+- Process each order under a DB advisory lock; serialize all wallet actions globally; persist every observation before business action; never fire-and-forget `sendMessage`; never trust SDK-derived `budget_set` — read the canonical on-chain job and budget.
+- Duplicate-instance protection: Postgres advisory-lock gateway leadership; on deploy overlap only the leader processes events or performs on-chain actions.
+
+### 4.5 Effectively-once effects
+For every chain action: (1) insert a unique durable effect with canonical payload hash; (2) acquire leadership + order lock; (3) read on-chain state; (4) if the desired-or-later state already exists with matching amount/hash, mark confirmed WITHOUT sending; (5) otherwise verify the exact precondition and broadcast once; (6) record tx hash + receipt; (7) ambiguous outcome → mark `unknown` and reconcile on-chain — never blind-retry; (8) retry only when the previous broadcast is proven absent/reverted and the precondition still holds; (9) a mismatched existing budget or deliverable hash is a P0 freeze. Submission posts the canonical deliverable to ACP's off-chain endpoint FIRST, then submits its hash on-chain; a crash between them may repeat only the identical stored payload.
+
+### 4.6 Admission and lifecycle
+Launch defaults: 1 admitted job from reservation through terminal submission; 1 nonterminal job per buyer; 2 funded jobs per buyer per rolling 24 h; 6 funded jobs globally per 24 h; one 10-minute funding reservation; 750 calls/provider/day; global daily spend cap = 6 × current hard job cap.
+
+Flow: (1) observe `job.created`, fetch history until one valid requirement arrives; (2) verify provider, Base settlement, zero hook/evaluator, exact offering, registry digest, contract health, model health, budgets, capacity, terms, asset identity; (3) reserve capacity, set exactly `99_000_000`; (4) unfunded after 10 min → re-read on-chain, reject `funding_timeout`, release capacity only after rejection confirmation (continue if funding raced); (5) NEVER spend before direct on-chain `Funded`; (6) at funding require ≥ 75 min to original `expiredAt`, else reject/refund `late_funding_abort` before model spend; (7) create the internal run, process the full three-engine matrix; (8) submit no later than `expiredAt − 15 min`; (9) on technical failure or cost/deadline breach: stop claims, abort cancellable calls, preserve evidence and cost, reject/refund, reconcile; (10) on expiry: durable permissionless `claimRefund` (submitted jobs observe the contract's evaluator grace where applicable); (11) terminal external state is authoritative.
+
+Result mapping (amended by the 2026-07-12 ruling — commerce state and evidence state are separate, PRD §9): any technically complete report — including a sparse one — is submitted and the ACP job **completes**; `representation_state` rides inside the report. Provider/RPC/report/cost/deadline failure → reject/refund. Evaluator rejection in graduation → terminal, no auto-resubmit. Expired → claim refund and attribute the responsible phase.
+
+## 5. Wallet, deployment, security, operations
+
+### 5.1 Wallet topology (operator-only, one-time)
+(1) Dedicated hardware-backed owner/login wallet; accept ACP terms. (2) Register one Provider agent and one separate Requestor/test agent with different smart wallets. (3) Profile image, business description, X read auth, Telegram error notifications — never grant X write. (4) Create the seller's Privy wallet and a base64 PKCS#8 P-256 authorization signer. (5) Attach the `restricted`/ACP-only signer policy — `APPROVAL_REQUIRED` is a launch-blocking fault (the SDK can otherwise wait five minutes for human approval). (6) Record agent ID, wallet address, Privy wallet ID, optional builder code, signer-policy evidence. (7) Fund only the test buyer with Base USDC. (8) NEVER export or deploy the owner EOA key.
+
+Gateway secrets (Render): `ACP_ENV`, `ACP_WALLET_ADDRESS`, `ACP_WALLET_ID`, `ACP_SIGNER_PRIVATE_KEY` (the Privy authorization key, NOT an EOA key), `ACP_BUILDER_CODE`, `ACP_EXPECTED_PROXY`, `ACP_EXPECTED_IMPLEMENTATION`, `ACP_EXPECTED_PAYMENT_TOKEN`, `ACP_MIN_PROVIDER_NET_BP=8000`, `ACP_FORCE_DISABLED=true` (until go), `BASE_RPC_URL`, `ETHEREUM_RPC_URL` (managed RPCs, never rate-limited public endpoints).
+
+Treasury: withdraw manually via the Virtuals dashboard every Friday or when settled USDC > $500, leaving $25. Never grant the runtime signer arbitrary-transfer authority. Reconcile every withdrawal. Signer rotation: disable admissions → drain → second restricted signer → secret update + deploy → $0.01 hidden canary → revoke old → reconcile → re-enable.
+
+### 5.2 Render topology
+Node 22. Components: `parallax-web` (back office + report endpoint + terms/methodology/privacy pages; not ACP ingress), `parallax-worker` (paid generation + agent extraction/metrics, extended for ACP deadlines/cancellation), `parallax-agent-gateway` (always-on SSE/polling/reconciliation/effects/settlement/heartbeats), paid Postgres with backups/PITR. No Redis or object store at launch — report artifacts in Postgres JSONB; revisit after measured traffic. DB pools: web 5, worker 3, gateway 3. `maxShutdownDelaySeconds`: worker 300 (stop claiming, finish/abort current call, persist, exit), gateway 60 (stop intake, finish current chain effect, close SSE, release leadership, exit). Health: `/health/live`; `/health/ready` (web/DB, Render health check); token-authenticated `/internal/agent-readiness` (gateway/worker heartbeats, external online status, contract/fee/registry digest, provider readiness, capacity, reconciliation age, admissions state). Rollout: schema first → web (admissions disabled) → worker → gateway reconcile-only → enable sandbox. Never destructively roll back evidence or commerce tables.
+
+### 5.3 Observability
+Pino JSON logs carrying `chainId/jobId/orderId/runId/effectId/txHash/provider/reportSha256`, all credentials and capability tokens redacted; Sentry through the existing `reportError` seam; metrics + log streams to an external monitor polling `/health/live` (1 min) and composite readiness (2 min). Key SLOs: event-ingest lag p95 < 10 s; reconciliation age < 60 s (P1 at 120 s); valid requirement→budget p95 < 30 s; funded→submitted p95 ≤ 60 min / p99 ≤ 75 min; report endpoint 99.9% / p95 < 500 ms; provider-attributable expiry ZERO; duplicate successful external effects ZERO; report digest mismatch ZERO; settlement discrepancy ≤ $0.01; `APPROVAL_REQUIRED` ZERO. Virtuals marks agents offline after ~10 min disconnected and can ungraduate on repeated provider-attributable expiries — freeze admissions at the FIRST such expiry.
+
+### 5.4 Security and legal
+No buyer URL or free text; no server-side fetching of citations; escape all stored external content at every sink; CSP on HTML views; size limits on requirement/history/report and RPC/API bodies; provider base-URL allowlist + existing encrypted credential store; wallet credentials only in gateway secrets; capability-authenticated, rate-limited, no-index public report API; public terms/methodology/privacy/risk/support pages. Redaction policy per PRD §10 (deterministic `redact_v1` categories only — attributed model opinions are findings and are never redacted). Legal gate: launch requires a **recorded operator/legal risk acceptance or written Virtuals clarification** on the Developer Agreement's third-party/affiliation language — silence is not approval, and the system never graduates automatically because an inquiry went unanswered. The Developer Agreement assigns disputes, support, security, incident response, taxes, and output compliance to the provider; Virtuals may change fees, suspend, or delist without availability commitment.
+
+Runbooks required before Gate C exit: SSE/ACP disconnect + hydration recovery; unknown broadcast outcome; provider outage/cost-cap breach; late funding / funding timeout; submit or publication ambiguity; expiry + `claimRefund`; settlement discrepancy / fee or contract drift; evaluator rejection during graduation; provider-attributable expiry; signer compromise + rotation; owner-wallet compromise (ownership transfer may take ≥ 2 weeks); unexpected wallet outflow; offering restriction/delisting; Render/DB outage and restore.
+
+## 6. Gates (static definitions — live state in STATUS.md)
+
+### 6.1 Gate 0 — protocol feasibility (days 1–3)
+With fresh seller/test-buyer wallets and Render-style credentials, prove BEFORE substantial ACP implementation: (1) `AcpAgent.start()` succeeds after cold restart with the P-256 signer; (2) ACP-only policy causes no manual approval; (3) hidden Base-mainnet $0.01 set-budget/fund/submit/complete works; (4) zero evaluator auto-completes and pays the seller; (5) open/budgeted/funded provider rejection fully refunds; (6) duplicate rejection/effect recovery is safe; (7) permissionless expiry claim works incl. submitted-grace behavior; (8) actual fee basis points and wallet credit match parsed transaction logs; (9) contract proxy/implementation/token/pause/fee reads captured; (10) canonical JSON deliverable ≥ 2 KB envelope survives end-to-end; (11) signer rotation works with no jobs in flight; (12) sandbox Butler can create a zero-evaluator job; (13) written DevRel confirmation on production-price review behavior. **Stop-line:** an open SDK issue reports valid signer auth failing at Virtuals' signing relay — if reproduced with fresh valid credentials, STOP; ACP deployment is blocked (the CLI uses the same relay and is not a workaround).
+
+### 6.2 Gate A — headless product (days 4–8)
+Add the xAI provider + grounded/citation normalization for all three engines; run the three-token live spike; freeze models, pricing, latency, citation fixtures, hard COGS, p99 execution estimate; add `crypto_token` archetype, Base/Ethereum resolver, the 20-cell matrix, deterministic classifier/lexicons, report JSON, forbidden-output tests; build the programmatic contract→run→report path with no UI/server-action dependency. **Acceptance:** all three live engines produce 100 technically complete samples each; VIRTUAL/TOSHI resolve correctly; a sparse token renders honest `representation_state`; measured Lane-B matched-rates recorded (PRD §7 statistical labeling); COGS and p99 fit the admission envelope.
+
+### 6.3 Gate B — durable commerce gateway (days 9–15)
+Commerce tables, runtime controls, headless run creation, hardened transport/API, polling, reconciliation, durable effects, refund claims, report publication, settlement ledger, gateway leadership, per-order locks, crash/replay tests at every external-effect boundary. **Acceptance:** zero duplicate effects under duplicate/out-of-order/dropped events, process crashes, old/new deploy overlap, DB outage, and ambiguous transaction responses.
+
+### 6.4 Gate C — deployment and operations (days 16–20)
+Gateway service, pool caps, graceful drains, liveness/readiness, Sentry, metrics/alerts, composite back-office status, all §5.4 runbooks. Deploy with `ACP_FORCE_DISABLED=true` → migrations → reconcile-only → verify provider/contract/registry/wallet health → enable hidden sandbox admissions. **Acceptance:** 24-hour soak with no heartbeat gap, memory growth, state mismatch, settlement discrepancy, or digest failure; chaos tests recover within SLO.
+
+### 6.5 Gate D — graduation and production (days 21–24 + external review)
+≥ 10 successful $0.01 sandbox jobs incl. 3 consecutive from the separate test buyer; exercise invalid/missing/conflicting input, unsupported evaluator/hook, funding timeout, late funding, provider outage, funded rejection, expiry, restart, report fetch; freeze code/schema/description/samples/methodology/model catalog; switch the still-hidden offering to $99 before formal evaluation (unless written exception); one controlled $99 auto-approval job freezing the observed fee/settlement catalog; fund up to 6 × $99 DevRel evaluator tests, allowlisting only its exact wallet; 100% automated evaluation; submit evaluation report/screenshots/recordings/identity/queue evidence; stay online through the ~5–10-business-day manual review; after Shown: remove the graduation allowlist, verify zero-evaluator production policy, run one paid canary, retain launch concurrency at 1. **All graduation-process numbers re-verified against live Virtuals docs at Gate D start** — the doc tree has been reorganized before and citations here may be stale.
+
+## 7. Test suite (cumulative across gates)
+Schema/property tests (malicious payloads, replays, conflicting requirements, address normalization, metadata bombs, bidi/control chars, output escaping) · golden fixtures (providers, citations, prompt cells, identity classifications, lexicons, metrics, report JSON, no-verdict language) · contract tests (pinned SDK/API responses, registry drift, fee reads, status mapping, evaluator authorization, refund claims, canonical hashes) · recovery tests (dropped/duplicate/out-of-order SSE, hydration gaps, two gateway instances, SIGTERM during calls/effects, DB loss, post-deliverable/pre-submit crash, broadcast-without-recorded-hash) · load tests (300-call jobs at 3/provider concurrency, 100 events/min, 20 report reads/s, pool exhaustion) · acceptance tests (completed, sparse representation_state, preflight rejection, funding timeout, late-funded rejection, technical refund, expiry, settlement mismatch, signer approval request, contract upgrade).
+
+## 8. Reconciliation record (deltas vs the reviewed chat plan, per the 2026-07-12 ruling)
+1. Requirement schema gains `discovery_category` (closed enum, Lane-A prompt routing only) — PRD §2 owns it.
+2. Result mapping: `insufficient_representation` is no longer an ACP-level result — commerce `completed` decouples from evidence `representation_state` (PRD §9); §4.6 updated accordingly.
+3. Validation: Zod is the application-side source; JSON Schema is generated; the SDK's internal AJV is untouched (no direct second validation stack in our code).
+4. Lexicon contamination control is metric-and-lane-specific with name/ticker span masking (PRD §6) — the plan's blanket rule was contradictory.
+5. "Stability" split into `identity_repeatability` + `descriptor_repeatability` (PRD §7); core `jaccardSimilarity` MUST NOT be reused unchanged (empty/empty = 1 bug for this use).
+6. Redaction narrowed to deterministic `redact_v1` categories; attributed model opinions (incl. financial language) always retained (PRD §10).
+7. Commercial kill/scale criteria moved to `AGENT_STRATEGY_MEMO.md`; no revenue gate controls this engineering release.
+8. Legal stop-line reframed: recorded operator risk acceptance OR written clarification; silence ≠ approval; never a runtime hard-code.
+9. Zero-evaluator settlement upgraded from "assumed" to source-confirmed (SDK defaults + JSDoc), Gate-0 live proof retained.
+10. Enum migrations (`xai`, `crypto_token`) follow the split-statement rule (PRD §12) — this repo has hit the same-transaction enum trap twice (D-066, D-102).
