@@ -11,10 +11,10 @@
 | **Build plan** | [AGENT_BUILD_PLAN.md](AGENT_BUILD_PLAN.md) (M35–M42, D-108) |
 | **Commercial criteria** | [AGENT_STRATEGY_MEMO.md](AGENT_STRATEGY_MEMO.md) (non-binding on engineering) |
 | **Branch** | `m39` (cut from `geo-agent-v1`); M36 + M37 merged to `geo-agent-v1`; the M35 ACP harness lives on `m35` |
-| **Current milestone** | M39 — commerce persistence + effectively-once effects, offline $0 (§6.5). IN PROGRESS: Phase 1 (schema migration 0017) landed + verified; the ledger/state-machine/crash-matrix bulk remains (S-091). M35/M38 operator-blocked in parallel |
-| **Milestone state** | M39 In progress — Phase 1 done (migration 0017 additive §4.3 tables + enums, verified fresh+existing DB). REMAINING: repositories, order state machine (§9), effectively-once effects ledger (§4.5), the enumerated transition/effect matrix (§6.5 merge gate), gateway leadership + advisory locks · M36+M37 merged · M38 operator-blocked (live spend/credentials) · M35 operator-blocked |
-| **Next action** | Continue M39 Phase 2+: agent-order/effect repositories → order state machine → effectively-once effects ledger → the enumerated crash/injection/dual-instance matrix (zero duplicate external effects across every cell) → leadership/advisory locks. Then M39 merges. Operator in parallel: provider API keys via Settings (unblocks M38) + Virtuals dev onboarding §5.1 (unblocks M35/M40) |
-| **Blocked on** | M38 needs operator API credentials + live spend; M35/M40+ need operator wallet setup. M39 (the current work) is NOT blocked |
+| **Current milestone** | M39 — commerce persistence + effectively-once effects, offline $0 (§6.5). COMPLETE: all acceptance evidenced (S-091), pending merge to `geo-agent-v1`. This is the LAST operator-independent milestone — M38/M40/M41/M42 all need operator inputs |
+| **Milestone state** | M39 Code complete — acceptance green (crash matrix: every effect type × crash point applies exactly once, + ambiguous/reverted/P0/DB-outage/dual-instance; DB integration: unique-constraint once-ness, event dedup, advisory-lock serialization; migration 0017 fresh+existing; full suite 709 passed/0 failed; S-091) · pending merge · M36+M37 merged · M38 operator-blocked (API keys + ~$25 spend) · M35/M40+ operator-blocked (wallets) |
+| **Next action** | Merge `m39` → `geo-agent-v1`. **Engineering is now fully operator-blocked.** To advance: operator (1) enters OpenAI/Gemini/xAI API keys in Settings → unblocks M38 (live 900-sample spike, ~$25); (2) completes Virtuals dev onboarding §5.1 (owner wallet, Provider + test-Requestor agents, Privy wallet + restricted signer, funded test buyer, hidden offering) → unblocks M35 kill-gate + M40 gateway; (3) records legal risk-acceptance on the Developer Agreement → launch prerequisite |
+| **Blocked on** | ALL remaining milestones are operator-blocked: M38 (API credentials + live spend), M35/M40/M41/M42 (wallet setup, funded buyer, Virtuals onboarding, legal acceptance). No engineering-only milestone remains |
 | **Parked product** | Resonance audit + Simulation Layer + M34A framing — parked at tag `resonance-m34a-parked` (D-106); PRD: [PRD.md](PRD.md); unparking = branch checkout |
 
 ## Milestone ledger (M-counter continues from the parked track's M34A — D-108)
@@ -25,7 +25,7 @@
 | M36 | Headless audit core, mock-first, $0 (§6.2) | — | Merged to `geo-agent-v1` (S-089) |
 | M37 | Mechanical extraction + metrics + report, $0 (§6.3) | M36 | Merged to `geo-agent-v1` (S-090) |
 | M38 | Grounded engines live + spike (§6.4) | M37 | Not started — operator-blocked (API keys + ~$25 spend) |
-| M39 | Commerce persistence + effectively-once effects, offline (§6.5) | — | In progress — Phase 1 (schema 0017) done (S-091) |
+| M39 | Commerce persistence + effectively-once effects, offline (§6.5) | — | Code complete — acceptance green (S-091), pending merge |
 | M40 | ACP gateway live in sandbox (§6.6) | M35, M38, M39 | Not started |
 | M41 | Deploy & operations + soak (§6.7) | M40 | Not started |
 | M42 | Production readiness — engineering completion (§6.8) | M41 | Not started |
