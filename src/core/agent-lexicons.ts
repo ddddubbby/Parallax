@@ -12,6 +12,8 @@
 
 export const RISK_V1_VERSION = "risk_v1";
 export const PROMPT_CONTROL_V1_VERSION = "prompt_control_v1";
+export const DESCRIPTOR_V1_VERSION = "descriptor_v1";
+export const ADVICE_PROSE_V1_VERSION = "advice_prose_v1";
 
 /**
  * Warning/negative-signal vocabulary. Used two ways: (M37) counted in model
@@ -57,6 +59,46 @@ export const PROMPT_CONTROL_V1: readonly string[] = [
   "https://",
 ];
 
+/**
+ * Category vocabulary counted in matched answers as the Descriptor Profile (M3).
+ * NEVER computed on Lane A (its prompts plant category words — contamination
+ * rule C-A). Two-letter "ai" relies on the word-boundary matcher (D-062).
+ */
+export const DESCRIPTOR_V1: readonly string[] = [
+  "meme",
+  "community",
+  "utility",
+  "governance",
+  "defi",
+  "gaming",
+  "ai",
+  "infrastructure",
+  "payment",
+  "stablecoin",
+  "layer 1",
+  "layer 2",
+];
+
+/**
+ * Verdict/advice vocabulary forbidden in OUR authored report prose (C-16 / the
+ * RB-5 forbidden-phrase pattern). NEVER applied to quoted model evidence —
+ * attributed engine language like "bullish" stays verbatim (AGENT_PRD §10).
+ */
+export const ADVICE_PROSE_V1: readonly string[] = [
+  "buy",
+  "sell",
+  "price target",
+  "safe investment",
+  "good investment",
+  "guaranteed return",
+  "legitimacy score",
+  "trust score",
+  "scam score",
+  "risk score",
+  "bullish",
+  "bearish",
+];
+
 /** True when `term` contains a character that cannot sit next to a \b word boundary. */
 function isNonWordTerm(term: string): boolean {
   return /[^\p{L}\p{N} ]/u.test(term);
@@ -86,4 +128,48 @@ export function matchesLexiconTerm(text: string, term: string): boolean {
 /** True if `text` contains ANY term from `lexicon`. */
 export function containsAnyLexiconTerm(text: string, lexicon: readonly string[]): boolean {
   return lexicon.some((term) => matchesLexiconTerm(text, term));
+}
+
+export interface LexiconHit {
+  /** The canonical lexicon term (not the surface form). */
+  term: string;
+  /** Character offsets into the text the spans were found in. */
+  start: number;
+  end: number;
+  /** The exact surface text matched (may be a plural). */
+  quoted: string;
+}
+
+/**
+ * All spans of `term` in `text`, with offsets. Same matching rules as
+ * matchesLexiconTerm (word/phrase boundary + trailing-plural fold; substring
+ * for non-word terms). Offsets index `text` directly, so callers that match on
+ * a masked copy get offsets that are valid in the identical-length original.
+ */
+export function findLexiconTermSpans(text: string, term: string): LexiconHit[] {
+  const hits: LexiconHit[] = [];
+  const needle = term.toLowerCase();
+  if (isNonWordTerm(needle)) {
+    const haystack = text.toLowerCase();
+    let idx = haystack.indexOf(needle);
+    while (idx !== -1) {
+      hits.push({ term, start: idx, end: idx + needle.length, quoted: text.slice(idx, idx + needle.length) });
+      idx = haystack.indexOf(needle, idx + needle.length);
+    }
+    return hits;
+  }
+  const re = new RegExp(`\\b${escapeRegExp(needle)}s?\\b`, "giu");
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    hits.push({ term, start: match.index, end: match.index + match[0].length, quoted: match[0] });
+    if (match.index === re.lastIndex) re.lastIndex++;
+  }
+  return hits;
+}
+
+/** Every hit of every lexicon term in `text`, sorted by start offset. */
+export function findLexiconHits(text: string, lexicon: readonly string[]): LexiconHit[] {
+  return lexicon
+    .flatMap((term) => findLexiconTermSpans(text, term))
+    .sort((a, b) => a.start - b.start);
 }
