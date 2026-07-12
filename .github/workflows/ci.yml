@@ -36,6 +36,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint --max-warnings 0
+      - run: pnpm docs:check
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
