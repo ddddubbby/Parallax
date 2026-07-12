@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: visual language — tokens, typography, surfaces, motion, guardrails V-1..V-13
+
 # DESIGN_GUIDELINES.md - Resonance Visual Language
 
 > How the product looks, moves, and speaks. Applies to every surface — the Parallax measurement engine and the Resonance lower-funnel simulation layer alike. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.

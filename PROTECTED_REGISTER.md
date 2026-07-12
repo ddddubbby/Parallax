@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: Decision-Log-protected surfaces consulted before any delete/merge/rename (D-086)
+
 # PROTECTED_REGISTER.md — M30 Cleanup Audit, Pass 0
 
 > **42 protected surfaces found across Decision Log entries** (D-001 … D-104) — including M31/D-087 route/wall protections, M33/D-093 drawer + CI floors, and the implemented M34A/D-102–D-104 evidence boundaries. M34's older automated-certification machinery remains retired by D-099; the protected M34A surfaces below are the human-review/provenance replacements, not a revival of eligibility law, clustering, or medoids.

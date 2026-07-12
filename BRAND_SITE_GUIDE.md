@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Resonance site structure and copy guide (active brand under D-106)
+
 # BRAND_SITE_GUIDE.md — The Resonance Brand Website
 
 > An execution guide for building the public Resonance brand/marketing website.

@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: commercial kill/scale criteria and GTM for the GEO agent; non-binding on engineering
+
 # AGENT_STRATEGY_MEMO.md — Resonance GEO Agent, commercial layer
 
 > **STATUS: strategy memo, operator-owned.** Deliberately separated from `AGENT_PRD.md` and the engineering build plan per the 2026-07-12 ruling: engineering acceptance never gates on commercial thresholds. Nothing here binds the build; everything here binds the *business decision to keep operating it*.

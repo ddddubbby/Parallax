@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: standing whole-repo cleanup-audit method (D-086)
+
 # AUDIT_METHODOLOGY.md — Whole-Repo Cleanup Audit (M30)
 
 > Planning canon for the M30 cleanup audit, per §7's split-file precedent. This revises the original review-first cleanup proposal with fixes from an independent review (recorded as this milestone's eventual Decision Log entry). Status: **plan artifact — Pass 0 not yet executed.**
@@ -114,7 +116,7 @@ Every doc in this repo belongs to exactly one of three classes. The class determ
 |---|---|---|---|
 | **Current-state** | `README.md`, `MASTER_CONTEXT.md` §1–8 and §12 (glossary), `PRD.md` requirements/tracker rows, `DEVELOPMENT_GUIDELINES.md`, `ENGINEERING_SPEC.md` | The doc claims something about the system that is no longer true | Update in place |
 | **Append-only history** | `BUILD_NOTES.md` entries, `PRD.md` progress notes, the Decision Log rows themselves | A past entry describes something that was true *when written* | **Never rewrite.** This is the project's evidence chain — editing it is the same category of mistake as editing an applied migration. `45 templates` appearing in a 2026-07-04 BUILD_NOTES entry is not drift; it is a correct historical record. The one sanctioned cleanup here is D-025's own rule: BUILD_NOTES entries may be *truncated* (not rewritten) after their milestone merges and anything durable has graduated to a canonical doc — M21–M29 are merged, so S-001 through S-058 are eligible for truncation as a Pass 5 action, distinct from "fixing" them. |
-| **Proposals/plans** | `RESONANCE_BUILD_PLAN.md`, `LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md`, `M21_M26_BUILD_PLAN.md`, this document once M30 ships | A plan for work that has since been executed or superseded | Add a status header (`**Status: executed, see D-0XX**` / `**Status: superseded by D-0XX**`). Content body is never rewritten — it is the historical record of what was decided and why. |
+| **Proposals/plans** | the executed plans in `docs/history/` (e.g. `RESONANCE_BUILD_PLAN.md`, `M21_M26_BUILD_PLAN.md`), this document once M30 ships | A plan for work that has since been executed or superseded | Add a status header (`**Status: executed, see D-0XX**` / `**Status: superseded by D-0XX**`). Content body is never rewritten — it is the historical record of what was decided and why. |
 
 ---
 

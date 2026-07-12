@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: pivot-rationale record for D-106 (war-room first draft) · DISPOSITION: SUPERSEDED BY AGENT_PRD.md + AGENT_BUILD_PLAN.md + AGENT_STRATEGY_MEMO.md
+
 # RESONANCE AGENT PIVOT — Strategy, Engineering & Deployment Plan
 
 > **STATUS: SUPERSEDED (2026-07-12).** This was the war-room first draft. The product contract now lives in `AGENT_PRD.md` (architecture frozen, conditional approval); commercial criteria live in `AGENT_STRATEGY_MEMO.md`; the protocol/deployment build plan is the reviewed 0→1 Virtuals ACP plan. Kept for the pivot rationale record only — where this draft conflicts with those documents, they win. Body preserved unedited below.

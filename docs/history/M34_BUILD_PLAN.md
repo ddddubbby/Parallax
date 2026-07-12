@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M34 Baseline Framing Integrity playbook (D-094) · DISPOSITION: SUPERSEDED BY D-099 descope (M34A)
+
 # M34_BUILD_PLAN.md — Baseline Framing Integrity
 
 > **Status:** SUPERSEDED by the D-099 descope (2026-07-11) — historical record, do not execute. The automated-certification architecture this playbook builds (blind-extraction state machine, clustering, eligibility engine, medoid, hard C-15) was retired after protocols v1–v4 failed to reach a defensible freeze; M34A's human-reviewed-evidence plan lives in D-099 + `BUILD_NOTES.md` (below the D-090 threshold). Body preserved unedited below per the D-086 document taxonomy.

@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: quick orientation and local setup pointer
+
 # Parallax (product: Resonance)
 
 Parallax is the measurement and simulation engine behind Resonance. It measures how AI assistants describe, rank, cite, and misrepresent brands, then tests candidate framing fixes on persona-conditioned synthetic buyer panels — two structurally separate epistemic layers, the Evidence Layer (audit) and the Simulation Layer (resonance studies), that never mix their data (D-077, C-12). Externally the product is one brand, Resonance, no exceptions (`BRAND_PLAYBOOK.md`); internally the repo, package, and code keep the Parallax name (D-063).

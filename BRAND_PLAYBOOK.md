@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Resonance external brand voice and identity (active brand under D-106)
+
 # BRAND_PLAYBOOK.md — Resonance
 
 > The canonical brand document. Positioning, narrative, messaging, claims law,

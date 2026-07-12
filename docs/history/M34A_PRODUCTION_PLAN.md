@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M34A production integration playbook (D-101/D-102) · DISPOSITION: EXECUTED
+
 # M34A Production Integration Plan
 
 > **IMPLEMENTED — D-101/D-102 / 2026-07-11.** This plan implements D-099's

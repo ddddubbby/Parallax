@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M34A.1 pre-merge assurance plan (D-103) · DISPOSITION: EXECUTED
+
 # M34A.1 Pre-Merge Assurance Plan
 
 > **IMPLEMENTED AND VERIFIED — 2026-07-11 (D-103).** Corrects client-facing

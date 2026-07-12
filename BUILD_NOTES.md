@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: disposable per-session working memory; truncated at milestone merge (D-025)
+
 # BUILD_NOTES.md - Session Working Memory
 
 > Disposable mid-milestone state for agent handoff. This file answers "what was the last session doing?" — nothing else. Durable facts do not live here: decisions go to the `MASTER_CONTEXT.md` Decision Log, status goes to the `PRD.md` tracker, schema/contract facts go to the spec docs.

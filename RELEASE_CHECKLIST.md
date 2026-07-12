@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: go-live gates and per-audit delivery/archive record (D-043)
+
 # RELEASE_CHECKLIST.md - Go-Live Gates and Per-Audit Delivery Record
 
 > The M10 acceptance artifact ("release checklist complete"). Two parts: the

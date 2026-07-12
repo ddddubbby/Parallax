@@ -1,3 +1,5 @@
+> LIFECYCLE: PARKED · ROLE: PLAYBOOK · OWNS: SSR human-benchmark calibration design for the parked Simulation Layer (M26, D-082)
+
 # CALIBRATION_PROTOCOL.md — SSR Human-Benchmark Calibration
 
 > M26 (D-082). Describes how a future human-benchmark calibration run would

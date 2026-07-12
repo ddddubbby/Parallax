@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: layer-identity + coverage-contract proposal synthesis (D-077) · DISPOSITION: EXECUTED
+
 # Layers & Evidence-Only Evaluation
 
 > **Status: tracked planning canon, executed — layer-identity rename shipped as M21/D-077, coverage-contract idea shipped as M23/D-079.** Two operator-proposed

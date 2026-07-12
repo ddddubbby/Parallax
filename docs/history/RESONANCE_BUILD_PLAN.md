@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M16-M20 execution playbook (D-063) · DISPOSITION: EXECUTED
+
 # RESONANCE_BUILD_PLAN.md — M16–M20 Execution Playbook
 
 **Status: executed — M16-M20 all shipped, see D-063 through D-071 and PRD.md §11.** Historical planning record; kept for the how and the traps it documents, not as a live execution guide.

@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M21-M26 execution playbook (D-077) · DISPOSITION: EXECUTED
+
 # M21_M26_BUILD_PLAN.md — Layer Identity → Calibration Execution Playbook
 
 > **Status: tracked planning canon, executed (M21-M26), see D-077 (adoption) through D-082 (execution).** Execution playbook for

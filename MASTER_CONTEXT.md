@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: identity, hard constraints, session rituals, documents index · TRACKER: STATUS.md
+
 # MASTER_CONTEXT.md - Resonance (Parallax engine)
 
 > The single canonical context file for this repository. Every AI coding session and every human contributor starts here. It contains project identity, non-negotiable constraints, durable decisions, and session rituals. Resonance is the product; Parallax is the measurement engine and the repo/package/code name (D-063). Product scope lives in `PRD.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
@@ -108,27 +110,31 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 
 ## 7. Documents index
 
-| File | Owns |
-|---|---|
-| `MASTER_CONTEXT.md` | Identity, constraints, decisions, rituals |
-| `PRD.md` | Product scope, user journey, requirements, milestones |
-| `DEVELOPMENT_GUIDELINES.md` | Architecture, provider contracts, schemas, tests, workflow |
-| `DESIGN_GUIDELINES.md` | Visual language: tokens, typography, surfaces, motion, component rules, visual guardrails |
-| `ENGINEERING_SPEC.md` | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
-| `RENDER_DEPLOYMENT.md` | Render Blueprint assumptions, secret model, first-deploy checklist |
-| `RELEASE_CHECKLIST.md` | Go-live gates and the per-audit delivery/archive record (D-043) |
-| `RESONANCE_BUILD_PLAN.md` | M16-M20 execution playbook: per-milestone steps, QA gates, critical-bug risk tables (D-063); executed, historical record |
-| `M21_M26_BUILD_PLAN.md` | M21-M26 execution playbook, adopted as planning canon (D-077); executed, historical record |
-| `M32_BUILD_PLAN.md` | M32 operator-workflow UI execution playbook: sidebar hierarchy, segmented routes, explicit edit states, and verification gates (D-088); approved planning canon |
-| `M34_BUILD_PLAN.md` | M34 Baseline Framing Integrity execution playbook (D-094); **superseded by the D-099 descope** — historical record with status header; M34A's smaller plan lives in D-099 + `BUILD_NOTES.md` per D-090 |
-| `M34A_PRODUCTION_PLAN.md` | Implemented M34A production integration playbook (D-101/D-102): split migrations, compact human-review data model, operator workflow, standalone report, and immutable C-15 handoff |
-| `LAYERS_AND_EVIDENCE_ONLY_EVALUATION.md` | Layer-identity rename and coverage-contract proposal synthesis, adopted as planning canon (D-077); executed, historical record |
-| `CALIBRATION_PROTOCOL.md` | SSR human-benchmark calibration survey design, thresholds, and paired-data fixture format (M26, D-082) |
-| `BUILD_NOTES.md` | Disposable per-session working memory for agent handoff; truncated at milestone merge |
-| `README.md` | Quick orientation and local setup pointer |
-| `AUDIT_METHODOLOGY.md` | Standing whole-repo cleanup-audit playbook — four-tier label, document-class taxonomy, review passes (D-086) |
-| `PROTECTED_REGISTER.md` | Standing safety net of Decision-Log-protected surfaces; consulted by every future cleanup pass before a `Delete`/`Merge`/rename (D-086) |
-| `fixtures/` | Demo project, mock response manifest, golden expectation manifest |
+Every governed document carries a first-line metadata header: `LIFECYCLE: ACTIVE | PARKED | HISTORICAL`, `ROLE: CANON | PLAN | PLAYBOOK | RECORD`, `OWNS: <single responsibility>`, plus `TRACKER:`/`DISPOSITION:` where applicable. `pnpm docs:check` (CI) validates this index against reality (D-107). PARKED is distinct from HISTORICAL: parked canon stays in root, immediately recoverable; historical documents live in `docs/history/`.
+
+| File | Lifecycle | Owns |
+|---|---|---|
+| `STATUS.md` | ACTIVE | The single "where are we": active product, branch, gate state, next action (read FIRST, §8) |
+| `MASTER_CONTEXT.md` | ACTIVE | Identity, hard constraints, rituals, this index |
+| `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
+| `AGENT_PRD.md` | ACTIVE | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
+| `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent Gates 0–D, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
+| `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
+| `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
+| `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
+| `ENGINEERING_SPEC.md` | ACTIVE | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
+| `RENDER_DEPLOYMENT.md` | ACTIVE | Render Blueprint assumptions, secret model, first-deploy checklist |
+| `RELEASE_CHECKLIST.md` | ACTIVE | Go-live gates and the per-audit delivery/archive record (D-043) |
+| `AUDIT_METHODOLOGY.md` | ACTIVE | Standing whole-repo cleanup-audit playbook (D-086) |
+| `PROTECTED_REGISTER.md` | ACTIVE | Decision-Log-protected surfaces; consulted before any delete/merge/rename (D-086) |
+| `BUILD_NOTES.md` | ACTIVE | Disposable per-session working memory; pruned at milestone merge (D-025) |
+| `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice / site guide (the active brand, D-106) |
+| `README.md` | ACTIVE | Quick orientation and local setup pointer |
+| `PRD.md` | PARKED | The parked Resonance audit+simulation product: scope, requirements, closed M0–M34A tracker (D-106) |
+| `CALIBRATION_PROTOCOL.md` | PARKED | SSR calibration design for the parked Simulation Layer (M26, D-082) |
+| `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
+| `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |
+| `fixtures/` | — | Demo project, mock response manifest, golden expectation manifest |
 
 Split a section into a separate file only when it exceeds roughly 300 lines or changes at a clearly different cadence. Record the split in the Decision Log.
 

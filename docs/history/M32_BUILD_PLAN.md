@@ -1,3 +1,5 @@
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M32 operator-workflow UI playbook (D-088) · DISPOSITION: EXECUTED (verification completed by M33, D-089/D-092/D-093)
+
 # M32_BUILD_PLAN.md - Workflow UI Architecture
 
 > **Status: implemented on `m32-workflow-ui`** (PRD M32: Done). M32 builds on M31's project workspace hierarchy. It replaces stacked navigation and all-sections-at-once work surfaces with a URL-addressable operator workflow. Read `MASTER_CONTEXT.md`, PRD section 8.31, `DEVELOPMENT_GUIDELINES.md` section A, `DESIGN_GUIDELINES.md`, and the M32 handoff entries in `BUILD_NOTES.md` for implementation history.

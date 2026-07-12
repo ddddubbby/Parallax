@@ -1,3 +1,5 @@
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Render Blueprint assumptions, secret model, first-deploy checklist
+
 # RENDER_DEPLOYMENT.md - First Deploy Contract
 
 Parallax deploys to Render from the repository-root `render.yaml`.
