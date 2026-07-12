@@ -10,11 +10,11 @@
 | **Product contract** | [AGENT_PRD.md](AGENT_PRD.md) (architecture frozen 2026-07-12) |
 | **Build plan** | [AGENT_BUILD_PLAN.md](AGENT_BUILD_PLAN.md) (M35–M42, D-108) |
 | **Commercial criteria** | [AGENT_STRATEGY_MEMO.md](AGENT_STRATEGY_MEMO.md) (non-binding on engineering) |
-| **Branch** | `m38` (cut from `geo-agent-v1`); M36 + M37 + M39 merged to `geo-agent-v1`; the M35 ACP harness lives on `m35` |
-| **Current milestone** | M38 — grounded engines live, **OpenAI-only slice** (§6.4). Code path built + offline-tested; pending merge. The live run + the full 900-sample three-engine spike are operator-blocked (OpenAI key + spend; Gemini/Grok keys) |
-| **Milestone state** | M38 OpenAI slice code-complete — viem live RPC reader (bytes32 fallback), OpenAI-only `live_validation` run path, `pnpm agent:live-validate` harness (credential+spend gated, C-10 grounding check); offline tests green, full suite 712 passed/0 failed (S-092). AWAITING operator OpenAI key in Settings to run the live validation. Gemini/Grok unwired → full 3-engine 900-sample spike deferred · M36+M37+M39 merged · M40 needs the m35 ACP SDK pin + wallets |
-| **Next action** | Merge `m38` → `geo-agent-v1`. **Operator to run the live OpenAI validation:** enter an OpenAI key in Settings (C-11 — never on the CLI), then `pnpm agent:live-validate --chain base --address 0x… --category ai_agent --name "…" --symbol … --k 2 --cap 3.00 --confirm-spend` (or set BASE_RPC_URL to resolve identity live). Next engineering milestone is M40 (ACP gateway) — needs the m35 `@virtuals-protocol/acp-node-v2` pin merged in + the operator wallets (funded Base RPC, seller/test-buyer Privy wallets, restricted signer, hidden offering). For the full M38 spike, operator adds Gemini + Grok keys |
-| **Blocked on** | M38 live run: operator OpenAI key + `--confirm-spend`. Full M38 spike: Gemini/Grok keys. M40+: operator wallets + the ACP SDK pin. M35: operator wallets |
+| **Branch** | `m40` (cut from `geo-agent-v1`); M36 + M37 + M38 + M39 merged to `geo-agent-v1`; the M35 ACP harness lives on `m35` |
+| **Current milestone** | M40 — ACP gateway, **offline core** (§6.6). Transport hardening + VirtualsGatewayClient boundary + lifecycle orchestrator wired to M39's ledger, fixture-tested; pending merge. The real SDK/viem gateway + live sandbox verification (the merge gate) are wallet-gated |
+| **Milestone state** | M40 offline core code-complete — SDK pinned; pure transport primitives (fingerprint/LRU-dedupe/reconnect/connection-state); gateway `ingestEvent` + `advanceOrder` drive M39's effectively-once ledger through the full lifecycle (created→budget→funded→submit→completed + expiry-refund) each effect exactly once, fixture-driven, under the per-order advisory lock. My M40 tests green (full suite 716 passed; the 9 failures are the pre-existing settings-test flake, task_a9867727) · M36+M37+M38+M39 merged. REAL VirtualsGatewayClient (AcpAgent/viem) + the live §6.6 gate (complete/reject/refund/expiry/restart on hidden $0.01 sandbox jobs, settlement ±$0.01) are wallet-gated (S-093) |
+| **Next action** | Merge `m40` → `geo-agent-v1`. **Everything remaining is operator-gated on wallets or keys:** (1) OpenAI key in Settings → run `pnpm agent:live-validate … --confirm-spend` (M38 live); (2) Virtuals dev onboarding §5.1 (funded Base RPC, seller/test-buyer Privy wallets, restricted signer, hidden offering, funded buyer) → wire the real VirtualsGatewayClient + run the live M40 sandbox lifecycle + the M35 kill-gate; (3) Gemini/Grok keys → full M38 900-sample spike; (4) recorded legal risk-acceptance → launch prerequisite. The offline engineering (M36–M40 core) is done |
+| **Blocked on** | Wallets: real M40 gateway wiring + live sandbox verification, M35 kill-gate, M41/M42. Keys: M38 live run (OpenAI), full spike (Gemini/Grok). Legal: launch. No offline-only engineering remains |
 | **Parked product** | Resonance audit + Simulation Layer + M34A framing — parked at tag `resonance-m34a-parked` (D-106); PRD: [PRD.md](PRD.md); unparking = branch checkout |
 
 ## Milestone ledger (M-counter continues from the parked track's M34A — D-108)
@@ -24,9 +24,9 @@
 | M35 | ACP protocol feasibility — kill-gate (AGENT_BUILD_PLAN §6.1) | Operator wallet setup | Not started |
 | M36 | Headless audit core, mock-first, $0 (§6.2) | — | Merged to `geo-agent-v1` (S-089) |
 | M37 | Mechanical extraction + metrics + report, $0 (§6.3) | M36 | Merged to `geo-agent-v1` (S-090) |
-| M38 | Grounded engines live + spike (§6.4) | M37 | OpenAI slice code-complete (S-092), pending merge — live run + full 3-engine spike operator-blocked |
+| M38 | Grounded engines live + spike (§6.4) | M37 | Merged to `geo-agent-v1` (S-092) — OpenAI slice; live run + full spike operator-blocked |
 | M39 | Commerce persistence + effectively-once effects, offline (§6.5) | — | Merged to `geo-agent-v1` (S-091) |
-| M40 | ACP gateway live in sandbox (§6.6) | M35, M38, M39 | Not started |
+| M40 | ACP gateway live in sandbox (§6.6) | M35, M38, M39 | Offline core code-complete (S-093), pending merge — real gateway + live verification wallet-gated |
 | M41 | Deploy & operations + soak (§6.7) | M40 | Not started |
 | M42 | Production readiness — engineering completion (§6.8) | M41 | Not started |
 
