@@ -28,4 +28,17 @@
 | M39 | Commerce persistence + effectively-once effects, offline (§6.5) | — | Not started |
 | M40 | ACP gateway live in sandbox (§6.6) | M35, M38, M39 | Not started |
 | M41 | Deploy & operations + soak (§6.7) | M40 | Not started |
-| M42 | Graduation & launch (§6.8) | M41 | Not started |
+| M42 | Production readiness — engineering completion (§6.8) | M41 | Not started |
+
+## Launch prerequisites (external — never merge-gating, D-109)
+
+Tracked separately from the milestone ledger so a third party's non-response can delay launch but never make engineering appear incomplete.
+
+| Prerequisite | Register | State |
+|---|---|---|
+| Recorded operator/legal risk acceptance OR written Virtuals clarification (Developer Agreement) | A10 | Not started |
+| Butler proven to preserve zero-evaluator jobs | A9 | Not started |
+| Written DevRel confirmation on production-price review behavior | — | Not started |
+| DevRel evaluator tests passed (allowlisted wallet, 100% automated) | A8 | Not started |
+| Virtuals manual review → Shown visibility | A8 | Not started |
+| Paid canary settled + reconciled (flips product to operating) | — | Not started |
