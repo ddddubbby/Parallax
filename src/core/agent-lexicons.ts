@@ -99,6 +99,30 @@ export const ADVICE_PROSE_V1: readonly string[] = [
   "bearish",
 ];
 
+/**
+ * Clear refusal phrases (AGENT_PRD §5's refusal-vs-absence distinction). A
+ * refusal is an engine DECLINING to answer — counted and reported separately,
+ * excluded from rate denominators (D-014). Deliberately narrow: "I can't find
+ * anything about this token" is a real `absent` observation, NOT a refusal, so
+ * bare "i can't"/"i cannot" are excluded and only decline-to-help forms match.
+ */
+export const REFUSAL_V1: readonly string[] = [
+  "i can't help",
+  "i cannot help",
+  "i can't assist",
+  "i cannot assist",
+  "i'm not able to help",
+  "i am not able to help",
+  "i'm unable to assist",
+  "i am unable to assist",
+  "i can't provide",
+  "i cannot provide information",
+  "i won't be able to help",
+  "as an ai language model",
+  "against my guidelines",
+  "i cannot comply",
+];
+
 /** True when `term` contains a character that cannot sit next to a \b word boundary. */
 function isNonWordTerm(term: string): boolean {
   return /[^\p{L}\p{N} ]/u.test(term);
