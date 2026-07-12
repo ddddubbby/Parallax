@@ -120,6 +120,13 @@
       "when": 1783871215567,
       "tag": "0016_agent_enums",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1783875828553,
+      "tag": "0017_agent_commerce",
+      "breakpoints": true
     }
   ]
 }

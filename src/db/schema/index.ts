@@ -7,3 +7,4 @@ export * from "./runs";
 export * from "./extraction";
 export * from "./credentials";
 export * from "./reporting";
+export * from "./agent";
