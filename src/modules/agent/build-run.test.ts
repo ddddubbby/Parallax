@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import type { AssetChain } from "@/core/crypto-resolver";
 import { db, pool } from "@/db/client";
-import { matrixVersions, projects, promptCells } from "@/db/schema";
+import { auditRuns, jobs, matrixVersions, projects, promptCells } from "@/db/schema";
 import {
   buildAgentRun,
   createFixtureMetadataReader,
@@ -72,6 +72,35 @@ describe.skipIf(!dbUp)("buildAgentRun (M36 programmatic path)", () => {
     expect(cells).toHaveLength(20);
     expect(cells.filter((c) => c.intent === "discovery")).toHaveLength(6);
     expect(cells.filter((c) => c.intent === "representation")).toHaveLength(14);
+  });
+
+  it("builds an OpenAI-only live_validation run (M38 slice — no Gemini/Grok, no spend)", async () => {
+    const token = fixtures.valid[0];
+    const result = await buildAgentRun({
+      chain: token.chain,
+      contractAddress: token.address,
+      discoveryCategory: "ai_agent",
+      reader,
+      runMode: "live_validation",
+      engines: ["openai"],
+      repetitions: 2,
+    });
+    expect(result.ok).toBe(true);
+    const built = result as BuildAgentRunSuccess;
+    // 20 cells × 1 engine × k=2 = 40 planned (a validation slice, not the 900-sample spike).
+    expect(built.plannedCalls).toBe(40);
+
+    const [run] = await db
+      .select({ runMode: auditRuns.runMode, providers: auditRuns.selectedProvidersJson, reps: auditRuns.repetitions })
+      .from(auditRuns)
+      .where(eq(auditRuns.id, built.runId));
+    expect(run.runMode).toBe("live_validation");
+    expect(run.providers).toEqual(["openai"]);
+    expect(run.reps).toBe(2);
+
+    // Jobs are created but NOT executed here — no live call, no spend.
+    const jobRows = await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.runId, built.runId));
+    expect(jobRows).toHaveLength(40);
   });
 
   it("rejects a hostile-metadata token before budget, writing no rows", async () => {

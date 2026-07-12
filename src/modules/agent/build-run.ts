@@ -10,7 +10,7 @@ import {
   type DiscoveryCategory,
 } from "@/core/crypto-prompts";
 import type { AssetChain, ResolverRejection } from "@/core/crypto-resolver";
-import { computePlannedCalls } from "@/core/runner";
+import { computePlannedCalls, type ProviderId } from "@/core/runner";
 import { db } from "@/db/client";
 import { createRun, type ProviderCapability } from "@/db/repositories/runner";
 import { matrixVersions, projects, promptCells } from "@/db/schema";
@@ -40,8 +40,16 @@ export interface BuildAgentRunInput {
   /** Selects the Lane-A prompt pack ONLY (AGENT_PRD §2). Query context, not metadata. */
   discoveryCategory: DiscoveryCategory;
   reader: TokenMetadataReader;
-  /** M36 only ever builds mock runs. Kept explicit so the caller opts in. */
-  runMode?: "mock";
+  /** Defaults to mock. `live_validation` runs cheap (k=2) live calls (M38 OpenAI slice). */
+  runMode?: "mock" | "live_validation" | "live_audit";
+  /**
+   * The engines to run. Defaults to the production three (AGENT_PRD §5). M38
+   * live testing overrides this to `["openai"]` while Gemini/Grok stay unwired —
+   * a validation slice, NOT the full 900-sample three-engine spike.
+   */
+  engines?: readonly ProviderId[];
+  /** k per cell per engine. Defaults to k=5 (audit-grade); live_validation may use k=2. */
+  repetitions?: number;
   costCapUsd?: number;
 }
 
@@ -57,8 +65,8 @@ export interface BuildAgentRunSuccess {
 
 export type BuildAgentRunResult = BuildAgentRunSuccess | AgentRunRejection;
 
-function agentCapabilities(): ProviderCapability[] {
-  return AGENT_ENGINES.map((id) => ({ id, supportsGrounded: true, supportsUngrounded: true }));
+function agentCapabilities(engines: readonly ProviderId[]): ProviderCapability[] {
+  return engines.map((id) => ({ id, supportsGrounded: true, supportsUngrounded: true }));
 }
 
 function projectSlug(chain: AssetChain, address: string): string {
@@ -137,18 +145,20 @@ export async function buildAgentRun(input: BuildAgentRunInput): Promise<BuildAge
     return { projectId: project.id, matrixVersionId: version.id };
   });
 
-  const plannedCalls = computePlannedCalls(cells.length, AGENT_ENGINES.length, 1, AGENT_REPETITIONS);
+  const engines = input.engines ?? AGENT_ENGINES;
+  const repetitions = input.repetitions ?? AGENT_REPETITIONS;
+  const plannedCalls = computePlannedCalls(cells.length, engines.length, 1, repetitions);
   const run = await createRun(
     {
       projectId,
       matrixVersionId,
       runMode,
-      repetitions: AGENT_REPETITIONS,
-      providers: [...AGENT_ENGINES],
+      repetitions,
+      providers: [...engines],
       modes: ["grounded"],
       costCapUsd: input.costCapUsd ?? 25,
     },
-    agentCapabilities(),
+    agentCapabilities(engines),
     plannedCalls,
   );
 

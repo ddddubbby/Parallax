@@ -4,7 +4,8 @@
 // mock-first M36 path and the adversarial fixture set run fully offline; the
 // live viem-backed reader lands with grounded engines (M38) / the gateway (M40).
 
-import { getAddress, isAddress } from "viem";
+import { createPublicClient, getAddress, hexToString, http, isAddress, type Address } from "viem";
+import { base, mainnet } from "viem/chains";
 import {
   CHAIN_IDS,
   sanitizeTokenMetadata,
@@ -125,6 +126,81 @@ export function createFixtureMetadataReader(
       const hit = table.get(`${chain}:${checksumAddress.toLowerCase()}`);
       if (!hit) throw new Error(`no fixture metadata for ${chain}:${checksumAddress}`);
       return hit;
+    },
+  };
+}
+
+// --- Live RPC reader (M38). Env-gated on operator-managed RPC URLs. ---
+
+const ERC20_STRING_ABI = [
+  { name: "name", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
+  { name: "symbol", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
+  { name: "decimals", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+] as const;
+const ERC20_BYTES32_ABI = [
+  { name: "name", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+  { name: "symbol", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+] as const;
+
+/**
+ * Decode an ERC-20 name/symbol that may be returned as a `bytes32` (pre-standard
+ * tokens like MKR) instead of a `string`. Pure so the fallback is unit-testable
+ * without a live node. Trims trailing NULs; returns "" for empty/all-zero.
+ */
+export function decodeErc20String(raw: string): string {
+  // bytes32 values are right-padded with NUL; strip trailing NUL + whitespace.
+  return raw.replace(/[\u0000\s]+$/u, "");
+}
+
+export interface RpcMetadataReaderConfig {
+  /** Managed RPC URLs (never rate-limited public endpoints, §5.1). */
+  rpcUrls: Partial<Record<AssetChain, string>>;
+  timeoutMs?: number;
+}
+
+/**
+ * viem-backed reader: chain id, bytecode presence, and name/symbol/decimals with
+ * a bytes32 fallback and a bounded per-call timeout. Requires a configured RPC
+ * URL for the requested chain (operator-managed); absent config throws, surfaced
+ * upstream as metadata_read_failed. The sanitization pipeline still treats every
+ * returned value as hostile (AGENT_PRD §3).
+ */
+export function createRpcMetadataReader(config: RpcMetadataReaderConfig): TokenMetadataReader {
+  const timeout = config.timeoutMs ?? 5000;
+  const viemChain: Record<AssetChain, typeof base | typeof mainnet> = { base, ethereum: mainnet };
+
+  return {
+    async read(chain, checksumAddress): Promise<RawTokenMetadata> {
+      const url = config.rpcUrls[chain];
+      if (!url) throw new Error(`no RPC URL configured for ${chain}`);
+      const client = createPublicClient({ chain: viemChain[chain], transport: http(url, { timeout }) });
+      const address = checksumAddress as Address;
+
+      const chainId = await client.getChainId();
+      const code = await client.getBytecode({ address });
+      const hasBytecode = Boolean(code && code !== "0x");
+
+      const readString = async (fn: "name" | "symbol"): Promise<string> => {
+        try {
+          return (await client.readContract({ address, abi: ERC20_STRING_ABI, functionName: fn })) as string;
+        } catch {
+          const bytes = (await client.readContract({ address, abi: ERC20_BYTES32_ABI, functionName: fn })) as `0x${string}`;
+          return decodeErc20String(hexToString(bytes));
+        }
+      };
+
+      let name = "";
+      let symbol = "";
+      let decimals: number | null = null;
+      try { name = await readString("name"); } catch { name = ""; }
+      try { symbol = await readString("symbol"); } catch { symbol = ""; }
+      try {
+        decimals = Number(await client.readContract({ address, abi: ERC20_STRING_ABI, functionName: "decimals" }));
+      } catch {
+        decimals = null;
+      }
+
+      return { chainId, hasBytecode, name, symbol, decimals };
     },
   };
 }
