@@ -24,6 +24,7 @@
     "test:db": "tsx scripts/test-db.ts",
     "test:mock-e2e": "tsx scripts/test-mock-e2e.ts",
     "test:agent-mock-e2e": "tsx scripts/test-agent-mock-e2e.ts",
+    "agent:live-validate": "tsx scripts/agent-live-validate.ts",
     "test:golden": "vitest run src/modules/extraction/golden.test.ts",
     "audit:deepseek-mini": "tsx scripts/audit-deepseek-mini.ts",
     "archive:evidence": "tsx scripts/archive-evidence.ts",
