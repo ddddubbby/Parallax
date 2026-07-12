@@ -1,0 +1,76 @@
+{
+  "identity": {
+    "name": "Pepe",
+    "symbol": "PEPE",
+    "address": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
+    "chain": "ethereum",
+    "decimals": 18
+  },
+  "samples": [
+    {
+      "engine": "openai", "lane": "A", "variantKey": "a1",
+      "rawText": "Trending Ethereum meme tokens right now include Pepe and a few others.",
+      "citations": [],
+      "expect": { "mention": true }
+    },
+    {
+      "engine": "google", "lane": "A", "variantKey": "a1",
+      "rawText": "Popular picks this year are mostly various dog-themed coins.",
+      "citations": [],
+      "expect": { "mention": false }
+    },
+    {
+      "engine": "openai", "lane": "B", "variantKey": "b1",
+      "rawText": "Pepe ($PEPE) at 0x6982508145454Ce325dDbE47a25d4ec3d2311933 on Ethereum is a community meme coin.",
+      "citations": [{ "url": "https://etherscan.io/token/0x6982508145454Ce325dDbE47a25d4ec3d2311933", "domain": "etherscan.io" }],
+      "expect": { "identityClass": "matched", "descriptors": ["community", "meme"], "risk": [] }
+    },
+    {
+      "engine": "openai", "lane": "B", "variantKey": "b1",
+      "rawText": "Some describe Pepe ($PEPE, 0x6982508145454Ce325dDbE47a25d4ec3d2311933 on Ethereum) as speculative, with high volatility.",
+      "citations": [],
+      "expect": { "identityClass": "matched", "descriptors": [], "risk": ["speculative", "volatility"] }
+    },
+    {
+      "engine": "openai", "lane": "B", "variantKey": "b1",
+      "rawText": "Pepe (PEPE) here refers to the token at 0x1111111111111111111111111111111111111111.",
+      "citations": [],
+      "expect": { "identityClass": "namesake", "descriptors": [], "risk": [] }
+    },
+    {
+      "engine": "openai", "lane": "B", "variantKey": "b2",
+      "rawText": "I can't help with that request.",
+      "citations": [],
+      "expect": { "refusal": true }
+    },
+    {
+      "engine": "google", "lane": "B", "variantKey": "b1",
+      "rawText": "Pepe ($PEPE) is a token some people mention online.",
+      "citations": [],
+      "expect": { "identityClass": "ambiguous", "descriptors": [], "risk": [] }
+    },
+    {
+      "engine": "google", "lane": "B", "variantKey": "b2",
+      "rawText": "I could not find anything about that token.",
+      "citations": [],
+      "expect": { "identityClass": "absent", "descriptors": [], "risk": [] }
+    },
+    {
+      "engine": "openai", "lane": "C", "variantKey": "c1",
+      "rawText": "Pepe ($PEPE), contract 0x6982508145454Ce325dDbE47a25d4ec3d2311933 on Ethereum — a meme and community project.",
+      "citations": [{ "url": "https://etherscan.io/token/0x6982508145454Ce325dDbE47a25d4ec3d2311933", "domain": "etherscan.io" }],
+      "expect": { "identityClass": "matched", "descriptors": ["community", "meme"], "risk": [] }
+    },
+    {
+      "engine": "google", "lane": "C", "variantKey": "c1",
+      "rawText": "The token at 0x6982508145454Ce325dDbE47a25d4ec3d2311933 on Ethereum, Pepe, is described as an ai infrastructure play.",
+      "citations": [],
+      "expect": { "identityClass": "matched", "descriptors": ["ai", "infrastructure"], "risk": [] }
+    }
+  ],
+  "expected": {
+    "representationState": "sparse",
+    "openai": { "mentionNumerator": 1, "mentionDenominator": 1, "identityMix": { "matched": 2, "namesake": 1, "ambiguous": 0, "absent": 0 }, "laneBMatched": 2, "refusals": 1 },
+    "google": { "mentionNumerator": 0, "mentionDenominator": 1, "identityMix": { "matched": 0, "namesake": 0, "ambiguous": 1, "absent": 1 }, "laneBMatched": 0, "refusals": 0 }
+  }
+}

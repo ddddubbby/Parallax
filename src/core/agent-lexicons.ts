@@ -14,6 +14,7 @@ export const RISK_V1_VERSION = "risk_v1";
 export const PROMPT_CONTROL_V1_VERSION = "prompt_control_v1";
 export const DESCRIPTOR_V1_VERSION = "descriptor_v1";
 export const ADVICE_PROSE_V1_VERSION = "advice_prose_v1";
+export const REFUSAL_V1_VERSION = "refusal_v1";
 
 /**
  * Warning/negative-signal vocabulary. Used two ways: (M37) counted in model

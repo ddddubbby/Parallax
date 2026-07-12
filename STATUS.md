@@ -10,11 +10,11 @@
 | **Product contract** | [AGENT_PRD.md](AGENT_PRD.md) (architecture frozen 2026-07-12) |
 | **Build plan** | [AGENT_BUILD_PLAN.md](AGENT_BUILD_PLAN.md) (M35–M42, D-108) |
 | **Commercial criteria** | [AGENT_STRATEGY_MEMO.md](AGENT_STRATEGY_MEMO.md) (non-binding on engineering) |
-| **Branch** | `m36` (cut from `geo-agent-v1` at `0334994`); the M35 ACP harness lives on `m35` |
-| **Current milestone** | M36 — headless audit core, mock-first. Complete: all §6.2 acceptance evidenced (S-089), pending merge to `geo-agent-v1`. M35 kill-gate operator-blocked in parallel |
-| **Milestone state** | M36 Code complete — acceptance green (300/300 mock e2e, 14/14 adversarial fixtures rejected pre-budget, migrations fresh+existing; S-089) · pending merge · M35 Not started/blocked on operator · M37 unblocked next |
-| **Next action** | Merge `m36` → `geo-agent-v1`, then start M37 (mechanical extraction + metrics + report, §6.3 — depends on M36). Operator in parallel: Virtuals dev onboarding — owner/login wallet, Provider + test-Requestor agents, Privy wallet + restricted signer (AGENT_BUILD_PLAN §5.1) to unblock the M35 kill-gate |
-| **Blocked on** | M35 only: operator wallet/account setup. M37–M39 are NOT blocked |
+| **Branch** | `m37` (cut from `geo-agent-v1`); M36 merged to `geo-agent-v1`; the M35 ACP harness lives on `m35` |
+| **Current milestone** | M37 — mechanical extraction + metrics + report, $0. Complete: all §6.3 acceptance evidenced (S-090), pending merge to `geo-agent-v1`. M35 kill-gate operator-blocked in parallel |
+| **Milestone state** | M37 Code complete — acceptance green (golden suite exact, M6b not_estimable, C-16 clean, report built from 300 stored responses; full suite 658 passed/0 failed; S-090) · pending merge · M36 merged · M39 unblocked next · M38 operator-blocked (live spend/credentials) · M35 operator-blocked |
+| **Next action** | Merge `m37` → `geo-agent-v1`, then start M39 (commerce persistence + effectively-once effects, offline $0 — independent of M35, §6.5). M38 (grounded engines live) needs operator API credentials + ~$25 spend; M40+ need the M35 wallets. Operator in parallel: Virtuals dev onboarding (§5.1) to unblock M35, and provider API keys via Settings to unblock M38 |
+| **Blocked on** | M38 needs operator API credentials + live spend; M35/M40+ need operator wallet setup. M39 is NOT blocked |
 | **Parked product** | Resonance audit + Simulation Layer + M34A framing — parked at tag `resonance-m34a-parked` (D-106); PRD: [PRD.md](PRD.md); unparking = branch checkout |
 
 ## Milestone ledger (M-counter continues from the parked track's M34A — D-108)
@@ -22,8 +22,8 @@
 | M | Goal (static definition) | Depends on | State |
 |---|---|---|---|
 | M35 | ACP protocol feasibility — kill-gate (AGENT_BUILD_PLAN §6.1) | Operator wallet setup | Not started |
-| M36 | Headless audit core, mock-first, $0 (§6.2) | — | Code complete — acceptance green (S-089), pending merge |
-| M37 | Mechanical extraction + metrics + report, $0 (§6.3) | M36 | Not started |
+| M36 | Headless audit core, mock-first, $0 (§6.2) | — | Merged to `geo-agent-v1` (S-089) |
+| M37 | Mechanical extraction + metrics + report, $0 (§6.3) | M36 | Code complete — acceptance green (S-090), pending merge |
 | M38 | Grounded engines live + spike (§6.4) | M37 | Not started |
 | M39 | Commerce persistence + effectively-once effects, offline (§6.5) | — | Not started |
 | M40 | ACP gateway live in sandbox (§6.6) | M35, M38, M39 | Not started |

@@ -19,6 +19,8 @@ import {
   type BuildAgentRunSuccess,
 } from "../src/modules/agent/build-run";
 import type { RawTokenMetadata } from "../src/modules/agent/resolver";
+import { buildAgentReportForRun } from "../src/modules/agent/report";
+import { authoredProseViolations } from "../src/core/agent-report";
 
 interface TokenFixtures {
   valid: Array<{ chain: AssetChain; address: string; metadata: RawTokenMetadata }>;
@@ -149,6 +151,32 @@ async function main() {
   checks.push(["all three engines present", byProvider.size === 3]);
   checks.push(["each engine produced 100 samples", [...byProvider.values()].every((t) => t.length === 100)]);
   checks.push(["engines differ per cell (D-016 per-engine fixture keying)", enginesDifferPerCell]);
+
+  // M37: build the mechanical report from the 300 stored responses (full path).
+  const models = { openai: "mock", google: "mock", xai: "mock" };
+  const report = await buildAgentReportForRun({
+    runId: run.runId,
+    identity: { ...run.identity, decimals: run.identity.decimals },
+    models,
+    generatedAt: "2026-07-13T00:00:00.000Z",
+  });
+  const report2 = await buildAgentReportForRun({
+    runId: run.runId,
+    identity: { ...run.identity, decimals: run.identity.decimals },
+    models,
+    generatedAt: "2026-07-13T00:00:00.000Z",
+  });
+  const engines = (report.report.engines as { engine: string; sample_accounting: { collected: number } }[]) ?? [];
+  const state = report.report.representation_state;
+  log(`report digest ${report.sha256.slice(0, 16)}…, engines=${engines.length}, representation_state=${state}`);
+  checks.push(["M37 report covers all 3 engines", engines.length === 3]);
+  checks.push(["M37 report digest is deterministic", report.sha256 === report2.sha256 && /^[0-9a-f]{64}$/.test(report.sha256)]);
+  checks.push(["M37 authored prose passes C-16 (no advice terms)", authoredProseViolations(report.report).length === 0]);
+  checks.push(["M37 each engine accounting collected=100", engines.every((e) => e.sample_accounting.collected === 100)]);
+  checks.push([
+    "M37 representation_state is a valid label",
+    ["estimable", "sparse", "not_estimable"].includes(String(state)),
+  ]);
 
   let failed = false;
   for (const [name, pass] of checks) {

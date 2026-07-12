@@ -61,12 +61,12 @@ function rateBlock(numerator: number, denominator: number): RateBlock {
   };
 }
 
-function isRefusal(text: string): boolean {
+export function isRefusal(text: string): boolean {
   return containsAnyLexiconTerm(text, REFUSAL_V1);
 }
 
 /** AGENT_PRD M1: the token is "named" if its exact name, a qualified ticker, or its contract appears. */
-function mentionsToken(sample: AgentSample, identity: ClassifierIdentity): boolean {
+export function mentionsToken(sample: AgentSample, identity: ClassifierIdentity): boolean {
   const target = identity.address.toLowerCase();
   const haystack = `${sample.rawText}\n${sample.citations.map((c) => c.url).join("\n")}`.toLowerCase();
   if (haystack.includes(target)) return true;
