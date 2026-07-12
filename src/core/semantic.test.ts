@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TEMPLATE_SEED } from "./prompt-templates";
 import { ALLOCATED_INTENT_ORDER, INTENT_ORDER } from "./matrix";
 import {
+  AUDIT_ARCHETYPES,
   CATEGORY_ARCHETYPES,
   METRIC_GLOSSARY,
   PILLARS,
@@ -38,7 +39,7 @@ describe("semantic layer (M11)", () => {
     // default-active pack only. Opt-in price/promo variants (v4/v5,
     // active:false) are additional, asserted separately below so this
     // count keeps proving the original PRD 8.4 seed contract.
-    for (const archetype of Object.keys(CATEGORY_ARCHETYPES) as CategoryArchetype[]) {
+    for (const archetype of AUDIT_ARCHETYPES) {
       for (const intent of ALLOCATED_INTENT_ORDER) {
         const variants = TEMPLATE_SEED.filter(
           (t) => t.archetype === archetype && t.intent === intent && t.active !== false,
@@ -72,7 +73,7 @@ describe("semantic layer (M11)", () => {
   it("seeds opt-in price/promo variants inactive by default (D-016 risk mitigation)", () => {
     const optIn = TEMPLATE_SEED.filter((t) => t.active === false);
     expect(optIn).toHaveLength(6); // 3 archetypes x (price + promo)
-    for (const archetype of Object.keys(CATEGORY_ARCHETYPES) as CategoryArchetype[]) {
+    for (const archetype of AUDIT_ARCHETYPES) {
       const forArchetype = optIn.filter((t) => t.archetype === archetype);
       expect(forArchetype, archetype).toHaveLength(2);
       expect(forArchetype.map((t) => t.frameAspects).sort()).toEqual([["pricing"], ["promotions"]]);

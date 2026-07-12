@@ -10,11 +10,11 @@
 | **Product contract** | [AGENT_PRD.md](AGENT_PRD.md) (architecture frozen 2026-07-12) |
 | **Build plan** | [AGENT_BUILD_PLAN.md](AGENT_BUILD_PLAN.md) (M35–M42, D-108) |
 | **Commercial criteria** | [AGENT_STRATEGY_MEMO.md](AGENT_STRATEGY_MEMO.md) (non-binding on engineering) |
-| **Branch** | `geo-agent-v1` (cut from `main` at tag `resonance-m34a-parked`) |
-| **Current milestone** | M36 — headless audit core, mock-first (unblocked, can start now) · M35 in parallel once wallets exist |
-| **Milestone state** | M35 Not started (blocked on operator) · M36 Not started (unblocked) |
-| **Next action** | Engineering: start M36 (enum migrations → resolver → matrix → mock e2e). Operator, in parallel: Virtuals dev onboarding — owner/login wallet, Provider + test-Requestor agents, Privy wallet + restricted signer (AGENT_BUILD_PLAN §5.1) to unblock M35 |
-| **Blocked on** | M35 only: operator wallet/account setup. M36–M39 are NOT blocked |
+| **Branch** | `m36` (cut from `geo-agent-v1` at `0334994`); the M35 ACP harness lives on `m35` |
+| **Current milestone** | M36 — headless audit core, mock-first. Complete: all §6.2 acceptance evidenced (S-089), pending merge to `geo-agent-v1`. M35 kill-gate operator-blocked in parallel |
+| **Milestone state** | M36 Code complete — acceptance green (300/300 mock e2e, 14/14 adversarial fixtures rejected pre-budget, migrations fresh+existing; S-089) · pending merge · M35 Not started/blocked on operator · M37 unblocked next |
+| **Next action** | Merge `m36` → `geo-agent-v1`, then start M37 (mechanical extraction + metrics + report, §6.3 — depends on M36). Operator in parallel: Virtuals dev onboarding — owner/login wallet, Provider + test-Requestor agents, Privy wallet + restricted signer (AGENT_BUILD_PLAN §5.1) to unblock the M35 kill-gate |
+| **Blocked on** | M35 only: operator wallet/account setup. M37–M39 are NOT blocked |
 | **Parked product** | Resonance audit + Simulation Layer + M34A framing — parked at tag `resonance-m34a-parked` (D-106); PRD: [PRD.md](PRD.md); unparking = branch checkout |
 
 ## Milestone ledger (M-counter continues from the parked track's M34A — D-108)
@@ -22,7 +22,7 @@
 | M | Goal (static definition) | Depends on | State |
 |---|---|---|---|
 | M35 | ACP protocol feasibility — kill-gate (AGENT_BUILD_PLAN §6.1) | Operator wallet setup | Not started |
-| M36 | Headless audit core, mock-first, $0 (§6.2) | — | Not started |
+| M36 | Headless audit core, mock-first, $0 (§6.2) | — | Code complete — acceptance green (S-089), pending merge |
 | M37 | Mechanical extraction + metrics + report, $0 (§6.3) | M36 | Not started |
 | M38 | Grounded engines live + spike (§6.4) | M37 | Not started |
 | M39 | Commerce persistence + effectively-once effects, offline (§6.5) | — | Not started |

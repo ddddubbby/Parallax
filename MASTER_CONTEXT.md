@@ -75,6 +75,7 @@ Stack: Next.js 15 + TypeScript + Tailwind + shadcn/ui, Drizzle ORM, Zod, Vitest,
 | `pnpm test` | Run Vitest, including golden dataset tests — DB-backed tests run against an ephemeral, auto-migrated+seeded embedded Postgres (`scripts/vitest-global-setup.ts`), never the dev DB (D-078) |
 | `pnpm test:e2e` | Playwright smoke + axe floor over the critical operator journey (D-092); boots its own ephemeral DB + Next on :3100 |
 | `pnpm test:db` | Boot the same ephemeral test-DB instance standalone in the foreground, for manual poking (mirrors `pnpm db:dev`'s UX; D-078) |
+| `pnpm test:agent-mock-e2e` | M36 GEO-agent acceptance: headless contract→project→matrix→run path, 300/300 mock samples across the three engines, per-engine D-016 variation, adversarial resolver fixtures rejected pre-budget |
 | `pnpm db:migrate` | Apply Drizzle migrations |
 | `pnpm db:studio` | Inspect data with Drizzle Studio |
 | `pnpm research:m34a:collect` | Bounded live M34A neutral-evidence collection with raw provenance, span assistance, and harness-side C-2 ledger; never runs semantic eligibility |
