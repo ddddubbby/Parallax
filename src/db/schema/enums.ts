@@ -27,6 +27,10 @@ export const categoryArchetype = pgEnum("category_archetype", [
   "b2b",
   "consumer_product",
   "consumer_venue",
+  // M36 (AGENT_PRD §2/§12): the GEO agent's sole archetype. Agent projects
+  // always use `crypto_token`; NEVER conflated with the order-row
+  // `discovery_category` (different concept, different table).
+  "crypto_token",
 ]);
 
 export const intent = pgEnum("intent", [
@@ -75,6 +79,9 @@ export const providerId = pgEnum("provider_id", [
   "anthropic",
   "google",
   "perplexity",
+  // M36 (AGENT_PRD §5/§12): Grok. Live adapter lands in M38; the enum value
+  // is added now so mock-first agent runs can reference the third engine.
+  "xai",
 ]);
 
 export const jobState = pgEnum("job_state", [

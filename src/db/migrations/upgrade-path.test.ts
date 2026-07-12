@@ -78,6 +78,19 @@ describe.skipIf(!dbAvailable)("forward migration upgrade path", () => {
         "framing_evidence_snapshots_freeze_trigger",
         "resonance_stimuli_freeze_trigger",
       ]);
+      // M36 (0016_agent_enums): the two agent enum additions must land on an
+      // existing pre-M34 DB, not just a fresh one. Enum ADD VALUE followed by
+      // in-batch usage is the D-066/D-102 trap; asserting the values exist here
+      // proves the split-statement migration applied cleanly on an upgrade.
+      const enumValues = await target.query<{ enumlabel: string }>(
+        `select e.enumlabel
+           from pg_enum e
+           join pg_type t on t.oid = e.enumtypid
+          where (t.typname = 'category_archetype' and e.enumlabel = 'crypto_token')
+             or (t.typname = 'provider_id' and e.enumlabel = 'xai')
+          order by e.enumlabel`,
+      );
+      expect(enumValues.rows.map((row) => row.enumlabel)).toEqual(["crypto_token", "xai"]);
     } finally {
       await target?.end().catch(() => {});
       await admin.query(

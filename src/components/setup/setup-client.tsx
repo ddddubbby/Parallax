@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Button, Field, Input, Select, Stamp, Textarea } from "@/components/ui";
 import { UnsavedChangesSignal, useUnsavedEdit } from "@/components/unsaved-edit";
 import type { CategoryArchetype } from "@/core/semantic";
-import { CATEGORY_ARCHETYPES } from "@/core/semantic";
+import { AUDIT_ARCHETYPES, CATEGORY_ARCHETYPES } from "@/core/semantic";
 import {
   addAttributeAction,
   addCompetitorAction,
@@ -257,9 +257,9 @@ export function SetupClient({
               value={basics.category_archetype}
               onChange={(e) => setBasics({ ...basics, category_archetype: e.target.value as CategoryArchetype })}
             >
-              {(Object.entries(CATEGORY_ARCHETYPES) as Array<[CategoryArchetype, { label: string }]>).map(([key, meta]) => (
+              {AUDIT_ARCHETYPES.map((key) => (
                 <option key={key} value={key}>
-                  {meta.label}
+                  {CATEGORY_ARCHETYPES[key].label}
                 </option>
               ))}
             </Select>

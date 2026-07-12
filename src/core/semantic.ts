@@ -46,7 +46,15 @@ export const PILLARS: Record<
   },
 };
 
-export type CategoryArchetype = "b2b" | "consumer_product" | "consumer_venue";
+export type CategoryArchetype =
+  | "b2b"
+  | "consumer_product"
+  | "consumer_venue"
+  // M36 (AGENT_PRD §2): the GEO agent's sole archetype. Agent projects are
+  // created programmatically (never via the operator intake/setup UI), so this
+  // value is deliberately EXCLUDED from AUDIT_ARCHETYPES below and never offered
+  // as a selectable option — it exists only so the type matches the DB enum.
+  | "crypto_token";
 
 export const CATEGORY_ARCHETYPES: Record<
   CategoryArchetype,
@@ -64,7 +72,22 @@ export const CATEGORY_ARCHETYPES: Record<
     label: "Consumer venue",
     description: "Places a person visits, books, eats at, or experiences.",
   },
+  crypto_token: {
+    label: "Crypto token",
+    description: "Autonomous GEO-agent audits of on-chain tokens (programmatic only).",
+  },
 };
+
+/**
+ * The archetypes an operator may select in the intake/setup UI. The GEO
+ * agent's `crypto_token` is intentionally absent: agent projects are built
+ * programmatically (AGENT_PRD §2), never chosen from a dropdown.
+ */
+export const AUDIT_ARCHETYPES: readonly CategoryArchetype[] = [
+  "b2b",
+  "consumer_product",
+  "consumer_venue",
+];
 
 export function intentToPillar(intent: Intent): Pillar {
   switch (intent) {

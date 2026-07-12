@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import type { FieldErrors, IntakeStepKey } from "@/core/intake";
-import { CATEGORY_ARCHETYPES, type CategoryArchetype } from "@/core/semantic";
+import { AUDIT_ARCHETYPES, CATEGORY_ARCHETYPES, type CategoryArchetype } from "@/core/semantic";
 
 // Draft value shapes: raw form state, validated server-side on Next (PS-3).
 
@@ -148,9 +148,9 @@ export function StepForm({
                 onChange({ ...v, category_archetype: e.target.value as CategoryArchetype })
               }
             >
-              {Object.entries(CATEGORY_ARCHETYPES).map(([key, meta]) => (
+              {AUDIT_ARCHETYPES.map((key) => (
                 <option key={key} value={key}>
-                  {meta.label}
+                  {CATEGORY_ARCHETYPES[key].label}
                 </option>
               ))}
             </Select>

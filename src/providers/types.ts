@@ -9,7 +9,8 @@ export type ProviderId =
   | "openai"
   | "anthropic"
   | "google"
-  | "perplexity";
+  | "perplexity"
+  | "xai";
 
 export type GenerationMode = "grounded" | "ungrounded";
 

@@ -24,6 +24,8 @@ export const PROVIDER_IDS = [
   "anthropic",
   "google",
   "perplexity",
+  // M36 (AGENT_PRD §5): Grok. Mirror of src/providers/types.ts ProviderId.
+  "xai",
 ] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
