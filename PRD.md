@@ -1,5 +1,7 @@
 # PRD.md - Resonance (Parallax engine) MVP
 
+> **STATUS: PARKED (D-106, 2026-07-12).** This product — the Simulation Layer and M34A framing workflow described below — is parked at its shipped M34A state, tagged `resonance-m34a-parked` on `main`. It is not deleted or replaced; unparking is a branch checkout. Active development has moved to the Resonance GEO agent (`resonance_geo_v1`), whose product source of truth is `AGENT_PRD.md`. This file's body is left as written — a complete, accurate record of the M0-M34 build — and should not be edited except to reflect changes made if this product is ever unparked.
+
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Execution detail for M16+ lives in `RESONANCE_BUILD_PLAN.md`.
 
 ---
