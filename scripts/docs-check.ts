@@ -72,7 +72,7 @@ if (!existsSync(statusPath)) {
   fail("STATUS.md: missing — it is the required active control plane (D-107)");
 } else {
   const status = readFileSync(statusPath, "utf8");
-  for (const field of ["Active product", "Branch", "Current gate", "Gate state", "Next action", "Parked product"]) {
+  for (const field of ["Active product", "Branch", "Current milestone", "Milestone state", "Next action", "Parked product"]) {
     if (!status.includes(`**${field}**`)) fail(`STATUS.md: required field '${field}' missing`);
   }
   const activeCount = (status.match(/\*\*Active product\*\*/g) ?? []).length;

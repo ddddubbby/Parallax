@@ -118,7 +118,7 @@ Every governed document carries a first-line metadata header: `LIFECYCLE: ACTIVE
 | `MASTER_CONTEXT.md` | ACTIVE | Identity, hard constraints, rituals, this index |
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
 | `AGENT_PRD.md` | ACTIVE | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
-| `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent Gates 0–D, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
+| `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
 | `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
@@ -164,7 +164,7 @@ Moved to `DECISIONS.md` (D-107): the append-only, immutable rationale record (D-
 
 ## 10. Current state
 
-Live status has exactly one home: `STATUS.md` — active product, branch, current gate, gate state, next action, parked-product pointer (D-107). Static gate definitions live in the active build plan (`AGENT_BUILD_PLAN.md`); `STATUS.md` never duplicates them, only their state. The parked product's milestone tracker remains `PRD.md` section 11 as a closed historical record. Do not record status in this file.
+Live status has exactly one home: `STATUS.md` — active product, branch, current gate, gate state, next action, parked-product pointer (D-107). Static milestone definitions live in the active build plan (`AGENT_BUILD_PLAN.md`); `STATUS.md` never duplicates them, only their state. The M-counter is repo-global and continues across products (D-108): the parked track closed at M34A, the agent build runs M35–M42. The parked product's milestone tracker remains `PRD.md` section 11 as a closed historical record. Do not record status in this file.
 
 ## 11. Cross-platform wiring
 

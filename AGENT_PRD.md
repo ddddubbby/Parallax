@@ -2,7 +2,7 @@
 
 # AGENT_PRD.md — Resonance GEO Agent (`resonance_geo_v1`)
 
-> **STATUS: ARCHITECTURE FROZEN (conditional approval, 2026-07-12).** This document is the product source of truth for the autonomous agent offering. It is written for implementing agents: small steps, explicit MUST/NEVER rules, no implied context. `AGENT_BUILD_PLAN.md` owns HOW (gates, ACP gateway, wallet, Render); live gate state lives in `STATUS.md`; this document owns WHAT. Commercial kill/scale criteria and GTM live in `AGENT_STRATEGY_MEMO.md`, not here. The Resonance product PRD (`PRD.md`) is parked, not replaced (D-106).
+> **STATUS: ARCHITECTURE FROZEN (conditional approval, 2026-07-12).** This document is the product source of truth for the autonomous agent offering. It is written for implementing agents: small steps, explicit MUST/NEVER rules, no implied context. `AGENT_BUILD_PLAN.md` owns HOW (milestones M35–M42, ACP gateway, wallet, Render); live milestone state lives in `STATUS.md`; this document owns WHAT. Commercial kill/scale criteria and GTM live in `AGENT_STRATEGY_MEMO.md`, not here. The Resonance product PRD (`PRD.md`) is parked, not replaced (D-106).
 
 ---
 
@@ -125,7 +125,7 @@ Category phrase mapping (deterministic, no other values):
 ## 5. Sampling and engines
 
 - Engines: OpenAI, Gemini (`google`), Grok (`xai` — new `provider_id` enum value, see §12). All grounded (live web search + citations). All three mandatory per job.
-- Candidate models (cheapest grounded tiers; pin from official vendor pages, then confirm with measured billable Gate-A calls — third-party aggregators are never canonical): OpenAI `gpt-5.4-nano` family, Gemini `gemini-3.1-flash-lite`, xAI `grok-4.3`.
+- Candidate models (cheapest grounded tiers; pin from official vendor pages, then confirm with measured billable M38 calls — third-party aggregators are never canonical): OpenAI `gpt-5.4-nano` family, Gemini `gemini-3.1-flash-lite`, xAI `grok-4.3`.
 - k = 5 repeats per cell per engine (D-003: one answer is an anecdote, five is a sample).
 - Per engine: 100 base calls, retry pool ≤25, ≤2 attempts per sample (transient 429/5xx/timeout only), hard max 125 calls/engine and 375/job, 45s provider timeout (repo default).
 - Planned samples per engine: Lane A = 30, Lane B = 40, Lane C = 30.
@@ -228,10 +228,10 @@ The n ≥ 30 gate applies per metric per engine for statistical labeling. It is 
 ## 13. Commerce parameters (engineering-relevant only)
 
 - Price fixed at `99_000_000` micro-USDC. Settlement: Base (8453), USDC.
-- **Zero-evaluator settlement is documented and source-confirmed:** the SDK defaults `evaluatorAddress` to the zero address, and a successful `submit` auto-completes the job and releases funds (acpAgent.ts JSDoc). Gate 0 still proves it live — contracts, SDKs, and signer relays drift. Graduation mode may allowlist ONLY the confirmed DevRel evaluator wallet; production never accepts arbitrary evaluators.
+- **Zero-evaluator settlement is documented and source-confirmed:** the SDK defaults `evaluatorAddress` to the zero address, and a successful `submit` auto-completes the job and releases funds (acpAgent.ts JSDoc). M35 still proves it live — contracts, SDKs, and signer relays drift. Graduation mode may allowlist ONLY the confirmed DevRel evaluator wallet; production never accepts arbitrary evaluators.
 - Contract addresses (proxy, implementation, USDC) are EXPECTATIONS, not truths: every startup and readiness check reads and verifies chain ID, deployed code, proxy implementation, payment token, fee basis points, pause state, and expiry grace. Any mismatch fails readiness and freezes admissions.
-- COGS: provisional expected ~$6.80/job, hard cap $9.00, re-pinned at Gate A from measured billable calls. Escrow acceptance requires provider net ≥ 3× hard cap. Stop at cap: never shrink k, never drop an engine, never deliver partial — reject/refund.
-- Graduation facts to plan around (re-verify at Gate D against live docs): 10 successful sandbox transactions incl. 3 consecutive; automated evaluation for non-trading agents, ≤6 test cases per offering, 100% pass required; unused testing funds refunded; then ~5–10 business days of manual Virtuals review. The manual review is platform onboarding — it is NOT human verification inside our serving path.
+- COGS: provisional expected ~$6.80/job, hard cap $9.00, re-pinned at M38 from measured billable calls. Escrow acceptance requires provider net ≥ 3× hard cap. Stop at cap: never shrink k, never drop an engine, never deliver partial — reject/refund.
+- Graduation facts to plan around (re-verify at M42 against live docs): 10 successful sandbox transactions incl. 3 consecutive; automated evaluation for non-trading agents, ≤6 test cases per offering, 100% pass required; unused testing funds refunded; then ~5–10 business days of manual Virtuals review. The manual review is platform onboarding — it is NOT human verification inside our serving path.
 - Legal gate: launch requires a *recorded* operator/legal risk acceptance OR written Virtuals clarification on the Developer Agreement's third-party/affiliation language. Silence is not approval; this is an operator decision, not a runtime check.
 
 ## 14. Statistics rules (inherited, unchanged)
