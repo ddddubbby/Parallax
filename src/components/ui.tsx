@@ -1,5 +1,6 @@
 import type {
   ButtonHTMLAttributes,
+  HTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
@@ -20,12 +21,18 @@ const focusRing =
 export function Button({
   variant = "primary",
   className,
+  pending = false,
+  pendingLabel = "Working…",
+  children,
+  disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "danger" | "ghost";
+  pending?: boolean;
+  pendingLabel?: string;
 }) {
   const variants = {
-    primary: "bg-accent text-paper hover:bg-accent/90",
+    primary: "bg-accent text-ink hover:bg-accent/90",
     secondary: "border border-ink/30 text-ink hover:border-ink",
     danger: "border border-danger text-danger hover:bg-danger hover:text-paper",
     ghost: "text-ink/70 hover:text-ink",
@@ -33,18 +40,40 @@ export function Button({
   return (
     <button
       className={cx(
-        "label-mono cursor-pointer rounded-full px-5 py-2 text-xs transition-micro disabled:cursor-not-allowed disabled:opacity-50",
+        "interactive-press label-mono cursor-pointer rounded-full px-5 py-2 text-xs transition-micro disabled:cursor-not-allowed disabled:opacity-50",
         focusRing,
         variants[variant],
         className,
       )}
+      aria-busy={pending || undefined}
+      disabled={disabled || pending}
       {...props}
-    />
+    >
+      <span className="grid place-items-center">
+        <span
+          className={cx(
+            "col-start-1 row-start-1 transition-micro",
+            pending && "invisible opacity-0",
+          )}
+          aria-hidden={pending || undefined}
+        >
+          {children}
+        </span>
+        <span
+          className={cx(
+            "col-start-1 row-start-1 transition-micro",
+            pending ? "opacity-100" : "invisible opacity-0",
+          )}
+        >
+          {pendingLabel}
+        </span>
+      </span>
+    </button>
   );
 }
 
 const fieldBase =
-  "w-full rounded-lg border border-ink/20 bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink/40";
+  "w-full rounded-lg border border-ink/20 bg-paper px-3 py-2 text-sm text-ink transition-micro placeholder:text-ink/40 hover:border-ink/40 disabled:cursor-not-allowed disabled:bg-paper-2 disabled:text-ink/45";
 
 export function Input({
   className,
@@ -97,6 +126,36 @@ export function Field({
   );
 }
 
+export function InlineStatus({
+  tone = "neutral",
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLParagraphElement> & {
+  tone?: "neutral" | "success" | "warning" | "danger";
+}) {
+  const tones = {
+    neutral: "border-ink/15 bg-paper-2 text-ink/65",
+    success: "border-ok/30 bg-ok/5 text-ok",
+    warning: "border-warn/30 bg-warn/5 text-warn",
+    danger: "border-danger/30 bg-danger/5 text-danger",
+  } as const;
+  return (
+    <p
+      className={cx(
+        "rounded-lg border px-3 py-2 text-sm",
+        tones[tone],
+        className,
+      )}
+      {...props}
+      role={tone === "danger" ? "alert" : "status"}
+      aria-live={tone === "danger" ? "assertive" : "polite"}
+    >
+      {children}
+    </p>
+  );
+}
+
 /** Dossier stamp: 2px radius, mono uppercase (design §8 badges). */
 export function Stamp({
   tone = "ink",
@@ -107,10 +166,10 @@ export function Stamp({
 }) {
   const tones = {
     ink: "border-ink/40 text-ink/70",
-    accent: "border-accent bg-accent text-paper",
+    accent: "border-accent bg-accent text-ink",
     warn: "border-warn text-warn",
     danger: "border-danger text-danger",
-    ok: "border-ok text-ok",
+    ok: "border-ok text-ink",
   } as const;
   return (
     <span

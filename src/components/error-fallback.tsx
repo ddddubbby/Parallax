@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui";
 
 // Shared recovery surface for App Router error boundaries. Matches
@@ -27,10 +28,22 @@ export function ErrorFallback({
   onRetry?: () => void;
   links?: Array<{ href: string; label: string }>;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
       <p className="label-mono text-xs text-danger">{stamp}</p>
-      <h1 className="mt-4 font-mono text-3xl font-semibold text-ink">{heading}</h1>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="mt-4 font-mono text-3xl font-semibold text-ink outline-none"
+      >
+        {heading}
+      </h1>
       <p className="mt-3 max-w-xl text-sm text-ink/65">{description}</p>
       {digest && (
         <p className="mt-4 font-mono text-xs text-ink/45">
@@ -50,7 +63,7 @@ export function ErrorFallback({
           <Link
             key={l.href}
             href={l.href}
-            className="label-mono inline-flex rounded-full border border-ink/30 px-5 py-2 text-xs text-ink transition-micro hover:border-ink"
+            className="interactive-press label-mono inline-flex rounded-full border border-ink/30 px-5 py-2 text-xs text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {l.label}
           </Link>

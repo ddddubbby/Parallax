@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { OperatorShell } from "@/components/shell/operator-shell";
+import { PageLoading } from "@/components/page-loading";
 import { listProjects } from "@/db/repositories/intake";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function GlobalShellLayout({ children }: { children: ReactNode }) {
   const projects = await listProjects();
   return (
-    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+    <Suspense fallback={<PageLoading label="Opening operator workspace" />}>
       <OperatorShell
         mode="global"
         projects={projects.map((p) => ({ id: p.id, name: p.name, status: p.status }))}

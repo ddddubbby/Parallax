@@ -33,11 +33,6 @@
   --duration-micro: 140ms;
   --duration-standard: 220ms;
   --duration-large: 320ms;
-  /* Loading-skeleton pulse: opacity-only, stops when content arrives —
-     same bounded-loop license as the live-run pulse (§7). Disabled
-     entirely by the prefers-reduced-motion block below. */
-  --duration-pulse: 1600ms;
-
   /* M32 / D-088: operator sidebar. Desktop fixed width; drawer below 1024px. */
   --sidebar-width: 15.5rem; /* 248px */
 }
@@ -61,20 +56,58 @@
     transition-duration: var(--duration-standard);
     transition-timing-function: var(--ease-silk);
   }
-  /* Route-loading skeleton pulse (opacity only, §7). */
-  .loading-pulse {
-    animation: loading-pulse var(--duration-pulse) var(--ease-silk) infinite;
+  .interactive-press {
+    transition-property: color, background-color, border-color, opacity, transform;
+  }
+  .interactive-press:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .local-tab-rail {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-ink) 20%, transparent) transparent;
   }
 }
 
-@keyframes loading-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
+.app-dialog-overlay {
+  opacity: 0;
+  transition: opacity var(--duration-standard) var(--ease-silk);
+}
+.app-dialog-overlay[data-state="open"] {
+  opacity: 1;
+}
+.app-dialog-content {
+  opacity: 0;
+  transform: translate(-50%, calc(-50% + 0.25rem));
+  transition:
+    opacity var(--duration-standard) var(--ease-silk),
+    transform var(--duration-standard) var(--ease-silk);
+}
+.app-dialog-content[data-state="open"] {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+.app-menu-content {
+  opacity: 0;
+  transform: translateY(-0.1875rem);
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+  transition:
+    opacity var(--duration-micro) var(--ease-silk),
+    transform var(--duration-micro) var(--ease-silk);
+}
+.app-menu-content[data-state="open"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+.operator-drawer {
+  opacity: 0;
+  transform: translateX(-0.25rem);
+  transition:
+    opacity var(--duration-standard) var(--ease-silk),
+    transform var(--duration-standard) var(--ease-silk);
+}
+.operator-drawer[data-state="open"] {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -83,6 +116,13 @@
   *::after {
     transition-duration: 100ms !important;
     animation: none !important;
+  }
+  .app-dialog-content {
+    transform: translate(-50%, -50%) !important;
+  }
+  .app-menu-content,
+  .operator-drawer {
+    transform: none !important;
   }
 }
 

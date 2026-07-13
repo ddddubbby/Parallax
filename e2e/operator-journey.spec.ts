@@ -107,24 +107,22 @@ test.describe("operator journey smoke", () => {
     await page.getByRole("button", { name: "+ Add framing" }).click();
     const snapshotSelect = page.getByLabel("Reviewed baseline snapshot");
     await expect(snapshotSelect).toBeVisible();
-    await expect(snapshotSelect.locator("option")).toContainText(["durability", "SINGLE OBSERVED INSTANCE"]);
+    const snapshotOptions = await snapshotSelect.locator("option").allTextContents();
+    expect(snapshotOptions.join(" ")).toContain("durability");
+    expect(snapshotOptions.join(" ")).toContain("SINGLE OBSERVED INSTANCE");
   });
 
   test("axe pass on projects and a project hub", async ({ page }) => {
     await page.goto("/projects");
     await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
-    const projectsAxe = await new AxeBuilder({ page })
-      .disableRules(["color-contrast"])
-      .analyze();
+    const projectsAxe = await new AxeBuilder({ page }).analyze();
     expect(projectsAxe.violations, "axe violations on /projects").toEqual([]);
 
     const open = page.getByRole("link", { name: "Open →" }).first();
     const href = await open.getAttribute("href");
     await page.goto(href!);
     await expect(page.locator("main h1").first()).toBeVisible();
-    const hubAxe = await new AxeBuilder({ page })
-      .disableRules(["color-contrast"])
-      .analyze();
+    const hubAxe = await new AxeBuilder({ page }).analyze();
     expect(hubAxe.violations, "axe violations on project hub").toEqual([]);
   });
 
@@ -137,5 +135,42 @@ test.describe("operator journey smoke", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(openBtn).toBeFocused();
+  });
+
+  test("narrow tabs protect unsaved edits with the shared confirmation", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    await page.goto(`${projectHref}/setup?view=basics`);
+    await page.getByRole("textbox", { name: "Project name", exact: true }).fill(
+      "LedgerFox AI Visibility Demo — unsaved",
+    );
+    await expect(page.getByRole("status")).toHaveText("Unsaved changes");
+
+    const brandsTab = page.getByRole("link", { name: "Brands", exact: true });
+    await brandsTab.click();
+    const dialog = page.getByRole("dialog", { name: "Discard unsaved changes?", exact: true });
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(brandsTab).toBeFocused();
+
+    await brandsTab.click();
+    await page.getByRole("button", { name: "Discard and continue", exact: true }).click();
+    await expect(page).toHaveURL(/setup\?view=brands$/);
+  });
+
+  test("reduced motion keeps feedback but removes spatial movement", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/projects");
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    const drawer = page.getByRole("dialog", { name: "Navigation" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveCSS("transform", "none");
+    await expect(drawer).toHaveCSS("transition-duration", "0.1s");
   });
 });
