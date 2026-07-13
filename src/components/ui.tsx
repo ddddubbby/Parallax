@@ -40,7 +40,7 @@ export function Button({
   return (
     <button
       className={cx(
-        "interactive-press label-mono cursor-pointer rounded-full px-5 py-2 text-xs transition-micro disabled:cursor-not-allowed disabled:opacity-50",
+        "interactive-press label-mono min-h-11 cursor-pointer rounded-full px-5 py-2 text-xs transition-micro disabled:cursor-not-allowed disabled:opacity-50",
         focusRing,
         variants[variant],
         className,
@@ -75,12 +75,14 @@ export function Button({
 const fieldBase =
   "w-full rounded-lg border border-ink/20 bg-paper px-3 py-2 text-sm text-ink transition-micro placeholder:text-ink/40 hover:border-ink/40 disabled:cursor-not-allowed disabled:bg-paper-2 disabled:text-ink/45";
 
-export function Input({
-  className,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cx(fieldBase, focusRing, className)} {...props} />;
-}
+export const Input = React.forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement>
+>(function Input({ className, ...props }, ref) {
+  return (
+    <input ref={ref} className={cx(fieldBase, focusRing, className)} {...props} />
+  );
+});
 
 export function Textarea({
   className,
@@ -111,7 +113,10 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label
+      className="flex flex-col gap-1.5"
+      data-field-error={errors?.length ? "true" : undefined}
+    >
       <span className="label-mono text-xs text-ink/70">{label}</span>
       {children}
       {hint && !errors?.length && (

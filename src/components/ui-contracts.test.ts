@@ -7,6 +7,9 @@ describe("M43 shared UI contracts", () => {
     const source = await fs.readFile(path.join(process.cwd(), "src/components/ui.tsx"), "utf8");
     expect(source).toContain("pendingLabel");
     expect(source).toContain('aria-busy={pending || undefined}');
+    expect(source).toContain("label-mono min-h-11");
+    expect(source).toContain("React.forwardRef");
+    expect(source).toContain('data-field-error={errors?.length ? "true" : undefined}');
     expect(source).toContain("export function InlineStatus");
     expect(source).toContain('tone === "danger" ? "alert" : "status"');
   });

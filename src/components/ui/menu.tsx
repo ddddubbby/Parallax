@@ -46,7 +46,7 @@ export function AppMenuItem({
       disabled={disabled}
       onSelect={onSelect}
       className={cn(
-        "label-mono cursor-pointer rounded-md px-3 py-2 text-xs outline-none transition-micro data-[highlighted]:bg-ink/5 data-[highlighted]:text-ink",
+        "label-mono flex min-h-11 cursor-pointer items-center rounded-md px-3 py-2 text-xs outline-none transition-micro data-[highlighted]:bg-ink/5 data-[highlighted]:text-ink",
         destructive ? "text-danger" : "text-ink/80",
         "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40",
       )}

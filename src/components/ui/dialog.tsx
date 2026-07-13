@@ -35,7 +35,7 @@ export function AppDialog({
             <div>
               <Dialog.Title className="label-mono text-sm font-semibold text-ink">{title}</Dialog.Title>
               {description && (
-                <Dialog.Description className="mt-1 font-mono text-xs text-ink/55">
+                <Dialog.Description className="mt-1 text-sm leading-relaxed text-ink/60">
                   {description}
                 </Dialog.Description>
               )}
