@@ -24,6 +24,7 @@ import {
   promptTemplates,
   resonanceStudies,
   responses,
+  runEvents,
 } from "../src/db/schema";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "../src/db/repositories/matrix";
 import { recomputeMetrics } from "../src/db/repositories/metrics";
@@ -461,6 +462,135 @@ async function seedM43UiFixture(): Promise<{ created: boolean; runId: string | n
   });
 
   const metricCount = await recomputeMetrics(run.id);
+
+  // Operations-console fixtures cover successful and rejected repair actions
+  // without a worker. Both runs are MOCK; no provider or extraction service is
+  // called until the operator explicitly chooses the safe mock re-extraction.
+  const [debugMarker] = await db
+    .select({ id: runEvents.id })
+    .from(runEvents)
+    .where(eq(runEvents.eventType, "m43_fixture_ready"))
+    .limit(1);
+  if (!debugMarker && cells[0]) {
+    const [repairableRun] = await db
+      .insert(auditRuns)
+      .values({
+        projectId: project.id,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        state: "running",
+        repetitions: 1,
+        selectedProvidersJson: ["mock"],
+        selectedModesJson: ["grounded"],
+        plannedCalls: 2,
+        costCapUsd: "0",
+        startedAt: new Date(Date.now() - 180_000),
+      })
+      .returning();
+    const [retryableJob] = await db
+      .insert(jobs)
+      .values({
+        runId: repairableRun.id,
+        cellId: cells[0].id,
+        providerId: "mock",
+        generationMode: "grounded",
+        repIndex: 70,
+        state: "retryable_failed",
+        attemptCount: 1,
+        lastErrorType: "timeout",
+        lastErrorMessage: "Fixture timeout: upstream response exceeded the safe test deadline.",
+      })
+      .returning();
+    const [extractionJob] = await db
+      .insert(jobs)
+      .values({
+        runId: repairableRun.id,
+        cellId: cells[0].id,
+        providerId: "mock",
+        generationMode: "grounded",
+        repIndex: 71,
+        state: "succeeded",
+      })
+      .returning();
+    const [debugResponse] = await db
+      .insert(responses)
+      .values({
+        jobId: extractionJob.id,
+        runId: repairableRun.id,
+        cellId: cells[0].id,
+        providerId: "mock",
+        generationMode: "grounded",
+        modelVersion: "m43-debug-fixture-v1",
+        rawText:
+          "LedgerFox is a reasonable pick for reconciliation-heavy teams.",
+      })
+      .returning();
+    await db.insert(extractions).values({
+      responseId: debugResponse.id,
+      extractionVersion: 1,
+      state: "dead_lettered",
+      extractionModel: "m43-debug-fixture-v1",
+      validationError: "Fixture validation failed after two safe mock attempts.",
+    });
+
+    const [finalizedRun] = await db
+      .insert(auditRuns)
+      .values({
+        projectId: project.id,
+        matrixVersionId: version.id,
+        runMode: "mock",
+        state: "failed",
+        repetitions: 1,
+        selectedProvidersJson: ["mock"],
+        selectedModesJson: ["grounded"],
+        plannedCalls: 1,
+        costCapUsd: "0",
+        startedAt: new Date(Date.now() - 300_000),
+        completedAt: new Date(Date.now() - 240_000),
+      })
+      .returning();
+    await db.insert(jobs).values({
+      runId: finalizedRun.id,
+      cellId: cells[0].id,
+      providerId: "mock",
+      generationMode: "grounded",
+      repIndex: 72,
+      state: "retryable_failed",
+      attemptCount: 2,
+      lastErrorType: "server_error",
+      lastErrorMessage: "Finalized fixture: repair must be rejected and explained.",
+    });
+
+    await db.insert(runEvents).values([
+      {
+        runId: repairableRun.id,
+        level: "info",
+        eventType: "worker_heartbeat",
+        message: "Disposable fixture heartbeat.",
+        createdAt: new Date(Date.now() - 120_000),
+      },
+      {
+        runId: repairableRun.id,
+        jobId: retryableJob.id,
+        level: "warn",
+        eventType: "job_retry_scheduled",
+        message: "Fixture job is ready for an operator-safe requeue.",
+      },
+      {
+        runId: repairableRun.id,
+        jobId: extractionJob.id,
+        level: "error",
+        eventType: "extraction_dead_lettered",
+        message: "Fixture extraction is ready for a mock re-extraction.",
+      },
+      {
+        runId: repairableRun.id,
+        level: "info",
+        eventType: "m43_fixture_ready",
+        message: "Disposable debug states are ready.",
+      },
+    ]);
+  }
 
   // Completed Simulation study for the Phase 6 library/results/evidence
   // review. These are stored fixture rows only: no worker, provider, or
