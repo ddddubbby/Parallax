@@ -4,8 +4,8 @@
 // investment/price/trading language, forbidden-phrase enforced); quoted model
 // evidence is attributed engine output and is NEVER our claim, so it is exempt.
 
-import { createHash } from "node:crypto";
 import { ADVICE_PROSE_V1, containsAnyLexiconTerm } from "./agent-lexicons";
+import { canonicalJsonStringify, sha256Hex } from "./canonical-json";
 import type { AgentMetrics } from "./agent-metrics";
 import type { RepresentationState } from "./agent-identity";
 import type { AssetChain } from "./crypto-resolver";
@@ -83,23 +83,6 @@ export interface AgentReport {
   sha256: string;
 }
 
-/** Recursively sort object keys so the digest is insertion-order independent. */
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.keys(value as Record<string, unknown>)
-        .sort()
-        .map((k) => [k, canonicalize((value as Record<string, unknown>)[k])]),
-    );
-  }
-  return value;
-}
-
-function sha256Hex(input: string): string {
-  return createHash("sha256").update(input, "utf8").digest("hex");
-}
-
 /** Build the immutable report object and its SHA-256 digest (deterministic given inputs). */
 export function buildAgentReport(input: AgentReportInput): AgentReport {
   const report: Record<string, unknown> = {
@@ -131,7 +114,7 @@ export function buildAgentReport(input: AgentReportInput): AgentReport {
     retention_days: RETENTION_DAYS,
     support_contact: input.supportContact,
   };
-  const sha256 = sha256Hex(JSON.stringify(canonicalize(report)));
+  const sha256 = sha256Hex(canonicalJsonStringify(report));
   return { report, sha256 };
 }
 
