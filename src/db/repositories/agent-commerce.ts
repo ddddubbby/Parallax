@@ -238,6 +238,56 @@ export async function getDeliverable(orderId: string) {
   return row ?? null;
 }
 
+/**
+ * Publish the deliverable: store the immutable report artifact + canonical
+ * envelope + capability hash and mark it published. Idempotent per order (the
+ * unique constraint); the raw token is returned exactly once by the caller
+ * that generated it and never persisted.
+ */
+export async function publishDeliverable(input: {
+  orderId: string;
+  envelopeJson: unknown;
+  reportJson: unknown;
+  reportSha256: string;
+  capabilityHash: string;
+  acpHash?: string | null;
+}) {
+  const [row] = await db
+    .insert(agentDeliverables)
+    .values({
+      orderId: input.orderId,
+      envelopeJson: input.envelopeJson,
+      reportJson: input.reportJson,
+      reportSha256: input.reportSha256,
+      capabilityHash: input.capabilityHash,
+      acpHash: input.acpHash ?? null,
+      state: "published",
+      publishedAt: new Date(),
+    })
+    .onConflictDoNothing({ target: agentDeliverables.orderId })
+    .returning({ id: agentDeliverables.id });
+  return row ?? null;
+}
+
+/**
+ * Retrieval for the public report endpoint: the caller hashes the presented
+ * token (verifyCapabilityToken) — only the hash ever reaches SQL. Published,
+ * non-revoked deliverables only.
+ */
+export async function getPublishedDeliverableByCapabilityHash(capabilityHash: string) {
+  const [row] = await db
+    .select({
+      id: agentDeliverables.id,
+      reportJson: agentDeliverables.reportJson,
+      reportSha256: agentDeliverables.reportSha256,
+      capabilityHash: agentDeliverables.capabilityHash,
+      state: agentDeliverables.state,
+    })
+    .from(agentDeliverables)
+    .where(and(eq(agentDeliverables.capabilityHash, capabilityHash), eq(agentDeliverables.state, "published")));
+  return row ?? null;
+}
+
 export async function upsertSettlement(input: {
   orderId: string;
   grossMicroUsdc: bigint;

@@ -166,6 +166,10 @@ export const agentDeliverables = pgTable(
       .notNull()
       .references(() => agentOrders.id),
     envelopeJson: jsonb("envelope_json").notNull(),
+    // The full immutable report artifact (§5.2: report artifacts in Postgres
+    // JSONB — no object store at launch). The envelope stays < 2 KB; the
+    // report lives here and is served by the capability-token endpoint.
+    reportJson: jsonb("report_json"),
     reportSha256: text("report_sha256").notNull(),
     acpHash: text("acp_hash"),
     capabilityHash: text("capability_hash"),

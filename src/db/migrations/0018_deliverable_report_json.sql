@@ -1,0 +1,1 @@
+ALTER TABLE "agent_deliverables" ADD COLUMN "report_json" jsonb;

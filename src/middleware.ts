@@ -12,6 +12,12 @@ export const config = {
 
 const PUBLIC_PATHS = new Set(["/login"]);
 
+// The GEO-agent report endpoint is capability-authenticated (256-bit token in
+// the path IS the authorization — AGENT_BUILD_PLAN §2/§5.4) and is fetched by
+// anonymous buyer agents, never by the logged-in operator. It carries its own
+// rate limit and no-index headers in the route handler.
+const PUBLIC_PREFIXES = ["/api/agent-report/"];
+
 // Local-dev-only bypass for UI testing (ST-6 stays enforced everywhere
 // else). Double-guarded: APP_ENV must not be "production" (Render always
 // sets it to "production" — see render.yaml — so this can never fire on a
@@ -26,7 +32,11 @@ function isProductionRuntime() {
 const AUTH_DISABLED = !isProductionRuntime() && process.env.DISABLE_AUTH === "true";
 
 export function middleware(request: NextRequest) {
-  if (AUTH_DISABLED || PUBLIC_PATHS.has(request.nextUrl.pathname)) {
+  if (
+    AUTH_DISABLED ||
+    PUBLIC_PATHS.has(request.nextUrl.pathname) ||
+    PUBLIC_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p))
+  ) {
     return NextResponse.next();
   }
 

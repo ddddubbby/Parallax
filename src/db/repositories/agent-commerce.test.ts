@@ -8,7 +8,7 @@ import {
   type OnChainJob,
 } from "@/core/agent-effects";
 import { db, pool } from "../client";
-import { agentEffects, agentOrderEvents, agentOrders } from "../schema";
+import { agentDeliverables, agentEffects, agentOrderEvents, agentOrders } from "../schema";
 import {
   createEffectStore,
   insertOrderEvent,
@@ -28,6 +28,7 @@ const createdOrderIds: string[] = [];
 
 afterAll(async () => {
   if (createdOrderIds.length > 0) {
+    await db.delete(agentDeliverables).where(inArray(agentDeliverables.orderId, createdOrderIds));
     await db.delete(agentEffects).where(inArray(agentEffects.orderId, createdOrderIds));
     await db.delete(agentOrderEvents).where(inArray(agentOrderEvents.orderId, createdOrderIds));
     await db.delete(agentOrders).where(inArray(agentOrders.id, createdOrderIds));
@@ -129,6 +130,38 @@ describe.skipIf(!dbUp)("agent-commerce repository (M39)", () => {
     const a = await aDone;
     expect(b).toBeNull();
     expect(a).toBe("A");
+  });
+
+  it("publishDeliverable + capability-hash retrieval round-trips the report", async () => {
+    const { generateCapabilityToken, verifyCapabilityToken } = await import("@/core/agent-envelope");
+    const { sha256Hex } = await import("@/core/canonical-json");
+    const { publishDeliverable, getPublishedDeliverableByCapabilityHash } = await import("./agent-commerce");
+    const order = await freshOrder();
+    const { token, capabilityHash } = generateCapabilityToken();
+    const report = { schema: "resonance-geo-report-1.0", report_id: "rep_x" };
+    const published = await publishDeliverable({
+      orderId: order.id,
+      envelopeJson: { type: "object", value: {} },
+      reportJson: report,
+      reportSha256: "c".repeat(64),
+      capabilityHash,
+    });
+    expect(published).not.toBeNull();
+    // Retrieval hashes the presented token — the raw token never reaches SQL.
+    const row = await getPublishedDeliverableByCapabilityHash(sha256Hex(token));
+    expect(row?.reportJson).toEqual(report);
+    expect(verifyCapabilityToken(token, row!.capabilityHash!)).toBe(true);
+    // A wrong token's hash finds nothing.
+    expect(await getPublishedDeliverableByCapabilityHash(sha256Hex("f".repeat(64)))).toBeNull();
+    // Idempotent per order: a second publish is a no-op.
+    const again = await publishDeliverable({
+      orderId: order.id,
+      envelopeJson: {},
+      reportJson: { different: true },
+      reportSha256: "d".repeat(64),
+      capabilityHash: generateCapabilityToken().capabilityHash,
+    });
+    expect(again).toBeNull();
   });
 
   it("DB-backed effects ledger applies exactly once and persists a confirmed row", async () => {
