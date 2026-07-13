@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { Stamp } from "@/components/ui";
+import { useState, useTransition } from "react";
+import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { requeueJob } from "@/modules/runner/actions";
 
 interface JobRow {
@@ -39,10 +39,27 @@ function stateTone(state: string) {
 export function DebugJobsTable({ jobs, events }: { jobs: JobRow[]; events: EventRow[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
+  const [actionStatus, setActionStatus] = useState<{
+    jobId: string;
+    tone: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   function onRequeue(job: JobRow) {
+    setActionKey(job.id);
+    setActionStatus(null);
     startTransition(async () => {
-      await requeueJob(job.runId, job.id);
+      const result = await requeueJob(job.runId, job.id).catch(() => ({
+        ok: false as const,
+        error: "Requeue did not complete. Retry.",
+      }));
+      setActionKey(null);
+      setActionStatus({
+        jobId: job.id,
+        tone: result.ok ? "success" : "danger",
+        message: result.ok ? `Job ${job.id.slice(0, 8)} requeued.` : result.error,
+      });
       router.refresh();
     });
   }
@@ -53,7 +70,21 @@ export function DebugJobsTable({ jobs, events }: { jobs: JobRow[]; events: Event
         <h2 className="label-mono mb-2 text-xs font-medium text-paper/60">
           Jobs (running / retryable / dead-lettered / skipped) · {jobs.length}
         </h2>
-        <table className="w-full border-collapse font-mono text-xs">
+        {actionStatus && (
+          <InlineStatus
+            tone={actionStatus.tone}
+            className="mb-3 border-paper/20 bg-paper/[0.06] text-paper"
+          >
+            {actionStatus.message}
+          </InlineStatus>
+        )}
+        <div
+          role="region"
+          aria-label="Debug jobs table"
+          tabIndex={0}
+          className="overflow-x-auto rounded-lg border border-paper/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+        <table className="w-full min-w-[46rem] border-collapse font-mono text-xs">
           <thead>
             <tr className="border-b border-paper/20 text-left text-paper/50">
               <th className="py-1.5 pr-3">State</th>
@@ -68,64 +99,71 @@ export function DebugJobsTable({ jobs, events }: { jobs: JobRow[]; events: Event
           <tbody>
             {jobs.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-4 text-paper/40">
+                <td colSpan={7} className="py-4 text-paper/55">
                   No jobs in a working state
                 </td>
               </tr>
             )}
             {jobs.map((job) => (
-              <tr key={job.id} className="border-b border-paper/10">
+              <tr key={job.id} className="border-b border-paper/10 align-top">
                 <td className="py-1.5 pr-3">
-                  <Stamp tone={stateTone(job.state)}>{job.state}</Stamp>
+                  <span className="[&>span]:text-paper">
+                    <Stamp tone={stateTone(job.state)}>{job.state}</Stamp>
+                  </span>
                 </td>
                 <td className="py-1.5 pr-3">{job.providerId}</td>
                 <td className="py-1.5 pr-3">{job.generationMode}</td>
                 <td className="py-1.5 pr-3">{job.repIndex}</td>
                 <td className="py-1.5 pr-3">{job.attemptCount}</td>
-                <td className="py-1.5 pr-3 text-paper/70">
+                <td className="max-w-80 break-words py-1.5 pr-3 text-paper/70">
                   {job.lastErrorType ? `${job.lastErrorType}: ${job.lastErrorMessage ?? ""}` : "—"}
                 </td>
                 <td className="py-1.5 pr-3">
                   {(job.state === "dead_lettered" || job.state === "retryable_failed") && (
-                    <button
+                    <Button
                       type="button"
-                      disabled={pending}
+                      variant="ghost"
+                      pending={pending && actionKey === job.id}
+                      pendingLabel="Requeueing…"
                       onClick={() => onRequeue(job)}
-                      className="label-mono cursor-pointer text-accent hover:underline"
+                      className="min-h-11 px-3 text-accent hover:text-accent"
                     >
                       Requeue
-                    </button>
+                    </Button>
                   )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       <section>
         <h2 className="label-mono mb-2 text-xs font-medium text-paper/60">
           run_events tail · {events.length}
         </h2>
-        <div className="flex flex-col gap-1 font-mono text-xs">
+        <div
+          role="region"
+          aria-label="Run events tail"
+          tabIndex={0}
+          className="max-h-[28rem] overflow-auto rounded-lg border border-paper/15 px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {events.length === 0 && (
+            <p className="py-2 text-paper/50">No recent run events</p>
+          )}
           {events.map((e) => (
-            <div key={e.id} className="flex gap-2 border-b border-paper/10 py-1">
-              <span className="text-paper/40">
+            <div key={e.id} className="grid gap-x-2 border-b border-paper/10 py-2 sm:grid-cols-[5rem_3rem_minmax(7rem,auto)_minmax(0,1fr)]">
+              <span className="text-paper/55">
                 {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour12: false })}
               </span>
               <span
-                className={
-                  e.level === "error"
-                    ? "text-danger"
-                    : e.level === "warn"
-                      ? "text-warn"
-                      : "text-paper/50"
-                }
+                className="text-paper/80"
               >
                 {e.level}
               </span>
-              <span className="text-paper/40">{e.eventType}</span>
-              <span className="text-paper/85">{e.message}</span>
+              <span className="break-words text-paper/55">{e.eventType}</span>
+              <span className="min-w-0 break-words text-paper/85">{e.message}</span>
             </div>
           ))}
         </div>
