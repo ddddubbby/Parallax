@@ -173,7 +173,7 @@ export function Stamp({
   const tones = {
     ink: "border-ink/40 text-ink/70",
     accent: "border-accent bg-accent text-ink",
-    warn: "border-warn text-warn",
+    warn: "border-warn text-ink",
     danger: "border-danger text-danger",
     ok: "border-ok text-ink",
   } as const;
