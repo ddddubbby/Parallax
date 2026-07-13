@@ -320,6 +320,134 @@ test.describe("operator journey smoke", () => {
     await expect(page.getByRole("status")).toContainText("Run cancelled.");
   });
 
+  test("dashboard retains evidence limits and restores focus through the edge sheet", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    await page.goto(`${projectHref}/dashboard?view=presence`);
+    await expect(page.getByRole("heading", { name: "Evidence dashboard", exact: true })).toBeVisible();
+    await expect(page.getByText("80.0%", { exact: true })).toBeVisible();
+    await expect(page.getByText(/n=70 \[69–88%\]/)).toBeVisible();
+    const funnel = page.getByRole("region", { name: "Intent by persona evidence table" });
+    const spectrum = page.getByRole("region", {
+      name: "Share of voice — the client vs each competitor evidence table",
+    });
+    for (const region of [funnel, spectrum]) {
+      const containment = await region.evaluate((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        bodyClientWidth: document.body.clientWidth,
+        bodyScrollWidth: document.body.scrollWidth,
+      }));
+      expect(containment.scrollWidth).toBeGreaterThan(containment.clientWidth);
+      expect(containment.bodyScrollWidth).toBe(containment.bodyClientWidth);
+    }
+
+    const evidence = page.getByRole("button", { name: "Evidence →", exact: true }).first();
+    await evidence.click();
+    const sheet = page.getByRole("dialog", { name: "Mention Rate evidence" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByText(/Raw sampled answers and their extraction state/)).toBeVisible();
+    await sheet.locator("button").nth(1).click();
+    await expect(sheet.getByRole("button", { name: "Back to evidence list" })).toBeVisible();
+    await sheet.getByRole("button", { name: "Close evidence" }).click();
+    await expect(sheet).toHaveCount(0);
+    await expect(evidence).toBeFocused();
+
+    await page.goto(`${projectHref}/dashboard?view=perception`);
+    await expect(page.getByRole("img", { name: "Attribute association radar" })).toBeVisible();
+    await expect(page.getByText("Organic", { exact: true })).toBeVisible();
+    await expect(page.getByText("Solicited", { exact: true })).toBeVisible();
+
+    await page.goto(`${projectHref}/dashboard?view=proof`);
+    await expect(page.getByRole("region", { name: "Cited sources table" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Misinformation Register \(9\)/ })).toBeVisible();
+    await page.getByRole("button", { name: "Correct", exact: true }).first().click();
+    await expect(page.getByRole("combobox", { name: "Verdict" }).first()).toHaveValue("contradicted");
+    await expect(page.getByRole("combobox", { name: "Severity" }).first()).toHaveValue("high");
+    await page.getByRole("button", { name: "Cancel", exact: true }).first().click();
+
+    const axe = await new AxeBuilder({ page }).analyze();
+    expect(
+      axe.violations.filter((violation) => ["critical", "serious"].includes(violation.impact ?? "")),
+      "critical or serious axe violations on the Proof dashboard",
+    ).toEqual([]);
+  });
+
+  test("report editing, export, replacement, run switching, and print stay available", async ({ page }) => {
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    await page.goto(`${projectHref}/report`);
+    const generate = page.getByRole("button", { name: "Generate report", exact: true });
+    if (await generate.isVisible()) await generate.click();
+    await expect(page.getByRole("heading", { name: "Executive Summary", exact: true })).toBeVisible();
+    const runSelect = page.getByRole("combobox", { name: "Report run" });
+    await expect(runSelect.locator("option")).toHaveCount(2);
+    const runId = await runSelect.inputValue();
+
+    const exportButton = page.getByRole("button", { name: "Export", exact: true });
+    await exportButton.click();
+    await expect(page.getByRole("menuitem", { name: "Report · Markdown" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Report · Print / PDF" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Evidence · JSON" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(exportButton).toBeFocused();
+
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    const editor = page.getByRole("textbox", { name: "Edit Executive Summary" });
+    await expect(editor).toBeFocused();
+    await editor.fill(`${await editor.inputValue()}\n\nOperator note.`);
+    const methodTab = page.getByRole("link", { name: "Method & Confidence", exact: true });
+    await methodTab.click();
+    const dirtyDialog = page.getByRole("dialog", { name: "Discard unsaved changes?" });
+    await expect(dirtyDialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(methodTab).toBeFocused();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await expect(page.getByText("edited", { exact: true }).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Regenerate", exact: true }).click();
+    const replaceDialog = page.getByRole("dialog", { name: "Replace this edited section?" });
+    await expect(replaceDialog).toContainText("Other report sections and exports are unchanged");
+    await replaceDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await editor.fill(`${await editor.inputValue()}\nUnsaved run-switch note.`);
+    await runSelect.selectOption({ index: 1 });
+    const runDialog = page.getByRole("dialog", { name: "Discard this report edit?" });
+    await expect(runDialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(runSelect).toBeFocused();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    const reportAxe = await new AxeBuilder({ page }).analyze();
+    expect(
+      reportAxe.violations.filter((violation) => ["critical", "serious"].includes(violation.impact ?? "")),
+      "critical or serious axe violations on the report builder",
+    ).toEqual([]);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${projectHref}/report/print?runId=${runId}`);
+    const printDocument = page.locator(".report-print-document");
+    await expect(printDocument).toHaveCSS("position", "fixed");
+    await expect(page.getByRole("heading", { name: /AI Visibility Audit — LedgerFox/ })).toBeVisible();
+    const printContainment = await printDocument.evaluate((element) => ({
+      left: element.getBoundingClientRect().left,
+      right: element.getBoundingClientRect().right,
+      bodyClientWidth: document.body.clientWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+    }));
+    expect(printContainment.left).toBe(0);
+    expect(printContainment.right).toBe(390);
+    expect(printContainment.bodyScrollWidth).toBe(printContainment.bodyClientWidth);
+  });
+
   test("reduced motion keeps feedback but removes spatial movement", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 390, height: 844 });
