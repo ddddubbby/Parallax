@@ -1,8 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { eq, like } from "drizzle-orm";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { db, pool } from "@/db/client";
 import { providerCredentials } from "@/db/schema";
+import {
+  acquireCredentialsSuiteLock,
+  releaseCredentialsSuiteLock,
+} from "@/db/repositories/credentials.test-helpers";
 
 // ST-3: add/update+rotate share saveCredential's disable-then-insert
 // mechanics (D-020); verify only deactivates on a real auth failure.
@@ -18,8 +22,16 @@ try {
   dbUp = false;
 }
 
+// This suite mutates ACTIVE deepseek credential rows; so does
+// extraction/live-pipeline.test.ts. Serialize the two (see the helper's note).
+let suiteLock: Awaited<ReturnType<typeof acquireCredentialsSuiteLock>> | null = null;
+beforeAll(async () => {
+  if (dbUp) suiteLock = await acquireCredentialsSuiteLock(pool);
+});
+
 afterAll(async () => {
   await db.delete(providerCredentials).where(like(providerCredentials.label, "test-m8%"));
+  await releaseCredentialsSuiteLock(suiteLock);
   await pool.end().catch(() => {});
 });
 

@@ -1,9 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { allocateMatrix } from "@/core/matrix";
 import { db, pool } from "@/db/client";
 import { saveCredential } from "@/db/repositories/credentials";
+import {
+  acquireCredentialsSuiteLock,
+  releaseCredentialsSuiteLock,
+} from "@/db/repositories/credentials.test-helpers";
 import { getExtractionForResponse } from "@/db/repositories/extraction";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
 import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
@@ -43,6 +47,15 @@ try {
 const createdVersionIds: string[] = [];
 const createdRunIds: string[] = [];
 
+// seedActiveCredential() mutates the ACTIVE deepseek credential rows (D-020
+// disable-then-insert is global per provider); settings/actions.test.ts does
+// too. Serialize the two suites (see the helper's note) — this was the
+// intermittent full-suite "settings flake".
+let suiteLock: Awaited<ReturnType<typeof acquireCredentialsSuiteLock>> | null = null;
+beforeAll(async () => {
+  if (dbUp) suiteLock = await acquireCredentialsSuiteLock(pool);
+});
+
 afterAll(async () => {
   // Per-run try/catch: this exact loop, without the guard, once threw
   // partway through on an FK ordering miss and left all 3 of this file's
@@ -72,6 +85,7 @@ afterAll(async () => {
     await forceDeleteMatrixVersions(createdVersionIds);
   }
   await db.delete(providerCredentials).where(eq(providerCredentials.label, CREDENTIAL_LABEL));
+  await releaseCredentialsSuiteLock(suiteLock);
   await pool.end().catch(() => {});
 });
 
