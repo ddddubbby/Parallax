@@ -101,6 +101,12 @@ describe.skipIf(!dbUp)("buildAgentRun (M36 programmatic path)", () => {
     // Jobs are created but NOT executed here — no live call, no spend.
     const jobRows = await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.runId, built.runId));
     expect(jobRows).toHaveLength(40);
+
+    // Cancel the run so this suite leaves NO queued non-mock run behind: the
+    // settings suite's disable/delete guard (findActiveLiveRunUsingProvider)
+    // matches any queued/running audit-kind live run via its deepseek
+    // extraction secondary — a leftover here intermittently fails that suite.
+    await db.update(auditRuns).set({ state: "cancelled" }).where(eq(auditRuns.id, built.runId));
   });
 
   it("rejects a hostile-metadata token before budget, writing no rows", async () => {
