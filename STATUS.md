@@ -11,9 +11,9 @@
 | **Build plan** | [M43_BUILD_PLAN.md](M43_BUILD_PLAN.md) |
 | **Branch** | `m43`, created from shared-governance commit `620148c`; integration target `geo-agent-v1` |
 | **Current milestone** | M43 — Resonance Web UI Refinement |
-| **Milestone state** | In progress — Phases 0–6 green; Phase 7 integration reconciliation and full verification is in progress |
-| **Next action** | Review Settings and debug, incorporate the latest phase-green `geo-agent-v1`, run every automated and interactive gate, record the final route/viewport/state evidence, and close the isolated demo environment |
-| **Blocked on** | Nothing |
+| **Milestone state** | In progress — M43 implementation and interactive verification are complete; Phase 7 is held at the integration lint gate |
+| **Next action** | The agent milestone owner removes the unused `CATEGORY_ARCHETYPES` import from `src/core/semantic.test.ts` on `geo-agent-v1` and marks that integration commit phase-green; then incorporate it at the phase boundary, rerun full lint/build, and complete the merge handoff |
+| **Blocked on** | `pnpm lint --max-warnings 0` reports one pre-existing warning in agent-owned `src/core/semantic.test.ts:6`; M43 cannot alter or suppress that agent-core test under its ownership stop line |
 | **Parked product** | Public brand-site UI work remains out of scope on M43. The GEO agent is active in parallel, not parked, and is authoritative on its own milestone branches. |
 
 ## M43 phase ledger
@@ -27,7 +27,7 @@
 | 4 | Matrix and runs | Green at `52f292a` + `7851ae0`; 11/11 Playwright and focused matrix/run/UI tests green; interactive evidence in `BUILD_NOTES.md` S-102 |
 | 5 | Dashboard and reports | Green at `67a5147` + `9ab036f` + `4b4af68` + `52139d9`; 13/13 Playwright/axe and 782 Vitest tests green; interactive evidence in `BUILD_NOTES.md` S-103 |
 | 6 | Simulation and Framing Evidence | Green at `4e6e3f0` + `5bf0d61` + `d3d5553` + `5bffce2`; 782 Vitest tests and 14/14 Playwright/axe green; interactive evidence in `BUILD_NOTES.md` S-104 |
-| 7 | Integration reconciliation, full verification, and handoff | In progress |
+| 7 | Integration reconciliation, full verification, and handoff | M43-owned work green at `7b930e4` + `1852fd7` + `5fa6708` + `fcd6100`; held on the pre-existing integration lint warning documented in `BUILD_NOTES.md` S-105 |
 
 ## Non-negotiable stop lines
 
