@@ -11,8 +11,8 @@
 | **Build plan** | [M43_BUILD_PLAN.md](M43_BUILD_PLAN.md) |
 | **Branch** | `m43`, created from shared-governance commit `620148c`; integration target `geo-agent-v1` |
 | **Current milestone** | M43 — Resonance Web UI Refinement |
-| **Milestone state** | In progress — Phases 0–2 green; Phase 3 projects and setup is in progress |
-| **Next action** | Refine `/projects`, all eight intake steps, the remaining project-hub states, and every Setup view; keep the live browser on the active route and run the create-project-to-setup journey |
+| **Milestone state** | In progress — Phases 0–3 green; Phase 4 matrix and runs is in progress |
+| **Next action** | Refine matrix overview/pillars/version states and the run library/configuration/operation views; keep the live browser on the active route and run matrix/run regressions |
 | **Blocked on** | Nothing |
 | **Parked product** | Public brand-site UI work remains out of scope on M43. The GEO agent is active in parallel, not parked, and is authoritative on its own milestone branches. |
 
@@ -23,8 +23,8 @@
 | 0 | D-112 parallel governance and tracker-aware docs check | Green on `geo-agent-v1` at `620148c` |
 | 1 | Activate plan, PRD, status/handoff, approved Apple skill, and baseline journey | Green at `173619b`; baseline 3/4 with one pre-existing assertion-shape failure recorded in `BUILD_NOTES.md` |
 | 2 | Live demo and shared UI foundations | Green at `f879a07` + `8bbd95a`; 782 unit tests and 6/6 Playwright/axe green; interactive evidence in `BUILD_NOTES.md` S-100 |
-| 3 | Projects, intake, hub, setup | In progress — hub wayfinding landed separately at `3c3596a` |
-| 4 | Matrix and runs | Not started |
+| 3 | Projects, intake, hub, setup | Green at `3c3596a` + `afd6db4` + `fa3e70d`; 9/9 Playwright green and interactive evidence in `BUILD_NOTES.md` S-101 |
+| 4 | Matrix and runs | In progress |
 | 5 | Dashboard and reports | Not started |
 | 6 | Simulation and Framing Evidence | Not started |
 | 7 | Integration reconciliation, full verification, and handoff | Not started |
