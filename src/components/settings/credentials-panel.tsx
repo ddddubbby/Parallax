@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { AppDialog } from "@/components/ui/dialog";
+import { Fragment, useRef, useState, useTransition } from "react";
+import { AppConfirmDialog, AppDialog } from "@/components/ui/dialog";
 import { AppMenu, AppMenuItem, AppMenuSeparator } from "@/components/ui/menu";
-import { Button, Field, Input, Select, Stamp } from "@/components/ui";
+import { Button, Field, InlineStatus, Input, Select, Stamp } from "@/components/ui";
 import type { ProviderId } from "@/core/runner";
 import {
   deleteCredential,
@@ -38,7 +38,14 @@ const LIVE_PROVIDERS: { id: ProviderId; displayName: string }[] = [
 
 function formatDate(d: string | Date | null): string {
   if (!d) return "never";
-  return new Date(d).toLocaleString();
+  return new Date(d).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function statusTone(status: string): "ok" | "warn" | "danger" | "ink" {
@@ -51,17 +58,26 @@ function statusTone(status: string): "ok" | "warn" | "danger" | "ink" {
 export function CredentialsPanel({ credentials }: { credentials: CredentialRow[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionKey, setActionKey] = useState<string | null>(null);
+  const [rowStatus, setRowStatus] = useState<{
+    id: string;
+    tone: "success" | "danger";
+    message: string;
+  } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"add" | "rotate">("add");
   const [lockedProvider, setLockedProvider] = useState<ProviderId | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CredentialRow | null>(null);
 
   const [providerId, setProviderId] = useState<ProviderId>("deepseek");
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [defaultModel, setDefaultModel] = useState("");
+  const apiKeyRef = useRef<HTMLInputElement>(null);
+  const baseUrlRef = useRef<HTMLInputElement>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
 
   function openAdd() {
     setDialogMode("add");
@@ -70,7 +86,7 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     setApiKey("");
     setBaseUrl("");
     setDefaultModel("");
-    setError(null);
+    setDialogError(null);
     setNotice(null);
     setDialogOpen(true);
   }
@@ -82,87 +98,127 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
     setApiKey("");
     setBaseUrl(row.baseUrl ?? "");
     setDefaultModel(row.defaultModel ?? "");
-    setError(null);
+    setDialogError(null);
     setNotice(null);
     setDialogOpen(true);
   }
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setDialogError(null);
+    if (!apiKey.trim()) {
+      setDialogError("API key is required");
+      apiKeyRef.current?.focus();
+      return;
+    }
     const targetProvider = dialogMode === "rotate" && lockedProvider ? lockedProvider : providerId;
+    const key = `dialog:${targetProvider}`;
+    setActionKey(key);
     startTransition(async () => {
       const result = await saveCredential(targetProvider, apiKey, {
         baseUrl: baseUrl || undefined,
         defaultModel: defaultModel || undefined,
-      });
+      }).catch(() => ({ ok: false as const, error: "Credential save did not complete. Retry." }));
+      setActionKey(null);
       if (!result.ok) {
-        setError(result.error);
+        setDialogError(result.error);
+        if (result.error.toLowerCase().includes("base url")) baseUrlRef.current?.focus();
+        else apiKeyRef.current?.focus();
         return;
       }
       setApiKey("");
       setBaseUrl("");
       setDefaultModel("");
       setDialogOpen(false);
+      setNotice(
+        `${LIVE_PROVIDERS.find((provider) => provider.id === targetProvider)?.displayName ?? targetProvider} credential ${dialogMode === "rotate" ? "rotated" : "saved"}.`,
+      );
       router.refresh();
     });
   }
 
-  function handleVerify(id: string, provider: ProviderId) {
-    setError(null);
+  function runRowAction(
+    row: CredentialRow,
+    action: "verify" | "disable" | "enable",
+    operation: () => Promise<{ ok: true } | { ok: false; error: string }>,
+    successMessage: string,
+  ) {
     setNotice(null);
-    setBusyId(id);
+    setRowStatus(null);
+    const key = `${row.id}:${action}`;
+    setActionKey(key);
     startTransition(async () => {
-      // A successful verify used to render nothing at all — the only signal was
-      // the "Last verified" cell quietly changing, which reads as a dead button.
-      const result = await verifyCredential(id, provider);
-      setBusyId(null);
-      if (result.ok) setNotice(`${provider} key verified — live call succeeded`);
-      else setError(result.error);
+      const result = await operation().catch(() => ({
+        ok: false as const,
+        error: "Credential action did not complete. Retry.",
+      }));
+      setActionKey(null);
+      setRowStatus({
+        id: row.id,
+        tone: result.ok ? "success" : "danger",
+        message: result.ok ? successMessage : result.error,
+      });
       router.refresh();
     });
   }
 
-  function handleDisable(id: string) {
-    setError(null);
+  function handleVerify(row: CredentialRow) {
+    runRowAction(
+      row,
+      "verify",
+      () => verifyCredential(row.id, row.providerId),
+      `${row.providerId} key verified — live call succeeded.`,
+    );
+  }
+
+  function handleDisable(row: CredentialRow) {
+    runRowAction(row, "disable", () => disableCredential(row.id), `${row.providerId} credential disabled.`);
+  }
+
+  function handleEnable(row: CredentialRow) {
+    runRowAction(row, "enable", () => enableCredential(row.id), `${row.providerId} credential enabled.`);
+  }
+
+  function openDelete(row: CredentialRow) {
     setNotice(null);
-    setBusyId(id);
+    setRowStatus(null);
+    deleteTriggerRef.current = document.querySelector(
+      `[aria-label="More actions for ${row.providerId}"]`,
+    );
+    setDeleteTarget(row);
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    const key = `${target.id}:delete`;
+    setActionKey(key);
     startTransition(async () => {
-      const result = await disableCredential(id);
-      setBusyId(null);
-      if (!result.ok) setError(result.error);
+      const result = await deleteCredential(target.id).catch(() => ({
+        ok: false as const,
+        error: "Credential deletion did not complete. Retry.",
+      }));
+      setActionKey(null);
+      if (!result.ok) {
+        setDeleteTarget(null);
+        setRowStatus({ id: target.id, tone: "danger", message: result.error });
+        window.setTimeout(() => deleteTriggerRef.current?.focus(), 0);
+        return;
+      }
+      setDeleteTarget(null);
+      setNotice(`${target.providerId} credential deleted.`);
+      window.setTimeout(() => deleteTriggerRef.current?.focus(), 0);
       router.refresh();
     });
   }
 
-  function handleEnable(id: string) {
-    setError(null);
-    setNotice(null);
-    setBusyId(id);
-    startTransition(async () => {
-      const result = await enableCredential(id);
-      setBusyId(null);
-      if (!result.ok) setError(result.error);
-      router.refresh();
-    });
-  }
-
-  function handleDelete(id: string) {
-    setError(null);
-    setNotice(null);
-    setBusyId(id);
-    startTransition(async () => {
-      const result = await deleteCredential(id);
-      setBusyId(null);
-      if (!result.ok) setError(result.error);
-      router.refresh();
-    });
-  }
+  const dialogPending = pending && actionKey?.startsWith("dialog:");
+  const deletePending = pending && deleteTarget !== null && actionKey === `${deleteTarget.id}:delete`;
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="font-mono text-xs text-ink/50">
+      <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <p className="max-w-2xl text-sm leading-relaxed text-ink/60">
           Keys stay encrypted at rest and never return to the browser (C-11).
         </p>
         <Button type="button" onClick={openAdd}>
@@ -170,14 +226,8 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
         </Button>
       </div>
 
-      {error && !dialogOpen && (
-        <p className="mb-4 font-mono text-xs text-danger">{error}</p>
-      )}
-
       {notice && !dialogOpen && (
-        <p role="status" className="mb-4 font-mono text-xs text-ok">
-          {notice}
-        </p>
+        <InlineStatus tone="success" className="mb-4">{notice}</InlineStatus>
       )}
 
       {credentials.length === 0 ? (
@@ -185,7 +235,13 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
           <p className="label-mono text-sm text-ink/60">No provider credentials on file</p>
         </div>
       ) : (
-        <table className="w-full border-collapse text-sm">
+        <div
+          role="region"
+          aria-label="Provider credential table"
+          tabIndex={0}
+          className="overflow-x-auto rounded-xl border border-ink/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+        <table className="min-w-[54rem] w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-ink/20 text-left">
               <th className="label-mono py-2 pr-4 text-xs font-medium text-ink/60">Provider</th>
@@ -198,7 +254,8 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
           </thead>
           <tbody className="font-mono">
             {credentials.map((c) => (
-              <tr key={c.id} className="border-b border-ink/10">
+              <Fragment key={c.id}>
+              <tr className="border-b border-ink/10">
                 <td className="py-2 pr-4">{c.providerId}</td>
                 <td className="py-2 pr-4 text-ink/70">••••{c.apiKeyLast4}</td>
                 <td className="py-2 pr-4">
@@ -209,43 +266,60 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
                 <td className="py-2">
                   <AppMenu
                     trigger={
-                      <Button type="button" variant="ghost" aria-label={`More actions for ${c.providerId}`}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        pending={pending && actionKey?.startsWith(`${c.id}:`)}
+                        pendingLabel="Working…"
+                        aria-label={`More actions for ${c.providerId}`}
+                      >
                         More
                       </Button>
                     }
                   >
                     {c.status === "active" && (
                       <>
-                        <AppMenuItem onSelect={() => handleVerify(c.id, c.providerId)}>
-                          {busyId === c.id && pending ? "Verifying…" : "Verify"}
+                        <AppMenuItem onSelect={() => handleVerify(c)}>
+                          {actionKey === `${c.id}:verify` && pending ? "Verifying…" : "Verify"}
                         </AppMenuItem>
                         <AppMenuItem onSelect={() => openRotate(c)}>Rotate key</AppMenuItem>
-                        <AppMenuItem onSelect={() => handleDisable(c.id)}>Disable</AppMenuItem>
+                        <AppMenuItem onSelect={() => handleDisable(c)}>Disable</AppMenuItem>
                       </>
                     )}
                     {c.status === "disabled" && (
-                      <AppMenuItem onSelect={() => handleEnable(c.id)}>
-                        {busyId === c.id && pending ? "Enabling…" : "Enable"}
+                      <AppMenuItem onSelect={() => handleEnable(c)}>
+                        {actionKey === `${c.id}:enable` && pending ? "Enabling…" : "Enable"}
                       </AppMenuItem>
                     )}
                     {c.status !== "active" && c.status !== "disabled" && (
                       <AppMenuItem onSelect={() => openRotate(c)}>Rotate key</AppMenuItem>
                     )}
                     <AppMenuSeparator />
-                    <AppMenuItem destructive onSelect={() => handleDelete(c.id)}>
+                    <AppMenuItem destructive onSelect={() => openDelete(c)}>
                       Delete
                     </AppMenuItem>
                   </AppMenu>
                 </td>
               </tr>
+              {rowStatus?.id === c.id && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-2">
+                    <InlineStatus tone={rowStatus.tone}>{rowStatus.message}</InlineStatus>
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <AppDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          if (!dialogPending) setDialogOpen(open);
+        }}
         title={dialogMode === "rotate" ? "Rotate key" : "Add provider"}
         description={
           dialogMode === "rotate"
@@ -269,15 +343,19 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
           </Field>
           <Field label="API key" hint="Never logged or displayed again after saving (C-11).">
             <Input
+              ref={apiKeyRef}
               type="password"
               autoComplete="off"
               value={apiKey}
+              aria-invalid={dialogError?.toLowerCase().includes("api key") || undefined}
               onChange={(e) => setApiKey(e.target.value)}
             />
           </Field>
           <Field label="Base URL override" hint="Optional — leave blank to use the provider default.">
             <Input
+              ref={baseUrlRef}
               value={baseUrl}
+              aria-invalid={dialogError?.toLowerCase().includes("base url") || undefined}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://api.deepseek.com"
             />
@@ -289,17 +367,32 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
               placeholder="deepseek-v4-flash"
             />
           </Field>
-          {error && <p className="font-mono text-xs text-danger">{error}</p>}
-          <div className="flex gap-2">
-            <Button type="submit" disabled={pending || !apiKey}>
-              {pending ? "Saving…" : "Save changes"}
+          {dialogError && <InlineStatus tone="danger">{dialogError}</InlineStatus>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button type="submit" pending={dialogPending} pendingLabel="Saving…">
+              Save changes
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>
+            <Button type="button" variant="secondary" disabled={dialogPending} onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
           </div>
         </form>
       </AppDialog>
+
+      <AppConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            window.setTimeout(() => deleteTriggerRef.current?.focus(), 0);
+          }
+        }}
+        title={`Delete ${LIVE_PROVIDERS.find((provider) => provider.id === deleteTarget?.providerId)?.displayName ?? "provider"} credential?`}
+        description="This permanently removes the encrypted credential. Runs that need this provider will remain blocked until a new key is added."
+        confirmLabel={`Delete ${LIVE_PROVIDERS.find((provider) => provider.id === deleteTarget?.providerId)?.displayName ?? "provider"} credential`}
+        pending={deletePending}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

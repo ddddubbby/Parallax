@@ -42,10 +42,10 @@ export default async function SettingsPage({
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="label-mono mb-1 text-lg font-semibold">Settings</h1>
-      <p className="mb-4 font-mono text-xs text-ink/50">
-        Provider credentials and run defaults (ST-1..ST-6)
+      <p className="mb-4 text-sm leading-relaxed text-ink/60">
+        Manage encrypted provider access and inspect deployment-controlled run defaults.
       </p>
       <LocalViewTabs
         tabs={[
@@ -63,11 +63,11 @@ export default async function SettingsPage({
         </section>
       ) : (
         <section>
-          <h2 className="label-mono mb-3 text-sm font-semibold text-ink">Defaults</h2>
-          <p className="mb-3 font-mono text-xs text-ink/45">
+          <h2 className="label-mono mb-3 text-sm font-semibold text-ink">Run defaults</h2>
+          <p className="mb-4 text-sm leading-relaxed text-ink/60">
             Deployment-managed (D-012) — read-only here. Change via deploy config, not this UI.
           </p>
-          <dl className="grid grid-cols-2 gap-x-8 gap-y-3 rounded-xl border border-ink/15 p-6 font-mono text-sm">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-1 rounded-xl border border-ink/15 p-4 font-mono text-sm sm:grid-cols-[minmax(12rem,0.8fr)_minmax(0,1.2fr)] sm:gap-y-3 sm:p-6 [&_dd]:mb-3 sm:[&_dd]:mb-0">
             <dt className="text-ink/60">Validation run cap</dt>
             <dd>${defaults.validationCapUsd.toFixed(2)}</dd>
             <dt className="text-ink/60">Audit run cap</dt>
