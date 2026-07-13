@@ -52,8 +52,8 @@ export default async function FramingStudyPage({
   const reviewedCount = detail.reviews.filter((review) => review.outcome !== "pending").length;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8">
-      <div className="mb-1 font-mono text-xs text-ink/45">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mb-1 font-mono text-xs text-ink/65">
         <Link href="/projects" className="hover:text-ink">Projects</Link>
         {" / "}
         <Link href={`/projects/${id}`} className="hover:text-ink">{project.name}</Link>
@@ -66,7 +66,7 @@ export default async function FramingStudyPage({
         <Stamp tone={detail.study.state === "completed" ? "ok" : "ink"}>{detail.study.state}</Stamp>
         <Stamp tone="ink">{detail.study.promptProtocolVersion}</Stamp>
         {detail.study.state === "completed" && detail.study.gapOutcome && (
-          <Link href={`/projects/${id}/framing/${studyId}/report`} className="interactive-press label-mono ml-auto rounded-full bg-accent px-4 py-2 text-xs text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          <Link href={`/projects/${id}/framing/${studyId}/report`} className="interactive-press label-mono ml-auto inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
             Open client report →
           </Link>
         )}
@@ -83,10 +83,10 @@ export default async function FramingStudyPage({
             <h2 className="label-mono text-sm font-semibold">Descriptive recurrence</h2>
             <Stamp tone="ink">HUMAN REVIEWED</Stamp>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" role="region" aria-label="Descriptive recurrence table" tabIndex={0}>
             <table className="w-full border-collapse text-left font-mono text-xs">
-              <thead><tr className="border-b border-ink/15 text-ink/45"><th className="px-2 py-2">Association</th><th className="px-2 py-2">Source jobs</th><th className="px-2 py-2">Prompt spread</th><th className="px-2 py-2">Scope</th></tr></thead>
-              <tbody>{recurrence.map((row) => <tr key={row.associationId} className="border-b border-ink/10"><td className="px-2 py-3 text-ink/80">{row.associationLabel}</td><td className="px-2 py-3">{row.responsesContainingAssociation}/{row.denominator}</td><td className="px-2 py-3">{row.promptVariantsContainingAssociation.length}/{row.promptVariantDenominator} prompts</td><td className="px-2 py-3 text-ink/55">{row.scopes.map((scope) => `${scope.providerId}/${scope.modelVersion}/${scope.generationMode}`).join(" · ")}</td></tr>)}</tbody>
+              <thead><tr className="border-b border-ink/15 text-ink/65"><th className="px-2 py-2">Association</th><th className="px-2 py-2">Source jobs</th><th className="px-2 py-2">Prompt spread</th><th className="px-2 py-2">Scope</th></tr></thead>
+              <tbody>{recurrence.map((row) => <tr key={row.associationId} className="border-b border-ink/10"><td className="px-2 py-3 text-ink/80">{row.associationLabel}</td><td className="px-2 py-3">{row.responsesContainingAssociation}/{row.denominator}</td><td className="px-2 py-3">{row.promptVariantsContainingAssociation.length}/{row.promptVariantDenominator} prompts</td><td className="px-2 py-3 text-ink/65">{row.scopes.map((scope) => `${scope.providerId}/${scope.modelVersion}/${scope.generationMode}`).join(" · ")}</td></tr>)}</tbody>
             </table>
           </div>
         </section>
