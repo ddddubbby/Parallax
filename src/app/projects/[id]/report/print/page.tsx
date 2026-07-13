@@ -66,29 +66,35 @@ export default async function ReportPrintPage({
   // this is a deliberately self-contained print document (V-4).
   return (
     <div
+      className="report-print-document"
       style={{
         background: "var(--color-paper)",
         color: "var(--color-ink)",
-        fontFamily: "Georgia, 'Times New Roman', serif",
-        maxWidth: "48rem",
+        fontFamily: "var(--font-serif)",
+        maxWidth: "none",
         margin: "0 auto",
-        padding: "3rem 2rem",
+        padding: "3rem max(1rem, calc((100vw - 48rem) / 2))",
         minHeight: "100vh",
+        position: "fixed",
+        inset: 0,
+        zIndex: 60,
+        overflow: "auto",
       }}
     >
       <style>{`
         @media print {
+          .report-print-document { position: static !important; overflow: visible !important; padding: 0 !important; }
           .section { page-break-after: always; }
           .section:last-child { page-break-after: auto; }
         }
         table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
         th, td { border: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent); padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
-        h2 { font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent); padding-bottom: 0.4rem; margin-top: 0; }
+        h2 { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 20%, transparent); padding-bottom: 0.4rem; margin-top: 0; }
         blockquote { border-left: 3px solid var(--color-accent); margin: 0.75rem 0; padding: 0.25rem 0 0.25rem 0.75rem; color: color-mix(in srgb, var(--color-ink) 60%, transparent); }
       `}</style>
 
-      <div style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.75rem", color: "color-mix(in srgb, var(--color-ink) 60%, transparent)", marginBottom: "0.5rem" }}>
-        {new Date().toISOString().slice(0, 10).replaceAll("-", ".")} · RUN {runId.slice(0, 8)}
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "color-mix(in srgb, var(--color-ink) 60%, transparent)", marginBottom: "0.5rem" }}>
+        {new Date(run.createdAt).toISOString().slice(0, 10).replaceAll("-", ".")} · RUN {runId.slice(0, 8)} · {run.runMode}
       </div>
       <h1 style={{ fontSize: "2rem", marginBottom: "2rem" }}>
         {kind?.kind === "resonance"
@@ -96,7 +102,7 @@ export default async function ReportPrintPage({
           : "AI Visibility Audit"}{client ? ` — ${client.name}` : ""}
       </h1>
       {resonanceStudy && (
-        <div style={{ border: "1px solid color-mix(in srgb, var(--color-ink) 20%, transparent)", padding: "0.75rem", marginBottom: "2rem", fontFamily: "ui-monospace, monospace", fontSize: "0.75rem" }}>
+        <div style={{ border: "1px solid color-mix(in srgb, var(--color-ink) 20%, transparent)", padding: "0.75rem", marginBottom: "2rem", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
           <div>Baseline provenance: {resonanceStudy.baselineLabel}{resonanceStudy.framingEvidenceSnapshotId ? ` · snapshot ${resonanceStudy.framingEvidenceSnapshotId}` : ""}</div>
           {resonanceStudy.baselineProvenance.status === "snapshot" && <>
             <div>Selected association: {resonanceStudy.baselineProvenance.associationLabel ?? resonanceStudy.baselineProvenance.associationId} · {resonanceStudy.baselineProvenance.numerator}/{resonanceStudy.baselineProvenance.denominator} sampled source jobs ({resonanceStudy.baselineProvenance.availableResponses ?? "?"} stored; {resonanceStudy.baselineProvenance.unavailableJobs ?? "?"} unavailable)</div>
@@ -114,7 +120,7 @@ export default async function ReportPrintPage({
             color: "var(--color-danger)",
             padding: "0.75rem",
             marginBottom: "2rem",
-            fontFamily: "ui-monospace, monospace",
+            fontFamily: "var(--font-mono)",
             fontSize: "0.75rem",
           }}
         >
