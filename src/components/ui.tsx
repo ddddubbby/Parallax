@@ -94,12 +94,12 @@ export function Textarea({
   );
 }
 
-export function Select({
-  className,
-  ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cx(fieldBase, focusRing, className)} {...props} />;
-}
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  SelectHTMLAttributes<HTMLSelectElement>
+>(function Select({ className, ...props }, ref) {
+  return <select ref={ref} className={cx(fieldBase, focusRing, className)} {...props} />;
+});
 
 /** Label above control, danger-mono errors beneath (PS-3, design §8 forms). */
 export function Field({

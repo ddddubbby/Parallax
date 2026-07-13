@@ -10,6 +10,7 @@ describe("M43 shared UI contracts", () => {
     expect(source).toContain('aria-hidden={!pending || undefined}');
     expect(source).toContain("label-mono min-h-11");
     expect(source).toContain("React.forwardRef");
+    expect(source).toContain("HTMLSelectElement");
     expect(source).toContain('data-field-error={errors?.length ? "true" : undefined}');
     expect(source).toContain("export function InlineStatus");
     expect(source).toContain('tone === "danger" ? "alert" : "status"');

@@ -109,6 +109,17 @@
   opacity: 1;
   transform: translateX(0);
 }
+.evidence-sheet {
+  opacity: 0;
+  transform: translateX(0.25rem);
+  transition:
+    opacity var(--duration-standard) var(--ease-silk),
+    transform var(--duration-standard) var(--ease-silk);
+}
+.evidence-sheet[data-state="open"] {
+  opacity: 1;
+  transform: translateX(0);
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -121,7 +132,8 @@
     transform: translate(-50%, -50%) !important;
   }
   .app-menu-content,
-  .operator-drawer {
+  .operator-drawer,
+  .evidence-sheet {
     transform: none !important;
   }
 }
