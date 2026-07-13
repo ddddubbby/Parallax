@@ -6,6 +6,7 @@
 
 import { eq } from "drizzle-orm";
 import { maskedLexiconHits } from "@/core/agent-extraction";
+import { redactForPublication } from "@/core/agent-redaction";
 import { DESCRIPTOR_V1, RISK_V1 } from "@/core/agent-lexicons";
 import type { ClassifierIdentity } from "@/core/agent-identity";
 import { computeAgentMetrics, type AgentSample, type CryptoLane } from "@/core/agent-metrics";
@@ -71,7 +72,10 @@ function buildEvidence(
           engine: row.providerId,
           lane: row.lane,
           term: hit.term,
-          quoted: hit.quoted,
+          // redact_v1 on every PUBLISHED quote (PRD §10). Today's quotes are
+          // single lexicon terms, so this is defense-in-depth for any future
+          // quote-index widening; offsets always reference the immutable raw.
+          quoted: redactForPublication(hit.quoted).text,
           start: hit.start,
           end: hit.end,
         });
