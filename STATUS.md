@@ -11,8 +11,8 @@
 | **Build plan** | [M43_BUILD_PLAN.md](M43_BUILD_PLAN.md) |
 | **Branch** | `m43`, created from shared-governance commit `620148c`; integration target `geo-agent-v1` |
 | **Current milestone** | M43 — Resonance Web UI Refinement |
-| **Milestone state** | In progress — Phase 0 governance is green; Phase 1 branch activation is in progress |
-| **Next action** | Commit Phase 1 activation, run the baseline operator journey, then start the isolated port-3143 demo and Phase 2 shared foundations |
+| **Milestone state** | In progress — Phases 0–1 green; Phase 2 shared foundations is starting |
+| **Next action** | Start the isolated port-3143 demo and in-app browser, then refine shared primitives, loading/error states, overlays, tabs, shell, focus, motion, and dirty navigation |
 | **Blocked on** | Nothing |
 | **Parked product** | Public brand-site UI work remains out of scope on M43. The GEO agent is active in parallel, not parked, and is authoritative on its own milestone branches. |
 
@@ -21,8 +21,8 @@
 | Phase | Scope | State |
 |---|---|---|
 | 0 | D-112 parallel governance and tracker-aware docs check | Green on `geo-agent-v1` at `620148c` |
-| 1 | Activate plan, PRD, status/handoff, and approved Apple skill | In progress |
-| 2 | Live demo and shared UI foundations | Not started |
+| 1 | Activate plan, PRD, status/handoff, approved Apple skill, and baseline journey | Green at `173619b`; baseline 3/4 with one pre-existing assertion-shape failure recorded in `BUILD_NOTES.md` |
+| 2 | Live demo and shared UI foundations | In progress |
 | 3 | Projects, intake, hub, setup | Not started |
 | 4 | Matrix and runs | Not started |
 | 5 | Dashboard and reports | Not started |
