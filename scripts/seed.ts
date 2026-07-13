@@ -22,10 +22,17 @@ import {
   projects,
   promptCells,
   promptTemplates,
+  resonanceStudies,
   responses,
 } from "../src/db/schema";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "../src/db/repositories/matrix";
 import { recomputeMetrics } from "../src/db/repositories/metrics";
+import {
+  addResonanceStimulus,
+  approveAndCompileResonanceStudy,
+  createResonanceStudy,
+  updateResonanceStudy,
+} from "../src/db/repositories/resonance";
 
 const DEMO_SLUG = "ledgerfox-demo";
 const M34A_E2E_SLUG = "lensloop-m34a-e2e";
@@ -454,6 +461,129 @@ async function seedM43UiFixture(): Promise<{ created: boolean; runId: string | n
   });
 
   const metricCount = await recomputeMetrics(run.id);
+
+  // Completed Simulation study for the Phase 6 library/results/evidence
+  // review. These are stored fixture rows only: no worker, provider, or
+  // scoring call is started, and the existing metric repository derives
+  // the same result shapes used by ordinary completed runs.
+  const [existingSimulation] = await db
+    .select({ id: resonanceStudies.id })
+    .from(resonanceStudies)
+    .where(and(eq(resonanceStudies.projectId, project.id), eq(resonanceStudies.name, "M43 positioning clarity study")));
+  if (!existingSimulation) {
+    const [evidenceResponse] = await db
+      .select({ id: responses.id })
+      .from(responses)
+      .where(eq(responses.runId, run.id))
+      .limit(1);
+    if (!evidenceResponse) throw new Error("M43 Simulation fixture requires a completed audit response");
+
+    const simulationStudy = await createResonanceStudy(project.id, "M43 positioning clarity study");
+    await updateResonanceStudy(project.id, simulationStudy.id, {
+      panelPersonas: [
+        {
+          key: "finance-ops-lead",
+          label: "Finance operations lead",
+          ageBand: "35–44",
+          incomeBand: "$100k–$150k",
+          locationContext: "Singapore",
+          behavioralProfile: "Compares implementation risk, evidence quality, and workflow fit before purchase.",
+        },
+      ],
+    });
+    const baseline = await addResonanceStimulus({
+      projectId: project.id,
+      studyId: simulationStudy.id,
+      kind: "measured_ai",
+      label: "Observed AI framing",
+      body: "LedgerFox is described as a practical finance-operations platform with straightforward implementation.",
+      evidenceResponseIds: [evidenceResponse.id],
+    });
+    await addResonanceStimulus({
+      projectId: project.id,
+      studyId: simulationStudy.id,
+      kind: "repositioned",
+      label: "Evidence-led framing",
+      body: "LedgerFox gives finance operations teams auditable workflow evidence before they change a process.",
+      evidenceResponseIds: [],
+    });
+    const simulationVersion = await approveAndCompileResonanceStudy(project.id, simulationStudy.id);
+    const simulationCells = await db
+      .select()
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, simulationVersion.id));
+    const simulationRepetitions = 30;
+    const [simulationRun] = await db
+      .insert(auditRuns)
+      .values({
+        projectId: project.id,
+        matrixVersionId: simulationVersion.id,
+        runMode: "mock",
+        state: "completed",
+        repetitions: simulationRepetitions,
+        selectedProvidersJson: ["mock"],
+        selectedModesJson: ["ungrounded"],
+        plannedCalls: simulationCells.length * simulationRepetitions,
+        costCapUsd: "0",
+        completedAt: new Date(),
+      })
+      .returning();
+
+    await db.transaction(async (tx) => {
+      for (const cell of simulationCells) {
+        const isBaseline = cell.stimulusId === baseline.id;
+        const pmf = isBaseline
+          ? [0.05, 0.15, 0.35, 0.3, 0.15]
+          : [0.02, 0.08, 0.2, 0.4, 0.3];
+        const meanScore = pmf.reduce((sum, value, index) => sum + value * (index + 1), 0);
+        for (let repIndex = 0; repIndex < simulationRepetitions; repIndex += 1) {
+          const rawText = isBaseline
+            ? `SIMULATED draw ${repIndex + 1}: the current framing feels practical but does not strongly differentiate the product.`
+            : `SIMULATED draw ${repIndex + 1}: the evidence-led framing makes the workflow value and purchase rationale clearer.`;
+          const [job] = await tx
+            .insert(jobs)
+            .values({
+              runId: simulationRun.id,
+              cellId: cell.id,
+              providerId: "mock",
+              generationMode: "ungrounded",
+              repIndex,
+              state: "succeeded",
+            })
+            .returning();
+          const [response] = await tx
+            .insert(responses)
+            .values({
+              jobId: job.id,
+              runId: simulationRun.id,
+              cellId: cell.id,
+              providerId: "mock",
+              generationMode: "ungrounded",
+              modelVersion: "m43-simulation-fixture-v1",
+              rawText,
+            })
+            .returning();
+          await tx.insert(extractions).values({
+            responseId: response.id,
+            extractionVersion: 1,
+            state: "valid",
+            extractionModel: "m43-simulation-fixture-v1",
+            extractedJson: {
+              kind: "ssr",
+              ssrVersion: "ssr-v1",
+              anchorSetVersion: "purchase_intent.v1",
+              calibrated: false,
+              pmf,
+              perSetPmfs: [pmf],
+              meanScore,
+            },
+          });
+        }
+      }
+    });
+    await recomputeMetrics(simulationRun.id);
+  }
+
   // Keep a separate latest draft for the matrix edit/approval interaction
   // states while the completed dashboard run remains bound to approved V1.
   await createDraftVersion(project.id, allocated);

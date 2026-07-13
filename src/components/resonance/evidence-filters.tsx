@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { Select } from "@/components/ui";
 import { withViewParam } from "@/core/views";
 
 export function EvidenceFilters({
@@ -19,24 +21,27 @@ export function EvidenceFilters({
   personas: Array<{ key: string; label: string }>;
 }) {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
   function push(next: { stimulus?: string; persona?: string }) {
-    router.push(
-      withViewParam(base, "evidence", {
-        engine,
-        stimulus: next.stimulus,
-        persona: next.persona,
-        page: "1",
-      }),
-    );
+    startTransition(() => {
+      router.push(
+        withViewParam(base, "evidence", {
+          engine,
+          stimulus: next.stimulus,
+          persona: next.persona,
+          page: "1",
+        }),
+      );
+    });
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-wrap items-end gap-3" aria-busy={pending}>
       <label className="flex flex-col gap-1">
-        <span className="label-mono text-[10px] text-ink/45">Stimulus</span>
-        <select
-          className="label-mono rounded-lg border border-ink/20 bg-paper px-3 py-1.5 text-xs"
+        <span className="label-mono text-xs text-ink/65">Stimulus</span>
+        <Select
+          disabled={pending}
           value={stimulus ?? ""}
           onChange={(e) =>
             push({ stimulus: e.target.value || undefined, persona })
@@ -48,12 +53,12 @@ export function EvidenceFilters({
               {s.label}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <label className="flex flex-col gap-1">
-        <span className="label-mono text-[10px] text-ink/45">Persona</span>
-        <select
-          className="label-mono rounded-lg border border-ink/20 bg-paper px-3 py-1.5 text-xs"
+        <span className="label-mono text-xs text-ink/65">Persona</span>
+        <Select
+          disabled={pending}
           value={persona ?? ""}
           onChange={(e) =>
             push({ stimulus, persona: e.target.value || undefined })
@@ -65,7 +70,7 @@ export function EvidenceFilters({
               {p.label}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
     </div>
   );
