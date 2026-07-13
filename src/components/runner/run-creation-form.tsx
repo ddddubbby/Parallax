@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { SimulatedBadge } from "@/components/simulated-badge";
-import { Button, Field, Input, Stamp } from "@/components/ui";
+import { Button, Field, InlineStatus, Input, Select, Stamp } from "@/components/ui";
 import type { GenerationMode, ProviderId, RunMode } from "@/core/runner";
 import { startRunLabel } from "@/core/run-labels";
 import {
@@ -76,6 +76,7 @@ export function RunCreationForm({
   const [extractionInjectionEnabled, setExtractionInjectionEnabled] = useState(false);
   const [extractionInvalidRate, setExtractionInvalidRate] = useState(0.15);
   const [projectionFailed, setProjectionFailed] = useState(false);
+  const [projecting, setProjecting] = useState(false);
   const [projection, setProjection] = useState<{
     plannedCalls: number;
     projectedCostUsd: number;
@@ -132,10 +133,12 @@ export function RunCreationForm({
   useEffect(() => {
     if (selectedProviders.length === 0 || selectedModes.length === 0) {
       setProjection(null);
+      setProjecting(false);
       return;
     }
     let cancelled = false;
     setProjectionFailed(false);
+    setProjecting(true);
     projectRunCost(projectId, input)
       .then((result) => {
         if (cancelled) return;
@@ -149,6 +152,7 @@ export function RunCreationForm({
           setProjection(null);
           setProjectionFailed(true);
         }
+        setProjecting(false);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -157,6 +161,7 @@ export function RunCreationForm({
         reportError(err, { boundary: "run-cost-projection", projectId });
         setProjection(null);
         setProjectionFailed(true);
+        setProjecting(false);
       });
     return () => {
       cancelled = true;
@@ -175,12 +180,16 @@ export function RunCreationForm({
   function onSubmit() {
     setError(null);
     startTransition(async () => {
-      const result = await createRun(projectId, input);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await createRun(projectId, input);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        router.push(`/projects/${projectId}/runs/${result.runId}`);
+      } catch {
+        setError("The run could not be started. Your configuration is still here; try again.");
       }
-      router.push(`/projects/${projectId}/runs/${result.runId}`);
     });
   }
 
@@ -190,16 +199,27 @@ export function RunCreationForm({
     selectedProviders.length > 0 &&
     selectedModes.length > 0 &&
     !selectedBlocked &&
-    !secondaryBlocks;
+    !secondaryBlocks &&
+    !projecting &&
+    !overCap;
+  const projectionState = projectionFailed
+    ? "UNAVAILABLE"
+    : projecting
+      ? "LOADING"
+      : overCap
+        ? "OVER CAP"
+        : projection
+          ? "READY"
+          : "UNAVAILABLE";
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="rounded-xl border border-ink/15 p-4">
         <span className="label-mono text-xs text-ink/60">
           {singleMode ? "Approved simulation matrix" : "Approved matrix"}
         </span>
         <p className="text-sm text-ink/85">
-          {matrixLabel ? <span className="mr-2">{matrixLabel}</span> : null}
+          {matrixLabel ? <span>{matrixLabel} · </span> : null}
           {cellCount} <GlossaryTerm term="cell">cells</GlossaryTerm>
           {singleMode && (
             <span className="ml-2">
@@ -208,21 +228,24 @@ export function RunCreationForm({
           )}
         </p>
         {singleMode && (
-          <p className="mt-2 font-mono text-xs text-ink/55">
+          <p className="mt-2 text-sm leading-relaxed text-ink/60">
             Simulation runs may select multiple providers but exactly one generation mode; each
             engine is reported as its own synthetic population, never pooled (D-080).
           </p>
         )}
       </div>
 
-      <Field label="Run mode">
+      <fieldset>
+        <legend className="label-mono mb-1.5 text-xs text-ink/70">Run mode</legend>
         <div className="flex flex-wrap gap-2">
           {RUN_MODES.map((m) => (
             <button
               key={m.id}
               type="button"
               onClick={() => selectRunMode(m.id)}
-              className={`label-mono rounded-full px-4 py-1.5 text-xs transition-micro ${
+              aria-pressed={runMode === m.id}
+              aria-label={`${m.label}: ${m.hint}`}
+              className={`interactive-press label-mono min-h-11 rounded-full px-4 py-2 text-xs transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                 runMode === m.id
                   ? "bg-ink text-paper"
                   : "border border-ink/25 text-ink/60 hover:border-ink"
@@ -235,10 +258,10 @@ export function RunCreationForm({
             </button>
           ))}
         </div>
-      </Field>
+      </fieldset>
 
       {isLive && (
-        <p className="rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
+        <InlineStatus tone="warning">
           {runMode === "live_validation"
             ? "Live validation spends real money and is labeled VALIDATION-ONLY — never client-ready evidence."
             : (
@@ -247,10 +270,11 @@ export function RunCreationForm({
                   per <GlossaryTerm term="engine-mode">engine-mode</GlossaryTerm>.
                 </>
               )}
-        </p>
+        </InlineStatus>
       )}
 
-      <Field label="Providers">
+      <fieldset>
+        <legend className="label-mono mb-1.5 text-xs text-ink/70">Providers</legend>
         <div className="flex flex-wrap gap-2">
           {visibleProviders.map((p) => {
             const ready = !isLive || p.credentialState === "active" || p.credentialState === "not_required";
@@ -260,13 +284,15 @@ export function RunCreationForm({
                 key={p.id}
                 type="button"
                 disabled={!ready}
+                aria-pressed={selected}
+                aria-label={`${p.displayName}${ready ? "" : `: ${p.credentialState}`}`}
                 title={
                   ready
                     ? undefined
                     : `${p.displayName} credential is ${p.credentialState} — add or enable in Settings`
                 }
                 onClick={() => toggle(selectedProviders, p.id, setSelectedProviders)}
-                className={`label-mono rounded-full px-4 py-1.5 text-xs transition-micro ${
+                className={`interactive-press label-mono min-h-11 rounded-full px-4 py-2 text-xs transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   !ready
                     ? "cursor-not-allowed border border-ink/10 text-ink/30"
                     : selected
@@ -288,7 +314,7 @@ export function RunCreationForm({
           visibleProviders.some(
             (p) => p.credentialState !== "active" && p.credentialState !== "not_required",
           ) && (
-            <p className="mt-2 font-mono text-xs text-ink/55">
+            <p className="mt-2 text-sm text-ink/60">
               Missing or disabled providers are unavailable until you{" "}
               <Link href="/settings?view=providers" className="text-accent-ink hover:text-accent">
                 add or enable a credential in Settings
@@ -296,7 +322,7 @@ export function RunCreationForm({
               . Server checks remain authoritative.
             </p>
           )}
-      </Field>
+      </fieldset>
 
       {isLive && secondaryRequirement && (
         <div
@@ -319,7 +345,7 @@ export function RunCreationForm({
             </Stamp>
           </p>
           {secondaryRequirement.credentialState !== "active" && (
-            <p className="mt-2 font-mono text-xs text-warn">
+            <p className="mt-2 text-sm text-warn">
               Live runs need an active credential for the{" "}
               {secondaryRequirement.role === "embedding" ? "embedding" : "extraction"} engine.{" "}
               <Link href="/settings?view=providers" className="underline hover:text-accent">
@@ -330,21 +356,17 @@ export function RunCreationForm({
         </div>
       )}
 
-      <Field
-        label="Generation modes"
-        hint={
-          singleMode
-            ? "Resonance runs lock to one mode — no mode dimension in resonance scopes (D-080)"
-            : undefined
-        }
-      >
-        <div className="flex gap-2">
+      <fieldset>
+        <legend className="label-mono mb-1.5 text-xs text-ink/70">Generation modes</legend>
+        <div className="flex flex-wrap gap-2">
           {MODES.map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => toggle(selectedModes, mode, setSelectedModes, singleMode)}
-              className={`label-mono rounded-full px-4 py-1.5 text-xs transition-micro ${
+              aria-pressed={selectedModes.includes(mode)}
+              aria-label={mode}
+              className={`interactive-press label-mono min-h-11 rounded-full px-4 py-2 text-xs transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                 selectedModes.includes(mode)
                   ? "bg-ink text-paper"
                   : "border border-ink/25 text-ink/60 hover:border-ink"
@@ -354,9 +376,14 @@ export function RunCreationForm({
             </button>
           ))}
         </div>
-      </Field>
+        {singleMode && (
+          <p className="mt-1.5 text-sm text-ink/55">
+            Resonance runs lock to one mode; there is no mode dimension in resonance scopes (D-080).
+          </p>
+        )}
+      </fieldset>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           label="Repetitions"
           hint={runMode === "live_audit" ? "k=5 is protected for audit-grade runs (C-1)" : undefined}
@@ -381,21 +408,54 @@ export function RunCreationForm({
         </Field>
       </div>
 
+      <div
+        className="flex min-h-16 items-center justify-between gap-4 rounded-xl border border-ink/15 px-4 py-3"
+        role="status"
+        aria-live="polite"
+        aria-busy={projecting || undefined}
+      >
+        <div>
+          <span className="label-mono text-xs text-ink/60">Cost projection</span>
+          <p className="mt-1 text-sm text-ink/60">
+            {projectionState === "LOADING"
+              ? "Calculating calls, cost, and provider budgets…"
+              : projectionState === "READY"
+                ? "Calls, cost, and provider budgets are ready for review."
+                : projectionState === "OVER CAP"
+                  ? "Projected cost exceeds this run’s dollar cap."
+                  : selectedProviders.length === 0
+                    ? "Select at least one available provider to calculate the projection."
+                    : "The projection is unavailable; server-side limits remain authoritative."}
+          </p>
+        </div>
+        <span
+          className={`label-mono shrink-0 text-xs ${
+            projectionState === "OVER CAP"
+              ? "text-danger"
+              : projectionState === "UNAVAILABLE"
+                ? "text-warn"
+                : "text-ink/70"
+          }`}
+        >
+          {projectionState}
+        </span>
+      </div>
+
       {projectionFailed && (
-        <p className="rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
+        <InlineStatus tone="warning">
           Cost projection is unavailable right now. You can still submit — the run&rsquo;s cost cap
           and daily budgets are re-checked server-side before any spend.
-        </p>
+        </InlineStatus>
       )}
 
       {projection && (
         <div className="rounded-xl border border-ink/15 p-4">
-          <div className="flex items-center justify-between font-mono text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-sm">
             <span>Planned calls</span>
             <span>{projection.plannedCalls}</span>
           </div>
           <div
-            className={`flex items-center justify-between font-mono text-sm ${overCap ? "text-danger" : ""}`}
+            className={`flex flex-wrap items-center justify-between gap-2 font-mono text-sm ${overCap ? "text-danger" : ""}`}
           >
             <span>
               Projected cost
@@ -408,7 +468,7 @@ export function RunCreationForm({
             <span>${projection.projectedCostUsd.toFixed(4)}</span>
           </div>
           {overCap && (
-            <p className="mt-2 font-mono text-xs text-danger">
+            <p className="mt-2 text-sm text-danger">
               Exceeds the ${costCapUsd} cap — run creation will be blocked server-side (RN-2)
             </p>
           )}
@@ -423,7 +483,7 @@ export function RunCreationForm({
                 return (
                   <div
                     key={b.providerId}
-                    className={`mt-1 flex items-center justify-between font-mono text-xs ${
+                    className={`mt-2 flex flex-col gap-1 font-mono text-xs sm:flex-row sm:items-center sm:justify-between ${
                       already ? "text-danger" : wouldExceed ? "text-warn" : "text-ink/60"
                     }`}
                   >
@@ -449,15 +509,17 @@ export function RunCreationForm({
         <div className="rounded-xl border border-ink/15">
           <button
             type="button"
-            className="label-mono flex w-full items-center justify-between px-4 py-3 text-xs text-ink/70 hover:text-ink"
+            id="advanced-run-controls-trigger"
+            className="interactive-press label-mono flex min-h-11 w-full items-center justify-between rounded-xl px-4 py-3 text-xs text-ink/70 transition-micro hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             onClick={() => setAdvancedOpen((o) => !o)}
             aria-expanded={advancedOpen}
+            aria-controls="advanced-run-controls"
           >
             Advanced — failure injection
             <span className="text-ink/40">{advancedOpen ? "−" : "+"}</span>
           </button>
           {advancedOpen && (
-            <div className="border-t border-ink/10 p-4">
+            <div id="advanced-run-controls" className="border-t border-ink/10 p-4">
               <label className="label-mono flex items-center gap-2 text-xs text-ink/70">
                 <input
                   type="checkbox"
@@ -467,7 +529,7 @@ export function RunCreationForm({
                 Generation failure injection (testing) <Stamp tone="warn">Debug</Stamp>
               </label>
               {injectionEnabled && (
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field label="Rate (0-1)">
                     <Input
                       type="number"
@@ -479,8 +541,7 @@ export function RunCreationForm({
                     />
                   </Field>
                   <Field label="Error type">
-                    <select
-                      className="w-full rounded-lg border border-ink/20 bg-paper px-3 py-2 text-sm"
+                    <Select
                       value={injectionErrorType}
                       onChange={(e) => setInjectionErrorType(e.target.value)}
                     >
@@ -491,7 +552,7 @@ export function RunCreationForm({
                           </option>
                         ),
                       )}
-                    </select>
+                    </Select>
                   </Field>
                 </div>
               )}
@@ -526,13 +587,18 @@ export function RunCreationForm({
       )}
 
       {error && (
-        <p className="rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">
+        <InlineStatus tone="danger">
           {error}
-        </p>
+        </InlineStatus>
       )}
 
-      <Button disabled={!canSubmit} onClick={onSubmit}>
-        {pending ? "Starting…" : startRunLabel(runMode)}
+      <Button
+        disabled={!canSubmit}
+        pending={pending}
+        pendingLabel="Starting…"
+        onClick={onSubmit}
+      >
+        {startRunLabel(runMode)}
       </Button>
     </div>
   );

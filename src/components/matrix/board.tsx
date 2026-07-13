@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { Button, Stamp, Textarea } from "@/components/ui";
+import { useEffect, useState, useTransition } from "react";
+import { Button, InlineStatus, Select, Stamp, Textarea } from "@/components/ui";
+import { AppConfirmDialog } from "@/components/ui/dialog";
+import { useUnsavedEdit } from "@/components/unsaved-edit";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import { FRAME_ASPECT_LABELS, type PackCoverageResult } from "@/core/coverage";
 import { INTENT_ORDER, type Intent } from "@/core/matrix";
@@ -52,6 +54,11 @@ interface VersionListItem {
   cellCount: number;
 }
 
+type MatrixConfirmation =
+  | { kind: "approve" }
+  | { kind: "remove"; cell: CellView }
+  | { kind: "switch-version"; versionId: string };
+
 export function MatrixBoard({
   projectId,
   projectStatus,
@@ -78,10 +85,16 @@ export function MatrixBoard({
   view?: MatrixView;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const [actionState, setActionState] = useState<{
+    key: string;
+    status: "pending" | "success" | "danger";
+    message?: string;
+  } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [confirmation, setConfirmation] = useState<MatrixConfirmation | null>(null);
+  const { setDirty } = useUnsavedEdit();
 
   const isDraft = focus?.state === "draft";
   const count = focus?.cells.length ?? 0;
@@ -97,21 +110,69 @@ export function MatrixBoard({
   }));
   const violationCount =
     focus?.cells.filter((c) => c.brandTermViolations.length > 0).length ?? 0;
+  const editingCell = focus?.cells.find((cell) => cell.id === editingId) ?? null;
+  const editDirty = Boolean(editingCell && editText !== editingCell.resolvedText);
 
-  function run(action: () => Promise<{ ok: boolean; error?: string }>) {
-    setError(null);
+  useEffect(() => {
+    setDirty(editDirty);
+    return () => setDirty(false);
+  }, [editDirty, setDirty]);
+
+  function run(
+    key: string,
+    action: () => Promise<{ ok: boolean; error?: string }>,
+    onOk?: () => void,
+    onSettled?: () => void,
+  ) {
+    setActionState({ key, status: "pending" });
     startTransition(async () => {
-      const result = await action();
-      if (!result.ok) setError(result.error ?? "Action failed");
-      router.refresh();
+      try {
+        const result = await action();
+        if (!result.ok) {
+          setActionState({ key, status: "danger", message: result.error ?? "Action failed" });
+        } else {
+          setActionState({ key, status: "success", message: "Saved." });
+          onOk?.();
+        }
+      } catch {
+        setActionState({
+          key,
+          status: "danger",
+          message: "That matrix change could not be completed. Your current edit is still here.",
+        });
+      } finally {
+        onSettled?.();
+        router.refresh();
+      }
     });
+  }
+
+  function isPending(key: string) {
+    return actionState?.key === key && actionState.status === "pending";
+  }
+
+  function actionStatus(key: string) {
+    if (!actionState || actionState.key !== key || actionState.status === "pending") return null;
+    return (
+      <InlineStatus tone={actionState.status} className="mt-2">
+        {actionState.message}
+      </InlineStatus>
+    );
+  }
+
+  function navigateToVersion(versionId: string) {
+    setEditingId(null);
+    setEditText("");
+    const params = new URLSearchParams();
+    params.set("v", versionId);
+    if (view !== "overview") params.set("view", view);
+    router.push(`/projects/${projectId}/matrix?${params.toString()}`);
   }
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="label-mono text-lg font-semibold">Prompt Matrix</div>
+      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-ink/15 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3" aria-label="Matrix version state">
           {focus && (
             <>
               <Stamp tone="ink">V{focus.version}</Stamp>
@@ -123,72 +184,75 @@ export function MatrixBoard({
         </div>
         {/* PM-5: live cell counter. */}
         {focus && (
-          <span
-            className={`label-mono text-sm ${atCap ? "text-accent-ink font-semibold" : "text-ink/60"}`}
-          >
-            {count} / {MAX_CELLS_PER_RUN} <GlossaryTerm term="cell">cells</GlossaryTerm>
+          <span className={`text-sm ${atCap ? "font-medium text-danger" : "text-ink/65"}`}>
+            <span className="font-mono tabular-nums text-ink">{count}</span> used ·{" "}
+            <span className="font-mono tabular-nums text-ink">{MAX_CELLS_PER_RUN - count}</span>{" "}
+            remaining · {MAX_CELLS_PER_RUN} <GlossaryTerm term="cell">cell</GlossaryTerm> maximum
           </span>
         )}
       </div>
 
-      {error && (
-        <p className="mb-4 rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">
-          {error}
-        </p>
+      {actionState?.status === "danger" && actionState.key !== `cell-${editingId}` && (
+        <InlineStatus tone="danger" className="mb-4">
+          {actionState.message}
+        </InlineStatus>
+      )}
+      {actionState?.status === "success" && (
+        <InlineStatus tone="success" className="mb-4">
+          {actionState.message}
+        </InlineStatus>
       )}
 
       {/* M27/D-084 pinned decision 6a: comparison prompts need >=1 active
           competitor; zero renders a broken {competitor_list} and is blocked
           server-side, so warn here before the operator hits that error. */}
       {activeCompetitorCount === 0 && (
-        <div className="mb-4 rounded-lg border border-warn px-3 py-2">
-          <span className="font-mono text-xs text-warn">
+        <InlineStatus tone="warning" className="mb-4">
+          <span>
             No active competitors — comparison prompts cannot be generated. Unarchive or add a
             competitor in Setup.
           </span>
-        </div>
+        </InlineStatus>
       )}
 
       {/* M27/D-084 pinned decision 7: this draft predates the most recent
           Setup edit. Approved versions are frozen evidence (C-4) and never
           show this — only drafts, which can still be regenerated. */}
       {isDraft && staleDraft && (
-        <div className="mb-4 rounded-lg border border-warn px-3 py-2">
-          <span className="font-mono text-xs text-warn">
+        <InlineStatus tone="warning" className="mb-4">
+          <span>
             Setup changed since this draft was generated — regenerate to reflect the current
             competitors, personas, markets, and fact sheet.
           </span>
-        </div>
+        </InlineStatus>
       )}
 
       {/* PM-9 early warning: surfaced at render time, not first at approval. */}
       {isDraft && violationCount > 0 && (
-        <div className="mb-4 rounded-lg border border-warn px-3 py-2">
-          <span className="font-mono text-xs text-warn">
+        <InlineStatus tone="warning" className="mb-4">
+          <span>
             PM-9 — {violationCount} unbranded cell{violationCount === 1 ? "" : "s"} contain
             {violationCount === 1 ? "s" : ""} tracked brand terms; approval will be blocked.
             Discovery/consideration prompts must be brand-free — check the buyer&rsquo;s goal and
             category intake fields, then edit or regenerate the flagged cells below.
           </span>
-        </div>
+        </InlineStatus>
       )}
 
       {versions.length > 0 && (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
           <label htmlFor="matrix-version" className="label-mono text-xs text-ink/45">
             Version
           </label>
-          <select
+          <Select
             id="matrix-version"
-            className="label-mono rounded-lg border border-ink/20 bg-paper px-3 py-1.5 text-xs"
+            className="label-mono min-h-11 text-xs sm:max-w-sm"
             value={focus?.id ?? ""}
             onChange={(e) => {
               const next = e.target.value;
               if (!next) return;
-              const params = new URLSearchParams();
-              params.set("v", next);
-              if (view !== "overview") params.set("view", view);
-              router.push(`/projects/${projectId}/matrix?${params.toString()}`);
+              if (editDirty) setConfirmation({ kind: "switch-version", versionId: next });
+              else navigateToVersion(next);
             }}
           >
             {versions.map((v) => (
@@ -196,25 +260,27 @@ export function MatrixBoard({
                 V{v.version} · {v.state} · {v.cellCount} cells
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
       {!focus ? (
-        <div className="rounded-xl border border-ink/15 p-10 text-center">
-          <p className="label-mono text-sm text-ink/60">No matrix on file</p>
-          <p className="mt-1 mb-4 font-mono text-xs text-ink/45">
-            generate the default audit matrix with consumer framing evidence where applicable
+        <div className="rounded-xl border border-ink/15 px-5 py-10 text-center">
+          <p className="label-mono text-sm text-ink/70">No matrix on file</p>
+          <p className="mx-auto mt-2 mb-4 max-w-lg text-sm text-ink/60">
+            Generate the default audit matrix. Consumer projects include the established framing-evidence prompts where applicable.
           </p>
           <Button
-            disabled={pending || projectStatus !== "active"}
-            onClick={() => run(() => generateMatrix(projectId))}
+            disabled={projectStatus !== "active"}
+            pending={isPending("generate")}
+            pendingLabel="Generating…"
+            onClick={() => run("generate", () => generateMatrix(projectId))}
           >
-            {pending ? "Generating…" : "Generate matrix"}
+            Generate matrix
           </Button>
           {projectStatus !== "active" && (
-            <p className="mt-3 font-mono text-xs text-warn">
-              complete intake first
+            <p className="mt-3 text-sm text-warn">
+              Complete intake before generating a matrix.
             </p>
           )}
         </div>
@@ -230,36 +296,42 @@ export function MatrixBoard({
                   <Button
                     key={intent}
                     variant="secondary"
-                    disabled={pending || atCap || (intent === "representation" && hasAllRepresentationPrompts)}
-                    onClick={() => run(() => addCell(projectId, focus.id, intent))}
+                    disabled={atCap || (intent === "representation" && hasAllRepresentationPrompts)}
+                    pending={isPending(`add-${intent}`)}
+                    pendingLabel="Adding…"
+                    onClick={() => run(`add-${intent}`, () => addCell(projectId, focus.id, intent))}
                   >
                     + {intent}
                   </Button>
                 ))}
                 <div className="flex-1" />
                 <Button
-                  disabled={pending}
-                  onClick={() => run(() => approveMatrix(projectId, focus.id))}
+                  pending={isPending("approve")}
+                  pendingLabel="Approving…"
+                  onClick={() => setConfirmation({ kind: "approve" })}
                 >
                   Approve V{focus.version}
                 </Button>
+                {atCap && (
+                  <InlineStatus tone="warning" className="w-full">
+                    This version has reached the 50-cell cap. Remove a named cell before adding another.
+                  </InlineStatus>
+                )}
               </>
             ) : (
               <>
-                <span className="font-mono text-xs text-ink/60">
-                  approved versions are frozen (C-4) — edits go into a new draft
+                <span className="text-sm text-ink/65">
+                  Approved versions are frozen evidence (C-4). Further edits belong in a new draft.
                 </span>
                 <div className="flex-1" />
                 <Button
                   variant="secondary"
-                  disabled={pending}
                   onClick={() => router.push(`/projects/${projectId}/setup?view=basics`)}
                 >
                   Review project inputs
                 </Button>
                 <Button
                   variant="secondary"
-                  disabled={pending}
                   onClick={() =>
                     router.push(`/projects/${projectId}/runs/new?matrixVersionId=${focus.id}`)
                   }
@@ -268,8 +340,9 @@ export function MatrixBoard({
                 </Button>
                 <Button
                   variant="secondary"
-                  disabled={pending}
-                  onClick={() => run(() => newDraftFromVersion(projectId, focus.id))}
+                  pending={isPending("new-draft")}
+                  pendingLabel="Creating…"
+                  onClick={() => run("new-draft", () => newDraftFromVersion(projectId, focus.id))}
                 >
                   Create draft from V{focus.version}
                 </Button>
@@ -287,7 +360,7 @@ export function MatrixBoard({
               <div className="mb-4 rounded-lg border border-ink/15 p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="label-mono text-xs text-ink/45">Sample budget</span>
-                  <span className="font-mono text-[11px] text-ink/40">
+                  <span className="text-sm text-ink/55">
                     projected at k={AUDIT_K}, one engine-mode — aggregate metrics need n ≥ {SMALL_N_GATE}
                   </span>
                 </div>
@@ -304,7 +377,7 @@ export function MatrixBoard({
                     );
                   })}
                 </div>
-                <p className="mt-2 font-mono text-[11px] text-ink/45">
+                <p className="mt-2 text-sm leading-relaxed text-ink/60">
                   Proof&rsquo;s shared projection uses the {standardCellCount} standard audit cells.
                   Representation cells feed factual-claim accuracy only and never citation or
                   Stability Index denominators. A pillar under {SMALL_N_GATE} still renders per-cell and
@@ -319,7 +392,7 @@ export function MatrixBoard({
               <div className="mb-4 rounded-lg border border-ink/15 p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="label-mono text-xs text-ink/45">Simulation coverage</span>
-                  <span className="font-mono text-[11px] text-ink/40">
+                  <span className="text-sm text-ink/55">
                     whether this matrix would give each Simulation study pack real evidence to cite
                   </span>
                 </div>
@@ -334,15 +407,19 @@ export function MatrixBoard({
                       </Stamp>
                       {pack.status === "gap" && isDraft && (
                         <>
-                          <span className="font-mono text-[11px] text-ink/45">
+                          <span className="text-sm text-ink/60">
                             no {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} cells yet —
                             templates exist but are inactive by default (opt-in)
                           </span>
                           <Button
                             variant="secondary"
-                            disabled={pending}
+                            pending={isPending(`coverage-${pack.requiredAspect}`)}
+                            pendingLabel="Activating…"
                             onClick={() =>
-                              run(() => activateCoverageAspectAction(projectId, pack.requiredAspect))
+                              run(
+                                `coverage-${pack.requiredAspect}`,
+                                () => activateCoverageAspectAction(projectId, pack.requiredAspect),
+                              )
                             }
                           >
                             Activate {FRAME_ASPECT_LABELS[pack.requiredAspect].toLowerCase()} templates
@@ -352,7 +429,7 @@ export function MatrixBoard({
                     </div>
                   ))}
                 </div>
-                <p className="mt-2 font-mono text-[11px] text-ink/45">
+                <p className="mt-2 text-sm leading-relaxed text-ink/60">
                   Activating adds these prompts to the shared archetype template pool for future
                   matrices of this category — existing approved matrices stay frozen (C-4).
                   Regenerate or add cells afterward to bring them into this draft.
@@ -399,8 +476,8 @@ export function MatrixBoard({
                             : "border-ink/15"
                         }`}
                       >
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <span className="flex items-center gap-2 font-mono text-xs text-ink/45">
+                        <div className="mb-1.5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <span className="flex flex-wrap items-center gap-2 font-mono text-xs text-ink/55">
                             {cell.personaLabel} · {cell.marketLabel} ·{" "}
                             {cell.variantKey}
                             {cell.brandTermViolations.length > 0 && (
@@ -410,10 +487,10 @@ export function MatrixBoard({
                             )}
                           </span>
                           {isDraft && cell.intent !== "representation" && (
-                            <span className="flex gap-1">
+                            <span className="flex flex-wrap gap-1">
                               <Button
                                 variant="ghost"
-                                disabled={pending}
+                                disabled={editingId !== null && editingId !== cell.id}
                                 onClick={() => {
                                   setEditingId(cell.id);
                                   setEditText(cell.resolvedText);
@@ -423,19 +500,22 @@ export function MatrixBoard({
                               </Button>
                               <Button
                                 variant="ghost"
-                                disabled={pending}
-                                onClick={() =>
-                                  run(() => regenerateCell(projectId, focus.id, cell.id))
-                                }
+                                disabled={editingId !== null}
+                                pending={isPending(`regenerate-${cell.id}`)}
+                                pendingLabel="Regenerating…"
+                                onClick={() => run(
+                                  `regenerate-${cell.id}`,
+                                  () => regenerateCell(projectId, focus.id, cell.id),
+                                )}
                               >
                                 Regenerate
                               </Button>
                               <Button
                                 variant="ghost"
-                                disabled={pending}
-                                onClick={() =>
-                                  run(() => removeCell(projectId, focus.id, cell.id))
-                                }
+                                disabled={editingId !== null}
+                                pending={isPending(`remove-${cell.id}`)}
+                                pendingLabel="Removing…"
+                                onClick={() => setConfirmation({ kind: "remove", cell })}
                               >
                                 Remove
                               </Button>
@@ -452,28 +532,37 @@ export function MatrixBoard({
                         ) : editingId === cell.id ? (
                           <div className="flex flex-col gap-2">
                             <Textarea
+                              autoFocus
+                              aria-label={`Edit ${cell.variantKey} prompt`}
                               value={editText}
                               onChange={(e) => setEditText(e.target.value)}
                             />
                             <div className="flex gap-2">
                               <Button
-                                disabled={pending}
-                                onClick={() => {
-                                  setEditingId(null);
-                                  run(() =>
-                                    saveCellText(projectId, focus.id, cell.id, editText),
-                                  );
-                                }}
+                                pending={isPending(`cell-${cell.id}`)}
+                                pendingLabel="Saving…"
+                                onClick={() => run(
+                                  `cell-${cell.id}`,
+                                  () => saveCellText(projectId, focus.id, cell.id, editText),
+                                  () => {
+                                    setEditingId(null);
+                                    setEditText("");
+                                  },
+                                )}
                               >
                                 Save
                               </Button>
                               <Button
                                 variant="secondary"
-                                onClick={() => setEditingId(null)}
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditText("");
+                                }}
                               >
                                 Cancel
                               </Button>
                             </div>
+                            {actionStatus(`cell-${cell.id}`)}
                           </div>
                         ) : (
                           <p className="text-sm text-ink/85">{cell.resolvedText}</p>
@@ -492,6 +581,66 @@ export function MatrixBoard({
           )}
         </>
       )}
+
+      <AppConfirmDialog
+        open={confirmation !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmation(null);
+        }}
+        title={
+          confirmation?.kind === "approve"
+            ? `Approve matrix V${focus?.version ?? ""}?`
+            : confirmation?.kind === "remove"
+              ? "Remove matrix cell?"
+              : "Discard cell edit?"
+        }
+        description={
+          confirmation?.kind === "approve"
+            ? "Approval freezes this version as immutable evidence (C-4). Confirm the warnings, capacity, and prompt wording before continuing."
+            : confirmation?.kind === "remove"
+              ? `Remove “${confirmation.cell.variantKey} · ${confirmation.cell.personaLabel} · ${confirmation.cell.marketLabel}” from this draft?`
+              : "The edited prompt text has not been saved. Switching versions will discard it."
+        }
+        confirmLabel={
+          confirmation?.kind === "approve"
+            ? `Approve V${focus?.version ?? ""}`
+            : confirmation?.kind === "remove"
+              ? "Remove named cell"
+              : "Discard and switch"
+        }
+        tone={confirmation?.kind === "approve" || confirmation?.kind === "switch-version" ? "primary" : "danger"}
+        pending={
+          confirmation?.kind === "approve"
+            ? isPending("approve")
+            : confirmation?.kind === "remove"
+              ? isPending(`remove-${confirmation.cell.id}`)
+              : false
+        }
+        onConfirm={() => {
+          if (!focus || !confirmation) return;
+          if (confirmation.kind === "approve") {
+            run(
+              "approve",
+              () => approveMatrix(projectId, focus.id),
+              undefined,
+              () => setConfirmation(null),
+            );
+            return;
+          }
+          if (confirmation.kind === "remove") {
+            const cell = confirmation.cell;
+            run(
+              `remove-${cell.id}`,
+              () => removeCell(projectId, focus.id, cell.id),
+              undefined,
+              () => setConfirmation(null),
+            );
+            return;
+          }
+          navigateToVersion(confirmation.versionId);
+          setConfirmation(null);
+        }}
+      />
     </div>
   );
 }

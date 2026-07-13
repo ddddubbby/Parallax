@@ -236,6 +236,90 @@ test.describe("operator journey smoke", () => {
     await expect(dialog).toHaveCount(0);
   });
 
+  test("matrix shows capacity, protects edits, and confirms immutable or destructive actions", async ({ page }) => {
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    await page.goto(`${projectHref}/matrix?view=overview`);
+    const generate = page.getByRole("button", { name: "Generate matrix", exact: true });
+    if (await generate.isVisible()) await generate.click();
+    await expect(page.getByRole("heading", { name: "Prompt matrix", exact: true })).toHaveCount(1);
+    await expect(page.getByText(/\d+ used · \d+ remaining · 50 cell maximum/)).toBeVisible();
+
+    await page.getByRole("button", { name: /Approve V\d+/ }).click();
+    const approveDialog = page.getByRole("dialog", { name: /Approve matrix V\d+\?/ });
+    await expect(approveDialog).toContainText("immutable evidence (C-4)");
+    await approveDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    await page.getByRole("link", { name: "Presence", exact: true }).click();
+    await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+    const prompt = page.getByRole("textbox", { name: /Edit .* prompt/ });
+    await expect(prompt).toBeFocused();
+    await prompt.fill("Unsaved matrix prompt");
+    const positionTab = page.getByRole("link", { name: "Position", exact: true });
+    await positionTab.click();
+    const dirtyDialog = page.getByRole("dialog", { name: "Discard unsaved changes?" });
+    await expect(dirtyDialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(positionTab).toBeFocused();
+
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("button", { name: "Remove", exact: true }).first().click();
+    const removeDialog = page.getByRole("dialog", { name: "Remove matrix cell?" });
+    await expect(removeDialog).toContainText(/v\d+ · .* · .*/);
+    await expect(removeDialog.getByRole("button", { name: "Remove named cell" })).toBeVisible();
+    await removeDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  });
+
+  test("run configuration exposes projection states and cancellation is explicit", async ({ page }) => {
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LensLoop M34A E2E" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    await page.goto(`${projectHref}/runs/new`);
+    await expect(page.getByRole("status").filter({ hasText: "Cost projection" })).toContainText(
+      "READY",
+    );
+    const cap = page.getByRole("spinbutton", { name: "Run dollar cap (USD)" });
+    await cap.fill("0");
+    await expect(page.getByRole("status").filter({ hasText: "Cost projection" })).toContainText(
+      "OVER CAP",
+    );
+    await expect(page.getByRole("button", { name: "Start mock run" })).toBeDisabled();
+    await cap.fill("25");
+
+    await page
+      .getByRole("button", { name: "Live validation: real spend, never client-ready" })
+      .click();
+    await expect(page.getByRole("status").filter({ hasText: "Cost projection" })).toContainText(
+      "UNAVAILABLE",
+    );
+    await expect(page.getByRole("link", { name: /add or enable a credential in Settings/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start live validation" })).toBeDisabled();
+
+    await page.getByRole("button", { name: "Mock: fixtures, free" }).click();
+    const advanced = page.getByRole("button", { name: /Advanced — failure injection/ });
+    await advanced.click();
+    await expect(advanced).toHaveAttribute("aria-expanded", "true");
+    await page.getByRole("button", { name: "Start mock run" }).click();
+    await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("progressbar", { name: "Run progress" })).toHaveAttribute(
+      "aria-valuetext",
+      /0 of \d+ jobs complete/,
+    );
+    await expect(page.getByText(/WORKER OFFLINE/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    const cancelDialog = page.getByRole("dialog", { name: "Cancel active run?" });
+    await expect(cancelDialog).toContainText("Completed responses and incurred cost remain");
+    await cancelDialog.getByRole("button", { name: "Cancel run", exact: true }).click();
+    await expect(page.getByText("cancelled", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("Run cancelled.");
+  });
+
   test("reduced motion keeps feedback but removes spatial movement", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 390, height: 844 });

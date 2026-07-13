@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SimulatedBadge } from "@/components/simulated-badge";
-import { Button, Stamp } from "@/components/ui";
+import { Button, InlineStatus, Stamp } from "@/components/ui";
+import { AppConfirmDialog } from "@/components/ui/dialog";
 import type { RunDetailView } from "@/core/views";
 import { resolvePauseReason } from "@/core/runner";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
@@ -60,30 +61,59 @@ export function RunProgress({
 }) {
   const [detail, setDetail] = useState<RunDetail>(initial);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
+  const [pollState, setPollState] = useState<"healthy" | "degraded">("healthy");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(() => new Date());
+  const [suppressProgressMotion, setSuppressProgressMotion] = useState(false);
+  const [terminalAnnouncement, setTerminalAnnouncement] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollStateRef = useRef<"healthy" | "degraded">("healthy");
+  const previousRunStateRef = useRef(initial.run.state);
+
+  const pollNow = useCallback(async () => {
+    try {
+      const next = await fetchRunDetail(projectId, runId);
+      if (next) {
+        if (pollStateRef.current === "degraded") {
+          setSuppressProgressMotion(true);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => setSuppressProgressMotion(false)),
+          );
+        }
+        setDetail(next as RunDetail);
+        setLastUpdatedAt(new Date());
+        pollStateRef.current = "healthy";
+        setPollState("healthy");
+      }
+    } catch (err) {
+      pollStateRef.current = "degraded";
+      setPollState("degraded");
+      reportError(err, { boundary: "run-progress-poll", projectId, runId });
+    }
+  }, [projectId, runId]);
 
   useEffect(() => {
-    function poll() {
-      fetchRunDetail(projectId, runId)
-        .then((next) => {
-          if (next) setDetail(next as RunDetail);
-        })
-        // A transient poll failure must not blank the page or stop the loop:
-        // keep the last known detail and try again on the next tick.
-        .catch((err) => reportError(err, { boundary: "run-progress-poll", projectId, runId }));
-    }
     if (!TERMINAL_STATES.has(detail.run.state)) {
-      timerRef.current = setInterval(poll, POLL_MS);
+      timerRef.current = setInterval(() => void pollNow(), POLL_MS);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [projectId, runId, detail.run.state]);
+  }, [detail.run.state, pollNow]);
 
-  function run(action: () => Promise<unknown>) {
+  useEffect(() => {
+    const previous = previousRunStateRef.current;
+    if (TERMINAL_STATES.has(detail.run.state) && !TERMINAL_STATES.has(previous)) {
+      setTerminalAnnouncement(`Run ${detail.run.state}.`);
+    }
+    previousRunStateRef.current = detail.run.state;
+  }, [detail.run.state]);
+
+  function run(key: string, action: () => Promise<unknown>, onSettled?: () => void) {
     setActionError(null);
-    startTransition(async () => {
+    setActionKey(key);
+    void (async () => {
       try {
         await action();
         const next = await fetchRunDetail(projectId, runId);
@@ -93,8 +123,11 @@ export function RunProgress({
         // operator sees why, rather than a stuck spinner.
         reportError(err, { boundary: "run-progress-action", projectId, runId });
         setActionError("That action could not be completed. Check the worker and try again.");
+      } finally {
+        setActionKey(null);
+        onSettled?.();
       }
-    });
+    })();
   }
 
   const total = detail.run.plannedCalls;
@@ -124,7 +157,7 @@ export function RunProgress({
         <div className="flex flex-col gap-1 font-mono text-xs">
           {detail.events.length === 0 && <p className="text-ink/45">No events yet</p>}
           {detail.events.map((e) => (
-            <div key={e.id} className="flex gap-2 border-b border-ink/10 py-1">
+            <div key={e.id} className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)] gap-2 border-b border-ink/10 py-2">
               <span className="text-ink/40">
                 {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour12: false })}
               </span>
@@ -139,7 +172,7 @@ export function RunProgress({
               >
                 {e.level}
               </span>
-              <span className="text-ink/80">{e.message}</span>
+              <span className="whitespace-pre-wrap break-words text-ink/80">{e.message}</span>
             </div>
           ))}
         </div>
@@ -149,6 +182,9 @@ export function RunProgress({
 
   return (
     <div>
+      <p className="sr-only" role="status" aria-live="polite">
+        {terminalAnnouncement}
+      </p>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Run</h1>
         {detail.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
@@ -171,7 +207,7 @@ export function RunProgress({
         {detail.run.state === "completed" && (
           <Link
             href={resultsHref}
-            className="interactive-press label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-ink transition-micro hover:bg-accent/90"
+            className="interactive-press label-mono ml-auto inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {isResonance ? "Study results →" : "Evidence dashboard →"}
           </Link>
@@ -179,18 +215,37 @@ export function RunProgress({
       </div>
 
       {detail.workerOffline && (
-        <p className="mb-4 rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
-          WORKER OFFLINE — this run is queued but no worker is processing jobs. Start it with{" "}
-          <code className="font-semibold">pnpm dev:all</code> (app + worker) or run{" "}
-          <code className="font-semibold">pnpm worker</code> in a second terminal. This clears once
-          the worker sends a heartbeat.
-        </p>
+        <InlineStatus tone="warning" className="mb-4">
+          <span>
+            <span className="font-mono text-xs font-semibold">WORKER OFFLINE</span> — This run is
+            queued but no worker is processing jobs. It will begin when processing resumes.
+          </span>
+        </InlineStatus>
       )}
 
       {pauseReason && (
-        <p className="mb-4 rounded-lg border border-warn px-3 py-2 font-mono text-xs text-warn">
+        <InlineStatus tone="warning" className="mb-4">
           {pauseReason}
-        </p>
+        </InlineStatus>
+      )}
+
+      {pollState === "degraded" && (
+        <InlineStatus tone="warning" className="mb-4">
+          <span>
+            Live updates are degraded. Showing last-known data from{" "}
+            <span className="font-mono tabular-nums">
+              {lastUpdatedAt.toLocaleTimeString("en-GB", { hour12: false })}
+            </span>
+            .
+          </span>{" "}
+          <button
+            type="button"
+            className="ml-1 rounded-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            onClick={() => void pollNow()}
+          >
+            Retry now
+          </button>
+        </InlineStatus>
       )}
 
       <div className="mb-6 rounded-xl border border-ink/15 p-4">
@@ -200,10 +255,21 @@ export function RunProgress({
           </span>
           <span>{pct}%</span>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-paper-2">
-          <div className="h-full bg-accent transition-standard" style={{ width: `${pct}%` }} />
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-paper-2"
+          role="progressbar"
+          aria-label="Run progress"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={finished}
+          aria-valuetext={`${finished} of ${total} jobs complete`}
+        >
+          <div
+            className={`h-full bg-accent ${suppressProgressMotion ? "" : "transition-standard"}`}
+            style={{ width: `${pct}%` }}
+          />
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2 font-mono text-xs text-ink/60">
+        <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-xs text-ink/60 sm:grid-cols-4">
           {JOB_STATES.map((s) => (
             <div key={s}>
               {s}: {detail.progress[s] ?? 0}
@@ -222,22 +288,28 @@ export function RunProgress({
         {(detail.run.state === "queued" || detail.run.state === "running") && (
           <Button
             variant="secondary"
-            disabled={pending}
-            onClick={() => run(() => pauseRun(projectId, runId))}
+            pending={actionKey === "pause"}
+            pendingLabel="Pausing…"
+            onClick={() => run("pause", () => pauseRun(projectId, runId))}
           >
             Pause
           </Button>
         )}
         {detail.run.state === "paused" && (
-          <Button disabled={pending} onClick={() => run(() => resumeRun(projectId, runId))}>
+          <Button
+            pending={actionKey === "resume"}
+            pendingLabel="Resuming…"
+            onClick={() => run("resume", () => resumeRun(projectId, runId))}
+          >
             Resume
           </Button>
         )}
         {!TERMINAL_STATES.has(detail.run.state) && (
           <Button
             variant="danger"
-            disabled={pending}
-            onClick={() => run(() => cancelRun(projectId, runId))}
+            pending={actionKey === "cancel"}
+            pendingLabel="Cancelling…"
+            onClick={() => setCancelOpen(true)}
           >
             Cancel
           </Button>
@@ -245,10 +317,22 @@ export function RunProgress({
       </div>
 
       {actionError && (
-        <p className="mb-6 rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">
+        <InlineStatus tone="danger" className="mb-6">
           {actionError}
-        </p>
+        </InlineStatus>
       )}
+
+      <AppConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Cancel active run?"
+        description="Queued jobs will be cancelled and no new work will start. Completed responses and incurred cost remain part of this run’s record."
+        confirmLabel="Cancel run"
+        pending={actionKey === "cancel"}
+        onConfirm={() =>
+          run("cancel", () => cancelRun(projectId, runId), () => setCancelOpen(false))
+        }
+      />
     </div>
   );
 }

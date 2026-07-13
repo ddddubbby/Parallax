@@ -35,7 +35,7 @@ function RunRow({
   return (
     <Link
       href={`/projects/${projectId}/runs/${run.id}`}
-      className="flex flex-col gap-2 rounded-xl border border-ink/15 p-3 transition-micro hover:border-ink sm:flex-row sm:items-center sm:justify-between"
+      className="flex min-h-11 flex-col gap-3 rounded-xl border border-ink/15 p-4 transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:flex-row sm:items-center sm:justify-between"
     >
       <span className="flex min-w-0 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
@@ -50,11 +50,12 @@ function RunRow({
           {providers.join(", ") || "—"} · {modes.join(", ") || "—"} · Run {run.id.slice(0, 8)}
         </span>
       </span>
-      <span className="flex shrink-0 items-center gap-4 font-mono text-xs text-ink/45">
+      <span className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs text-ink/55">
         <span>
           {run.succeeded} / {run.total} jobs
         </span>
         <span>{run.createdAt.toISOString().slice(0, 10).replaceAll("-", ".")}</span>
+        <span className="label-mono text-accent-ink">Open →</span>
       </span>
     </Link>
   );
@@ -76,7 +77,7 @@ export default async function RunsIndexPage({
   const simulationRuns = runs.filter((r) => r.matrixKind === "resonance");
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8">
+    <main className="mx-auto min-w-0 max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-1 font-mono text-xs text-ink/45">
         <Link href="/projects" className="hover:text-ink">
           Projects
@@ -88,25 +89,25 @@ export default async function RunsIndexPage({
         / Runs
       </div>
 
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="label-mono text-lg font-semibold">Runs</h1>
         <Link
           href={`/projects/${id}/runs/new`}
-          className="label-mono text-xs text-accent-ink hover:text-accent"
+          className="interactive-press label-mono inline-flex min-h-11 shrink-0 items-center rounded-full bg-accent px-5 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Configure run →
         </Link>
       </div>
 
       {runs.length === 0 ? (
-        <div className="rounded-xl border border-ink/15 p-10 text-center">
-          <p className="label-mono text-sm text-ink/60">No runs yet</p>
-          <p className="mt-1 mb-4 font-mono text-xs text-ink/45">
-            start a run from an approved matrix
+        <div className="rounded-xl border border-ink/15 px-5 py-10 text-center">
+          <p className="label-mono text-sm text-ink/70">No runs yet</p>
+          <p className="mx-auto mt-2 mb-4 max-w-md text-sm text-ink/60">
+            Start an audit or Simulation run from an approved matrix.
           </p>
           <Link
             href={`/projects/${id}/runs/new`}
-            className="label-mono text-xs text-accent-ink hover:text-accent"
+            className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-5 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Configure run →
           </Link>
@@ -119,7 +120,7 @@ export default async function RunsIndexPage({
               <span className="text-ink/40"> · {auditRuns.length}</span>
             </h2>
             {auditRuns.length === 0 ? (
-              <p className="font-mono text-xs text-ink/45">No audit runs on file</p>
+              <p className="text-sm text-ink/60">No audit runs on file.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {auditRuns.map((run) => (
@@ -138,7 +139,7 @@ export default async function RunsIndexPage({
               <SimulatedBadge />
             </div>
             {simulationRuns.length === 0 ? (
-              <p className="font-mono text-xs text-ink/45">No simulation runs on file</p>
+              <p className="text-sm text-ink/60">No Simulation runs on file.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {simulationRuns.map((run) => (
