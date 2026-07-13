@@ -64,6 +64,7 @@ export function Button({
             "col-start-1 row-start-1 transition-micro",
             pending ? "opacity-100" : "invisible opacity-0",
           )}
+          aria-hidden={!pending || undefined}
         >
           {pendingLabel}
         </span>
