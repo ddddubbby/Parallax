@@ -36,8 +36,10 @@ export interface VirtualsGatewayClient extends ChainGateway {
   sendMessage(jobId: string, content: string): Promise<{ txHash?: string }>;
 }
 
-/** The fixed price the gateway sets on every job (AGENT_PRD §13). */
-export const AGENT_PRICE_MICRO_USDC = 99_000_000n;
+// The fixed price the gateway sets on every job (AGENT_PRD §13) — one home
+// (core/agent-admission), re-exported for existing importers.
+import { AGENT_PRICE_MICRO_USDC } from "@/core/agent-admission";
+export { AGENT_PRICE_MICRO_USDC };
 
 export interface RawAcpEvent {
   chainId: number;
