@@ -31,7 +31,7 @@ export default async function SetupPage({
   const base = `/projects/${id}/setup`;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8">
+    <main className="mx-auto min-w-0 max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-4 font-mono text-xs text-ink/45">
         <Link href="/projects" className="hover:text-ink">
           Projects

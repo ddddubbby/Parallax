@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 import type { FieldErrors, IntakeStepKey } from "@/core/intake";
 import { AUDIT_ARCHETYPES, CATEGORY_ARCHETYPES, type CategoryArchetype } from "@/core/semantic";
@@ -57,24 +57,39 @@ function TagListInput({
   value,
   onChange,
   placeholder,
+  invalid = false,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  invalid?: boolean;
 }) {
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const removeRefs = useRef<Array<HTMLButtonElement | null>>([]);
   function add() {
     const v = text.trim();
     if (!v) return;
     onChange([...value, v]);
     setText("");
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }
+  function remove(index: number) {
+    const next = value.filter((_, itemIndex) => itemIndex !== index);
+    onChange(next);
+    requestAnimationFrame(() => {
+      const nextButton = removeRefs.current[Math.min(index, next.length - 1)];
+      (nextButton ?? inputRef.current)?.focus();
+    });
   }
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Input
+          ref={inputRef}
           value={text}
           placeholder={placeholder}
+          aria-invalid={invalid || undefined}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -83,7 +98,7 @@ function TagListInput({
             }
           }}
         />
-        <Button type="button" variant="secondary" onClick={add}>
+        <Button type="button" variant="secondary" className="shrink-0" onClick={add}>
           Add
         </Button>
       </div>
@@ -92,14 +107,17 @@ function TagListInput({
           {value.map((item, i) => (
             <span
               key={`${item}-${i}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-ink/25 px-2.5 py-0.5 font-mono text-xs"
+              className="inline-flex min-h-11 items-center gap-1 rounded-full border border-ink/25 pl-3 font-mono text-xs"
             >
               {item}
               <button
+                ref={(node) => {
+                  removeRefs.current[i] = node;
+                }}
                 type="button"
                 aria-label={`Remove ${item}`}
-                className="cursor-pointer text-ink/50 hover:text-danger"
-                onClick={() => onChange(value.filter((_, j) => j !== i))}
+                className="inline-grid size-11 cursor-pointer place-items-center rounded-full text-ink/55 transition-micro hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                onClick={() => remove(i)}
               >
                 ×
               </button>
@@ -134,6 +152,7 @@ export function StepForm({
           <Field label="Project / client name" errors={errsFor(errors, "name")}>
             <Input
               value={v.name}
+              aria-invalid={Boolean(errsFor(errors, "name")) || undefined}
               onChange={(e) => onChange({ ...v, name: e.target.value })}
             />
           </Field>
@@ -144,6 +163,7 @@ export function StepForm({
           >
             <Select
               value={v.category_archetype ?? "b2b"}
+              aria-invalid={Boolean(errsFor(errors, "category_archetype")) || undefined}
               onChange={(e) =>
                 onChange({ ...v, category_archetype: e.target.value as CategoryArchetype })
               }
@@ -162,6 +182,7 @@ export function StepForm({
           >
             <Input
               value={v.category}
+              aria-invalid={Boolean(errsFor(errors, "category")) || undefined}
               onChange={(e) => onChange({ ...v, category: e.target.value })}
             />
           </Field>
@@ -176,6 +197,7 @@ export function StepForm({
           >
             <Textarea
               value={v.job_to_be_done}
+              aria-invalid={Boolean(errsFor(errors, "job_to_be_done")) || undefined}
               placeholder="e.g. night street photography"
               onChange={(e) => onChange({ ...v, job_to_be_done: e.target.value })}
             />
@@ -190,12 +212,14 @@ export function StepForm({
           <Field label="Brand name" errors={errsFor(errors, "name")}>
             <Input
               value={v.name}
+              aria-invalid={Boolean(errsFor(errors, "name")) || undefined}
               onChange={(e) => onChange({ ...v, name: e.target.value })}
             />
           </Field>
           <Field label="Domain" errors={errsFor(errors, "domain")}>
             <Input
               value={v.domain}
+              aria-invalid={Boolean(errsFor(errors, "domain")) || undefined}
               placeholder="example.com"
               onChange={(e) => onChange({ ...v, domain: e.target.value })}
             />
@@ -210,6 +234,7 @@ export function StepForm({
           <Field label="Description" errors={errsFor(errors, "description")}>
             <Textarea
               value={v.description ?? ""}
+              aria-invalid={Boolean(errsFor(errors, "description")) || undefined}
               onChange={(e) => onChange({ ...v, description: e.target.value })}
             />
           </Field>
@@ -250,6 +275,7 @@ export function StepForm({
                 <Field label="Name" errors={errsFor(errors, `competitors.${i}.name`)}>
                   <Input
                     value={c.name}
+                    aria-invalid={Boolean(errsFor(errors, `competitors.${i}.name`)) || undefined}
                     onChange={(e) =>
                       set(list.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
                     }
@@ -313,6 +339,7 @@ export function StepForm({
                 <Field label="Type" errors={errsFor(errors, `rows.${i}.type`)}>
                   <Select
                     value={row.type}
+                    aria-invalid={Boolean(errsFor(errors, `rows.${i}.type`)) || undefined}
                     onChange={(e) =>
                       set(v.rows.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)))
                     }
@@ -327,12 +354,13 @@ export function StepForm({
                 <Field label="Statement" errors={errsFor(errors, `rows.${i}.statement`)}>
                   <Textarea
                     value={row.statement}
+                    aria-invalid={Boolean(errsFor(errors, `rows.${i}.statement`)) || undefined}
                     onChange={(e) =>
                       set(v.rows.map((x, j) => (j === i ? { ...x, statement: e.target.value } : x)))
                     }
                   />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field label="Source note (optional)">
                     <Input
                       value={row.source_note}
@@ -377,6 +405,7 @@ export function StepForm({
             <TagListInput
               value={v.attributes}
               placeholder="e.g. easy implementation"
+              invalid={Boolean(errsFor(errors, "attributes"))}
               onChange={(attributes) => onChange({ attributes })}
             />
           </Field>
@@ -413,6 +442,7 @@ export function StepForm({
                 <Field label="Title" errors={errsFor(errors, `personas.${i}.title`)}>
                   <Input
                     value={p.title}
+                    aria-invalid={Boolean(errsFor(errors, `personas.${i}.title`)) || undefined}
                     placeholder="e.g. VP Finance"
                     onChange={(e) =>
                       set(v.personas.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
@@ -475,6 +505,7 @@ export function StepForm({
             <TagListInput
               value={v.markets}
               placeholder="e.g. United States"
+              invalid={Boolean(errsFor(errors, "markets"))}
               onChange={(markets) => onChange({ markets })}
             />
           </Field>

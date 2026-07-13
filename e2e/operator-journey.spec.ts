@@ -126,6 +126,52 @@ test.describe("operator journey smoke", () => {
     expect(hubAxe.violations, "axe violations on project hub").toEqual([]);
   });
 
+  test("projects filters and table stay usable at the narrow viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/projects");
+
+    await expect(page.getByRole("status")).toContainText(/Showing \d+ of \d+ projects/);
+    const tableRegion = page.getByRole("region", { name: "Projects table" });
+    await expect(tableRegion).toBeVisible();
+    const containment = await tableRegion.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      bodyClientWidth: document.body.clientWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+    }));
+    expect(containment.scrollWidth).toBeGreaterThan(containment.clientWidth);
+    expect(containment.bodyScrollWidth).toBe(containment.bodyClientWidth);
+
+    await page.getByRole("searchbox", { name: "Search projects" }).fill("not-a-project");
+    await expect(page.getByText("No projects match these filters")).toBeVisible();
+    await page.getByRole("button", { name: "Show all projects" }).click();
+    await expect(page.getByRole("region", { name: "Projects table" })).toBeVisible();
+  });
+
+  test("intake validates in place, focuses the first error, autosaves, and resumes", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/projects/new");
+
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    const projectName = page.getByRole("textbox", { name: /Project \/ client name/ });
+    await expect(projectName).toBeFocused();
+    await expect(projectName).toHaveAttribute("aria-invalid", "true");
+
+    await projectName.fill("M43 intake resume E2E");
+    await page.getByRole("textbox", { name: /^Category/ }).fill("B2B finance operations");
+    await page
+      .getByRole("textbox", { name: /^Buyer’s goal|^Buyer's goal/ })
+      .fill("compare finance operations tools for a growing team");
+    await expect(page.getByRole("status")).toHaveText(/^SAVED \d{2}:\d{2}:\d{2}$/);
+    await expect(page).toHaveURL(/\/projects\/new\?id=[0-9a-f-]{36}&step=1$/);
+
+    await page.reload();
+    await expect(projectName).toHaveValue("M43 intake resume E2E");
+    await expect(page.getByRole("textbox", { name: /^Category/ })).toHaveValue(
+      "B2B finance operations",
+    );
+  });
+
   test("mobile drawer uses dialog and restores focus", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/projects");
@@ -161,6 +207,33 @@ test.describe("operator journey smoke", () => {
     await brandsTab.click();
     await page.getByRole("button", { name: "Discard and continue", exact: true }).click();
     await expect(page).toHaveURL(/setup\?view=brands$/);
+  });
+
+  test("setup edit cancel restores persisted values and permanent removal is named", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    await page.goto(`${projectHref}/setup?view=brands`);
+    await page.getByRole("button", { name: "Edit", exact: true }).nth(1).click();
+    const competitorName = page.getByRole("textbox", { name: "SpendPilot name" });
+    await expect(competitorName).toBeFocused();
+    await competitorName.fill("Unsaved competitor name");
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("button", { name: "Edit", exact: true }).nth(1).click();
+    await expect(competitorName).toHaveValue("SpendPilot");
+
+    await page.goto(`${projectHref}/setup?view=attributes`);
+    await page.getByRole("button", { name: "Remove", exact: true }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Remove attribute?" });
+    await expect(dialog).toContainText("easy implementation");
+    await expect(
+      dialog.getByRole("button", { name: "Remove easy implementation", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
   });
 
   test("reduced motion keeps feedback but removes spatial movement", async ({ page }) => {
