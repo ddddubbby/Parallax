@@ -351,7 +351,8 @@ Manual checklist seeds:
 
 ## G. Workflow
 
-- One active session, one branch per milestone.
+- One active session per milestone worktree and one `m<number>` branch per milestone. Parallel product lanes use isolated worktrees, environment files, databases, ports, and branch-local STATUS/BUILD_NOTES; never mirror another branch's live state (D-112).
+- Name the integration target and path ownership in the active plan. Put changes to shared surfaces (layout, global tokens, shared UI, Settings, test configuration) in isolated commits so parallel branches can reconcile them without importing unrelated work.
 - Commit at every green-test / phase-green state (D-092), not only at milestone close.
 - Any schema plan must say migration.
 - Interface, table, dependency, provider capability, or invariant changed? Log it in `MASTER_CONTEXT.md` section 9.

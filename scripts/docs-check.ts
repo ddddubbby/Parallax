@@ -7,7 +7,8 @@
  *  2. Every docs/history/*.md is HISTORICAL and carries a DISPOSITION.
  *  3. STATUS.md exists, names exactly one active product, carries the required
  *     fields, and every local file it links to exists.
- *  4. Exactly one ACTIVE ROLE: PLAN exists in root (the active build plan).
+ *  4. One or more ACTIVE ROLE: PLAN docs may coexist; STATUS.md's first-line
+ *     TRACKER selects exactly one governing plan for this branch (D-112).
  *  5. Local markdown links in governed docs resolve to real files.
  *  6. DECISIONS.md exists; supersession-register edges reference decision IDs
  *     that exist, point forward (successor > predecessor), and no predecessor
@@ -66,7 +67,7 @@ if (existsSync(HISTORY)) {
   }
 }
 
-// ---- 3: STATUS.md ---------------------------------------------------------
+// ---- 3 + 4: STATUS.md + branch-local active plan -------------------------
 const statusPath = join(ROOT, "STATUS.md");
 if (!existsSync(statusPath)) {
   fail("STATUS.md: missing — it is the required active control plane (D-107)");
@@ -77,14 +78,21 @@ if (!existsSync(statusPath)) {
   }
   const activeCount = (status.match(/\*\*Active product\*\*/g) ?? []).length;
   if (activeCount !== 1) fail(`STATUS.md: exactly one 'Active product' row required (found ${activeCount})`);
-}
 
-// ---- 4: exactly one active plan --------------------------------------------
-const activePlans = [...rootHeaders.entries()].filter(
-  ([, h]) => h.lifecycle === "ACTIVE" && h.role === "PLAN",
-);
-if (activePlans.length !== 1)
-  fail(`root: expected exactly one ACTIVE ROLE: PLAN doc (the active build plan); found ${activePlans.length}: ${activePlans.map(([f]) => f).join(", ") || "none"}`);
+  const firstLine = status.split("\n", 1)[0] ?? "";
+  const trackerMatches = [...firstLine.matchAll(/(?:^| · )TRACKER: (.+?)(?= · |$)/g)].map((m) => m[1].trim());
+  if (trackerMatches.length !== 1) {
+    fail(`STATUS.md: first-line header must carry exactly one TRACKER (found ${trackerMatches.length})`);
+  } else {
+    const tracker = trackerMatches[0];
+    const trackerPath = join(ROOT, tracker);
+    const trackerHeader = rootHeaders.get(tracker);
+    if (!existsSync(trackerPath)) fail(`STATUS.md: TRACKER '${tracker}' does not exist`);
+    else if (!trackerHeader) fail(`STATUS.md: TRACKER '${tracker}' is not a governed root document`);
+    else if (trackerHeader.lifecycle !== "ACTIVE" || trackerHeader.role !== "PLAN")
+      fail(`STATUS.md: TRACKER '${tracker}' must be LIFECYCLE ACTIVE · ROLE PLAN (is ${trackerHeader.lifecycle} · ${trackerHeader.role})`);
+  }
+}
 
 // ---- 5: local markdown links resolve ---------------------------------------
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+)\)/g;

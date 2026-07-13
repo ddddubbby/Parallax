@@ -111,7 +111,9 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 
 ## 7. Documents index
 
-Every governed document carries a first-line metadata header: `LIFECYCLE: ACTIVE | PARKED | HISTORICAL`, `ROLE: CANON | PLAN | PLAYBOOK | RECORD`, `OWNS: <single responsibility>`, plus `TRACKER:`/`DISPOSITION:` where applicable. `pnpm docs:check` (CI) validates this index against reality (D-107). PARKED is distinct from HISTORICAL: parked canon stays in root, immediately recoverable; historical documents live in `docs/history/`.
+Every governed document carries a first-line metadata header: `LIFECYCLE: ACTIVE | PARKED | HISTORICAL`, `ROLE: CANON | PLAN | PLAYBOOK | RECORD`, `OWNS: <single responsibility>`, plus `TRACKER:`/`DISPOSITION:` where applicable. `pnpm docs:check` (CI) validates this index against reality (D-107/D-112). PARKED is distinct from HISTORICAL: parked canon stays in root, immediately recoverable; historical documents live in `docs/history/`.
+
+Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` remains branch-local and names exactly one active product; its first-line `TRACKER` selects the one plan governing that branch. Never mirror another branch's live status into the current branch.
 
 | File | Lifecycle | Owns |
 |---|---|---|
@@ -151,7 +153,7 @@ Handoff ritual:
 
 > Update `STATUS.md` whenever gate/milestone state or the next action changed this session — it is step zero, not an afterthought. Append a session entry to `BUILD_NOTES.md` (template inside that file). Append decisions made this session to `DECISIONS.md`; a decision that supersedes a standing rule MUST add its edge to the supersession register there in the same commit. If a decision logged this session protects an existing surface from removal/rename/merge, also append it to `PROTECTED_REGISTER.md` (D-086) so the register doesn't silently go stale. When a milestone merges or a plan is superseded, move the finished plan to `docs/history/` (with lifecycle header) **in the merge commit itself** — never as a later catch-up pass — and prune the merged milestone's `BUILD_NOTES.md` entries in the same commit (D-025). Update command/acceptance tables when scripts or gates change: `README.md`, this file §5, and `DEVELOPMENT_GUIDELINES.md` §F. Update `DESIGN_GUIDELINES.md` only when a visual rule changes; update `RELEASE_CHECKLIST.md` only when a go-live gate changes. Run `pnpm docs:check` before handing off. Give the commit message. If stopping mid-task or blocked, write the `BUILD_NOTES.md` entry immediately, even without the rest of the ritual.
 
-Session rules: one active session at a time, one branch per milestone, plan before any multi-file edit, and any schema-change plan must say the word migration. Any proposal to delete, merge, rename, or "simplify away" an existing surface must check `PROTECTED_REGISTER.md` (D-086) first; a match is an automatic Keep — Protected, cite the D-number. A milestone touching UI cannot be marked Done in the PRD tracker until its interactive verification has actually run and is evidenced in `BUILD_NOTES.md`; record deferred verification as "Code complete — unverified" instead (D-092 — this is the rule M32 would have needed). Commit at each phase-green boundary within a milestone rather than in one commit at milestone close (D-092).
+Session rules: one active session per milestone worktree, one branch per milestone, plan before any multi-file edit, and any schema-change plan must say the word migration. Parallel milestone branches isolate their environment, database, ports, and live status; shared surfaces land as isolated commits and merge through the named integration branch (D-112). Any proposal to delete, merge, rename, or "simplify away" an existing surface must check `PROTECTED_REGISTER.md` (D-086) first; a match is an automatic Keep — Protected, cite the D-number. A milestone touching UI cannot be marked Done in the PRD tracker until its interactive verification has actually run and is evidenced in `BUILD_NOTES.md`; record deferred verification as "Code complete — unverified" instead (D-092 — this is the rule M32 would have needed). Commit at each phase-green boundary within a milestone rather than in one commit at milestone close (D-092).
 
 Operational hazards, every session:
 - Never `git add -A` / `git add .` — the operator keeps live untracked WIP in the tree; stage explicit paths only.
@@ -165,7 +167,7 @@ Moved to `DECISIONS.md` (D-107): the append-only, immutable rationale record (D-
 
 ## 10. Current state
 
-Live status has exactly one home: `STATUS.md` — active product, branch, current gate, gate state, next action, parked-product pointer (D-107). Static milestone definitions live in the active build plan (`AGENT_BUILD_PLAN.md`); `STATUS.md` never duplicates them, only their state. The M-counter is repo-global and continues across products (D-108): the parked track closed at M34A, the agent build runs M35–M42. The parked product's milestone tracker remains `PRD.md` section 11 as a closed historical record. Do not record status in this file.
+Live status has exactly one home per branch: `STATUS.md` — active product, branch, current milestone, milestone state, next action, and parked-product pointer (D-107/D-112). Static milestone definitions live in the active plan named by STATUS's first-line `TRACKER`; STATUS never duplicates them, only their state, and never mirrors another branch. The M-counter is repo-global and continues across products (D-108): the parked track closed at M34A, the agent build runs M35–M42, and later products continue the same sequence. Do not record status in this file.
 
 ## 11. Cross-platform wiring
 
