@@ -11,8 +11,8 @@
 | **Build plan** | [M43_BUILD_PLAN.md](M43_BUILD_PLAN.md) |
 | **Branch** | `m43`, created from shared-governance commit `620148c`; integration target `geo-agent-v1` |
 | **Current milestone** | M43 — Resonance Web UI Refinement |
-| **Milestone state** | In progress — Phases 0–5 green; Phase 6 Simulation and Framing Evidence is in progress |
-| **Next action** | Refine the Simulation library/workspace/results/evidence and every Framing Evidence stage, report, and export control; keep the live browser on the active route and verify C-12/C-13/C-15 boundaries |
+| **Milestone state** | In progress — Phases 0–6 green; Phase 7 integration reconciliation and full verification is in progress |
+| **Next action** | Review Settings and debug, incorporate the latest phase-green `geo-agent-v1`, run every automated and interactive gate, record the final route/viewport/state evidence, and close the isolated demo environment |
 | **Blocked on** | Nothing |
 | **Parked product** | Public brand-site UI work remains out of scope on M43. The GEO agent is active in parallel, not parked, and is authoritative on its own milestone branches. |
 
@@ -26,8 +26,8 @@
 | 3 | Projects, intake, hub, setup | Green at `3c3596a` + `afd6db4` + `fa3e70d`; 9/9 Playwright green and interactive evidence in `BUILD_NOTES.md` S-101 |
 | 4 | Matrix and runs | Green at `52f292a` + `7851ae0`; 11/11 Playwright and focused matrix/run/UI tests green; interactive evidence in `BUILD_NOTES.md` S-102 |
 | 5 | Dashboard and reports | Green at `67a5147` + `9ab036f` + `4b4af68` + `52139d9`; 13/13 Playwright/axe and 782 Vitest tests green; interactive evidence in `BUILD_NOTES.md` S-103 |
-| 6 | Simulation and Framing Evidence | In progress |
-| 7 | Integration reconciliation, full verification, and handoff | Not started |
+| 6 | Simulation and Framing Evidence | Green at `4e6e3f0` + `5bf0d61` + `d3d5553` + `5bffce2`; 782 Vitest tests and 14/14 Playwright/axe green; interactive evidence in `BUILD_NOTES.md` S-104 |
+| 7 | Integration reconciliation, full verification, and handoff | In progress |
 
 ## Non-negotiable stop lines
 
