@@ -27,6 +27,9 @@ async function resolveDb(): Promise<{ connectionString: string; stop: () => Prom
 }
 
 async function main() {
+  // M43 visual/E2E review opts into a rich MOCK dashboard/report fixture.
+  // The seed writes only to this disposable database and never starts a worker.
+  process.env.M43_UI_FIXTURES = "true";
   const db = await resolveDb();
 
   const env: NodeJS.ProcessEnv = {

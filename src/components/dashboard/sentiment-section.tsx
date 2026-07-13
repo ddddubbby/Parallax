@@ -1,6 +1,7 @@
 "use client";
 
 import { Stamp } from "@/components/ui";
+import { isSufficientN } from "@/core/metrics";
 import type { MetricRow } from "./format";
 
 const LABELS = ["positive", "neutral", "mixed", "negative"] as const;
@@ -27,11 +28,13 @@ export function SentimentSection({ metrics }: { metrics: MetricRow[] }) {
           <div key={group.key}>
             <div className="mb-1 flex items-baseline gap-2">
               <span className="label-mono text-[11px] text-ink/60">{group.title}</span>
-              <span className="font-mono text-[11px] text-ink/40">n={n}</span>
+              <span className="font-mono text-[11px] text-ink/65">n={n}</span>
             </div>
-            <p className="mb-2 font-mono text-[11px] text-ink/45">{group.caption}</p>
+            <p className="mb-2 text-sm leading-relaxed text-ink/65">{group.caption}</p>
             {n === 0 ? (
               <Stamp tone="ink">No mentions in this frame</Stamp>
+            ) : !isSufficientN(n) ? (
+              <Stamp tone="warn">Insufficient data (n={n})</Stamp>
             ) : (
               <div className="flex flex-col gap-1">
                 {LABELS.map((label, i) => {

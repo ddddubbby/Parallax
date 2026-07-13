@@ -27,23 +27,24 @@ export function FunnelHeatmap({
   onCellClick,
 }: {
   cells: HeatmapCell[];
-  onCellClick?: (intent: string, personaId: string) => void;
+  onCellClick?: (intent: string, personaId: string, trigger?: HTMLElement) => void;
 }) {
   const personas = [...new Map(cells.map((c) => [c.personaId, c.personaLabel])).entries()];
   const byKey = new Map(cells.map((c) => [`${c.intent}|${c.personaId}`, c]));
   const presentIntents = INTENT_ORDER.filter((i) => cells.some((c) => c.intent === i));
 
   if (personas.length === 0 || presentIntents.length === 0) {
-    return <p className="font-mono text-xs text-ink/45">No cell-scoped data yet</p>;
+    return <p className="text-sm text-ink/65">No intent-by-persona samples are available for this run.</p>;
   }
 
   return (
-    <table className="w-full border-collapse font-mono text-xs">
+    <div className="overflow-x-auto" role="region" aria-label="Intent by persona evidence table" tabIndex={0}>
+    <table className="min-w-[36rem] w-full border-collapse font-mono text-xs">
       <thead>
         <tr>
-          <th className="w-32 py-1.5 pr-3 text-left text-ink/50">Intent \ Persona</th>
+          <th className="w-32 py-1.5 pr-3 text-left text-ink/65">Intent \ Persona</th>
           {personas.map(([id, label]) => (
-            <th key={id} className="px-2 py-1.5 text-center text-ink/50">
+            <th key={id} className="px-2 py-1.5 text-center text-ink/65">
               {label}
             </th>
           ))}
@@ -61,17 +62,18 @@ export function FunnelHeatmap({
                   <button
                     type="button"
                     disabled={!clickable}
-                    onClick={() => cell && onCellClick?.(intent, personaId)}
-                    className={`w-full rounded-lg px-2 py-2 text-center transition-micro ${clickable ? "cursor-pointer hover:ring-1 hover:ring-ink/30" : "cursor-default"}`}
+                    onClick={(event) => cell && onCellClick?.(intent, personaId, event.currentTarget)}
+                    className={`min-h-11 w-full rounded-lg px-2 py-2 text-center transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${clickable ? "cursor-pointer hover:ring-1 hover:ring-ink/30" : "cursor-default"}`}
                     style={{ backgroundColor: cellBackground(cell?.value ?? null) }}
+                    aria-label={cell ? `${intent}, ${cell.personaLabel}: ${cell.value === null ? "insufficient data" : `${Math.round(cell.value * 100)} percent`}, n ${cell.n}` : `${intent}: no data`}
                   >
                     {cell && cell.value !== null ? (
                       <>
                         <div className="font-medium text-ink">{Math.round(cell.value * 100)}%</div>
-                        <div className="text-[10px] text-ink/45">n={cell.n}</div>
+                        <div className="text-[10px] text-ink/65">n={cell.n}</div>
                       </>
                     ) : (
-                      <span className="text-ink/30">—</span>
+                      <span className="text-ink/60">—</span>
                     )}
                   </button>
                 </td>
@@ -81,5 +83,6 @@ export function FunnelHeatmap({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

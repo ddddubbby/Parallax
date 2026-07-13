@@ -25,7 +25,7 @@ export function CompetitiveSpectrumSection({
   metricKey: string;
   metrics: MetricRow[];
   brands: Array<{ id: string; role: string; name: string }>;
-  onBrandEvidence: (brandId: string, metricKey: string) => void;
+  onBrandEvidence: (brandId: string, metricKey: string, trigger?: HTMLElement) => void;
 }) {
   const ranked = brands
     .map((b) => {
@@ -44,7 +44,7 @@ export function CompetitiveSpectrumSection({
   return (
     <div>
       <span className="mb-2 block label-mono text-xs font-medium text-ink/70">{title}</span>
-      <p className="mb-2 font-mono text-[11px] text-ink/45">{caption}</p>
+      <p className="mb-2 text-sm leading-relaxed text-ink/65">{caption}</p>
       {data.length === 0 || !isSufficientN(n) ? (
         <Stamp tone="warn">Insufficient data{n > 0 ? ` (n=${n})` : ""}</Stamp>
       ) : (
@@ -55,7 +55,36 @@ export function CompetitiveSpectrumSection({
             height={Math.max(120, data.length * 42 + 40)}
             onBarClick={(brandId) => onBrandEvidence(brandId, metricKey)}
           />
-          <p className="label-mono mt-1 text-[11px] text-ink/45">n={n} · click a bar for its evidence</p>
+          <div className="mt-2 overflow-x-auto" role="region" aria-label={`${title} evidence table`} tabIndex={0}>
+            <table className="min-w-[32rem] w-full border-collapse font-mono text-xs">
+              <thead>
+                <tr className="border-b border-ink/15 text-left text-ink/65">
+                  <th className="py-2 pr-3">Brand</th>
+                  <th className="py-2 pr-3">Value</th>
+                  <th className="py-2 pr-3">Sample</th>
+                  <th className="py-2 text-right">Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranked.map((row) => (
+                  <tr key={row.brandId} className="border-b border-ink/10">
+                    <td className="py-2 pr-3">{row.name}{row.isClient ? " · client" : ""}</td>
+                    <td className="py-2 pr-3 tabular-nums">{(row.value * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-3 tabular-nums">n={row.n}</td>
+                    <td className="py-1 text-right">
+                      <button
+                        type="button"
+                        onClick={(event) => onBrandEvidence(row.brandId, metricKey, event.currentTarget)}
+                        className="inline-flex min-h-11 items-center rounded-sm text-accent-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      >
+                        View →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
