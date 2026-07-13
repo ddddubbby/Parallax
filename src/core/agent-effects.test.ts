@@ -119,28 +119,86 @@ function startJob(effectType: EffectType): OnChainJob {
 const EFFECT_TYPES: EffectType[] = [
   "set_budget", "reject", "submit_offchain", "submit_onchain", "claim_refund", "message",
 ];
-const CRASH_POINTS: CrashPoint[] = ["after_insert", "after_broadcast", "after_record", "after_confirm"];
+
+// ---------------------------------------------------------------------------
+// The §6.5 enumerated transition/effect matrix — committed alongside the tests.
+// Every cell = one (effect type × crash point) with its starting state, injected
+// failure, observation on restart, permitted outbound calls, and terminal
+// invariant. The test loop below executes EVERY cell; "every boundary" means
+// every enumerated cell, not a sample.
+// ---------------------------------------------------------------------------
+
+interface MatrixCell {
+  effectType: EffectType;
+  crashPoint: CrashPoint;
+  startingState: string;
+  injectedFailure: string;
+  restartObservation: string;
+  /** Terminal invariant: exact number of successful external state mutations. */
+  permittedBroadcasts: 1;
+  terminalState: "confirmed";
+}
+
+const CRASH_DESCRIPTORS: Record<CrashPoint, { injectedFailure: string; restartObservation: string }> = {
+  after_insert: {
+    injectedFailure: "process dies after the durable effect row insert, before any chain read",
+    restartObservation: "pending row, chain untouched → precondition holds → broadcast once",
+  },
+  after_broadcast: {
+    injectedFailure: "process dies after the broadcast landed, before the tx hash was recorded",
+    restartObservation: "pending row with NO tx hash, chain ALREADY applied → confirm without sending",
+  },
+  after_record: {
+    injectedFailure: "process dies after the tx hash was recorded, before the receipt check",
+    restartObservation: "pending row with tx hash, chain applied → confirm without sending",
+  },
+  after_confirm: {
+    injectedFailure: "process dies immediately after markConfirmed",
+    restartObservation: "confirmed row → return confirmed, no chain interaction",
+  },
+  during_reconcile: {
+    injectedFailure:
+      "first crash after a landed broadcast; second crash DURING the restart's reconcile (after the chain read proves applied, before markConfirmed)",
+    restartObservation: "pending row, chain applied → the reconcile branch re-runs and still never re-sends",
+  },
+};
+
+export const EFFECT_CRASH_MATRIX: MatrixCell[] = EFFECT_TYPES.flatMap((effectType) =>
+  (Object.keys(CRASH_DESCRIPTORS) as CrashPoint[]).map((crashPoint) => ({
+    effectType,
+    crashPoint,
+    startingState: `on-chain job in the precondition state for ${effectType}; no effect row exists`,
+    injectedFailure: CRASH_DESCRIPTORS[crashPoint].injectedFailure,
+    restartObservation: CRASH_DESCRIPTORS[crashPoint].restartObservation,
+    permittedBroadcasts: 1,
+    terminalState: "confirmed",
+  })),
+);
 
 async function run(chain: FakeChain, store: InMemoryEffectStore, effectType: EffectType, crash: ReturnType<typeof crasher> | undefined) {
   return executeEffect(effectType, PAYLOAD[effectType], `hash:${effectType}`, "precond", { store, chain, crash });
 }
 
-describe("effectively-once effects ledger — crash matrix (§6.5)", () => {
-  // Every effect type × every crash point: crash mid-flight, restart, assert the
-  // external effect was applied EXACTLY ONCE and the effect ends confirmed.
-  for (const effectType of EFFECT_TYPES) {
-    for (const point of CRASH_POINTS) {
-      it(`${effectType} — crash @ ${point} then restart applies exactly once`, async () => {
-        const chain = new FakeChain(startJob(effectType));
-        const store = new InMemoryEffectStore();
-        // Run 1: crash injected.
-        await expect(run(chain, store, effectType, crasher(point))).rejects.toThrow(/crash@/);
-        // Run 2: restart, no crash.
-        const outcome = await run(chain, store, effectType, undefined);
-        expect(outcome.state).toBe("confirmed");
-        expect(chain.applied).toBe(1);
-      });
-    }
+describe("effectively-once effects ledger — crash matrix (§6.5, every cell)", () => {
+  expect(EFFECT_CRASH_MATRIX).toHaveLength(EFFECT_TYPES.length * 5); // 6 × 5 = 30 cells
+
+  for (const cell of EFFECT_CRASH_MATRIX) {
+    it(`${cell.effectType} — ${cell.crashPoint}: applies exactly once`, async () => {
+      const chain = new FakeChain(startJob(cell.effectType));
+      const store = new InMemoryEffectStore();
+      if (cell.crashPoint === "during_reconcile") {
+        // Choreography: land the broadcast then die (run 1); die again during the
+        // restart's reconcile (run 2); the third restart must confirm with zero
+        // additional sends.
+        await expect(run(chain, store, cell.effectType, crasher("after_broadcast"))).rejects.toThrow(/crash@/);
+        await expect(run(chain, store, cell.effectType, crasher("during_reconcile"))).rejects.toThrow(/crash@/);
+      } else {
+        await expect(run(chain, store, cell.effectType, crasher(cell.crashPoint))).rejects.toThrow(/crash@/);
+      }
+      const outcome = await run(chain, store, cell.effectType, undefined);
+      expect(outcome.state).toBe(cell.terminalState);
+      expect(chain.applied).toBe(cell.permittedBroadcasts);
+    });
   }
 
   it("double execute with no crash is idempotent (one broadcast)", async () => {

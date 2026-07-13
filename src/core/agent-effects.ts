@@ -157,8 +157,11 @@ export async function executeEffect(
 
   // Step 4: desired-or-later state already exists → confirm WITHOUT sending.
   // This is what makes a crash after a successful broadcast safe: the chain,
-  // not our unrecorded tx hash, is the source of truth.
+  // not our unrecorded tx hash, is the source of truth. A crash DURING this
+  // reconcile (before markConfirmed) leaves a pending row + an applied chain —
+  // the next restart takes this same branch again and still never re-sends.
   if (isApplied(effectType, job, payload)) {
+    await deps.crash?.("during_reconcile");
     await deps.store.markConfirmed(effect.id, effect.txHash);
     return { state: "confirmed", txHash: effect.txHash };
   }
