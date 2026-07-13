@@ -76,7 +76,7 @@ export default async function ResonanceLibraryPage({
                   {study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
                   <Link
                     href={href}
-                    className="label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+                    className="interactive-press label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-ink transition-micro hover:bg-accent/90"
                   >
                     {isDraft ? "Continue →" : "Open →"}
                   </Link>

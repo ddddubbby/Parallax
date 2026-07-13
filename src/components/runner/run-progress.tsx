@@ -171,7 +171,7 @@ export function RunProgress({
         {detail.run.state === "completed" && (
           <Link
             href={resultsHref}
-            className="label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+            className="interactive-press label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-ink transition-micro hover:bg-accent/90"
           >
             {isResonance ? "Study results →" : "Evidence dashboard →"}
           </Link>

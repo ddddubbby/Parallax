@@ -72,7 +72,7 @@ export default async function FramingLibraryPage({
                 </div>
                 <form action={createFramingStudyFormAction.bind(null, id)} className="ml-auto">
                   <input type="hidden" name="sourceRunId" value={run.id} />
-                  <button type="submit" className="label-mono rounded-full bg-accent px-4 py-2 text-xs text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+                  <button type="submit" className="interactive-press label-mono rounded-full bg-accent px-4 py-2 text-xs text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
                     Start review →
                   </button>
                 </form>

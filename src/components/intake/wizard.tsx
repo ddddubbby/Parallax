@@ -141,7 +141,7 @@ export function IntakeWizard(props: {
                   onClick={() => goToStep(n)}
                   className={`label-mono w-full rounded-lg px-3 py-2 text-left text-xs transition-micro ${
                     active
-                      ? "bg-accent text-paper"
+                      ? "bg-accent text-ink"
                       : reachable
                         ? "text-ink/70 hover:bg-paper-2"
                         : "cursor-not-allowed text-ink/30"
@@ -160,7 +160,7 @@ export function IntakeWizard(props: {
               onClick={() => goToStep(REVIEW_STEP)}
               className={`label-mono w-full rounded-lg px-3 py-2 text-left text-xs transition-micro ${
                 step === REVIEW_STEP
-                  ? "bg-accent text-paper"
+                  ? "bg-accent text-ink"
                   : highWater >= REVIEW_STEP
                     ? "text-ink/70 hover:bg-paper-2"
                     : "cursor-not-allowed text-ink/30"

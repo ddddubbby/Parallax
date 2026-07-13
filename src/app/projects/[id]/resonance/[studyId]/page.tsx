@@ -274,7 +274,7 @@ export default async function ResonanceStudyPage({
             <p className="label-mono mb-2 text-xs text-ink/55">Next action</p>
             <Link
               href={action.href}
-              className="label-mono inline-block rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+              className="interactive-press label-mono inline-block rounded-full bg-accent px-4 py-1.5 text-xs text-ink transition-micro hover:bg-accent/90"
             >
               {action.label} →
             </Link>
@@ -324,7 +324,7 @@ export default async function ResonanceStudyPage({
           {matrixVersion && (
             <Link
               href={`/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`}
-              className="label-mono inline-block rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+              className="interactive-press label-mono inline-block rounded-full bg-accent px-4 py-1.5 text-xs text-ink transition-micro hover:bg-accent/90"
             >
               Configure simulation run →
             </Link>

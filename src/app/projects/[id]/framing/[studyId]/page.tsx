@@ -66,7 +66,7 @@ export default async function FramingStudyPage({
         <Stamp tone={detail.study.state === "completed" ? "ok" : "ink"}>{detail.study.state}</Stamp>
         <Stamp tone="ink">{detail.study.promptProtocolVersion}</Stamp>
         {detail.study.state === "completed" && detail.study.gapOutcome && (
-          <Link href={`/projects/${id}/framing/${studyId}/report`} className="label-mono ml-auto rounded-full bg-accent px-4 py-2 text-xs text-paper">
+          <Link href={`/projects/${id}/framing/${studyId}/report`} className="interactive-press label-mono ml-auto rounded-full bg-accent px-4 py-2 text-xs text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
             Open client report →
           </Link>
         )}
