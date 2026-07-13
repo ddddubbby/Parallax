@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import type { AssetChain } from "../src/core/crypto-resolver";
 import { db, pool } from "../src/db/client";
 import { getRun } from "../src/db/repositories/runner";
-import { projects, responses } from "../src/db/schema";
+import { extractions, projects, responses } from "../src/db/schema";
 import {
   buildAgentRun,
   createFixtureMetadataReader,
@@ -151,6 +151,15 @@ async function main() {
   checks.push(["all three engines present", byProvider.size === 3]);
   checks.push(["each engine produced 100 samples", [...byProvider.values()].every((t) => t.length === 100)]);
   checks.push(["engines differ per cell (D-016 per-engine fixture keying)", enginesDifferPerCell]);
+
+  // AGENT_PRD §11: no LLM reads the agent's answers — the worker must skip the
+  // LLM extraction pipeline entirely for crypto_token runs.
+  const extractionRows = await db
+    .select({ id: extractions.id })
+    .from(extractions)
+    .innerJoin(responses, eq(extractions.responseId, responses.id))
+    .where(eq(responses.runId, run.runId));
+  checks.push(["§11: zero LLM-extraction rows for the agent run", extractionRows.length === 0]);
 
   // M37: build the mechanical report from the 300 stored responses (full path).
   const models = { openai: "mock", google: "mock", xai: "mock" };

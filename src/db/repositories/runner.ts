@@ -195,6 +195,22 @@ export async function getRun(runId: string) {
 }
 
 /**
+ * The run's project archetype — the worker's signal for the agent product's
+ * "no LLM reads model answers" rule (AGENT_PRD §11): crypto_token runs skip
+ * the LLM extraction pipeline entirely (mechanical extraction happens at
+ * report time, and D-041's DeepSeek credential must never be required for an
+ * agent run to complete).
+ */
+export async function getRunProjectArchetype(runId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ archetype: projects.categoryArchetype })
+    .from(auditRuns)
+    .innerJoin(projects, eq(auditRuns.projectId, projects.id))
+    .where(eq(auditRuns.id, runId));
+  return row?.archetype ?? null;
+}
+
+/**
  * Runs for a project's index page, newest first, each with total and
  * succeeded job counts (one grouped query, no N+1). Powers the runs list
  * that is the only navigation path back to an in-progress run's page.
