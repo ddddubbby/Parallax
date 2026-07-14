@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { AttributeSection } from "@/components/dashboard/attribute-section";
 import { CitedSourcesSection } from "@/components/dashboard/cited-sources-section";
 import { DrilldownPanel, type DrilldownRequest } from "@/components/dashboard/drilldown-panel";
@@ -10,7 +11,7 @@ import { MisinformationRegister } from "@/components/dashboard/misinformation-re
 import { MetricCards } from "@/components/dashboard/scorecard";
 import { SentimentSection } from "@/components/dashboard/sentiment-section";
 import { PillarSection } from "@/components/semantic/pillar";
-import { Stamp } from "@/components/ui";
+import { Button, InlineStatus, Select, Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
 import { metricLabel, type MetricRow } from "@/components/dashboard/format";
 import { reportError } from "@/observability";
@@ -45,11 +46,40 @@ export function DashboardClient({
   const [fetchFailed, setFetchFailed] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [drilldown, setDrilldown] = useState<DrilldownRequest | null>(null);
+  const [drilldownOpen, setDrilldownOpen] = useState(false);
+  const evidenceTriggerRef = useRef<HTMLElement | null>(null);
+
+  function openDrilldown(request: DrilldownRequest, trigger?: HTMLElement) {
+    document.querySelector('[data-evidence-return="true"]')?.removeAttribute("data-evidence-return");
+    if (trigger) {
+      evidenceTriggerRef.current = trigger;
+    } else if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+      evidenceTriggerRef.current = document.activeElement;
+    }
+    evidenceTriggerRef.current?.setAttribute("data-evidence-return", "true");
+    setDrilldown(request);
+    setDrilldownOpen(true);
+  }
+
+  function closeDrilldown() {
+    setDrilldownOpen(false);
+    finishDrilldownClose();
+  }
+
+  function finishDrilldownClose() {
+    const trigger = document.querySelector<HTMLElement>('[data-evidence-return="true"]');
+    setDrilldown(null);
+    window.setTimeout(() => {
+      trigger?.focus();
+      trigger?.removeAttribute("data-evidence-return");
+    }, 0);
+  }
 
   useEffect(() => {
-    // Initial run's data is already server-rendered; only refetch on a run
-    // switch or an explicit retry (reloadNonce bump).
-    if (!runId || (runId === initialRunId && reloadNonce === 0)) return;
+    // The currently displayed run is already loaded; refetch only for a
+    // different selection or an explicit retry. Comparing against `data`
+    // (not only the server's initial id) also makes switching back reliable.
+    if (!runId || (runId === data?.run.id && reloadNonce === 0)) return;
     let cancelled = false;
     setLoading(true);
     setFetchFailed(false);
@@ -57,6 +87,7 @@ export function DashboardClient({
       .then((d) => {
         if (cancelled) return;
         setData(d);
+        setReloadNonce(0);
         setLoading(false);
       })
       .catch((err) => {
@@ -70,19 +101,29 @@ export function DashboardClient({
     return () => {
       cancelled = true;
     };
-  }, [projectId, runId, initialRunId, reloadNonce]);
+  }, [projectId, runId, data?.run.id, reloadNonce]);
 
   if (runs.length === 0) {
     return (
       <div className="rounded-xl border border-ink/15 p-10 text-center">
         <p className="label-mono text-sm text-ink/60">No completed runs yet</p>
-        <p className="mt-1 font-mono text-xs text-ink/45">start and complete a run to see the dashboard</p>
+        <p className="mt-1 text-sm text-ink/65">Complete an audit run to populate the evidence dashboard.</p>
+        <Link
+          href={`/projects/${projectId}/runs/new`}
+          className="interactive-press label-mono mt-4 inline-flex min-h-11 items-center rounded-full bg-accent px-5 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          Configure run →
+        </Link>
       </div>
     );
   }
 
   if (!data) {
-    return <p className="font-mono text-xs text-ink/45">Run not found</p>;
+    return (
+      <InlineStatus tone="danger">
+        This run could not be found. Choose another completed run from the run library.
+      </InlineStatus>
+    );
   }
 
   const metrics = data.metrics as MetricRow[];
@@ -92,58 +133,55 @@ export function DashboardClient({
   const isUngroundedOnly = modes.length > 0 && !modes.includes("grounded");
   const isLowStability = stabilityRow !== undefined && stabilityRow.value < 0.5;
 
-  const onMetricEvidence = (metricKey: string) =>
-    setDrilldown({
+  const onMetricEvidence = (metricKey: string, trigger?: HTMLElement) =>
+    openDrilldown({
       kind: "metric",
       label: `${metricLabel(metricKey)} evidence`,
       metricKey,
       scopeType: "overall",
       scopeKey: "__all__",
-    });
+    }, trigger);
 
   const brandName = (brandId: string) => data.brands.find((b) => b.id === brandId)?.name ?? "brand";
-  const onBrandEvidence = (brandId: string, metricKey: string) =>
-    setDrilldown({
+  const onBrandEvidence = (brandId: string, metricKey: string, trigger?: HTMLElement) =>
+    openDrilldown({
       kind: "metric",
       label: `${brandName(brandId)} · ${metricLabel(metricKey)} evidence`,
       metricKey,
       scopeType: "brand",
       scopeKey: brandId,
-    });
+    }, trigger);
 
   return (
-    // Dimming while a different run's data loads: for an evidence tool,
-    // numbers that might belong to the PREVIOUS run must be visibly stale,
-    // not just accompanied by a small "Loading…" label. aria-busy + the
-    // disabled select make the state unambiguous.
-    <div className={loading ? "opacity-50 transition-standard" : "transition-standard"} aria-busy={loading}>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <select
-          className="rounded-lg border border-ink/20 bg-paper px-3 py-1.5 font-mono text-xs disabled:cursor-wait"
-          value={runId ?? ""}
-          disabled={loading}
-          onChange={(e) => setRunId(e.target.value)}
-        >
-          {runs.map((r) => (
-            <option key={r.id} value={r.id}>
-              {new Date(r.createdAt).toISOString().slice(0, 16).replace("T", " ")} · {r.runMode} · {r.state}
-            </option>
-          ))}
-        </select>
-        {loading && <span className="font-mono text-xs text-ink/45">Loading…</span>}
-        {fetchFailed && (
-          <span className="flex items-center gap-2 font-mono text-xs text-danger">
-            Could not load this run — showing the last loaded data.
-            <button
-              type="button"
-              onClick={() => setReloadNonce((n) => n + 1)}
-              className="label-mono text-[11px] text-accent-ink hover:underline"
-            >
-              Retry →
-            </button>
-          </span>
-        )}
-        <div className="flex gap-2">
+    <div
+      aria-busy={loading}
+      data-stale={loading || fetchFailed || undefined}
+      onPointerDownCapture={(event) => {
+        const trigger = (event.target as HTMLElement).closest("button, a");
+        if (trigger instanceof HTMLElement) evidenceTriggerRef.current = trigger;
+      }}
+    >
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-xl">
+          <span className="label-mono text-xs text-ink/60">Audit run</span>
+          <Select
+            value={runId ?? ""}
+            disabled={loading}
+            className="font-mono text-xs disabled:cursor-wait"
+            onChange={(e) => {
+              setDrilldownOpen(false);
+              setDrilldown(null);
+              setRunId(e.target.value);
+            }}
+          >
+            {runs.map((r) => (
+              <option key={r.id} value={r.id}>
+                {new Date(r.createdAt).toISOString().slice(0, 16).replace("T", " ")} · {r.runMode} · {r.state}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <div className="flex flex-wrap gap-2 sm:pb-2">
           {data.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
           {data.run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
           {isUngroundedOnly && <Stamp tone="ink">UNGROUNDED</Stamp>}
@@ -152,11 +190,41 @@ export function DashboardClient({
         </div>
       </div>
 
+      {loading && (
+        <InlineStatus className="mb-6">
+          Loading the selected run. Figures below remain visible but are stale from run{" "}
+          <span className="font-mono tabular-nums">{data.run.id.slice(0, 8)}</span> until the switch completes.
+        </InlineStatus>
+      )}
+      {fetchFailed && (
+        <InlineStatus tone="danger" className="mb-6">
+          <span>
+            The selected run could not be loaded. Still showing valid data from run{" "}
+            <span className="font-mono tabular-nums">{data.run.id.slice(0, 8)}</span>.
+          </span>{" "}
+          <Button
+            type="button"
+            variant="ghost"
+            className="ml-1 min-h-11 px-2 text-danger underline underline-offset-4"
+            onClick={() => setReloadNonce((n) => n + 1)}
+          >
+            Retry
+          </Button>
+        </InlineStatus>
+      )}
+
       {metrics.length === 0 ? (
         <div className="rounded-xl border border-warn p-6">
-          <p className="font-mono text-sm text-ink/70">
-            No metrics computed for this run yet — recompute from the run&rsquo;s detail page first.
+          <p className="text-sm text-ink/70">
+            No metrics have been computed for this run. Review extraction state, then recompute the
+            evidence metrics from the run detail.
           </p>
+          <Link
+            href={`/projects/${projectId}/runs/${data.run.id}?view=metrics`}
+            className="label-mono mt-3 inline-flex min-h-11 items-center rounded-full border border-ink/25 px-4 py-2 text-xs text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Review metrics →
+          </Link>
         </div>
       ) : (
         <div className="flex flex-col gap-10">
@@ -173,14 +241,14 @@ export function DashboardClient({
               <FunnelSection
                 metrics={metrics}
                 personas={data.personasMarkets.personas}
-                onCellClick={(intent, personaId) =>
-                  setDrilldown({
+                onCellClick={(intent, personaId, trigger) =>
+                  openDrilldown({
                     kind: "metric",
                     label: `${intent} x persona mention evidence`,
                     metricKey: "mention_rate",
                     scopeType: "intent_persona",
                     scopeKey: `${intent}|${personaId}`,
-                  })
+                  }, trigger)
                 }
               />
               <CompetitiveSpectrumSection
@@ -234,16 +302,16 @@ export function DashboardClient({
               />
               <CitedSourcesSection
                 sources={data.citedSources}
-                onDomainClick={(responseIds, domain) =>
-                  setDrilldown({ kind: "responses", label: `Cited by ${domain}`, responseIds })
+                onDomainClick={(responseIds, domain, trigger) =>
+                  openDrilldown({ kind: "responses", label: `Cited by ${domain}`, responseIds }, trigger)
                 }
               />
               <MisinformationRegister
                 runId={data.run.id}
                 projectId={projectId}
                 rows={data.misinformation}
-                onRowClick={(responseId, claimText) =>
-                  setDrilldown({ kind: "response", label: claimText.slice(0, 60), responseId })
+                onRowClick={(responseId, claimText, trigger) =>
+                  openDrilldown({ kind: "response", label: claimText.slice(0, 60), responseId }, trigger)
                 }
                 onReviewed={() => {
                   if (runId)
@@ -277,8 +345,8 @@ export function DashboardClient({
               <span>aggregate claims gated at n≥30 (directional below)</span>
               <button
                 type="button"
-                onClick={() => onMetricEvidence("stability_index")}
-                className="label-mono text-[11px] text-accent-ink hover:underline"
+                onClick={(event) => onMetricEvidence("stability_index", event.currentTarget)}
+                className="label-mono inline-flex min-h-11 items-center rounded-sm text-xs text-accent-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Evidence →
               </button>
@@ -289,7 +357,13 @@ export function DashboardClient({
       )}
 
       {drilldown && runId && (
-        <DrilldownPanel projectId={projectId} runId={runId} request={drilldown} onClose={() => setDrilldown(null)} />
+        <DrilldownPanel
+          projectId={projectId}
+          runId={runId}
+          request={drilldown}
+          open={drilldownOpen}
+          onClose={closeDrilldown}
+        />
       )}
     </div>
   );

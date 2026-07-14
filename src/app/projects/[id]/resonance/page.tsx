@@ -27,8 +27,8 @@ export default async function ResonanceLibraryPage({
   if (project === null) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-1 font-mono text-xs text-ink/45">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mb-1 font-mono text-xs text-ink/65">
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
@@ -45,16 +45,16 @@ export default async function ResonanceLibraryPage({
           <NewStudyDialog projectId={id} />
         </div>
       </div>
-      <p className="mb-6 font-mono text-xs leading-5 text-ink/55">
+      <p className="mb-6 max-w-3xl text-sm leading-6 text-ink/70">
         Library of Simulation Layer studies. Open a study for design, runs, results, and evidence.
         Completed headlines also appear under Results → Simulation on the Evidence dashboard (C-12).
       </p>
 
       {studies.length === 0 ? (
-        <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-8 text-center">
+        <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-6 text-center sm:p-8">
           <p className="label-mono text-sm text-ink/60">No Simulation studies yet</p>
-          <p className="mt-1 font-mono text-xs text-ink/45">
-            create a study, add panel personas and stimulus variants, then approve and configure a run
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-ink/65">
+            Create a study, add buyer-panel personas and framing variants, then approve its immutable definition before configuring a run.
           </p>
         </section>
       ) : (
@@ -67,7 +67,7 @@ export default async function ResonanceLibraryPage({
               <section
                 key={study.id}
                 id={`study-${study.id}`}
-                className="scroll-mt-6 rounded-xl border border-ink/15 p-4"
+                className="scroll-mt-6 rounded-xl border border-ink/15 bg-paper p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="label-mono text-sm font-semibold">{study.name}</h2>
@@ -76,12 +76,12 @@ export default async function ResonanceLibraryPage({
                   {study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
                   <Link
                     href={href}
-                    className="label-mono ml-auto rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+                    className="interactive-press label-mono ml-auto inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     {isDraft ? "Continue →" : "Open →"}
                   </Link>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink/50">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink/65">
                   <span>
                     {personas.length} persona{personas.length === 1 ? "" : "s"}
                   </span>

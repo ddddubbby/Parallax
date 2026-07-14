@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StartReviewControl } from "@/components/framing/start-review-control";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
 import {
@@ -7,7 +8,6 @@ import {
   listFramingStudies,
 } from "@/db/repositories/framing";
 import { getProjectSummary } from "@/db/repositories/runner";
-import { createFramingStudyFormAction } from "@/modules/framing/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +31,8 @@ export default async function FramingLibraryPage({
   const readyRuns = sourceRuns.filter((run) => run.ready);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-1 font-mono text-xs text-ink/45">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mb-1 font-mono text-xs text-ink/65">
         <Link href="/projects" className="hover:text-ink">Projects</Link>
         {" / "}
         <Link href={`/projects/${id}`} className="hover:text-ink">{project.name}</Link>
@@ -66,16 +66,11 @@ export default async function FramingLibraryPage({
                   <div className="font-mono text-xs text-ink/75">
                     RUN {run.id.slice(0, 8).toUpperCase()} · {dateLabel(run.completedAt)}
                   </div>
-                  <div className="mt-1 font-mono text-[11px] text-ink/45">
+                  <div className="mt-1 font-mono text-xs text-ink/65">
                     {run.representationCells} prompts · {run.representationJobs} denominator jobs · {run.runMode}
                   </div>
                 </div>
-                <form action={createFramingStudyFormAction.bind(null, id)} className="ml-auto">
-                  <input type="hidden" name="sourceRunId" value={run.id} />
-                  <button type="submit" className="label-mono rounded-full bg-accent px-4 py-2 text-xs text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-                    Start review →
-                  </button>
-                </form>
+                <StartReviewControl projectId={id} sourceRunId={run.id} />
               </div>
             ))}
           </div>
@@ -95,11 +90,11 @@ export default async function FramingLibraryPage({
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="label-mono text-sm font-semibold">FRAMING {study.id.slice(0, 8).toUpperCase()}</h3>
                   <Stamp tone={study.state === "completed" ? "ok" : study.state === "draft" ? "ink" : "warn"}>{study.state}</Stamp>
-                  <Link href={`/projects/${id}/framing/${study.id}`} className="label-mono ml-auto rounded-full border border-ink/30 px-4 py-1.5 text-xs hover:border-ink">
+                  <Link href={`/projects/${id}/framing/${study.id}`} className="label-mono ml-auto inline-flex min-h-11 items-center rounded-full border border-ink/30 px-4 py-2 text-xs hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
                     Open →
                   </Link>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink/50">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink/65">
                   <span>{study.reviewed}/{study.denominator} denominator jobs reviewed</span>
                   <span>{study.promptProtocolVersion}</span>
                   {study.reviewMethod && <span>{study.reviewMethod.replaceAll("_", " ")}</span>}

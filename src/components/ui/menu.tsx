@@ -20,7 +20,8 @@ export function AppMenu({
         <DropdownMenu.Content
           align={align}
           sideOffset={6}
-          className="z-50 min-w-44 rounded-lg border border-ink/15 bg-paper p-1 shadow-md"
+          collisionPadding={12}
+          className="app-menu-content z-50 min-w-44 rounded-lg border border-ink/15 bg-paper p-1 shadow-md"
         >
           {children}
         </DropdownMenu.Content>
@@ -45,7 +46,7 @@ export function AppMenuItem({
       disabled={disabled}
       onSelect={onSelect}
       className={cn(
-        "label-mono cursor-pointer rounded-md px-3 py-2 text-xs outline-none data-[highlighted]:bg-ink/5",
+        "label-mono flex min-h-11 cursor-pointer items-center rounded-md px-3 py-2 text-xs outline-none transition-micro data-[highlighted]:bg-ink/5 data-[highlighted]:text-ink",
         destructive ? "text-danger" : "text-ink/80",
         "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40",
       )}

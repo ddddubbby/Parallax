@@ -1,4 +1,3 @@
-import { Stamp } from "@/components/ui";
 import { DeadLettersTable } from "@/components/debug/dead-letters-table";
 import { DebugJobsTable } from "@/components/debug/jobs-table";
 import {
@@ -32,16 +31,24 @@ export default async function DebugPage() {
   const stale = activeRun && (heartbeatAgeMs === null || heartbeatAgeMs > HEARTBEAT_STALE_MS);
 
   return (
-    <main className="min-h-screen bg-ink px-6 py-8 text-paper">
-      <div className="mb-6 flex items-center gap-3">
+    <main className="min-h-screen bg-ink px-4 py-6 text-paper sm:px-6 sm:py-8">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Debug</h1>
-        {activeRun && (
-          <Stamp tone={stale ? "danger" : "ok"}>
-            {heartbeatAgeMs === null
+        <span
+          className={`label-mono rounded-xs border px-1.5 py-0.5 text-[11px] ${
+            activeRun
+              ? stale
+                ? "border-danger text-paper"
+                : "border-ok text-paper"
+              : "border-paper/35 text-paper/70"
+          }`}
+        >
+          {!activeRun
+            ? "no active run"
+            : heartbeatAgeMs === null
               ? "no heartbeat"
               : `heartbeat ${Math.round(heartbeatAgeMs / 1000)}s ago`}
-          </Stamp>
-        )}
+        </span>
       </div>
       <DebugJobsTable jobs={jobsList} events={events} />
       <div className="mt-8">

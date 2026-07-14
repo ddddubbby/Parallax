@@ -122,6 +122,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
 | `AGENT_PRD.md` | ACTIVE | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
 | `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
+| `M43_BUILD_PLAN.md` | ACTIVE | M43 authenticated Resonance web UI refinement, route/state inventory, live-demo protocol, and acceptance |
 | `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
@@ -133,7 +134,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `BUILD_NOTES.md` | ACTIVE | Disposable per-session working memory; pruned at milestone merge (D-025) |
 | `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice / site guide (the active brand, D-106) |
 | `README.md` | ACTIVE | Quick orientation and local setup pointer |
-| `PRD.md` | PARKED | The parked Resonance audit+simulation product: scope, requirements, closed M0–M34A tracker (D-106) |
+| `PRD.md` | ACTIVE | Resonance audit+simulation contract through M34A plus the presentation-only M43 UI refinement section; functionality remains frozen |
 | `CALIBRATION_PROTOCOL.md` | PARKED | SSR calibration design for the parked Simulation Layer (M26, D-082) |
 | `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
 | `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |
@@ -147,7 +148,7 @@ A milestone's build plan is a special case of the same rule (D-090). A milestone
 
 Boot ritual for implementation sessions:
 
-> Read `STATUS.md` FIRST — it names the active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then the active product's PRD (`AGENT_PRD.md` for the GEO agent; the parked track's `PRD.md` §M<N> only when working that track), then the build plan `STATUS.md` names as TRACKER source, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `STATUS.md` FIRST — it names the branch-local active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then the active product's PRD (`AGENT_PRD.md` for the GEO agent; `PRD.md` when STATUS selects the Resonance operator product), then the build plan named by STATUS's first-line TRACKER, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 
@@ -167,7 +168,7 @@ Moved to `DECISIONS.md` (D-107): the append-only, immutable rationale record (D-
 
 ## 10. Current state
 
-Live status has exactly one home per branch: `STATUS.md` — active product, branch, current milestone, milestone state, next action, and parked-product pointer (D-107/D-112). Static milestone definitions live in the active plan named by STATUS's first-line `TRACKER`; STATUS never duplicates them, only their state, and never mirrors another branch. The M-counter is repo-global and continues across products (D-108): the parked track closed at M34A, the agent build runs M35–M42, and later products continue the same sequence. Do not record status in this file.
+Live status has exactly one home per branch: `STATUS.md` — active product, branch, current milestone, milestone state, next action, and parked-product pointer (D-107/D-112). Static milestone definitions live in the active plan named by STATUS's first-line `TRACKER`; STATUS never duplicates them, only their state, and never mirrors another branch. The M-counter is repo-global (D-108): the agent milestones M35–M42 and the operator-web M43 branch may advance in parallel under D-112, but each number still names one milestone and each branch keeps its own control plane. Do not record status in this file.
 
 ## 11. Cross-platform wiring
 

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { AppMenu, AppMenuItem, AppMenuSeparator } from "@/components/ui/menu";
-import { Button, Stamp, Textarea } from "@/components/ui";
+import { Button, InlineStatus, Stamp, Textarea } from "@/components/ui";
+import { AppConfirmDialog } from "@/components/ui/dialog";
+import { UnsavedChangesSignal, useUnsavedEdit } from "@/components/unsaved-edit";
 import { csvDatasetsForKind, reportSectionsForKind } from "@/core/report-templates";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
@@ -46,37 +48,50 @@ export function ReportClient({
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [actionKey, setActionKey] = useState<"generate" | "save" | "regenerate" | null>(null);
+  const [regenerateTarget, setRegenerateTarget] = useState<SectionRow | null>(null);
   const [pending, startTransition] = useTransition();
+  const { setDirtySource } = useUnsavedEdit();
+
+  useEffect(() => () => setDirtySource("report-section", false), [setDirtySource]);
 
   function startEdit(s: SectionRow) {
     setError(null);
     setEditingKey(s.sectionKey);
     setDraft(displayMd(s));
+    setDirtySource("report-section", false);
   }
 
   function saveEdit(s: SectionRow) {
     setError(null);
+    setActionKey("save");
     startTransition(async () => {
       const result = await saveSectionEdit(projectId, runId, s.id, draft);
       if (!result.ok) {
         setError(result.error);
+        setActionKey(null);
         return;
       }
       setSections((prev) =>
         prev.map((x) => (x.id === s.id ? { ...x, editedMd: draft, state: "edited" } : x)),
       );
       setEditingKey(null);
+      setDirtySource("report-section", false);
+      setActionKey(null);
     });
   }
 
   function regenerate(s: SectionRow) {
     if (s.editedMd) {
-      const ok = window.confirm(
-        "Regenerating replaces your edit for this section. Continue?",
-      );
-      if (!ok) return;
+      setRegenerateTarget(s);
+      return;
     }
+    executeRegenerate(s);
+  }
+
+  function executeRegenerate(s: SectionRow) {
     setError(null);
+    setActionKey("regenerate");
     startTransition(async () => {
       const result = await regenerateSectionAction(projectId, runId, s.id, s.sectionKey);
       if (result.ok) {
@@ -94,6 +109,22 @@ export function ReportClient({
       } else {
         setError(result.error);
       }
+      setRegenerateTarget(null);
+      setActionKey(null);
+    });
+  }
+
+  function generate() {
+    setError(null);
+    setActionKey("generate");
+    startTransition(async () => {
+      const result = await generateReportForRun(projectId, runId);
+      if (!result.ok) {
+        setError(result.error);
+        setActionKey(null);
+        return;
+      }
+      window.location.reload();
     });
   }
 
@@ -102,21 +133,14 @@ export function ReportClient({
       <div className="rounded-xl border border-ink/15 p-10 text-center">
         <p className="label-mono mb-4 text-sm text-ink/60">No report generated yet</p>
         <Button
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              const result = await generateReportForRun(projectId, runId);
-              if (!result.ok) {
-                setError(result.error);
-                return;
-              }
-              window.location.reload();
-            })
-          }
+          pending={actionKey === "generate"}
+          pendingLabel="Generating…"
+          disabled={pending && actionKey !== "generate"}
+          onClick={generate}
         >
-          {pending ? "Generating…" : "Generate report"}
+          Generate report
         </Button>
-        {error && <p className="mt-3 font-mono text-xs text-danger">{error}</p>}
+        {error && <InlineStatus tone="danger" className="mt-3">{error}</InlineStatus>}
       </div>
     );
   }
@@ -154,10 +178,10 @@ export function ReportClient({
         </div>
       )}
       {initialIsStale && (
-        <div className="mb-4 rounded-lg border border-danger/25 bg-danger/5 p-3 font-mono text-xs text-danger">
+        <InlineStatus tone="danger" className="mb-4">
           Report sections predate the latest computed metrics. Regenerate affected sections before
           exporting final client deliverables.
-        </div>
+        </InlineStatus>
       )}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -205,22 +229,29 @@ export function ReportClient({
         </AppMenu>
       </div>
 
-      {error && <p className="mb-4 font-mono text-xs text-danger">{error}</p>}
+      {error && <InlineStatus tone="danger" className="mb-4">{error}</InlineStatus>}
 
       {!s ? (
-        <p className="font-mono text-xs text-ink/45">Section not generated for this run.</p>
+        <p className="font-mono text-xs text-ink/65">Section not generated for this run.</p>
       ) : (
         <section className="rounded-xl border border-ink/15 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="label-mono text-xs font-medium text-ink/60">{activeMeta.title}</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {s.editedMd && <Stamp tone="ok">edited</Stamp>}
+              <UnsavedChangesSignal />
               {!editing && (
                 <>
                   <Button variant="ghost" disabled={pending} onClick={() => startEdit(s)}>
                     Edit
                   </Button>
-                  <Button variant="ghost" disabled={pending} onClick={() => regenerate(s)}>
+                  <Button
+                    variant="ghost"
+                    pending={actionKey === "regenerate"}
+                    pendingLabel="Regenerating…"
+                    disabled={pending && actionKey !== "regenerate"}
+                    onClick={() => regenerate(s)}
+                  >
                     Regenerate
                   </Button>
                 </>
@@ -229,21 +260,58 @@ export function ReportClient({
           </div>
           {editing ? (
             <div className="flex flex-col gap-2">
-              <Textarea rows={8} value={draft} onChange={(e) => setDraft(e.target.value)} />
-              <div className="flex gap-2">
-                <Button disabled={pending} onClick={() => saveEdit(s)}>
+              <Textarea
+                rows={12}
+                value={draft}
+                autoFocus
+                aria-label={`Edit ${activeMeta.title}`}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  setDirtySource("report-section", e.target.value !== displayMd(s));
+                }}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  pending={actionKey === "save"}
+                  pendingLabel="Saving…"
+                  disabled={pending && actionKey !== "save"}
+                  onClick={() => saveEdit(s)}
+                >
                   Save changes
                 </Button>
-                <Button variant="secondary" onClick={() => setEditingKey(null)}>
+                <Button
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={() => {
+                    setDraft(displayMd(s));
+                    setEditingKey(null);
+                    setError(null);
+                    setDirtySource("report-section", false);
+                  }}
+                >
                   Cancel
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="whitespace-pre-wrap font-mono text-sm text-ink/85">{displayMd(s)}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/85">{displayMd(s)}</p>
           )}
         </section>
       )}
+
+      <AppConfirmDialog
+        open={regenerateTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !pending) setRegenerateTarget(null);
+        }}
+        title="Replace this edited section?"
+        description={`Regenerating ${activeMeta.title} permanently replaces its operator edit. Other report sections and exports are unchanged.`}
+        confirmLabel="Replace and regenerate"
+        pending={actionKey === "regenerate"}
+        onConfirm={() => {
+          if (regenerateTarget) executeRegenerate(regenerateTarget);
+        }}
+      />
     </div>
   );
 }

@@ -27,11 +27,17 @@ async function resolveDb(): Promise<{ connectionString: string; stop: () => Prom
 }
 
 async function main() {
+  // M43 visual/E2E review opts into a rich MOCK dashboard/report fixture.
+  // The seed writes only to this disposable database and never starts a worker.
+  process.env.M43_UI_FIXTURES = "true";
   const db = await resolveDb();
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     DATABASE_URL: db.connectionString,
+    // Public, disposable test material: never inherit an operator or production
+    // encryption key into the throwaway browser database.
+    CREDENTIALS_ENCRYPTION_KEY: "6d34332d646973706f7361626c652d62726f777365722d64656d6f2d6b657921",
     DISABLE_AUTH: "true",
     APP_ENV: "development",
     NODE_ENV: "development",

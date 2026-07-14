@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { OperatorShell } from "@/components/shell/operator-shell";
 import { UnsavedEditProvider } from "@/components/unsaved-edit";
+import { PageLoading } from "@/components/page-loading";
 import { isUuid } from "@/core/id";
 import { listProjects } from "@/db/repositories/intake";
 import { getProjectPipelineState, getProjectSummary } from "@/db/repositories/runner";
@@ -27,7 +28,7 @@ export default async function ProjectLayout({
   if (!project) notFound();
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+    <Suspense fallback={<PageLoading label="Opening project workspace" />}>
       <UnsavedEditProvider>
         <OperatorShell
           mode="project"

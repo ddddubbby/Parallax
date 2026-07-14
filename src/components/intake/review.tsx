@@ -95,11 +95,11 @@ export function Review({
         <div className="rounded-xl border border-warn p-4">
           <div className="mb-2 flex items-center gap-2">
             <Stamp tone="warn">Alias overlap</Stamp>
-            <span className="font-mono text-xs text-ink/60">
+            <span className="text-sm text-ink/65">
               same term tracked on two brands — extraction cannot attribute it
             </span>
           </div>
-          <ul className="font-mono text-xs text-warn">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-warn">
             {overlaps.map((o) => (
               <li key={`${o.value}-${o.brands.join()}`}>
                 &ldquo;{o.value}&rdquo; — {o.brands[0]} and {o.brands[1]}
@@ -113,12 +113,12 @@ export function Review({
         <div className="rounded-xl border border-warn p-4">
           <div className="mb-2 flex items-center gap-2">
             <Stamp tone="warn">Brand terms in basics</Stamp>
-            <span className="font-mono text-xs text-ink/60">
+            <span className="text-sm text-ink/65">
               unbranded discovery/consideration prompts interpolate these fields verbatim —
               PM-9 will block matrix approval (describe the buyer&rsquo;s job, not the audit)
             </span>
           </div>
-          <ul className="font-mono text-xs text-warn">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-warn">
             {contaminatedFields.map((f) => (
               <li key={f.label}>
                 {f.label} contains: {f.terms.join(", ")}
@@ -132,12 +132,12 @@ export function Review({
         <div className="rounded-xl border border-warn p-4">
           <div className="mb-2 flex items-center gap-2">
             <Stamp tone="warn">Buyer&rsquo;s goal reads like a business objective</Stamp>
-            <span className="font-mono text-xs text-ink/60">
+            <span className="text-sm text-ink/65">
               templates interpolate this field as what the BUYER wants to accomplish —
               describe their goal in their own words, not a growth/market objective
             </span>
           </div>
-          <ul className="font-mono text-xs text-warn">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-warn">
             <li>buyer&rsquo;s goal contains: {businessVoiceHits.join(", ")}</li>
           </ul>
         </div>
@@ -182,8 +182,8 @@ export function Review({
       </Section>
 
       <div className="mt-2 flex justify-end">
-        <Button onClick={onComplete} disabled={pending}>
-          {pending ? "Completing…" : "Complete intake"}
+        <Button onClick={onComplete} pending={pending} pendingLabel="Completing…">
+          Complete intake
         </Button>
       </div>
     </div>

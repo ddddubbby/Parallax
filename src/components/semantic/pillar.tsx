@@ -52,7 +52,7 @@ export function PillarSection({
         <div className="flex flex-wrap items-baseline gap-3">
           <h2 className={`label-mono text-sm font-medium uppercase ${tint.text}`}>
             {pillarNumber(pillar)} · {PILLARS[pillar].label}
-            {count !== undefined && <span className="text-ink/45"> · {count}</span>}
+            {count !== undefined && <span className="text-ink/65"> · {count}</span>}
           </h2>
           <span
             className="label-mono inline-flex rounded-xs border border-ink/30 px-1.5 py-0.5 text-[11px] text-ink/60"
@@ -80,12 +80,12 @@ export function PillarExplainer({ pillar }: { pillar: Pillar }) {
   return (
     <div className="mb-4 rounded-lg border border-ink/10 bg-paper-2/40 p-3">
       <p className="mb-1 font-mono text-xs text-ink/70">{meta.whatPromptsDo}</p>
-      <p className="mb-2 font-mono text-xs text-ink/55">
+      <p className="mb-2 font-mono text-xs text-ink/65">
         <span className="text-ink/70">Why it matters: </span>
         {meta.businessValue}
       </p>
       {feeds.length > 0 && (
-        <p className="label-mono text-[11px] text-ink/45">Feeds: {feeds.join(" · ")}</p>
+        <p className="label-mono text-[11px] text-ink/65">Feeds: {feeds.join(" · ")}</p>
       )}
     </div>
   );

@@ -53,14 +53,17 @@ export default async function ProjectHubPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-1 font-mono text-xs text-ink/45">
-        <Link href="/projects" className="hover:text-ink">
+      <div className="mb-1 text-sm text-ink/60">
+        <Link
+          href="/projects"
+          className="rounded-sm hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           Projects
         </Link>{" "}
         / {project.name}
       </div>
       <h1 className="label-mono mb-2 text-lg font-semibold">{project.name}</h1>
-      <p className="mb-8 font-mono text-xs text-ink/55">
+      <p className="mb-8 text-sm text-ink/65">
         Project workspace · {stage.stageLabel}
         {stage.nextLabel && nextHref && (
           <>
@@ -78,17 +81,17 @@ export default async function ProjectHubPage({
           <Link
             key={section.href}
             href={`/projects/${id}/${section.href}`}
-            className="group border-l-2 border-ink/20 pl-4 transition-micro hover:border-accent"
+            className="group rounded-r-lg border-l-2 border-ink/20 py-2 pl-4 pr-2 transition-micro hover:border-accent hover:bg-paper-2/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="label-mono text-sm font-medium uppercase text-ink/80 group-hover:text-ink">
                 {section.number} · {section.label}
               </h2>
-              <span className="label-mono text-[11px] text-accent-ink opacity-0 transition-micro group-hover:opacity-100">
+              <span className="label-mono text-[11px] text-accent-ink transition-micro group-hover:text-accent">
                 Open →
               </span>
             </div>
-            <p className="mt-1 font-mono text-xs text-ink/55">{section.status}</p>
+            <p className="mt-1 text-sm text-ink/65">{section.status}</p>
           </Link>
         ))}
       </div>

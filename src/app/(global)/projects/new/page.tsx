@@ -36,7 +36,7 @@ export default async function NewProjectPage({
     parsedStep && parsedStep >= 1 && parsedStep <= 8 ? parsedStep : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
+    <main className="mx-auto min-w-0 max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <IntakeWizard
         key={projectId ?? "new"}
         projectId={projectId}

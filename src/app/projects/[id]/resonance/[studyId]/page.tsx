@@ -92,16 +92,16 @@ function LockedDefinition({
         <SimulatedBadge />
         {genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
       </div>
-      <p className="font-mono text-xs text-ink/55">
+      <p className="text-sm leading-6 text-ink/65">
         Approved studies are immutable (C-13). Create a new study to change the panel or framings.
       </p>
       <BaselineProvenance provenance={baselineProvenance} />
       <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/55">Study</h3>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Study</h3>
         <p className="text-sm text-ink/80">{studyName}</p>
       </div>
       <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/55">Buyer panel ({personas.length})</h3>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Buyer panel ({personas.length})</h3>
         <ul className="grid gap-2">
           {personas.map((p) => (
             <li key={p.key} className="rounded-lg border border-ink/10 bg-paper px-3 py-2 font-mono text-xs text-ink/70">
@@ -111,7 +111,7 @@ function LockedDefinition({
         </ul>
       </div>
       <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/55">Framings ({stimuli.length})</h3>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Framings ({stimuli.length})</h3>
         <ul className="grid gap-3">
           {stimuli.map((s) => (
             <li key={s.id} className="rounded-lg border border-ink/10 bg-paper p-3">
@@ -229,8 +229,8 @@ export default async function ResonanceStudyPage({
   );
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-1 font-mono text-xs text-ink/45">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mb-1 font-mono text-xs text-ink/65">
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
@@ -264,17 +264,17 @@ export default async function ResonanceStudyPage({
               <Stamp tone={latestRun.runMode === "mock" ? "accent" : "ink"}>{latestRun.runMode}</Stamp>
             )}
           </div>
-          <p className="font-mono text-xs leading-5 text-ink/55">
+          <p className="text-sm leading-6 text-ink/65">
             {personas.length} buyer persona{personas.length === 1 ? "" : "s"} · {stimuli.length} framing
             {stimuli.length === 1 ? "" : "s"}
             {matrixVersion ? ` · matrix v${matrixVersion.version} (${matrixVersion.cellCount} cells)` : ""}
           </p>
           <BaselineProvenance provenance={baselineProvenance} />
           <div>
-            <p className="label-mono mb-2 text-xs text-ink/55">Next action</p>
+            <p className="label-mono mb-2 text-xs text-ink/65">Next action</p>
             <Link
               href={action.href}
-              className="label-mono inline-block rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+              className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {action.label} →
             </Link>
@@ -324,18 +324,18 @@ export default async function ResonanceStudyPage({
           {matrixVersion && (
             <Link
               href={`/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`}
-              className="label-mono inline-block rounded-full bg-accent px-4 py-1.5 text-xs text-paper transition-micro hover:bg-accent/90"
+              className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               Configure simulation run →
             </Link>
           )}
           {!matrixVersion && (
-            <p className="font-mono text-xs text-ink/55">
+            <p className="text-sm text-ink/65">
               Approve the study before configuring a simulation run.
             </p>
           )}
           {studyRuns.length === 0 ? (
-            <p className="font-mono text-xs text-ink/45">No runs for this study yet.</p>
+            <p className="text-sm text-ink/65">No runs for this study yet.</p>
           ) : (
             <ul className="grid gap-2">
               {studyRuns.map((run) => (
@@ -343,10 +343,10 @@ export default async function ResonanceStudyPage({
                   <SimulatedBadge />
                   <Stamp tone="ink">{run.state}</Stamp>
                   <Stamp tone={run.runMode === "mock" ? "accent" : "ink"}>{run.runMode}</Stamp>
-                  <span className="font-mono text-xs text-ink/50">{run.id.slice(0, 8)}</span>
+                  <span className="font-mono text-xs text-ink/65">{run.id.slice(0, 8)}</span>
                   <Link
                     href={`/projects/${id}/runs/${run.id}`}
-                    className="label-mono ml-auto text-xs text-accent-ink hover:text-accent"
+                    className="label-mono ml-auto inline-flex min-h-11 items-center rounded-full px-3 text-xs text-accent-ink hover:bg-ink/5 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     Open →
                   </Link>
@@ -367,7 +367,7 @@ export default async function ResonanceStudyPage({
             section={section}
           />
         ) : (
-          <p className="font-mono text-xs text-ink/45">
+          <p className="text-sm text-ink/65">
             No completed simulation results yet.{" "}
             {matrixVersion ? (
               <Link
@@ -389,7 +389,7 @@ export default async function ResonanceStudyPage({
             <SimulatedBadge />
             {results && results.providers.length > 0 && (
               <>
-                <span className="label-mono text-xs text-ink/55">Engine</span>
+                <span className="label-mono text-xs text-ink/65">Engine</span>
                 {results.providers.map((providerId) => {
                   const active = providerId === (engine || results.providers[0]);
                   return (
@@ -402,8 +402,8 @@ export default async function ResonanceStudyPage({
                       })}
                       className={
                         active
-                          ? "label-mono rounded-full bg-ink px-3 py-1 text-[11px] text-paper"
-                          : "label-mono rounded-full border border-ink/15 px-3 py-1 text-[11px] text-ink/60 hover:border-ink"
+                          ? "label-mono inline-flex min-h-11 items-center rounded-full bg-ink px-3 py-2 text-xs text-paper"
+                          : "label-mono inline-flex min-h-11 items-center rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/65 hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                       }
                     >
                       {providerId}
@@ -424,10 +424,10 @@ export default async function ResonanceStudyPage({
             />
           </div>
           {!evidencePageData || evidencePageData.total === 0 ? (
-            <p className="font-mono text-xs text-ink/45">No evidence responses for this filter yet.</p>
+            <p className="text-sm text-ink/65">No evidence responses for this filter yet.</p>
           ) : (
             <>
-              <p className="font-mono text-xs text-ink/50">
+              <p className="font-mono text-xs text-ink/65">
                 {evidencePageData.total} response{evidencePageData.total === 1 ? "" : "s"} · page{" "}
                 {evidencePageData.page}
                 {evidencePageData.totalPages > 0 ? ` of ${evidencePageData.totalPages}` : ""}
@@ -435,21 +435,25 @@ export default async function ResonanceStudyPage({
               <div className="grid gap-3">
                 {evidencePageData.items.map((response) => (
                   <article key={response.responseId} className="rounded-lg border border-ink/10 p-3">
-                    <div className="mb-2 flex flex-wrap gap-2 font-mono text-[11px] text-ink/45">
+                    <div className="mb-2 flex flex-wrap gap-2 font-mono text-xs text-ink/65">
                       <span>{response.responseId.slice(0, 8)}</span>
                       <span>{response.stimulusLabel}</span>
                       <span>{response.panelPersonaLabel}</span>
                       <span>PI {formatPi(response.meanScore)}</span>
                       <SimulatedBadge />
                     </div>
-                    <p className="text-sm leading-6 text-ink/75">{response.rawText}</p>
-                    <div className="mt-3 grid grid-cols-5 gap-1">
+                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-ink/80">{response.rawText}</p>
+                    <div
+                      className="mt-3 grid grid-cols-5 gap-1"
+                      role="img"
+                      aria-label={`Likert distribution: ${response.pmf.map((value, index) => `${index + 1} ${pct(value)}`).join(", ")}`}
+                    >
                       {response.pmf.map((value, idx) => (
                         <div key={`${response.responseId}-${idx}`} className="min-w-0">
                           <div className="h-1.5 rounded-full bg-ink/10">
                             <div className="h-1.5 rounded-full bg-ink/70" style={{ width: pct(value) }} />
                           </div>
-                          <div className="mt-1 font-mono text-[10px] text-ink/45">
+                          <div className="mt-1 font-mono text-xs text-ink/65">
                             {idx + 1}: {pct(value)}
                           </div>
                         </div>
@@ -468,7 +472,7 @@ export default async function ResonanceStudyPage({
                         persona: sp.persona,
                         page: String(evidencePageData.page - 1),
                       })}
-                      className="label-mono rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"
+                      className="label-mono inline-flex min-h-11 items-center rounded-full border border-ink/25 px-3 py-2 text-xs text-ink/70 hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       ← Prev
                     </Link>
@@ -481,7 +485,7 @@ export default async function ResonanceStudyPage({
                         persona: sp.persona,
                         page: String(evidencePageData.page + 1),
                       })}
-                      className="label-mono rounded-full border border-ink/25 px-3 py-1 text-[11px] text-ink/70 hover:border-ink"
+                      className="label-mono inline-flex min-h-11 items-center rounded-full border border-ink/25 px-3 py-2 text-xs text-ink/70 hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       Next →
                     </Link>

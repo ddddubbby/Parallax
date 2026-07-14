@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { useRef, useState, useTransition } from "react";
+import { Button, Field, InlineStatus, Input, Select, Textarea } from "@/components/ui";
+import { AppConfirmDialog } from "@/components/ui/dialog";
+import { useUnsavedEdit } from "@/components/unsaved-edit";
 import { STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import {
   addStimulusAction,
@@ -88,8 +90,16 @@ export function StudyWizard({
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [furthestStep, setFurthestStep] = useState(1);
   const [pending, startTransition] = useTransition();
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<
+    { kind: "approve" } | { kind: "delete"; stimulus: StimulusRow } | null
+  >(null);
+  const { setDirtySource, clearDirty } = useUnsavedEdit();
+  const wizardRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(study.name);
   const [personas, setPersonas] = useState<PersonaRow[]>(
@@ -108,6 +118,7 @@ export function StudyWizard({
       setError(res.error);
       return false;
     }
+    clearDirty();
     router.refresh();
     return true;
   }
@@ -116,20 +127,31 @@ export function StudyWizard({
     setError(null);
     if (step === 1 && name.trim().length === 0) {
       setError("Give the study a name to continue.");
+      nameRef.current?.focus();
       return;
     }
     if (step === 2 && !personas.some(personaComplete)) {
       setError("Add at least one buyer type with all five fields filled in.");
+      const firstIncomplete = personas.findIndex((persona) => !personaComplete(persona));
+      wizardRef.current
+        ?.querySelector<HTMLInputElement>(`[data-persona-row="${Math.max(firstIncomplete, 0)}"] input`)
+        ?.focus();
       return;
     }
     // Steps that changed the study's own fields persist before advancing.
     if (step === 1 || step === 2) {
+      setPendingKey(`study-${step}`);
       startTransition(async () => {
-        if (await saveStudy()) setStep(step + 1);
+        if (await saveStudy()) {
+          setStep(step + 1);
+          setFurthestStep((current) => Math.max(current, step + 1));
+        }
+        setPendingKey(null);
       });
       return;
     }
     setStep(Math.min(4, step + 1));
+    setFurthestStep((current) => Math.max(current, Math.min(4, step + 1)));
   }
 
   function back() {
@@ -138,12 +160,23 @@ export function StudyWizard({
   }
 
   // --- framing (stimulus) mutations, persisted immediately ---
-  function runAction(fn: () => Promise<{ ok: boolean; error?: string }>) {
+  function runAction(
+    key: string,
+    fn: () => Promise<{ ok: boolean; error?: string }>,
+    dirtyKey?: string,
+    onSuccess?: () => void,
+  ) {
     setError(null);
+    setPendingKey(key);
     startTransition(async () => {
       const res = await fn();
       if (!res.ok) setError(res.error ?? "Something went wrong");
-      else router.refresh();
+      else {
+        if (dirtyKey) setDirtySource(dirtyKey, false);
+        onSuccess?.();
+        router.refresh();
+      }
+      setPendingKey(null);
     });
   }
 
@@ -155,7 +188,7 @@ export function StudyWizard({
     fd.set("label", "New framing");
     fd.set("body", snapshot?.verbatimResponse ?? "Paste the framing the panel should react to.");
     if (snapshot) fd.set("framingEvidenceSnapshotId", snapshot.id);
-    runAction(() => addStimulusAction(projectId, study.id, fd));
+    runAction("add-framing", () => addStimulusAction(projectId, study.id, fd));
   }
 
   function saveFraming(row: StimulusRow, patch: Partial<StimulusRow>, evidenceIds: string[]) {
@@ -168,15 +201,25 @@ export function StudyWizard({
     if (merged.framingEvidenceSnapshotId) {
       fd.set("framingEvidenceSnapshotId", merged.framingEvidenceSnapshotId);
     }
-    runAction(() => updateStimulusAction(projectId, study.id, row.id, fd));
+    runAction(
+      `save-${row.id}`,
+      () => updateStimulusAction(projectId, study.id, row.id, fd),
+      `stimulus-${row.id}`,
+    );
   }
 
   function approve() {
     setError(null);
+    setPendingKey("approve");
     startTransition(async () => {
       const res = await approveStudyAction(projectId, study.id);
       if (!res.ok) setError(res.error);
-      else router.refresh();
+      else {
+        setConfirmation(null);
+        clearDirty();
+        router.refresh();
+      }
+      setPendingKey(null);
     });
   }
 
@@ -208,23 +251,29 @@ export function StudyWizard({
   }
 
   return (
-    <div>
+    <div ref={wizardRef}>
       {/* progress rail */}
-      <ol className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 overflow-x-auto" aria-label="Study design progress">
+      <ol className="flex min-w-max gap-2 pb-1">
         {STEPS.map((s) => {
           const active = s.n === step;
           const done = s.n < step;
+          const available = s.n <= furthestStep;
           return (
             <li key={s.n}>
               <button
                 type="button"
+                disabled={!available || pending}
+                aria-current={active ? "step" : undefined}
                 onClick={() => setStep(s.n)}
-                className={`label-mono rounded-full border px-3 py-1 text-xs transition-micro ${
+                className={`label-mono min-h-11 rounded-full border px-3 py-2 text-xs transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   active
                     ? "border-ink bg-ink text-paper"
                     : done
                       ? "border-ink/40 text-ink/70 hover:border-ink"
-                      : "border-ink/15 text-ink/45 hover:border-ink/40"
+                      : available
+                        ? "border-ink/25 text-ink/65 hover:border-ink/40"
+                        : "border-ink/10 text-ink/60"
                 }`}
               >
                 0{s.n} · {s.title}
@@ -233,20 +282,24 @@ export function StudyWizard({
           );
         })}
       </ol>
+      </div>
 
-      <div className="mb-2 label-mono text-xs text-ink/45">
+      <div className="mb-2 label-mono text-xs text-ink/65">
         STEP {step} OF 4 — {STEPS[step - 1].title}
       </div>
 
-      {error && (
-        <p className="mb-4 rounded-lg border border-danger px-3 py-2 font-mono text-xs text-danger">{error}</p>
-      )}
+      {error && <InlineStatus className="mb-4" tone="danger">{error}</InlineStatus>}
 
       {/* STEP 1 — name */}
       {step === 1 && (
         <div className="max-w-xl">
           <Field label="Study name (required)" hint="A short name for this simulation, e.g. 'Weekday lunch $1 off'.">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Weekday lunch $1 off" />
+            <Input
+              ref={nameRef}
+              value={name}
+              onChange={(e) => { setName(e.target.value); setDirtySource("study", true); }}
+              placeholder="Weekday lunch $1 off"
+            />
           </Field>
         </div>
       )}
@@ -260,14 +313,22 @@ export function StudyWizard({
           </p>
           <div className="flex flex-col gap-3">
             {personas.map((p, i) => (
-              <div key={i} className="rounded-lg border border-ink/10 p-3">
+              <div key={i} data-persona-row={i} className="rounded-lg border border-ink/10 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="label-mono text-xs text-ink/55">Buyer type {i + 1}</span>
+                  <span className="label-mono text-xs text-ink/65">Buyer type {i + 1}</span>
                   {personas.length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() => setPersonas(personas.filter((_, j) => j !== i))}
+                      onClick={(event) => {
+                        setPersonas(personas.filter((_, j) => j !== i));
+                        setDirtySource("study", true);
+                        window.setTimeout(() => {
+                          const rows = wizardRef.current?.querySelectorAll<HTMLElement>("[data-persona-row]");
+                          rows?.[Math.max(0, i - 1)]?.querySelector<HTMLInputElement>("input")?.focus();
+                          if (!rows?.length) (event.currentTarget.closest("section")?.querySelector("button") as HTMLButtonElement | null)?.focus();
+                        }, 0);
+                      }}
                     >
                       Remove
                     </Button>
@@ -288,7 +349,7 @@ export function StudyWizard({
                         value={p[field]}
                         placeholder={ph}
                         onChange={(e) =>
-                          setPersonas(personas.map((row, j) => (j === i ? { ...row, [field]: e.target.value } : row)))
+                          { setPersonas(personas.map((row, j) => (j === i ? { ...row, [field]: e.target.value } : row))); setDirtySource("study", true); }
                         }
                       />
                     </Field>
@@ -298,7 +359,12 @@ export function StudyWizard({
             ))}
           </div>
           <div className="mt-3">
-            <Button type="button" variant="secondary" onClick={() => setPersonas([...personas, { ...EMPTY_PERSONA }])}>
+            <Button type="button" variant="secondary" onClick={() => {
+              const nextIndex = personas.length;
+              setPersonas([...personas, { ...EMPTY_PERSONA }]);
+              setDirtySource("study", true);
+              window.setTimeout(() => wizardRef.current?.querySelector<HTMLInputElement>(`[data-persona-row="${nextIndex}"] input`)?.focus(), 0);
+            }}>
               + Add buyer type
             </Button>
           </div>
@@ -323,15 +389,24 @@ export function StudyWizard({
                 evidenceOptions={evidenceOptions}
                 snapshotOptions={snapshotOptions}
                 requiresFramingSnapshot={requiresFramingSnapshot}
-                pending={pending}
+                pending={pendingKey === `save-${s.id}` || pendingKey === `delete-${s.id}`}
+                pendingKey={pendingKey}
+                onDirty={(dirty) => setDirtySource(`stimulus-${s.id}`, dirty)}
                 onSave={(patch, evidenceIds) => saveFraming(s, patch, evidenceIds)}
-                onDelete={() => runAction(() => deleteStimulusAction(projectId, study.id, s.id))}
+                onDelete={() => setConfirmation({ kind: "delete", stimulus: s })}
               />
             ))}
           </div>
 
           <div className="mt-4">
-            <Button type="button" variant="secondary" disabled={pending} onClick={addFraming}>
+            <Button
+              type="button"
+              variant="secondary"
+              pending={pendingKey === "add-framing"}
+              pendingLabel="Adding framing"
+              disabled={pending && pendingKey !== "add-framing"}
+              onClick={addFraming}
+            >
               + Add framing
             </Button>
           </div>
@@ -361,8 +436,12 @@ export function StudyWizard({
             </p>
           )}
           <div className="mt-4">
-            <Button type="button" disabled={pending || readiness.length > 0} onClick={approve}>
-              {pending ? "Working…" : "Approve study"}
+            <Button
+              type="button"
+              disabled={pending || readiness.length > 0}
+              onClick={() => setConfirmation({ kind: "approve" })}
+            >
+              Approve study
             </Button>
           </div>
         </div>
@@ -374,11 +453,45 @@ export function StudyWizard({
           ← Back
         </Button>
         {step < 4 && (
-          <Button type="button" disabled={pending} onClick={next}>
-            {pending ? "Saving…" : "Next →"}
+          <Button
+            type="button"
+            pending={pendingKey === `study-${step}`}
+            pendingLabel="Saving study"
+            disabled={pending && pendingKey !== `study-${step}`}
+            onClick={next}
+          >
+            Next →
           </Button>
         )}
       </div>
+
+      <AppConfirmDialog
+        open={confirmation !== null}
+        onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+        title={confirmation?.kind === "approve" ? "Approve and lock this study?" : "Delete framing?"}
+        description={
+          confirmation?.kind === "approve"
+            ? "Approval freezes the buyer panel, framings, and evidence provenance as an immutable Simulation definition (C-13/C-15). Review every blocker before continuing."
+            : confirmation?.kind === "delete"
+              ? `Permanently delete “${confirmation.stimulus.label}” from this draft study?`
+              : ""
+        }
+        confirmLabel={confirmation?.kind === "approve" ? "Approve and lock study" : `Delete ${confirmation?.kind === "delete" ? confirmation.stimulus.label : "framing"}`}
+        tone={confirmation?.kind === "approve" ? "primary" : "danger"}
+        pending={pendingKey === "approve" || pendingKey?.startsWith("delete-") === true}
+        onConfirm={() => {
+          if (confirmation?.kind === "approve") approve();
+          if (confirmation?.kind === "delete") {
+            const target = confirmation.stimulus;
+            runAction(
+              `delete-${target.id}`,
+              () => deleteStimulusAction(projectId, study.id, target.id),
+              `stimulus-${target.id}`,
+              () => setConfirmation(null),
+            );
+          }
+        }}
+      />
     </div>
   );
 }
@@ -389,6 +502,8 @@ function FramingCard({
   snapshotOptions,
   requiresFramingSnapshot,
   pending,
+  pendingKey,
+  onDirty,
   onSave,
   onDelete,
 }: {
@@ -397,6 +512,8 @@ function FramingCard({
   snapshotOptions: SnapshotOption[];
   requiresFramingSnapshot: boolean;
   pending: boolean;
+  pendingKey: string | null;
+  onDirty: (dirty: boolean) => void;
   onSave: (patch: Partial<StimulusRow>, evidenceIds: string[]) => void;
   onDelete: () => void;
 }) {
@@ -409,13 +526,18 @@ function FramingCard({
   const needsEvidence = kind === "measured_ai" && (requiresFramingSnapshot ? !snapshotId : evidence.size === 0);
 
   return (
-    <div className="rounded-lg border border-ink/10 p-4">
+    <div
+      className="rounded-lg border border-ink/10 p-4"
+      role="group"
+      aria-label={`Framing ${label || stimulus.id.slice(0, 8)}`}
+    >
       <div className="mb-3 grid gap-3 md:grid-cols-[16rem_1fr]">
         <Field label="Framing type" hint={KIND_META[kind].help}>
           <Select value={kind} onChange={(e) => {
             const nextKind = e.target.value as StimulusKind;
             setKind(nextKind);
             if (nextKind !== "measured_ai") setSnapshotId("");
+            onDirty(true);
           }}>
             {STIMULUS_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -425,11 +547,11 @@ function FramingCard({
           </Select>
         </Field>
         <Field label="Short label" hint="How this framing is named in the results.">
-          <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Measured AI framing" />
+          <Input value={label} onChange={(e) => { setLabel(e.target.value); onDirty(true); }} placeholder="Measured AI framing" />
         </Field>
       </div>
       <Field label="Framing text" hint={kind === "measured_ai" && requiresFramingSnapshot ? "Copied verbatim from the immutable reviewed response." : "Paste the exact wording the panel should react to."}>
-        <Textarea value={body} rows={4} readOnly={kind === "measured_ai" && requiresFramingSnapshot} onChange={(e) => setBody(e.target.value)} />
+        <Textarea value={body} rows={4} readOnly={kind === "measured_ai" && requiresFramingSnapshot} onChange={(e) => { setBody(e.target.value); onDirty(true); }} />
       </Field>
 
       {needsEvidence && (
@@ -446,6 +568,7 @@ function FramingCard({
               setSnapshotId(nextId);
               const selected = snapshotOptions.find((option) => option.id === nextId);
               if (selected) setBody(selected.verbatimResponse);
+              onDirty(true);
             }}>
               <option value="">Select reviewed evidence…</option>
               {snapshotOptions.map((option) => <option key={option.id} value={option.id}>{option.associationId} · {option.label} · {option.excerpt}</option>)}
@@ -469,6 +592,7 @@ function FramingCard({
                     if (e.target.checked) nextSet.add(row.id);
                     else nextSet.delete(row.id);
                     setEvidence(nextSet);
+                    onDirty(true);
                   }}
                 />
                 <span>{row.excerpt}</span>
@@ -482,7 +606,9 @@ function FramingCard({
         <Button
           type="button"
           variant="secondary"
-          disabled={pending}
+          pending={pendingKey === `save-${stimulus.id}`}
+          pendingLabel={`Saving ${label || "framing"}`}
+          disabled={pending && pendingKey !== `save-${stimulus.id}`}
           onClick={() => onSave({ kind, label, body, framingEvidenceSnapshotId: snapshotId || null }, [...evidence])}
         >
           Save framing

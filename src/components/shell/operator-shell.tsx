@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
-import { useEffect, useState, type ReactNode, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from "react";
+import { useFormStatus } from "react-dom";
 import {
   GLOBAL_NAV_ITEMS,
   isNavItemActive,
@@ -18,6 +19,7 @@ import type { PipelineState } from "@/core/pipeline";
 import { cn } from "@/core/cn";
 import { logout } from "@/modules/auth/actions";
 import { AppMenu, AppMenuItem } from "@/components/ui/menu";
+import { AppConfirmDialog } from "@/components/ui/dialog";
 import { AppTooltip, AppTooltipProvider } from "@/components/ui/tooltip";
 import { useUnsavedEdit } from "@/components/unsaved-edit";
 
@@ -38,17 +40,17 @@ function NavLink({
   children,
   onNavigate,
   indent,
+  beforeNavigate,
 }: {
   href: string;
   active: boolean;
   children: ReactNode;
   onNavigate?: () => void;
   indent?: boolean;
+  beforeNavigate?: (href: string, returnFocus?: HTMLElement) => boolean;
 }) {
-  const { dirty } = useUnsavedEdit();
-
   function onClick(e: MouseEvent<HTMLAnchorElement>) {
-    if (dirty && !window.confirm("You have unsaved changes. Leave this page?")) {
+    if (beforeNavigate?.(href, e.currentTarget)) {
       e.preventDefault();
       return;
     }
@@ -61,7 +63,7 @@ function NavLink({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "label-mono block rounded-md px-3 py-1.5 text-xs transition-micro",
+        "interactive-press label-mono block rounded-md px-3 py-2 text-xs transition-micro",
         indent && "ml-2",
         active ? "bg-ink text-paper" : "text-ink/65 hover:bg-ink/5 hover:text-ink",
       )}
@@ -76,24 +78,37 @@ function SidebarBody({
   projects,
   project,
   onNavigate,
+  beforeNavigate,
 }: {
   mode: "global" | "project";
   projects: ProjectSwitcherItem[];
   project?: OperatorShellProps["project"];
   onNavigate?: () => void;
+  beforeNavigate?: (href: string, returnFocus?: HTMLElement) => boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const switchProjectRef = useRef<HTMLButtonElement>(null);
   const search = searchParams.toString();
   const next = project ? sidebarNextAction(project.pipeline, project.id) : null;
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-ink/10 px-4 py-4">
-        <Link href="/projects" onClick={onNavigate} className="flex flex-col text-ink">
+        <Link
+          href="/projects"
+          onClick={(event) => {
+            if (beforeNavigate?.("/projects", event.currentTarget)) {
+              event.preventDefault();
+              return;
+            }
+            onNavigate?.();
+          }}
+          className="flex flex-col text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           <span className="label-mono text-sm font-semibold">Resonance</span>
-          <span className="font-mono text-[10px] text-ink/45">Parallax measurement engine</span>
+          <span className="font-mono text-[10px] text-ink/60">Parallax measurement engine</span>
         </Link>
       </div>
 
@@ -103,12 +118,13 @@ function SidebarBody({
             align="start"
             trigger={
               <button
+                ref={switchProjectRef}
                 type="button"
-                className="label-mono flex w-full items-center justify-between rounded-md border border-ink/15 px-3 py-2 text-left text-xs text-ink transition-micro hover:border-ink"
+                className="interactive-press label-mono flex min-h-11 w-full items-center justify-between rounded-md border border-ink/15 px-3 py-2 text-left text-xs text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 aria-label="Switch project"
               >
                 <span className="truncate">{project.name}</span>
-                <span className="text-ink/40">▾</span>
+                <span className="text-ink/60">▾</span>
               </button>
             }
           >
@@ -116,8 +132,11 @@ function SidebarBody({
               <AppMenuItem
                 key={p.id}
                 onSelect={() => {
-                  onNavigate?.();
-                  router.push(projectSwitcherHref(p));
+                  const href = projectSwitcherHref(p);
+                  if (!beforeNavigate?.(href, switchProjectRef.current ?? undefined)) {
+                    onNavigate?.();
+                    router.push(href);
+                  }
                 }}
               >
                 {p.name}
@@ -130,19 +149,26 @@ function SidebarBody({
             href={projectOverviewHref(project.id)}
             active={pathname === `/projects/${project.id}`}
             onNavigate={onNavigate}
+            beforeNavigate={beforeNavigate}
           >
             Project overview
           </NavLink>
 
           {next && (
             <div className="mt-3 rounded-lg border border-ink/10 bg-paper-2/50 px-3 py-2">
-              <div className="label-mono text-[10px] text-ink/45">Stage</div>
+              <div className="label-mono text-[10px] text-ink/60">Stage</div>
               <div className="mt-0.5 font-mono text-xs text-ink/75">{next.stageLabel}</div>
               {next.nextLabel && next.href && (
                 <Link
                   href={next.href}
-                  onClick={onNavigate}
-                  className="label-mono mt-2 inline-block text-[11px] text-accent-ink hover:text-accent"
+                  onClick={(event) => {
+                    if (beforeNavigate?.(next.href!, event.currentTarget)) {
+                      event.preventDefault();
+                      return;
+                    }
+                    onNavigate?.();
+                  }}
+                  className="label-mono mt-2 inline-block rounded-sm text-[11px] text-accent-ink hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   {next.nextLabel} →
                 </Link>
@@ -157,7 +183,7 @@ function SidebarBody({
           <div className="space-y-4">
             {projectNavGroups(project.id).map((group) => (
               <div key={group.id}>
-                <div className="label-mono mb-1 px-3 text-[10px] text-ink/40">{group.label}</div>
+                <div className="label-mono mb-1 px-3 text-[10px] text-ink/60">{group.label}</div>
                 <div className="space-y-0.5">
                   {group.items.map((item) => (
                     <NavLink
@@ -165,6 +191,7 @@ function SidebarBody({
                       href={item.href}
                       active={isNavItemActive(pathname, search, item)}
                       onNavigate={onNavigate}
+                      beforeNavigate={beforeNavigate}
                       indent
                     >
                       {item.label}
@@ -182,6 +209,7 @@ function SidebarBody({
                 href={item.href}
                 active={isNavItemActive(pathname, search, item)}
                 onNavigate={onNavigate}
+                beforeNavigate={beforeNavigate}
               >
                 {item.label}
               </NavLink>
@@ -199,6 +227,7 @@ function SidebarBody({
                 href={item.href}
                 active={isNavItemActive(pathname, search, item)}
                 onNavigate={onNavigate}
+                beforeNavigate={beforeNavigate}
               >
                 {item.label}
               </NavLink>
@@ -206,15 +235,24 @@ function SidebarBody({
           </div>
         )}
         <form action={logout}>
-          <button
-            type="submit"
-            className="label-mono w-full rounded-md px-3 py-1.5 text-left text-xs text-ink/55 transition-micro hover:bg-ink/5 hover:text-ink"
-          >
-            Sign out
-          </button>
+          <SignOutButton />
         </form>
       </div>
     </div>
+  );
+}
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      className="interactive-press label-mono min-h-11 w-full rounded-md px-3 py-2 text-left text-xs text-ink/65 transition-micro hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
+      aria-busy={pending || undefined}
+      disabled={pending}
+    >
+      {pending ? "Signing out…" : "Sign out"}
+    </button>
   );
 }
 
@@ -224,8 +262,33 @@ function SidebarBody({
  */
 export function OperatorShell(props: OperatorShellProps) {
   const [open, setOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
   const search = useSearchParams().toString();
+  const router = useRouter();
+  const { dirty, clearDirty } = useUnsavedEdit();
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  function beforeNavigate(href: string, returnFocus?: HTMLElement) {
+    if (!dirty) return false;
+    returnFocusRef.current = returnFocus ?? null;
+    setPendingHref(href);
+    return true;
+  }
+
+  function closeConfirmation() {
+    setPendingHref(null);
+    requestAnimationFrame(() => returnFocusRef.current?.focus());
+  }
+
+  function discardAndNavigate() {
+    if (!pendingHref) return;
+    const href = pendingHref;
+    clearDirty();
+    setPendingHref(null);
+    setOpen(false);
+    router.push(href);
+  }
 
   // Close drawer on navigation.
   useEffect(() => {
@@ -240,7 +303,7 @@ export function OperatorShell(props: OperatorShellProps) {
           className="hidden w-[var(--sidebar-width)] shrink-0 border-r border-ink/10 bg-paper lg:fixed lg:inset-y-0 lg:flex lg:flex-col"
           aria-label="Sidebar"
         >
-          <SidebarBody {...props} />
+          <SidebarBody {...props} beforeNavigate={beforeNavigate} />
         </aside>
 
         {/* Mobile top bar + drawer (Radix Dialog = focus trap + restore). */}
@@ -250,7 +313,7 @@ export function OperatorShell(props: OperatorShellProps) {
               <Dialog.Trigger asChild>
                 <button
                   type="button"
-                  className="rounded-md border border-ink/15 p-2 text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="interactive-press flex min-h-11 min-w-11 items-center justify-center rounded-md border border-ink/15 p-2 text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   aria-label="Open navigation"
                 >
                   <Menu className="h-4 w-4" aria-hidden />
@@ -263,29 +326,43 @@ export function OperatorShell(props: OperatorShellProps) {
           </div>
 
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 lg:hidden" />
+            <Dialog.Overlay className="app-dialog-overlay fixed inset-0 z-40 bg-ink/40 lg:hidden" />
             <Dialog.Content
               aria-describedby={undefined}
-              className="fixed inset-y-0 left-0 z-50 flex w-[min(100%,var(--sidebar-width))] flex-col border-r border-ink/10 bg-paper shadow-xl outline-none lg:hidden"
+              className="operator-drawer fixed inset-y-0 left-0 z-50 flex w-[min(100%,var(--sidebar-width))] flex-col border-r border-ink/10 bg-paper shadow-xl outline-none lg:hidden"
             >
               <div className="flex items-center justify-between border-b border-ink/10 px-3 py-2">
                 <Dialog.Title className="label-mono text-xs font-semibold text-ink">
                   Navigation
                 </Dialog.Title>
                 <Dialog.Close
-                  className="rounded-md p-2 text-ink/50 hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="interactive-press flex min-h-11 min-w-11 items-center justify-center rounded-md p-2 text-ink/50 transition-micro hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   aria-label="Close navigation"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </Dialog.Close>
               </div>
-              <SidebarBody {...props} onNavigate={() => setOpen(false)} />
+              <SidebarBody
+                {...props}
+                onNavigate={() => setOpen(false)}
+                beforeNavigate={beforeNavigate}
+              />
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
 
         <div className="min-w-0 flex-1 lg:pl-[var(--sidebar-width)]">{props.children}</div>
       </div>
+      <AppConfirmDialog
+        open={pendingHref !== null}
+        onOpenChange={(next) => {
+          if (!next) closeConfirmation();
+        }}
+        title="Discard unsaved changes?"
+        description="Your unsaved edits on this page will be lost. Saved project data will not be changed."
+        confirmLabel="Discard and leave"
+        onConfirm={discardAndNavigate}
+      />
     </AppTooltipProvider>
   );
 }

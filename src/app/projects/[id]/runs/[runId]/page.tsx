@@ -45,7 +45,7 @@ export default async function RunDetailPage({
     isResonance && (view === "extraction" || view === "metrics") ? "overview" : view;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8">
+    <main className="mx-auto min-w-0 max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-1 font-mono text-xs text-ink/45">
         <Link href="/projects" className="hover:text-ink">
           Projects

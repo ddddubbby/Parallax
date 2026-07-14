@@ -15,6 +15,9 @@ describe("OperatorShell mobile drawer (M33 / D-089)", () => {
     expect(source).toContain("Dialog.Root");
     expect(source).toContain("Dialog.Content");
     expect(source).toContain("Dialog.Trigger");
+    expect(source).toContain("AppConfirmDialog");
+    expect(source).toContain("useFormStatus");
+    expect(source).not.toContain("window.confirm");
     // Hand-rolled aria-modal without Radix must not return.
     expect(source).not.toMatch(/role="dialog"\s+aria-modal="true"/);
   });

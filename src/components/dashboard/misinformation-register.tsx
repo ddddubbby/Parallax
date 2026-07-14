@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Select, Stamp } from "@/components/ui";
+import { Button, InlineStatus, Select, Stamp } from "@/components/ui";
 import { PILLARS } from "@/core/semantic";
 import { reviewClaim } from "@/modules/dashboard/actions";
 
@@ -39,10 +39,11 @@ function MisinfoRowCard({
   row: MisinfoRow;
   projectId: string;
   runId: string;
-  onRowClick: (responseId: string, claimText: string) => void;
+  onRowClick: (responseId: string, claimText: string, trigger?: HTMLElement) => void;
   onReviewed: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<"confirm" | "correct" | "reopen" | null>(null);
   const [correcting, setCorrecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verdict, setVerdict] = useState(row.operatorVerdict ?? row.extractedVerdict);
@@ -52,15 +53,18 @@ function MisinfoRowCard({
   const shownSeverity = row.operatorSeverity ?? row.extractedSeverity;
   const reviewed = row.reviewState !== "unreviewed";
 
-  function run(action: () => Promise<{ ok: boolean; error?: string }>) {
+  function run(key: "confirm" | "correct" | "reopen", action: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
+    setActionKey(key);
     startTransition(async () => {
       const result = await action();
       if (!result.ok) {
         setError(result.error ?? "Review failed");
+        setActionKey(null);
         return;
       }
       setCorrecting(false);
+      setActionKey(null);
       onReviewed();
     });
   }
@@ -79,13 +83,15 @@ function MisinfoRowCard({
       </div>
       <button
         type="button"
-        onClick={() => onRowClick(row.responseId, row.claimText)}
-        className="mb-1 block text-left font-mono text-xs text-ink/85 underline-offset-2 hover:underline"
+        onClick={(event) => onRowClick(row.responseId, row.claimText, event.currentTarget)}
+        className="mb-1 block min-h-11 rounded-sm text-left text-sm leading-relaxed text-ink/85 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {row.claimText}
       </button>
       {row.factStatement && (
-        <p className="mb-2 font-mono text-[11px] text-ink/50">Fact sheet: {row.factStatement}</p>
+        <p className="mb-2 text-sm leading-relaxed text-ink/65">
+          <span className="label-mono mr-1 text-[11px]">Fact sheet</span> {row.factStatement}
+        </p>
       )}
 
       {correcting ? (
@@ -112,9 +118,11 @@ function MisinfoRowCard({
           </label>
           <Button
             variant="primary"
-            disabled={pending}
+            pending={actionKey === "correct"}
+            pendingLabel="Saving…"
+            disabled={pending && actionKey !== "correct"}
             onClick={() =>
-              run(() =>
+              run("correct", () =>
                 reviewClaim(projectId, runId, row.id, {
                   reviewState: "corrected",
                   operatorVerdict: verdict as (typeof VERDICTS)[number],
@@ -125,7 +133,16 @@ function MisinfoRowCard({
           >
             Save correction
           </Button>
-          <Button variant="ghost" disabled={pending} onClick={() => setCorrecting(false)}>
+          <Button
+            variant="ghost"
+            disabled={pending}
+            onClick={() => {
+              setVerdict(row.operatorVerdict ?? row.extractedVerdict);
+              setSeverity(row.operatorSeverity ?? row.extractedSeverity);
+              setCorrecting(false);
+              setError(null);
+            }}
+          >
             Cancel
           </Button>
         </div>
@@ -133,8 +150,10 @@ function MisinfoRowCard({
         <div className="mt-2 flex flex-wrap gap-2">
           <Button
             variant="secondary"
-            disabled={pending}
-            onClick={() => run(() => reviewClaim(projectId, runId, row.id, { reviewState: "confirmed" }))}
+            pending={actionKey === "confirm"}
+            pendingLabel="Saving…"
+            disabled={pending && actionKey !== "confirm"}
+            onClick={() => run("confirm", () => reviewClaim(projectId, runId, row.id, { reviewState: "confirmed" }))}
           >
             {reviewed ? "Re-confirm" : "Confirm"}
           </Button>
@@ -144,15 +163,17 @@ function MisinfoRowCard({
           {reviewed && (
             <Button
               variant="ghost"
-              disabled={pending}
-              onClick={() => run(() => reviewClaim(projectId, runId, row.id, { reviewState: "unreviewed" }))}
+              pending={actionKey === "reopen"}
+              pendingLabel="Re-opening…"
+              disabled={pending && actionKey !== "reopen"}
+              onClick={() => run("reopen", () => reviewClaim(projectId, runId, row.id, { reviewState: "unreviewed" }))}
             >
               Re-open
             </Button>
           )}
         </div>
       )}
-      {error && <p className="mt-1 font-mono text-[11px] text-danger">{error}</p>}
+      {error && <InlineStatus tone="danger" className="mt-2">{error}</InlineStatus>}
     </div>
   );
 }
@@ -173,7 +194,7 @@ export function MisinformationRegister({
   projectId: string;
   runId: string;
   rows: MisinfoRow[];
-  onRowClick: (responseId: string, claimText: string) => void;
+  onRowClick: (responseId: string, claimText: string, trigger?: HTMLElement) => void;
   onReviewed: () => void;
 }) {
   const unreviewedCount = rows.filter((r) => r.reviewState === "unreviewed").length;
@@ -181,13 +202,13 @@ export function MisinformationRegister({
   return (
     <section>
       <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">
-        {PILLARS.proof.label} <span className="text-ink/40">— Misinformation Register ({rows.length})</span>
+        {PILLARS.proof.label} <span className="text-ink/65">— Misinformation Register ({rows.length})</span>
         {unreviewedCount > 0 && (
           <span className="ml-2 text-warn">{unreviewedCount} unreviewed</span>
         )}
       </h2>
       {rows.length === 0 ? (
-        <p className="font-mono text-xs text-ink/45">No contradicted or unsupported claims found</p>
+        <p className="text-sm text-ink/65">No contradicted, outdated, or unsupported claims were found.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((r) => (

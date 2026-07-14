@@ -46,8 +46,8 @@ export default async function DashboardPage({
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-1 font-mono text-xs text-ink/45">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mb-1 font-mono text-xs text-ink/65">
         <Link href="/projects" className="hover:text-ink">
           Projects
         </Link>{" "}
@@ -57,14 +57,14 @@ export default async function DashboardPage({
         </Link>{" "}
         / {view === "simulation" ? "Simulation results" : "Evidence dashboard"}
       </div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="label-mono text-lg font-semibold">
           {view === "simulation" ? "Simulation results" : "Evidence dashboard"}
         </h1>
         {view !== "simulation" && (
           <Link
             href={`/projects/${id}/report`}
-            className="label-mono rounded-full border border-ink/25 px-4 py-1.5 text-xs hover:border-ink"
+            className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full border border-ink/25 px-4 py-2 text-xs transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Report →
           </Link>
@@ -75,7 +75,7 @@ export default async function DashboardPage({
         <div className="mb-6">
           <Link
             href={withViewParam(base, "overview")}
-            className="label-mono text-xs text-accent-ink hover:text-accent"
+            className="label-mono inline-flex min-h-11 items-center rounded-sm text-xs text-accent-ink hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             ← Evidence dashboard
           </Link>
@@ -86,7 +86,7 @@ export default async function DashboardPage({
           <span className="hidden h-4 w-px bg-ink/15 sm:block" aria-hidden />
           <Link
             href={withViewParam(base, "simulation")}
-            className="label-mono inline-flex items-center gap-2 rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/60 transition-micro hover:border-ink hover:text-ink"
+            className="interactive-press label-mono inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/60 transition-micro hover:border-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             Simulation results
             <SimulatedBadge />

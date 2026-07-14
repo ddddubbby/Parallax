@@ -1,7 +1,10 @@
 "use client";
 
+import * as Dialog from "@radix-ui/react-dialog";
+import { ArrowLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Stamp } from "@/components/ui";
+import { Button, InlineStatus, Stamp } from "@/components/ui";
+import { PageLoading } from "@/components/page-loading";
 import { fetchDrilldown, fetchMetricDrilldown, fetchResponseDetail, fetchResponsesByIds } from "@/modules/dashboard/actions";
 import { reportError } from "@/observability";
 
@@ -32,11 +35,13 @@ export function DrilldownPanel({
   projectId,
   runId,
   request,
+  open,
   onClose,
 }: {
   projectId: string;
   runId: string;
   request: DrilldownRequest;
+  open: boolean;
   onClose: () => void;
 }) {
   const [rows, setRows] = useState<ResponseRow[] | null>(null);
@@ -45,6 +50,7 @@ export function DrilldownPanel({
     extraction: { state: string; extractedJson: unknown } | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
 
@@ -93,6 +99,8 @@ export function DrilldownPanel({
   }, [projectId, runId, request, reloadNonce]);
 
   async function selectResponse(row: ResponseRow) {
+    setDetailLoading(true);
+    setFailed(false);
     try {
       const detail = await fetchResponseDetail(projectId, runId, row.id);
       setSelected({
@@ -102,96 +110,109 @@ export function DrilldownPanel({
     } catch (err) {
       reportError(err, { boundary: "drilldown-select", projectId, runId });
       setFailed(true);
+    } finally {
+      setDetailLoading(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-ink/40" onClick={onClose}>
-      <div
-        className="flex h-full w-full max-w-lg flex-col overflow-y-auto bg-paper p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="label-mono text-sm font-semibold">{request.label}</h3>
-          <button type="button" onClick={onClose} className="label-mono text-xs text-ink/50 hover:text-ink">
-            Close
-          </button>
-        </div>
-
-        {loading && <p className="font-mono text-xs text-ink/45">Loading…</p>}
-
-        {!loading && failed && (
-          <div className="flex flex-col items-start gap-3">
-            <p className="font-mono text-xs text-danger">
-              Could not load this evidence. Retry, or close and try again.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setReloadNonce((n) => n + 1)}
-                className="label-mono text-xs text-accent-ink hover:underline"
-              >
-                Retry →
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="label-mono text-xs text-ink/50 hover:text-ink"
-              >
-                Close
-              </button>
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="app-dialog-overlay fixed inset-0 z-40 bg-ink/40" />
+        <Dialog.Content
+          className="evidence-sheet fixed inset-y-0 right-0 z-50 flex h-full w-[min(100%,34rem)] flex-col overflow-y-auto border-l border-ink/15 bg-paper p-4 shadow-lg focus:outline-none sm:p-6"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+          }}
+        >
+          <div className="mb-4 flex items-start justify-between gap-3 border-b border-ink/10 pb-4">
+            <div className="min-w-0">
+              <Dialog.Title className="label-mono text-sm font-semibold text-ink">
+                {request.label}
+              </Dialog.Title>
+              <Dialog.Description className="mt-1 text-sm leading-relaxed text-ink/65">
+                Raw sampled answers and their extraction state for run {runId.slice(0, 8)}.
+              </Dialog.Description>
             </div>
+            <Dialog.Close className="interactive-press -m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-ink/65 transition-micro hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-label="Close evidence">
+              <X className="h-4 w-4" aria-hidden />
+            </Dialog.Close>
           </div>
-        )}
 
-        {!loading && !failed && selected && (
-          <div>
-            {rows && (
-              <button
-                type="button"
-                onClick={() => setSelected(null)}
-                className="label-mono mb-3 text-xs text-accent-ink hover:underline"
-              >
-                ← Back to list
-              </button>
-            )}
-            <div className="mb-2 flex gap-2">
-              <Stamp tone="ink">{selected.response.providerId}</Stamp>
-              <Stamp tone="ink">{selected.response.generationMode}</Stamp>
-              {selected.extraction && <Stamp tone={selected.extraction.state === "valid" ? "ok" : "warn"}>{selected.extraction.state}</Stamp>}
+          {loading && <PageLoading label="Loading raw evidence" />}
+
+          {!loading && failed && (
+            <div className="flex flex-col items-start gap-3">
+              <InlineStatus tone="danger">
+                This evidence could not be loaded. Your dashboard context remains unchanged.
+              </InlineStatus>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" onClick={() => setReloadNonce((n) => n + 1)}>
+                  Retry
+                </Button>
+                <Dialog.Close asChild>
+                  <Button type="button" variant="secondary">Close</Button>
+                </Dialog.Close>
+              </div>
             </div>
-            <p className="whitespace-pre-wrap rounded-lg border border-ink/15 bg-paper-2/40 p-3 text-sm text-ink/85">
-              {selected.response.rawText}
-            </p>
-          </div>
-        )}
+          )}
 
-        {!loading && !selected && rows && (
-          <div className="flex flex-col gap-2">
-            {rows.length === 0 && <p className="font-mono text-xs text-ink/45">No matching responses</p>}
-            {rows.map((row) => (
-              <button
-                key={row.id}
-                type="button"
-                onClick={() => selectResponse(row)}
-                className="rounded-lg border border-ink/15 p-3 text-left text-sm transition-micro hover:border-ink/40"
-              >
-                <div className="mb-1 flex gap-2">
-                  <Stamp tone="ink">{row.providerId}</Stamp>
-                  <Stamp tone="ink">{row.generationMode}</Stamp>
-                </div>
-                {(row.numeratorLabel || row.denominatorLabel) && (
-                  <div className="mb-2 flex flex-col gap-1 font-mono text-[11px] text-ink/50">
-                    {row.numeratorLabel && <span>{row.numeratorLabel}</span>}
-                    {row.denominatorLabel && <span>{row.denominatorLabel}</span>}
+          {!loading && !failed && selected && (
+            <div>
+              {rows && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mb-3 -ml-3 px-3"
+                  onClick={() => setSelected(null)}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" aria-hidden /> Back to evidence list
+                </Button>
+              )}
+              <div className="mb-2 flex flex-wrap gap-2">
+                <Stamp tone="ink">{selected.response.providerId}</Stamp>
+                <Stamp tone="ink">{selected.response.generationMode}</Stamp>
+                {selected.extraction && <Stamp tone={selected.extraction.state === "valid" ? "ok" : "warn"}>{selected.extraction.state}</Stamp>}
+              </div>
+              <p className="whitespace-pre-wrap break-words rounded-lg border border-ink/15 bg-paper-2/40 p-3 text-sm leading-relaxed text-ink/85">
+                {selected.response.rawText}
+              </p>
+            </div>
+          )}
+
+          {!loading && !selected && rows && (
+            <div className="flex flex-col gap-2" aria-busy={detailLoading || undefined}>
+              {detailLoading && <InlineStatus>Loading the selected raw answer…</InlineStatus>}
+              {rows.length === 0 && (
+                <p className="rounded-lg border border-ink/15 p-4 text-sm text-ink/65">
+                  No sampled answers match this figure.
+                </p>
+              )}
+              {rows.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  disabled={detailLoading}
+                  onClick={() => selectResponse(row)}
+                  className="rounded-lg border border-ink/15 p-3 text-left text-sm transition-micro hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
+                >
+                  <div className="mb-1 flex flex-wrap gap-2">
+                    <Stamp tone="ink">{row.providerId}</Stamp>
+                    <Stamp tone="ink">{row.generationMode}</Stamp>
                   </div>
-                )}
-                <p className="line-clamp-2 text-ink/70">{row.rawText}</p>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+                  {(row.numeratorLabel || row.denominatorLabel) && (
+                    <div className="mb-2 flex flex-col gap-1 font-mono text-[11px] text-ink/65">
+                      {row.numeratorLabel && <span>{row.numeratorLabel}</span>}
+                      {row.denominatorLabel && <span>{row.denominatorLabel}</span>}
+                    </div>
+                  )}
+                  <p className="line-clamp-2 break-words leading-relaxed text-ink/70">{row.rawText}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

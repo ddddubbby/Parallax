@@ -17,30 +17,30 @@ export function MetricCards({
 }: {
   metrics: MetricRow[];
   keys: string[];
-  onViewEvidence: (metricKey: string) => void;
+  onViewEvidence: (metricKey: string, trigger?: HTMLElement) => void;
 }) {
   const overall = metrics.filter((m) => m.scopeType === "overall" && keys.includes(m.metricKey));
   const byKey = new Map(overall.map((m) => [m.metricKey, m]));
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {keys.map((key) => {
         const m = byKey.get(key);
         const sufficient = m ? isSufficientN(m.n) : false;
         return (
           <div key={key} className="rounded-xl border border-ink/15 p-4">
-            <div className="mb-2 label-mono text-[11px] text-ink/50">{metricLabel(key)}</div>
+            <div className="mb-2 label-mono text-[11px] text-ink/65">{metricLabel(key)}</div>
             {!m ? (
-              <div className="font-mono text-sm text-ink/30">—</div>
+              <div className="font-mono text-sm text-ink/60">—</div>
             ) : !sufficient ? (
               <>
-                <div className="font-mono text-lg text-ink/30">n={m.n}</div>
+                <div className="font-mono text-lg text-ink/60">n={m.n}</div>
                 <Stamp tone="warn">Insufficient data</Stamp>
               </>
             ) : (
               <>
                 <div className="font-mono text-2xl tabular-nums text-ink">{formatMetricValue(m)}</div>
-                <div className="font-mono text-[11px] text-ink/45">
+                <div className="font-mono text-[11px] text-ink/65">
                   n={m.n}
                   {formatCI(m) ? ` ${formatCI(m)}` : ""}
                 </div>
@@ -48,8 +48,8 @@ export function MetricCards({
             )}
             <button
               type="button"
-              onClick={() => onViewEvidence(key)}
-              className="label-mono mt-3 text-[11px] text-accent-ink hover:underline"
+              onClick={(event) => onViewEvidence(key, event.currentTarget)}
+              className="label-mono mt-2 inline-flex min-h-11 items-center rounded-sm text-xs text-accent-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               Evidence →
             </button>

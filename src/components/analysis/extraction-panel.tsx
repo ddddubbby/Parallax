@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { Button, Stamp } from "@/components/ui";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { PageLoading } from "@/components/page-loading";
+import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { PILLARS, resolveGlossary, type Pillar } from "@/core/semantic";
 import { fetchExtractionAndMetrics } from "@/modules/extraction/actions";
 import { recomputeMetrics } from "@/modules/analysis/actions";
@@ -43,23 +44,43 @@ export function ExtractionPanel({
 }) {
   const [data, setData] = useState<{ progress: Record<string, number>; metrics: MetricRow[]; plannedResponses: number } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [pollDegraded, setPollDegraded] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    function poll() {
-      // A failed poll keeps the last extraction/metrics snapshot on screen and
-      // lets the interval retry; it never blanks the panel.
-      fetchExtractionAndMetrics(projectId, runId)
-        .then(setData)
-        .catch((err) => reportError(err, { boundary: "extraction-panel-poll", projectId, runId }));
+  const poll = useCallback(async () => {
+    try {
+      const next = await fetchExtractionAndMetrics(projectId, runId);
+      setData(next);
+      setPollDegraded(false);
+    } catch (err) {
+      setPollDegraded(true);
+      reportError(err, { boundary: "extraction-panel-poll", projectId, runId });
     }
-    poll();
-    if (terminal) return;
-    const timer = setInterval(poll, POLL_MS);
-    return () => clearInterval(timer);
-  }, [projectId, runId, terminal]);
+  }, [projectId, runId]);
 
-  if (!data) return null;
+  useEffect(() => {
+    void poll();
+    if (terminal) return;
+    const timer = setInterval(() => void poll(), POLL_MS);
+    return () => clearInterval(timer);
+  }, [poll, terminal]);
+
+  if (!data && !pollDegraded) return <PageLoading label="Loading extraction and metric records" />;
+  if (!data) {
+    return (
+      <InlineStatus tone="warning">
+        Extraction and metric records are unavailable.{" "}
+        <button
+          type="button"
+          className="rounded-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          onClick={() => void poll()}
+        >
+          Retry
+        </button>
+      </InlineStatus>
+    );
+  }
 
   const overallMetrics = data.metrics.filter((m) => m.scopeType === "overall");
   const metricsByPillar = PILLAR_ORDER.map((pillar) => ({
@@ -74,13 +95,25 @@ export function ExtractionPanel({
 
   return (
     <div className={panel === "both" ? "mt-8" : undefined}>
+      {pollDegraded && (
+        <InlineStatus tone="warning" className="mb-4">
+          Live updates are degraded. Last-known extraction and metric data remains visible.{" "}
+          <button
+            type="button"
+            className="rounded-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            onClick={() => void poll()}
+          >
+            Retry now
+          </button>
+        </InlineStatus>
+      )}
       {showExtraction && (
         <>
           <div className="mb-3 flex items-center gap-3">
             <h2 className="label-mono text-xs font-medium text-ink/60">Extraction</h2>
             {deadLettered > 0 && <Stamp tone="danger">{deadLettered} dead-lettered</Stamp>}
           </div>
-          <div className="mb-6 grid grid-cols-5 gap-2 font-mono text-xs text-ink/60">
+          <div className="mb-6 grid grid-cols-2 gap-2 font-mono text-xs text-ink/60 sm:grid-cols-3 lg:grid-cols-5">
             {EXTRACTION_STATES.map((s) => (
               <div key={s}>
                 {s}: {data.progress[s] ?? 0}
@@ -98,14 +131,18 @@ export function ExtractionPanel({
             </h2>
             <Button
               variant="secondary"
-              disabled={pending || extracted === 0}
+              disabled={extracted === 0}
+              pending={pending}
+              pendingLabel="Recomputing…"
               onClick={() => {
                 setActionError(null);
+                setActionSuccess(null);
                 startTransition(async () => {
                   try {
                     await recomputeMetrics(projectId, runId);
                     const next = await fetchExtractionAndMetrics(projectId, runId);
                     setData(next);
+                    setActionSuccess("Metrics recomputed from the current valid extractions.");
                   } catch (err) {
                     reportError(err, { boundary: "extraction-panel-recompute", projectId, runId });
                     setActionError(
@@ -115,10 +152,19 @@ export function ExtractionPanel({
                 });
               }}
             >
-              {pending ? "Recomputing…" : "Recompute metrics"}
+              Recompute metrics
             </Button>
           </div>
-          {actionError && <p className="mb-3 font-mono text-xs text-danger">{actionError}</p>}
+          {actionError && (
+            <InlineStatus tone="danger" className="mb-3">
+              {actionError}
+            </InlineStatus>
+          )}
+          {actionSuccess && (
+            <InlineStatus tone="success" className="mb-3">
+              {actionSuccess}
+            </InlineStatus>
+          )}
           {overallMetrics.length === 0 ? (
             <p className="font-mono text-xs text-ink/45">No metrics computed yet</p>
           ) : (
@@ -131,7 +177,13 @@ export function ExtractionPanel({
                       {PILLARS[pillar].clientQuestion}
                     </p>
                   </div>
-                  <table className="w-full border-collapse font-mono text-xs">
+                  <div
+                    className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    role="region"
+                    aria-label={`${PILLARS[pillar].label} metrics table`}
+                    tabIndex={0}
+                  >
+                  <table className="w-full min-w-[36rem] border-collapse font-mono text-xs">
                     <thead>
                       <tr className="border-b border-ink/20 text-left text-ink/50">
                         <th className="py-1.5 pr-4">Metric</th>
@@ -146,7 +198,7 @@ export function ExtractionPanel({
                         return (
                           <tr key={m.id} className="border-b border-ink/10">
                             <td className="py-1.5 pr-4 text-ink/80">{glossary.label}</td>
-                            <td className="py-1.5 pr-4 text-ink/50">{glossary.definition}</td>
+                            <td className="py-1.5 pr-4 font-sans text-ink/60">{glossary.definition}</td>
                             <td className="py-1.5 pr-4 text-ink/50">{m.n}</td>
                             <td className="py-1.5 pr-4">{formatMetric(m)}</td>
                           </tr>
@@ -154,6 +206,7 @@ export function ExtractionPanel({
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </section>
               ))}
             </div>
