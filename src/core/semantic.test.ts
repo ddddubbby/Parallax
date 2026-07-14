@@ -3,7 +3,6 @@ import { TEMPLATE_SEED } from "./prompt-templates";
 import { ALLOCATED_INTENT_ORDER, INTENT_ORDER } from "./matrix";
 import {
   AUDIT_ARCHETYPES,
-  CATEGORY_ARCHETYPES,
   METRIC_GLOSSARY,
   PILLARS,
   intentToFrame,
