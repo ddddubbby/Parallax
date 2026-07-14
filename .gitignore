@@ -23,3 +23,14 @@ docs/audits/m34/*.json
 docs/audits/m34/*.json.bak
 docs/audits/m34/*.bak.json
 docs/audits/m34/*-coding-review-*.md
+
+# C-11: M35 ACP harness credentials template — holds signer private keys /
+# RPC keys on the operator machine, never committed.
+.m35-evidence/
+
+# Local design-skill tooling (pulled from an external skills repo) and Claude
+# Code's internal worktrees/skills — dev-environment only, not product code.
+.agents/
+.claude/skills/
+.claude/worktrees/
+skills-lock.json
