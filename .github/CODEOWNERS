@@ -1,0 +1,30 @@
+# CODEOWNERS — mechanical ownership routing for parallel-product development (D-113).
+#
+# Replace @ddddubbby with real GitHub handles/teams once collaborators are added.
+# On a personal repo, only individual collaborator @handles work (no @org/team).
+# GitHub requires every listed owner to have repo access, or the entry errors —
+# do not invent handles.
+#
+# Boundary (from D-113 / the measured file footprints):
+#   Agent product : src/core, src/modules, src/providers, src/db, src/worker
+#   Web product   : src/app, src/components, site
+#   Shared surface: intake/step-forms + setup/setup-client (both teams review)
+
+# ---- default: repo owner reviews anything not matched below ----
+*                               @ddddubbby
+
+# ---- agent product ----
+/src/core/                      @ddddubbby
+/src/modules/                   @ddddubbby
+/src/providers/                 @ddddubbby
+/src/db/                        @ddddubbby
+/src/worker/                    @ddddubbby
+
+# ---- web product ----
+/src/app/                       @ddddubbby
+/src/components/                @ddddubbby
+/site/                          @ddddubbby
+
+# ---- shared surface: both teams (list both handles once teams exist) ----
+/src/components/intake/step-forms.tsx    @ddddubbby
+/src/components/setup/setup-client.tsx   @ddddubbby
