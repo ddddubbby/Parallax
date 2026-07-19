@@ -8,6 +8,7 @@ import type {
   Personas,
 } from "@/core/intake";
 import { db } from "../client";
+import { findCompactKeyCollisions } from "@/core/brand-matching";
 import {
   attributes,
   brands,
@@ -118,6 +119,21 @@ export async function completeIntake(id: string, data: NormalizedIntake) {
         updatedAt: new Date(),
       })
       .where(eq(projects.id, id));
+
+    // M45 / D-115: the full tracked set (client + competitors) must be free
+    // of compact-key collisions — the matcher cannot tell "Go Pro" and
+    // "GoPro" apart as separate brands. Checked here so a cross-step
+    // collision (client vs a competitor) cannot slip through finalization.
+    const collisionCheck = findCompactKeyCollisions([
+      { id: "client", name: data.clientBrand.name, aliases: data.clientBrand.aliases },
+      ...data.competitors.map((c, i) => ({ id: `competitor-${i}`, name: c.name, aliases: c.aliases })),
+    ]);
+    if (collisionCheck.length > 0) {
+      const first = collisionCheck[0];
+      throw new Error(
+        `"${first.names.join('" and "')}" are the same name once spacing/punctuation is ignored ("${first.key}") — merge them into one brand with an alias (D-115)`,
+      );
+    }
 
     await tx.delete(brands).where(eq(brands.projectId, id));
     await tx.insert(brands).values({

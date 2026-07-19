@@ -57,7 +57,15 @@ export const competitorsSchema = z.object({
   competitors: z
     .array(competitorSchema)
     .min(3, "At least 3 competitors")
-    .max(8, "At most 8 competitors"),
+    .max(8, "At most 8 competitors")
+    // M45 / D-115: two competitors must not be the same name modulo
+    // spacing/punctuation — the brand matcher cannot tell them apart.
+    .refine(
+      (list) =>
+        new Set(list.map((c) => normalizePhrase(c.name).replace(/[^a-z0-9]/g, ""))).size ===
+        list.length,
+      "Two competitors are the same name once spacing/punctuation is ignored — merge them and use an alias",
+    ),
 });
 
 export const factClaimTypeSchema = z.enum([
