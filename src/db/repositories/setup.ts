@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, max } from "drizzle-orm";
 import type { BrandTerms } from "@/core/matrix";
 import { db } from "../client";
 import { attributes, brands, factClaims, markets, personas, projects } from "../schema";
+import { findCompactKeyCollisions } from "@/core/brand-matching";
 
 // M27 (D-084): post-intake Setup editing. Every mutation here is either an
 // UPDATE keyed by the existing row id (identity preserved, no FK ever
@@ -107,10 +108,59 @@ export async function updateBasics(
 
 // --- Brands (client + competitors) -----------------------------------
 
+/**
+ * M45 / D-115: two tracked brands must never share a compact key — it is the
+ * one configuration compact matching cannot disambiguate ("Go Pro" and
+ * "GoPro" as separate brands). Checked on every brand write; archived brands
+ * are exempt (they are out of the tracked set).
+ */
+async function assertNoBrandCompactCollision(
+  projectId: string,
+  candidate: { brandId?: string; name: string; aliases: string[] },
+) {
+  const rows = await db
+    .select({ id: brands.id, name: brands.name, aliasesJson: brands.aliasesJson, archivedAt: brands.archivedAt })
+    .from(brands)
+    .where(eq(brands.projectId, projectId));
+  const termSets = rows
+    .filter((r) => r.archivedAt === null && r.id !== candidate.brandId)
+    .map((r) => ({ id: r.id, name: r.name, aliases: (r.aliasesJson as string[]) ?? [] }));
+  termSets.push({ id: candidate.brandId ?? "candidate", name: candidate.name, aliases: candidate.aliases });
+  const collisions = findCompactKeyCollisions(termSets).filter((c) =>
+    c.names.includes(candidate.name),
+  );
+  if (collisions.length > 0) {
+    const first = collisions[0];
+    throw new Error(
+      `"${first.names.join('" and "')}" are the same name once spacing/punctuation is ignored ("${first.key}") — the matcher cannot tell them apart. Merge them into one brand with an alias instead (D-115).`,
+    );
+  }
+}
+
+/** M45: append one alias to a tracked brand (guarded, deduplicated). */
+export async function addBrandAlias(projectId: string, brandId: string, alias: string) {
+  const [brand] = await db
+    .select()
+    .from(brands)
+    .where(and(eq(brands.id, brandId), eq(brands.projectId, projectId)));
+  if (!brand) throw new Error("Brand not found in this project");
+  const aliases = (brand.aliasesJson as string[]) ?? [];
+  if (aliases.some((a) => a.trim().toLowerCase() === alias.trim().toLowerCase())) return 0;
+  const next = [...aliases, alias.trim()];
+  await assertNoBrandCompactCollision(projectId, { brandId, name: brand.name, aliases: next });
+  await db
+    .update(brands)
+    .set({ aliasesJson: next, updatedAt: new Date() })
+    .where(eq(brands.id, brandId));
+  await touchSetup(projectId);
+  return 1;
+}
+
 export async function addCompetitor(
   projectId: string,
   input: { name: string; aliases: string[]; domain?: string | null },
 ) {
+  await assertNoBrandCompactCollision(projectId, { name: input.name, aliases: input.aliases });
   const [{ next }] = await db
     .select({ next: max(brands.priority) })
     .from(brands)
@@ -135,6 +185,7 @@ export async function updateBrand(
   brandId: string,
   input: { name: string; aliases: string[]; domain?: string | null; description?: string | null },
 ) {
+  await assertNoBrandCompactCollision(projectId, { brandId, name: input.name, aliases: input.aliases });
   const updated = await db
     .update(brands)
     .set({

@@ -587,3 +587,46 @@ function groupBy<T, K>(items: T[], key: (item: T) => K): Map<K, T[]> {
   }
   return map;
 }
+
+// --- M45 / D-115: resolution health -----------------------------------
+
+export interface UnresolvedMentionSummary {
+  /** Top unresolved observed names with occurrence counts, descending. */
+  top: Array<{ observedName: string; count: number }>;
+  unresolvedTotal: number;
+  trackedTotal: number;
+  /** True when any single unresolved name exceeds 5% of tracked mentions. */
+  warning: boolean;
+}
+
+/**
+ * Unresolved brand mentions over the run's eligible extractions, grouped by
+ * observed name. This is the feedback loop the alias field cannot provide:
+ * the operator cannot predict every spelling an engine will use, so the
+ * system surfaces exactly what it failed to resolve, ranked by frequency.
+ */
+export async function getUnresolvedMentionSummary(runId: string): Promise<UnresolvedMentionSummary> {
+  const eligible = await getEligibleExtractionsForRun(runId);
+  if (eligible.length === 0) return { top: [], unresolvedTotal: 0, trackedTotal: 0, warning: false };
+  const mentionRows = await getBrandMentionsForExtractions(eligible.map((e) => e.extractionId));
+  const counts = new Map<string, number>();
+  let unresolvedTotal = 0;
+  let trackedTotal = 0;
+  for (const m of mentionRows) {
+    if (m.brandId) {
+      trackedTotal++;
+      continue;
+    }
+    unresolvedTotal++;
+    const name = m.observedName.trim();
+    if (name === "") continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const top = [...counts.entries()]
+    .map(([observedName, count]) => ({ observedName, count }))
+    .sort((a, b) => b.count - a.count || a.observedName.localeCompare(b.observedName))
+    .slice(0, 8);
+  const threshold = Math.max(1, trackedTotal * 0.05);
+  const warning = top.some((t) => t.count >= threshold && trackedTotal > 0) || (trackedTotal === 0 && unresolvedTotal > 0);
+  return { top, unresolvedTotal, trackedTotal, warning };
+}

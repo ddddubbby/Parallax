@@ -15,6 +15,7 @@ import { Button, InlineStatus, Select, Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
 import { metricLabel, type MetricRow } from "@/components/dashboard/format";
 import { reportError } from "@/observability";
+import { ResolutionHealthCard } from "@/components/dashboard/resolution-health";
 
 interface RunOption {
   id: string;
@@ -233,6 +234,13 @@ export function DashboardClient({
           {(focusPillar === null || focusPillar === "presence") && (
           <PillarSection pillar="presence">
             <div className="flex flex-col gap-6">
+              {runId && (
+                <ResolutionHealthCard
+                  projectId={projectId}
+                  runId={runId}
+                  onMetricsChanged={() => setReloadNonce((n) => n + 1)}
+                />
+              )}
               <MetricCards
                 metrics={metrics}
                 keys={["mention_rate", "share_of_voice", "avg_first_position"]}

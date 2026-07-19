@@ -11,9 +11,13 @@ import {
   getResponsesForMetric,
   getResponsesForScope,
   getRunForDashboard,
+  getUnresolvedMentionSummary,
   listCompletedRuns,
   reviewClaim as reviewClaimRepo,
 } from "@/db/repositories/dashboard";
+import { revalidatePath } from "next/cache";
+import { addBrandAlias } from "@/db/repositories/setup";
+import { reResolveRunBrands } from "@/modules/extraction/re-resolve";
 import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
 import { getRunFailureCounts } from "@/db/repositories/runner";
 
@@ -126,4 +130,60 @@ export async function fetchResponsesByIds(projectId: string, runId: string, resp
   const run = await getDashboardRunForProject(projectId, runId);
   if (!run) return [];
   return getResponsesByIds(runId, responseIds);
+}
+
+/** M45 / D-115: resolution-health card data. */
+export async function fetchUnresolvedMentions(projectId: string, runId: string) {
+  if (!isUuid(projectId) || !isUuid(runId)) return null;
+  const run = await getRunForDashboard(runId);
+  if (!run || run.projectId !== projectId) return null;
+  const [summary, brandRows] = await Promise.all([
+    getUnresolvedMentionSummary(runId),
+    getProjectBrandNames(projectId),
+  ]);
+  return { summary, brands: brandRows };
+}
+
+/** M45 / D-115: re-run resolution under the CURRENT matcher/aliases — the
+ * matcher-upgrade path, where the unresolved tail needs no alias at all. */
+export async function reResolveRunAction(
+  projectId: string,
+  runId: string,
+): Promise<{ ok: true; reResolved: number } | { ok: false; error: string }> {
+  if (!isUuid(projectId) || !isUuid(runId)) return { ok: false, error: "Invalid id" };
+  try {
+    const summary = await reResolveRunBrands(projectId, runId);
+    revalidatePath(`/projects/${projectId}/dashboard`);
+    return { ok: true, reResolved: summary.reResolved };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Re-resolve failed" };
+  }
+}
+
+/**
+ * M45 / D-115: one-click alias adoption — append the observed name as an
+ * alias on the chosen brand (compact-collision guarded), then re-resolve the
+ * run at $0 (new extraction versions, C-3) and recompute metrics.
+ */
+export async function adoptBrandAliasAction(
+  projectId: string,
+  runId: string,
+  brandId: string,
+  alias: string,
+): Promise<{ ok: true; reResolved: number } | { ok: false; error: string }> {
+  if (!isUuid(projectId) || !isUuid(runId) || !isUuid(brandId)) {
+    return { ok: false, error: "Invalid id" };
+  }
+  const trimmed = alias.trim();
+  if (trimmed.length === 0 || trimmed.length > 120) {
+    return { ok: false, error: "Alias must be 1-120 characters" };
+  }
+  try {
+    await addBrandAlias(projectId, brandId, trimmed);
+    const summary = await reResolveRunBrands(projectId, runId);
+    revalidatePath(`/projects/${projectId}/dashboard`);
+    return { ok: true, reResolved: summary.reResolved };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Alias adoption failed" };
+  }
 }

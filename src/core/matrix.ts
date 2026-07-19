@@ -3,7 +3,8 @@ import {
   DEFAULT_MATRIX_CELLS,
   MAX_CELLS_PER_RUN,
 } from "./constants";
-import { containsPhrase, normalizePhrase } from "./intake";
+import { containsPhrase } from "./intake";
+import { containsBrandTerm } from "./brand-matching";
 
 // Matrix domain: allocation, template rendering, and approval rules
 // (PRD 8.4). Pure module — no project-layer imports (C-7); randomness is
@@ -299,16 +300,14 @@ export function allocateMatrix(
  * case- and whitespace-insensitively on word boundaries.
  */
 export function findBrandTerms(text: string, brands: BrandTerms[]): string[] {
-  const haystack = normalizePhrase(text);
+  // M45 / D-115: same deterministic matcher as SM-4 resolution — compact
+  // token windows, so a prompt containing "Insta360" is caught when the
+  // brand is registered "Insta 360". Strict superset of the old
+  // word-boundary regex scan.
   const found = new Set<string>();
   for (const brand of brands) {
     for (const term of [brand.name, ...brand.aliases]) {
-      const needle = normalizePhrase(term);
-      if (!needle) continue;
-      const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`(^|\\W)${escaped}(\\W|$)`).test(haystack)) {
-        found.add(term);
-      }
+      if (containsBrandTerm(text, term)) found.add(term);
     }
   }
   return [...found];
