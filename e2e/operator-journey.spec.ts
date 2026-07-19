@@ -40,158 +40,33 @@ test.describe("operator journey smoke", () => {
     await expect(page.locator("main h1").first()).toBeVisible();
   });
 
-  test("M34A final review → actionable gap → immutable handoff → Simulation selector", async ({ page }) => {
-    test.setTimeout(90_000);
+  test("D-114: framing is historical and the guided path routes to the Simulation picker", async ({ page }) => {
+    // The hub always shows exactly one guided next step (M44 contract).
     await page.goto("/projects");
-    const projectRow = page.getByRole("row").filter({ hasText: "LensLoop M34A E2E" });
-    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
-    expect(projectHref).toMatch(/\/projects\/[0-9a-f-]{36}/);
-    const projectBase = projectHref!;
+    const ledgerFoxRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const href = await ledgerFoxRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(href).toMatch(/\/projects\/[0-9a-f-]{36}/);
+    await page.goto(href!);
+    const nextStep = page.getByRole("region", { name: "Next step" });
+    await expect(nextStep).toBeVisible();
+    await expect(nextStep.getByRole("link")).toHaveCount(1);
 
-    await page.goto(`${projectBase}/framing`);
-    await page.getByRole("button", { name: "Start review →" }).click();
-    await expect(page.getByRole("heading", { name: /Framing review/ })).toBeVisible();
+    // The library rows carry the compact guidance hint.
+    await page.goto("/projects");
+    await expect(ledgerFoxRow.getByText(/next: finish intake|open workspace/)).toBeVisible();
 
-    await page.getByRole("button", { name: "02 Codebook" }).click();
-    await page.getByLabel("Codebook creator").fill("E2E analyst");
-    await page.getByLabel("Association id").fill("durability");
-    await page.getByLabel("Label", { exact: true }).fill("Durability");
-    await page.getByLabel("Definition").fill("The brand is described as durable or rugged.");
-    const discoveryStage = page.getByRole("button", { name: "01 Discovery" });
-    await discoveryStage.click();
-    const stageDialog = page.getByRole("dialog", { name: "Discard unsaved stage edits?" });
-    await expect(stageDialog).toContainText("Unsaved edits in Codebook");
-    await page.keyboard.press("Escape");
-    await expect(discoveryStage).toBeFocused();
-    await expect(page.getByLabel("Definition")).toHaveValue("The brand is described as durable or rugged.");
-    await page.getByRole("button", { name: "Save codebook" }).click();
-    await expect(page.getByRole("button", { name: "Attest and lock codebook" })).toBeVisible();
-    await page.getByRole("button", { name: "Attest and lock codebook" }).click();
-    const lockDialog = page.getByRole("dialog", { name: "Lock this codebook permanently?" });
-    await expect(lockDialog).toContainText("cannot prove whether you had prior knowledge outside this review");
-    await lockDialog.getByRole("button", { name: "Attest and lock codebook" }).click();
-    await expect(page.getByText("LOCKED", { exact: true })).toBeVisible();
+    // Framing evidence is read-only historical: no review can start, stored
+    // reviews stay readable, and the surface routes to Simulation.
+    await page.goto(`${href}/framing`);
+    await expect(page.getByText("HISTORICAL — RETIRED BY D-114")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start review →" })).toHaveCount(0);
+    const toSimulation = page.getByRole("link", { name: "Open Simulation studies →" });
+    await expect(toSimulation).toBeVisible();
+    await toSimulation.click();
+    await expect(page).toHaveURL(/\/resonance$/);
 
-    await page.getByRole("button", { name: "03 Reveal" }).click();
-    await page.getByLabel("Positioning and source disclosure").fill(
-      "CLIENT-SUPPLIED POSITIONING — direct-to-share flat video without mandatory reframing.",
-    );
-    await page.getByLabel("Revealed by").fill("E2E analyst");
-    await page.getByLabel("Full-sample reviewer").fill("E2E analyst");
-    await page.getByRole("button", { name: "Reveal and start review" }).click();
-    await expect(page.getByRole("heading", { name: "Positioning revealed" })).toBeVisible();
-
-    await page.getByRole("button", { name: "04 Review" }).click();
-    const reviewCards = page.locator("article");
-    const first = reviewCards.nth(0);
-    await first.getByRole("button", { name: "Add annotation" }).click();
-    await first.getByLabel("Exact evidence quote").fill("durable action cameras");
-    await first.getByRole("button", { name: "Save row" }).click();
-    await expect(first.getByText("coded", { exact: true })).toBeVisible();
-    for (let index = 1; index < 5; index += 1) {
-      const card = reviewCards.nth(index);
-      await card.getByRole("button", { name: "Save row" }).click();
-      await expect(card.getByText("none", { exact: true })).toBeVisible();
-    }
-    await page.getByRole("button", { name: "Complete review" }).click();
-    const completeDialog = page.getByRole("dialog", { name: "Complete the full-sample review?" });
-    await expect(completeDialog).toContainText("unavailable rows retained in N");
-    await completeDialog.getByRole("button", { name: "Complete full-sample review" }).click();
-    await expect(page.getByText("completed", { exact: true }).first()).toBeVisible();
-
-    await page.getByRole("button", { name: "05 Gaps" }).click();
-    await page.getByLabel("Missing target").fill("Direct-to-share flat video");
-    await page.getByLabel("Rationale").fill("The intended product story was absent from the reviewed source jobs.");
-    await page.getByRole("button", { name: "Save gaps" }).click();
-    await expect(page.getByRole("link", { name: "Open client report →" })).toBeVisible();
-
-    await page.getByRole("button", { name: "06 Handoff" }).click();
-    await expect(page.getByText(/full response is not claimed to be representative/i)).toBeVisible();
-    await page.getByRole("button", { name: "Create immutable handoff" }).first().click();
-    const handoffDialog = page.getByRole("dialog", { name: "Create an immutable Simulation handoff?" });
-    await expect(handoffDialog).toContainText("full verbatim source response");
-    await handoffDialog.getByRole("button", { name: "Create immutable handoff" }).click();
-    await expect(page.getByText(/OBSERVED IN 1\/5 SOURCE JOBS|SINGLE OBSERVED INSTANCE/).first()).toBeVisible();
-
-    await page.getByRole("link", { name: "Open client report →" }).click();
-    await expect(page.getByRole("heading", { name: /AI framing evidence/ })).toBeVisible();
-    await expect(page.getByText("HUMAN REVIEWED", { exact: true })).toBeVisible();
-    await expect(page.getByText("DESCRIPTIVE N/N", { exact: true })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Framing report recurrence table" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Markdown" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "JSON evidence" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Print / save PDF" })).toBeVisible();
-    await page.setViewportSize({ width: 390, height: 844 });
-    const framingDocument = page.locator(".framing-report-document");
-    await expect(framingDocument).toHaveCSS("position", "fixed");
-    const framingContainment = await framingDocument.evaluate((element) => ({
-      left: element.getBoundingClientRect().left,
-      right: element.getBoundingClientRect().right,
-      bodyClientWidth: document.body.clientWidth,
-      bodyScrollWidth: document.body.scrollWidth,
-    }));
-    expect(framingContainment.left).toBe(0);
-    expect(framingContainment.right).toBe(390);
-    expect(framingContainment.bodyScrollWidth).toBe(framingContainment.bodyClientWidth);
-    const framingReportAxe = await new AxeBuilder({ page }).analyze();
-    expect(
-      framingReportAxe.violations.filter((violation) => ["critical", "serious"].includes(violation.impact ?? "")),
-      "critical or serious axe violations on the Framing Evidence report",
-    ).toEqual([]);
-
-    await page.goto(`${projectBase}/resonance`);
-    await page.getByRole("button", { name: "New study" }).click();
-    await page.getByLabel("Study name").fill("M34A handoff E2E");
-    await page.getByRole("button", { name: "Create draft" }).click();
-    await page.getByRole("button", { name: "Next →" }).click();
-    await page.getByLabel("Label (required)").fill("");
-    await page.getByLabel("Age band (required)").fill("");
-    await page.getByLabel("Income band (required)").fill("");
-    await page.getByLabel("Location (required)").fill("");
-    await page.getByLabel("Buying habits (required)").fill("");
-    await page.getByRole("button", { name: "Next →" }).click();
-    await expect(page.getByLabel("Label (required)")).toBeFocused();
-    await page.getByLabel("Label (required)").fill("Field creator");
-    await page.getByLabel("Age band (required)").fill("25–34");
-    await page.getByLabel("Income band (required)").fill("$60k–$90k");
-    await page.getByLabel("Location (required)").fill("Singapore");
-    await page.getByLabel("Buying habits (required)").fill("Researches cameras before purchase");
-    await page.getByRole("button", { name: "Next →" }).click();
-    await page.getByRole("button", { name: "+ Add framing" }).click();
-    const snapshotSelect = page.getByLabel("Reviewed baseline snapshot");
-    await expect(snapshotSelect).toBeVisible();
-    const snapshotOptions = await snapshotSelect.locator("option").allTextContents();
-    expect(snapshotOptions.join(" ")).toContain("durability");
-    expect(snapshotOptions.join(" ")).toContain("SINGLE OBSERVED INSTANCE");
-    const progress = page.getByLabel("Study design progress");
-    const containment = await progress.evaluate((element) => ({
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-      bodyClientWidth: document.body.clientWidth,
-      bodyScrollWidth: document.body.scrollWidth,
-    }));
-    expect(containment.scrollWidth).toBeGreaterThan(containment.clientWidth);
-    expect(containment.bodyScrollWidth).toBe(containment.bodyClientWidth);
-
-    await page.getByRole("button", { name: "+ Add framing" }).click();
-    const secondFraming = page.getByRole("group", { name: "Framing New framing" }).last();
-    await secondFraming.getByLabel("Framing type").selectOption("corrected");
-    await secondFraming.getByLabel("Short label").fill("Corrected framing");
-    const correctedFraming = page.getByRole("group", { name: "Framing Corrected framing" });
-    await correctedFraming.getByLabel("Framing text").fill(
-      "LensLoop provides direct-to-share flat video with durable capture hardware.",
-    );
-    await correctedFraming.getByRole("button", { name: "Save framing" }).click();
-    await expect(
-      page.getByRole("group", { name: "Framing Corrected framing" }).getByRole("button", { name: "Save framing" }),
-    ).toBeVisible();
-
-    await page.getByRole("button", { name: "Next →" }).click();
-    await page.getByRole("button", { name: "Approve study" }).click();
-    const approvalDialog = page.getByRole("dialog", { name: "Approve and lock this study?" });
-    await expect(approvalDialog).toContainText("immutable Simulation definition (C-13/C-15)");
-    await approvalDialog.getByRole("button", { name: "Approve and lock study" }).click();
-    await expect(page.getByRole("heading", { name: "Approved definition" })).toBeVisible();
+    // The Simulation library wears the journey rail once audit results exist.
+    await expect(page.getByRole("list", { name: "Journey progress" })).toBeVisible();
   });
 
   test("Simulation results keep engines separate and evidence filters URL-backed", async ({ page }) => {

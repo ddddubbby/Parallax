@@ -22,8 +22,8 @@ export function JourneyRail({ current }: { current: JourneyStep | null }) {
               className={cn(
                 "rounded-sm border px-1.5 py-0.5 tracking-wide",
                 state === "current" && "border-accent bg-accent text-ink",
-                state === "done" && "border-ink/30 text-ink/60",
-                state === "todo" && "border-ink/15 text-ink/40",
+                state === "done" && "border-ink/30 text-ink/70",
+                state === "todo" && "border-ink/20 text-ink/60",
               )}
             >
               {state === "done" ? `${step.label} ✓` : step.label}

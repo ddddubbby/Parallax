@@ -18,7 +18,7 @@ export function NextStepCard({ stage, projectId }: { stage: PipelineStage; proje
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="label-mono text-[11px] uppercase tracking-wide text-ink/55">
+          <p className="label-mono text-[11px] uppercase tracking-wide text-ink/70">
             Next step · {stage.stageLabel}
           </p>
           <p className="mt-1 text-sm leading-6 text-ink/75">{stage.hint}</p>

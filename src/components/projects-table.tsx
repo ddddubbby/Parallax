@@ -117,7 +117,7 @@ export function ProjectsTable({ projects }: { projects: ProjectRow[] }) {
                 >
                   <td className="px-4 py-3 font-sans">
                     <span className="font-medium text-ink">{p.name}</span>
-                    <span className="mt-0.5 block font-mono text-[11px] text-ink/50">
+                    <span className="mt-0.5 block font-mono text-[11px] text-ink/65">
                       {projectListHint(p.status, p.intakeStep)}
                     </span>
                   </td>

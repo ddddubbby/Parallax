@@ -505,8 +505,8 @@ function generateResonanceMethod(ctx: ResonanceReportContext): string {
 |---|---|
 | Study | ${escapeModelText(ctx.studyName)} |
 | Baseline provenance | ${escapeModelText(provenance.label)} |
-| Selected-association recurrence at handoff | ${provenance.numerator === null ? "not available" : `${provenance.numerator}/${provenance.denominator} sampled source jobs`} |
-| Baseline representativeness | One verbatim response containing the selected association; the full response is not claimed representative |
+| ${provenance.status === "stamp" ? "Theme recurrence at selection" : "Selected-association recurrence at handoff"} | ${provenance.numerator === null ? (provenance.status === "stamp" ? "single observed instance" : "not available") : `${provenance.numerator}/${provenance.denominator} sampled ${provenance.status === "stamp" ? "responses (descriptive count)" : "source jobs"}`} |
+| Baseline representativeness | One verbatim stored response${provenance.status === "stamp" && provenance.associationLabel ? ` from the machine-grouped theme ${escapeModelText(JSON.stringify(provenance.associationLabel))}` : " containing the selected association"}; the full response is not claimed representative |
 | Prompt spread at handoff | ${provenance.promptSpread === null ? "not available" : `${provenance.promptSpread}/${provenance.promptDenominator} prompts`} |
 | Baseline model scope | ${provenance.providerId ? escapeModelText(`${provenance.providerId}/${provenance.modelVersion}/${provenance.generationMode}`) : "not available"} |
 | Review method / codebook | ${provenance.reviewMethod ? `${escapeModelText(provenance.reviewMethod.replaceAll("_", " "))} / v${escapeModelText(provenance.codebookVersion ?? "unknown")}` : "not available"} |
