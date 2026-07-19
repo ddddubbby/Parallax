@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { normalizePhrase } from "./intake";
+import { resolveBrandTerms } from "./brand-matching";
 
 // Extraction domain (PRD 8.8, DEVELOPMENT_GUIDELINES E1). Pure module — no
 // project-layer imports (C-7). Canonical value-set literal unions mirror
@@ -92,13 +93,11 @@ export interface TrackedBrand {
  * trusted from the extraction engine's own canonical_brand_id guess.
  */
 export function resolveBrandId(observedName: string, brands: TrackedBrand[]): string | null {
-  const needle = normalizePhrase(observedName);
-  if (!needle) return null;
-  for (const brand of brands) {
-    const terms = [brand.name, ...brand.aliases].map(normalizePhrase);
-    if (terms.includes(needle)) return brand.id;
-  }
-  return null;
+  // M45 / D-115: exact-normalized equality, then compact-key equality, then
+  // unique tokenized containment — deterministic and fail-closed throughout
+  // (see brand-matching.ts). "Insta360" now resolves to "Insta 360" without
+  // an operator-provided alias; "Insta360 vs GoPro" stays unresolved.
+  return resolveBrandTerms(observedName, brands);
 }
 
 const RECOMMENDATION_RANK: Record<ExtractedBrand["recommendation_strength"], number> = {

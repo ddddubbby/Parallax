@@ -258,9 +258,15 @@ describe("findBrandTerms (PM-9)", () => {
   ];
 
   it("finds names and aliases case-insensitively on word boundaries", () => {
-    expect(findBrandTerms("Why choose ledgerfox?", brands)).toEqual(["LedgerFox"]);
+    // M45 / D-115: compact matching means the spaced alias "Ledger Fox" is
+    // ALSO found in "ledgerfox" — spacing variants of the same brand are one
+    // term family now, so both terms report. Sorted for determinism.
+    expect(findBrandTerms("Why choose ledgerfox?", brands).sort()).toEqual([
+      "Ledger Fox",
+      "LedgerFox",
+    ]);
     expect(findBrandTerms("Compare ledger  fox and spendpilot", brands)).toEqual(
-      expect.arrayContaining(["Ledger Fox", "SpendPilot"]),
+      expect.arrayContaining(["Ledger Fox", "LedgerFox", "SpendPilot"]),
     );
   });
 
@@ -290,8 +296,10 @@ describe("scanUnbrandedCells (PM-9)", () => {
       ],
       brands,
     );
-    expect(violations).toEqual([
-      { cellId: "a", intent: "discovery", terms: ["LedgerFox"] },
+    // M45 / D-115: the compact matcher reports the whole term family
+    // (name + spaced alias) wherever either form appears.
+    expect(violations.map((v) => ({ ...v, terms: [...v.terms].sort() }))).toEqual([
+      { cellId: "a", intent: "discovery", terms: ["Ledger Fox", "LedgerFox"] },
       { cellId: "d", intent: "consideration", terms: ["SpendPilot"] },
     ]);
   });
