@@ -1,19 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { StartReviewControl } from "@/components/framing/start-review-control";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
 import {
-  listFramingSourceRuns,
   listFramingStudies,
 } from "@/db/repositories/framing";
 import { getProjectSummary } from "@/db/repositories/runner";
 
 export const dynamic = "force-dynamic";
 
-function dateLabel(value: Date | null) {
-  return value ? value.toISOString().slice(0, 10).replaceAll("-", ".") : "DATE UNKNOWN";
-}
 
 export default async function FramingLibraryPage({
   params,
@@ -22,13 +17,11 @@ export default async function FramingLibraryPage({
 }) {
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [project, studies, sourceRuns] = await Promise.all([
+  const [project, studies] = await Promise.all([
     getProjectSummary(id),
     listFramingStudies(id),
-    listFramingSourceRuns(id),
   ]);
   if (!project) notFound();
-  const readyRuns = sourceRuns.filter((run) => run.ready);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -41,40 +34,26 @@ export default async function FramingLibraryPage({
       <div className="mb-3 mt-4 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Framing evidence</h1>
         <Stamp tone="ink">HUMAN REVIEWED</Stamp>
+        <Stamp tone="warn">HISTORICAL — RETIRED BY D-114</Stamp>
       </div>
       <p className="mb-7 max-w-3xl text-sm leading-6 text-ink/65">
-        Review how sampled AI answers described the brand, lock a project-specific association
-        codebook before positioning is revealed, and identify the narrative gap worth correcting
-        and testing next. Results are descriptive evidence, not a population estimate.
+        The codebook review workflow is retired (D-114). Reviews on file remain readable exactly as
+        recorded — evidence is immutable (C-3) — but new reviews can no longer start. To test a
+        framing today, open a Simulation study and pick its baseline directly from stored responses.
       </p>
 
       <section className="mb-8 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="label-mono text-sm font-semibold">Start from a completed audit</h2>
-          <Stamp tone={readyRuns.length > 0 ? "ok" : "warn"}>{readyRuns.length} READY</Stamp>
-        </div>
-        {readyRuns.length === 0 ? (
-          <p className="text-sm text-ink/60">
-            No completed consumer audit contains all five pinned representation prompts yet.
-            Generate and run a new consumer matrix first; B2B remains outside this workflow.
-          </p>
-        ) : (
-          <div className="grid gap-2">
-            {readyRuns.map((run) => (
-              <div key={run.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-ink/10 bg-paper p-3">
-                <div>
-                  <div className="font-mono text-xs text-ink/75">
-                    RUN {run.id.slice(0, 8).toUpperCase()} · {dateLabel(run.completedAt)}
-                  </div>
-                  <div className="mt-1 font-mono text-xs text-ink/65">
-                    {run.representationCells} prompts · {run.representationJobs} denominator jobs · {run.runMode}
-                  </div>
-                </div>
-                <StartReviewControl projectId={id} sourceRunId={run.id} />
-              </div>
-            ))}
-          </div>
-        )}
+        <h2 className="label-mono mb-2 text-sm font-semibold">Testing a framing now happens in Simulation</h2>
+        <p className="max-w-2xl text-sm leading-6 text-ink/65">
+          Create a Simulation study and pick the stored AI response to test against — themes and
+          recurrence counts are computed automatically from the audit&rsquo;s extractions.
+        </p>
+        <Link
+          href={`/projects/${id}/resonance`}
+          className="label-mono mt-3 inline-flex min-h-11 items-center rounded-md border border-accent bg-accent px-4 text-sm text-ink transition-micro hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          Open Simulation studies →
+        </Link>
       </section>
 
       <section>

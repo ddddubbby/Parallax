@@ -7,7 +7,6 @@ import { isUuid } from "@/core/id";
 import {
   completeFramingReview,
   createFramingEvidenceSnapshot,
-  createFramingStudy,
   lockFramingCodebook,
   revealFramingPositioning,
   saveFramingCodebookDraft,
@@ -37,14 +36,16 @@ export async function createFramingStudyAction(
   projectId: string,
   sourceRunId: string,
 ): Promise<ActionResult> {
-  if (!validIds(projectId, sourceRunId)) return { ok: false, error: "Invalid id" };
-  try {
-    const study = await createFramingStudy(projectId, sourceRunId);
-    revalidateFraming(projectId, study.id);
-    return { ok: true, id: study.id };
-  } catch (error) {
-    return errorResult(error, "Framing study create failed");
-  }
+  // M44 / D-114: the codebook workflow is retired at the product boundary.
+  // The repository stays writable for stored-data tests and tooling; the
+  // operator can no longer start a review.
+  void projectId;
+  void sourceRunId;
+  return {
+    ok: false,
+    error:
+      "The Framing Evidence codebook workflow is retired (D-114) — pick a Simulation baseline directly from stored responses instead",
+  };
 }
 
 export async function createFramingEvidenceSnapshotAction(
