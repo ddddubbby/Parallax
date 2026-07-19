@@ -8,6 +8,7 @@ import { useUnsavedEdit } from "@/components/unsaved-edit";
 import { STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import {
   addStimulusAction,
+  buildFramingThemesAction,
   approveStudyAction,
   deleteStimulusAction,
   updateStimulusAction,
@@ -41,14 +42,24 @@ interface StimulusRow {
   body: string;
   evidenceResponseIdsJson: string[] | null;
   framingEvidenceSnapshotId: string | null;
+  /** M44 / D-114: the truthful recurrence line of a stamped baseline, or null. */
+  stampLine: string | null;
 }
 
-interface SnapshotOption {
-  id: string;
+interface BaselineTheme {
+  key: string;
   label: string;
-  associationId: string;
+  responseIds: string[];
+  matching: number;
+  total: number;
+}
+
+interface ResponseOption {
+  id: string;
   excerpt: string;
-  verbatimResponse: string;
+  verbatim: string;
+  providerId: string;
+  promptText: string;
 }
 
 const STEPS = [
@@ -76,17 +87,17 @@ export function StudyWizard({
   study,
   initialPersonas,
   stimuli,
-  evidenceOptions,
-  snapshotOptions,
-  requiresFramingSnapshot,
+  themes,
+  responseOptions,
+  themesSource,
 }: {
   projectId: string;
   study: { id: string; name: string };
   initialPersonas: PersonaRow[];
   stimuli: StimulusRow[];
-  evidenceOptions: Array<{ id: string; excerpt: string }>;
-  snapshotOptions: SnapshotOption[];
-  requiresFramingSnapshot: boolean;
+  themes: BaselineTheme[];
+  responseOptions: ResponseOption[];
+  themesSource: "framing_observations" | "attributes";
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -180,27 +191,41 @@ export function StudyWizard({
     });
   }
 
+  function refineThemes() {
+    runAction("refine-themes", () => buildFramingThemesAction(projectId, study.id));
+  }
+
   function addFraming() {
     const fd = new FormData();
-    const snapshot = snapshotOptions[0];
-    const kind = requiresFramingSnapshot && !snapshot ? "custom" : "measured_ai";
+    // First framing is the measured baseline when responses exist to pick
+    // from; otherwise start with a custom challenger (never a dead end).
+    const kind = responseOptions.length > 0 && !stimuli.some((s) => s.kind === "measured_ai")
+      ? "measured_ai"
+      : "custom";
     fd.set("kind", kind);
-    fd.set("label", "New framing");
-    fd.set("body", snapshot?.verbatimResponse ?? "Paste the framing the panel should react to.");
-    if (snapshot) fd.set("framingEvidenceSnapshotId", snapshot.id);
+    fd.set("label", kind === "measured_ai" ? "What AI says today" : "New framing");
+    if (kind === "measured_ai") {
+      fd.set("body", responseOptions[0].verbatim);
+      fd.append("evidenceResponseIds", responseOptions[0].id);
+    } else {
+      fd.set("body", "Paste the framing the panel should react to.");
+    }
     runAction("add-framing", () => addStimulusAction(projectId, study.id, fd));
   }
 
-  function saveFraming(row: StimulusRow, patch: Partial<StimulusRow>, evidenceIds: string[]) {
+  function saveFraming(
+    row: StimulusRow,
+    patch: Partial<StimulusRow>,
+    evidenceIds: string[],
+    themeKey: string | null,
+  ) {
     const merged = { ...row, ...patch };
     const fd = new FormData();
     fd.set("kind", merged.kind);
     fd.set("label", merged.label);
     fd.set("body", merged.body);
     for (const eid of evidenceIds) fd.append("evidenceResponseIds", eid);
-    if (merged.framingEvidenceSnapshotId) {
-      fd.set("framingEvidenceSnapshotId", merged.framingEvidenceSnapshotId);
-    }
+    if (themeKey) fd.set("baselineThemeKey", themeKey);
     runAction(
       `save-${row.id}`,
       () => updateStimulusAction(projectId, study.id, row.id, fd),
@@ -230,23 +255,15 @@ export function StudyWizard({
   if (stimuli.length < 2) readiness.push("Add at least two framings to compare (step 3).");
   // C-13 hard rule (M22/D-078): every study needs a Measured AI framing
   // with real evidence attached before it can be approved — no exceptions.
-  const hasEvidencedMeasuredAi = stimuli.some((s) =>
-    s.kind === "measured_ai" && (requiresFramingSnapshot
-      ? Boolean(s.framingEvidenceSnapshotId)
-      : (s.evidenceResponseIdsJson ?? []).length > 0),
+  const hasEvidencedMeasuredAi = stimuli.some(
+    (s) => s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length > 0,
   );
   if (!hasEvidencedMeasuredAi) {
-    readiness.push(
-      requiresFramingSnapshot
-        ? "Attach a reviewed framing-evidence snapshot as the Measured AI baseline before approval (step 3, C-15)."
-        : "Attach a Measured AI framing with at least one real audit response as evidence before approval (step 3, C-13).",
-    );
+    readiness.push("Pick a stored AI response as the Measured AI baseline before approval (step 3, C-13).");
   }
   for (const s of stimuli) {
-    if (s.kind === "measured_ai" && (requiresFramingSnapshot
-      ? !s.framingEvidenceSnapshotId
-      : (s.evidenceResponseIdsJson ?? []).length === 0)) {
-      readiness.push(`"${s.label}" is a Measured AI framing but has no ${requiresFramingSnapshot ? "reviewed snapshot" : "evidence"} attached (step 3).`);
+    if (s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length === 0) {
+      readiness.push(`"${s.label}" is a Measured AI framing but no stored response is picked yet (step 3).`);
     }
   }
 
@@ -377,8 +394,8 @@ export function StudyWizard({
           <p className="mb-3 max-w-2xl text-sm leading-6 text-ink/70">
             Add at least <strong>two framings</strong> to compare — for example, what AI says about you today vs. a
             corrected or repositioned version. The panel reacts to each. At least one framing must be a{" "}
-            <strong>Measured AI framing</strong> linked to reviewed framing evidence — that is the study&rsquo;s baseline
-            ({requiresFramingSnapshot ? "C-15" : "C-13"}).
+            <strong>Measured AI framing</strong> quoting a real stored response — that is the study&rsquo;s baseline
+            (C-13).
           </p>
 
           <div className="flex flex-col gap-4">
@@ -386,13 +403,15 @@ export function StudyWizard({
               <FramingCard
                 key={s.id}
                 stimulus={s}
-                evidenceOptions={evidenceOptions}
-                snapshotOptions={snapshotOptions}
-                requiresFramingSnapshot={requiresFramingSnapshot}
+                themes={themes}
+                responseOptions={responseOptions}
+                themesSource={themesSource}
+                onRefineThemes={refineThemes}
+                refining={pendingKey === "refine-themes"}
                 pending={pendingKey === `save-${s.id}` || pendingKey === `delete-${s.id}`}
                 pendingKey={pendingKey}
                 onDirty={(dirty) => setDirtySource(`stimulus-${s.id}`, dirty)}
-                onSave={(patch, evidenceIds) => saveFraming(s, patch, evidenceIds)}
+                onSave={(patch, evidenceIds, themeKey) => saveFraming(s, patch, evidenceIds, themeKey)}
                 onDelete={() => setConfirmation({ kind: "delete", stimulus: s })}
               />
             ))}
@@ -498,9 +517,11 @@ export function StudyWizard({
 
 function FramingCard({
   stimulus,
-  evidenceOptions,
-  snapshotOptions,
-  requiresFramingSnapshot,
+  themes,
+  responseOptions,
+  themesSource,
+  onRefineThemes,
+  refining,
   pending,
   pendingKey,
   onDirty,
@@ -508,22 +529,30 @@ function FramingCard({
   onDelete,
 }: {
   stimulus: StimulusRow;
-  evidenceOptions: Array<{ id: string; excerpt: string }>;
-  snapshotOptions: SnapshotOption[];
-  requiresFramingSnapshot: boolean;
+  themes: BaselineTheme[];
+  responseOptions: ResponseOption[];
+  themesSource: "framing_observations" | "attributes";
+  onRefineThemes: () => void;
+  refining: boolean;
   pending: boolean;
   pendingKey: string | null;
   onDirty: (dirty: boolean) => void;
-  onSave: (patch: Partial<StimulusRow>, evidenceIds: string[]) => void;
+  onSave: (patch: Partial<StimulusRow>, evidenceIds: string[], themeKey: string | null) => void;
   onDelete: () => void;
 }) {
   const [kind, setKind] = useState<StimulusKind>(stimulus.kind);
   const [label, setLabel] = useState(stimulus.label);
   const [body, setBody] = useState(stimulus.body);
-  const [evidence, setEvidence] = useState<Set<string>>(new Set(stimulus.evidenceResponseIdsJson ?? []));
-  const [snapshotId, setSnapshotId] = useState(stimulus.framingEvidenceSnapshotId ?? "");
+  const [selectedResponseId, setSelectedResponseId] = useState(
+    stimulus.evidenceResponseIdsJson?.[0] ?? "",
+  );
+  const [themeKey, setThemeKey] = useState("");
 
-  const needsEvidence = kind === "measured_ai" && (requiresFramingSnapshot ? !snapshotId : evidence.size === 0);
+  const needsEvidence = kind === "measured_ai" && selectedResponseId === "";
+  const activeTheme = themes.find((t) => t.key === themeKey) ?? null;
+  const visibleResponses = activeTheme
+    ? responseOptions.filter((r) => activeTheme.responseIds.includes(r.id))
+    : responseOptions;
 
   return (
     <div
@@ -536,7 +565,7 @@ function FramingCard({
           <Select value={kind} onChange={(e) => {
             const nextKind = e.target.value as StimulusKind;
             setKind(nextKind);
-            if (nextKind !== "measured_ai") setSnapshotId("");
+            if (nextKind !== "measured_ai") { setSelectedResponseId(""); setThemeKey(""); }
             onDirty(true);
           }}>
             {STIMULUS_KINDS.map((k) => (
@@ -547,59 +576,115 @@ function FramingCard({
           </Select>
         </Field>
         <Field label="Short label" hint="How this framing is named in the results.">
-          <Input value={label} onChange={(e) => { setLabel(e.target.value); onDirty(true); }} placeholder="Measured AI framing" />
+          <Input value={label} onChange={(e) => { setLabel(e.target.value); onDirty(true); }} placeholder="What AI says today" />
         </Field>
       </div>
-      <Field label="Framing text" hint={kind === "measured_ai" && requiresFramingSnapshot ? "Copied verbatim from the immutable reviewed response." : "Paste the exact wording the panel should react to."}>
-        <Textarea value={body} rows={4} readOnly={kind === "measured_ai" && requiresFramingSnapshot} onChange={(e) => { setBody(e.target.value); onDirty(true); }} />
+
+      {kind === "measured_ai" && (
+        <div className="mb-3">
+          <span className="label-mono text-xs text-ink/60">
+            Pick the framing to fight — how AI talks about you today
+          </span>
+          {responseOptions.length === 0 ? (
+            <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
+              No stored responses yet — the baseline must quote a real audit response (C-13). Complete an
+              audit run first, then return here to pick its framing.
+            </p>
+          ) : (
+            <>
+              {themes.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Framing themes">
+                  <button
+                    type="button"
+                    onClick={() => setThemeKey("")}
+                    aria-pressed={themeKey === ""}
+                    className={`label-mono rounded-md border px-2 py-1.5 text-xs transition-micro ${themeKey === "" ? "border-accent bg-accent text-ink" : "border-ink/20 text-ink/65 hover:border-ink/40"}`}
+                  >
+                    All responses · {responseOptions.length}
+                  </button>
+                  {themes.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setThemeKey(t.key)}
+                      aria-pressed={themeKey === t.key}
+                      className={`label-mono rounded-md border px-2 py-1.5 text-xs transition-micro ${themeKey === t.key ? "border-accent bg-accent text-ink" : "border-ink/20 text-ink/65 hover:border-ink/40"}`}
+                    >
+                      {t.label} · {t.matching}/{t.total}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto pr-1" role="radiogroup" aria-label="Stored responses">
+                {visibleResponses.slice(0, 12).map((row) => (
+                  <label
+                    key={row.id}
+                    className={`flex cursor-pointer gap-2 rounded-md border p-2 font-mono text-xs transition-micro ${selectedResponseId === row.id ? "border-accent bg-paper-2/50 text-ink/85" : "border-ink/10 text-ink/65 hover:border-ink/30"}`}
+                  >
+                    <input
+                      type="radio"
+                      name={`baseline-${stimulus.id}`}
+                      checked={selectedResponseId === row.id}
+                      onChange={() => {
+                        setSelectedResponseId(row.id);
+                        setBody(row.verbatim);
+                        onDirty(true);
+                      }}
+                    />
+                    <span>
+                      <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-ink/45">
+                        {row.providerId} · “{row.promptText.slice(0, 64)}{row.promptText.length > 64 ? "…" : ""}”
+                      </span>
+                      {row.excerpt}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <p className="font-mono text-[11px] text-ink/65">
+                  {themesSource === "framing_observations"
+                    ? "Themes machine-grouped from blind framing observations (D-114) — labels are machine-generated."
+                    : "Themes grouped by extracted attributes."}
+                </p>
+                {themesSource === "attributes" && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    pending={refining}
+                    pendingLabel="Extracting framings"
+                    disabled={pending && !refining}
+                    onClick={onRefineThemes}
+                  >
+                    Refine themes with AI framing extraction
+                  </Button>
+                )}
+              </div>
+              {activeTheme && (
+                <p className="mt-2 font-mono text-[11px] text-ink/65">
+                  {activeTheme.matching <= 1
+                    ? "SINGLE OBSERVED INSTANCE — this framing was seen once; it can be tested, but is never called recurring."
+                    : `Theme “${activeTheme.label}” appears in ${activeTheme.matching}/${activeTheme.total} sampled responses (descriptive count).`}
+                </p>
+              )}
+              {stimulus.stampLine && selectedResponseId === (stimulus.evidenceResponseIdsJson?.[0] ?? "") && (
+                <p className="mt-1 font-mono text-[11px] text-ink/55">Saved baseline: {stimulus.stampLine}</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      <Field
+        label="Framing text"
+        hint={kind === "measured_ai" ? "Verbatim from the picked stored response — saved server-side, never edited (C-13)." : "Paste the exact wording the panel should react to."}
+      >
+        <Textarea value={body} rows={4} readOnly={kind === "measured_ai"} onChange={(e) => { setBody(e.target.value); onDirty(true); }} />
       </Field>
 
       {needsEvidence && (
         <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
-          A Measured AI framing needs {requiresFramingSnapshot ? "a reviewed framing-evidence snapshot" : "at least one real response"} attached below ({requiresFramingSnapshot ? "C-15" : "C-13"}).
+          Pick the stored AI response this baseline quotes above (C-13).
         </p>
-      )}
-
-      {kind === "measured_ai" && requiresFramingSnapshot && (
-        <div className="mt-3">
-          <Field label="Reviewed baseline snapshot" hint="Selecting one copies its full stored AI response as the immutable baseline stimulus.">
-            <Select value={snapshotId} onChange={(event) => {
-              const nextId = event.target.value;
-              setSnapshotId(nextId);
-              const selected = snapshotOptions.find((option) => option.id === nextId);
-              if (selected) setBody(selected.verbatimResponse);
-              onDirty(true);
-            }}>
-              <option value="">Select reviewed evidence…</option>
-              {snapshotOptions.map((option) => <option key={option.id} value={option.id}>{option.associationId} · {option.label} · {option.excerpt}</option>)}
-            </Select>
-          </Field>
-          {snapshotOptions.length === 0 && <p className="mt-2 font-mono text-xs text-warn">Complete a consumer Framing Evidence review and create a handoff snapshot first.</p>}
-        </div>
-      )}
-
-      {kind === "measured_ai" && !requiresFramingSnapshot && evidenceOptions.length > 0 && (
-        <div className="mt-3">
-          <span className="label-mono text-xs text-ink/60">Evidence — the real AI responses this framing quotes</span>
-          <div className="mt-2 grid gap-2">
-            {evidenceOptions.slice(0, 6).map((row) => (
-              <label key={row.id} className="flex gap-2 rounded-md border border-ink/10 p-2 font-mono text-xs text-ink/65">
-                <input
-                  type="checkbox"
-                  checked={evidence.has(row.id)}
-                  onChange={(e) => {
-                    const nextSet = new Set(evidence);
-                    if (e.target.checked) nextSet.add(row.id);
-                    else nextSet.delete(row.id);
-                    setEvidence(nextSet);
-                    onDirty(true);
-                  }}
-                />
-                <span>{row.excerpt}</span>
-              </label>
-            ))}
-          </div>
-        </div>
       )}
 
       <div className="mt-3 flex gap-2">
@@ -609,7 +694,13 @@ function FramingCard({
           pending={pendingKey === `save-${stimulus.id}`}
           pendingLabel={`Saving ${label || "framing"}`}
           disabled={pending && pendingKey !== `save-${stimulus.id}`}
-          onClick={() => onSave({ kind, label, body, framingEvidenceSnapshotId: snapshotId || null }, [...evidence])}
+          onClick={() =>
+            onSave(
+              { kind, label, body },
+              selectedResponseId ? [selectedResponseId] : [],
+              themeKey || null,
+            )
+          }
         >
           Save framing
         </Button>

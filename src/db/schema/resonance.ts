@@ -52,6 +52,11 @@ export const resonanceStimuli = pgTable(
     framingEvidenceSnapshotId: uuid("framing_evidence_snapshot_id").references(
       (): AnyPgColumn => framingEvidenceSnapshots.id,
     ),
+    // M44 / D-114: immutable provenance auto-stamp for measured_ai baselines
+    // (response id, engine, prompt, date, theme label, mechanical recurrence).
+    // Null on legacy rows and non-baseline stimuli; snapshot linkage above is
+    // the retired C-15 ceremony, kept for historical rendering only.
+    baselineStampJson: jsonb("baseline_stamp_json"),
     position: integer("position").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -246,6 +246,7 @@ async function getStudyRow(projectId: string, studyId: string) {
 
 /** A framing study starts only from a completed consumer audit's five fixed cells. */
 export async function createFramingStudy(projectId: string, sourceRunId: string) {
+
   const [source] = await db
     .select({
       runId: auditRuns.id,

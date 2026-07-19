@@ -57,9 +57,10 @@ beforeEach(() => {
 
 describe("framing action RPC boundaries", () => {
   it("rejects malformed ownership ids before repository access", async () => {
+    // M44 / D-114: creation is retired at the boundary — before any id work.
     await expect(createFramingStudyAction("bad", RUN_ID)).resolves.toEqual({
       ok: false,
-      error: "Invalid id",
+      error: "The Framing Evidence codebook workflow is retired (D-114) — pick a Simulation baseline directly from stored responses instead",
     });
     await expect(lockFramingCodebookAction(PROJECT_ID, "bad", true)).resolves.toEqual({
       ok: false,
@@ -85,9 +86,11 @@ describe("framing action RPC boundaries", () => {
   });
 
   it("threads valid writes through ownership-scoped repositories and revalidates", async () => {
+    // M44 / D-114: even well-formed create requests are refused — the codebook
+    // workflow is retired; every other action still threads through.
     await expect(createFramingStudyAction(PROJECT_ID, RUN_ID)).resolves.toEqual({
-      ok: true,
-      id: STUDY_ID,
+      ok: false,
+      error: "The Framing Evidence codebook workflow is retired (D-114) — pick a Simulation baseline directly from stored responses instead",
     });
     await expect(
       saveFramingCodebookAction({

@@ -455,3 +455,53 @@ describe("model-derived text is escaped in generated markdown", () => {
     expect(md).toContain("\\|");
   });
 });
+
+describe("D-114 stamp baseline provenance copy", () => {
+  const stampCtx = (numerator: number | null, denominator: number | null): ResonanceReportContext => ({
+    ...RESONANCE_CTX,
+    baselineProvenance: {
+      status: "stamp",
+      label: numerator !== null && numerator > 1 ? "MEASURED BASELINE" : "SINGLE OBSERVED INSTANCE",
+      snapshotId: null,
+      responseId: "00000000-0000-4000-8000-000000000002",
+      associationId: null,
+      numerator,
+      denominator,
+      promptSpread: null,
+      promptDenominator: null,
+      providerId: "mock",
+      modelVersion: "mock-v1",
+      generationMode: "ungrounded",
+      reviewMethod: "machine-grouped theme (D-114)",
+      codebookVersion: null,
+      observedAt: "2026-07-19T00:00:00.000Z",
+      associationLabel: "budget-friendly",
+    },
+  });
+
+  it("renders theme recurrence as a descriptive count, never as an adjective", () => {
+    const md = generateResonanceSection("resonance_method", stampCtx(12, 30));
+    expect(md).toContain("12/30 sampled responses (descriptive count)");
+    expect(md).toContain("machine-grouped theme");
+    expect(md.toLowerCase()).not.toContain("recurring");
+    for (const phrase of RESONANCE_FORBIDDEN_PHRASES) {
+      expect(md, `stamp method copy should not contain "${phrase}"`).not.toContain(phrase);
+    }
+  });
+
+  it("labels a single observation truthfully", () => {
+    const md = generateResonanceSection("resonance_method", stampCtx(null, null));
+    expect(md).toContain("single observed instance");
+    expect(md).toContain("SINGLE OBSERVED INSTANCE");
+    expect(md.toLowerCase()).not.toContain("recurring");
+  });
+
+  it("never claims certification vocabulary anywhere in stamp copy", () => {
+    const md = ["resonance_method", "resonance_results", "resonance_evidence"]
+      .map((key) => generateResonanceSection(key as Parameters<typeof generateResonanceSection>[0], stampCtx(12, 30)))
+      .join("\n");
+    for (const phrase of ["certified", "validated coding", "inter-rater"]) {
+      expect(md.toLowerCase(), `stamp copy should not contain "${phrase}"`).not.toContain(phrase);
+    }
+  });
+});

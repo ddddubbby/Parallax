@@ -18,6 +18,8 @@ import {
   jobs,
   matrixVersions,
   projects,
+  framingObservations,
+  resonanceStimuli,
   resonanceStudies,
   promptCells,
   responses,
@@ -975,7 +977,29 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
     embeddingTotal = Number(ssrRow?.total ?? 0);
   }
 
-  return Number(genRow?.total ?? 0) + extractionTotal + embeddingTotal;
+  // M44 / D-114: blind framing-observation batches are paid secondary-engine
+  // calls too — LLM extraction cost to the extraction engine, phrase
+  // embeddings to the embedding engine (same D-041/D-022 attribution as runs).
+  let framingLlmTotal = 0;
+  let framingEmbeddingTotal = 0;
+  if (providerId === extractionEngine) {
+    const [row] = await db
+      .select({ total: sql<string>`coalesce(sum(${framingObservations.llmCostUsd}), 0)` })
+      .from(framingObservations)
+      .where(gte(framingObservations.updatedAt, todayStart));
+    framingLlmTotal = Number(row?.total ?? 0);
+  }
+  if (providerId === embeddingEngine) {
+    const [row] = await db
+      .select({ total: sql<string>`coalesce(sum(${framingObservations.embeddingCostUsd}), 0)` })
+      .from(framingObservations)
+      .where(gte(framingObservations.updatedAt, todayStart));
+    framingEmbeddingTotal = Number(row?.total ?? 0);
+  }
+
+  return (
+    Number(genRow?.total ?? 0) + extractionTotal + embeddingTotal + framingLlmTotal + framingEmbeddingTotal
+  );
 }
 
 export async function getProjectStatus(projectId: string) {
@@ -1001,7 +1025,7 @@ export async function getProjectSummary(projectId: string) {
 
 /** OX-2: the booleans resolveProjectStage needs to pick a project's next action. */
 export async function getProjectPipelineState(projectId: string) {
-  const [statusRow, versionRow, runRows, resonanceStudyRows, resonanceRunRows] = await Promise.all([
+  const [statusRow, versionRow, runRows, resonanceStudyRows, draftStimulusRows, resonanceRunRows] = await Promise.all([
     db.select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)),
     db
       .select({ state: matrixVersions.state })
@@ -1016,6 +1040,11 @@ export async function getProjectPipelineState(projectId: string) {
       .select({ state: resonanceStudies.state })
       .from(resonanceStudies)
       .where(eq(resonanceStudies.projectId, projectId)),
+    db
+      .select({ kind: resonanceStimuli.kind })
+      .from(resonanceStimuli)
+      .innerJoin(resonanceStudies, eq(resonanceStudies.id, resonanceStimuli.studyId))
+      .where(and(eq(resonanceStudies.projectId, projectId), eq(resonanceStudies.state, "draft"))),
     db
       .select({ state: auditRuns.state })
       .from(auditRuns)
@@ -1033,6 +1062,9 @@ export async function getProjectPipelineState(projectId: string) {
     hasActiveRun: runStates.some((s) => s === "queued" || s === "running"),
     hasCompletedRun: runStates.includes("completed"),
     hasApprovedResonanceStudy: resonanceStudyStates.includes("approved"),
+    hasStudy: resonanceStudyStates.length > 0,
+    hasStudyBaseline: draftStimulusRows.some((r) => r.kind === "measured_ai"),
+    hasStudyChallengers: draftStimulusRows.some((r) => r.kind !== "measured_ai"),
     hasActiveResonanceRun: resonanceRunStates.some((s) => s === "queued" || s === "running"),
     hasCompletedResonanceRun: resonanceRunStates.includes("completed"),
   };

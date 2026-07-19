@@ -74,7 +74,7 @@ export function projectNavGroups(projectId: string): NavGroup[] {
         },
         {
           id: "framing",
-          label: "Framing evidence",
+          label: "Framing evidence (historical)",
           href: `${base}/framing`,
           match: [`${base}/framing`],
         },

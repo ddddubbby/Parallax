@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isUuid } from "@/core/id";
 import { parsePanelPersonaLines, STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import { getResonanceStudyTemplate } from "@/core/resonance-templates";
+import { buildFramingObservations } from "@/modules/framing/observations";
 import {
   addResonanceStimulus,
   approveAndCompileResonanceStudy,
@@ -21,6 +22,37 @@ function revalidateStudyPaths(projectId: string, studyId?: string) {
 }
 
 type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
+
+/**
+ * M44 / D-114 themes v2: operator-triggered blind framing extraction over
+ * stored responses. Mock responses cost $0; live responses spend under the
+ * C-2 daily budgets and the batch refuses before any call when a budget is
+ * exhausted. Explicit action — a page load never triggers paid work.
+ */
+export async function buildFramingThemesAction(
+  projectId: string,
+  studyId?: string,
+): Promise<ActionResult> {
+  if (!isUuid(projectId) || (studyId !== undefined && !isUuid(studyId))) {
+    return { ok: false, error: "Invalid id" };
+  }
+  try {
+    const result = await buildFramingObservations(projectId);
+    revalidateStudyPaths(projectId, studyId);
+    if (result.processed === 0 && result.skipped === 0) {
+      return { ok: false, error: "No stored responses to extract from — complete an audit run first" };
+    }
+    if (result.valid === 0 && result.failed > 0) {
+      return { ok: false, error: `Framing extraction failed for all ${result.failed} responses — see stored errors` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Framing extraction failed",
+    };
+  }
+}
 
 function validIds(...ids: string[]) {
   return ids.every(isUuid);
@@ -121,6 +153,7 @@ export async function addStimulusAction(
       body,
       evidenceResponseIds,
       framingEvidenceSnapshotId: framingSnapshotId(formData),
+      baselineThemeKey: textField(formData, "baselineThemeKey") || null,
     });
     revalidateStudyPaths(projectId, studyId);
     return { ok: true, id: stimulus.id };
@@ -151,6 +184,7 @@ export async function updateStimulusAction(
       body,
       evidenceResponseIds,
       framingEvidenceSnapshotId: framingSnapshotId(formData),
+      baselineThemeKey: textField(formData, "baselineThemeKey") || null,
     });
     if (updated === 0) return { ok: false, error: "Stimulus not found" };
   } catch (err) {

@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M34A and presentation-only M43 refinement · TRACKER: M43_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M34A and presentation-only M43 refinement · TRACKER: M44_BUILD_PLAN.md
 
 # PRD.md - Resonance (Parallax engine) MVP
 
-> **STATUS: ACTIVE ON `m43` FOR PRESENTATION-ONLY REFINEMENT (2026-07-13).** M43 temporarily unparks the shipped M34A Resonance operator product to refine its authenticated web UI. Product behavior, measurement, schemas, APIs, costs, methodology, epistemic labels, and export payloads remain frozen at M34A. The Resonance GEO agent continues independently on its own branches under D-112; `AGENT_PRD.md` remains authoritative for that product.
+> **STATUS: ACTIVE ON `m44` FOR THE D-114 METHODOLOGY SIMPLIFICATION (2026-07-19).** M44 unfreezes exactly one scope: the Simulation baseline path and its operator journey (See → Pick → Rewrite → Test, §8.34) — the codebook framing workflow retires per D-114. Audit measurement, extraction, metrics, cost guards, epistemic walls (C-12/C-14), and export payloads remain frozen at M34A/M43. The Resonance GEO agent continues independently on its own branches under D-112/D-113; `AGENT_PRD.md` remains authoritative for that product.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution and route/state acceptance live in `M43_BUILD_PLAN.md`.
 
@@ -476,6 +476,17 @@ M43 is a presentation-only refinement of the complete authenticated operator jou
 M43 may improve hierarchy, responsiveness, feedback, focus management, keyboard behavior, accessibility semantics, loading/error states, and visual consistency. It adds no route or feature and changes no functional contract. The dossier system in `DESIGN_GUIDELINES.md` remains authoritative. The exhaustive route/state checklist, safe live-demo contract, phase gates, and compatibility boundaries live in `M43_BUILD_PLAN.md`.
 
 M43 permits only backward-compatible internal UI interfaces: `Button.pending`, `Button.pendingLabel`, contextual `PageLoading.label`, shared `InlineStatus`, shared `AppConfirmDialog`, and accessibility/state props required by existing overlays and navigation. It adds no dependency, migration, state-management system, form system, toast system, animation library, component library, font, color, icon family, route, API, schema, metric, report payload, or export format.
+
+### 8.34 Simplified simulation methodology + guided operator path (M44, D-114)
+
+The operator journey collapses to four comprehensible steps, each surface always naming the single next action:
+
+1. **See** — unchanged audit elicitation (unbranded + representation intents, k=5). Output: metrics with CIs and stored verbatim responses.
+2. **Pick** — the operator selects the Simulation baseline from stored responses organized by machine-extracted framing themes ("AI talks about you in 4 ways: budget-friendly starter (14/30) · reliable but dated (9/30) · …"). v1 themes group by the existing attribute-association matrix (zero new spend); v2 adds the blind framing extractor + embedding clustering. The system pre-selects the cluster-central response; the operator confirms or overrides; the chosen **verbatim stored response** becomes the baseline with an immutable auto-stamp (response id, engine, prompt, date, theme label, mechanical recurrence line). Themes are presentation metadata only — never the stimulus, never a gate (C-15/D-114).
+3. **Rewrite** — challenger framings (corrected / repositioned / custom) authored against the named theme.
+4. **Test** — SSR scoring → per-variant PMFs → ΔPI vs the measured baseline; comparative-only claims (C-14 unchanged); n ≥ 30 on variant aggregates; persona slices directional-only.
+
+Guided path requirement (product-wide, this milestone's second deliverable): a single derived **next step** — computed from existing project state by one pure function — renders consistently on the project hub, in every empty state, and as a per-project hint in the library. Exactly one primary next action at any time; every dead end names its unblock and links to it; the four-step rail (SEE → PICK → REWRITE → TEST) shows journey position on all Simulation surfaces. The codebook-era Framing Evidence workflow retires to read-only historical rendering; historical studies keep truthful labels.
 
 ## 9. Data model summary
 

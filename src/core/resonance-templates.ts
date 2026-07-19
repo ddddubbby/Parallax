@@ -160,6 +160,14 @@ export const RESONANCE_TEMPLATE_FORBIDDEN_PHRASES = [
   "guaranteed uplift",
   "roi of",
   "purchase probability",
+  // M44 / D-114: the codebook workflow is retired — simulation copy may never
+  // dress machine-grouped themes up as certified human coding, and "recurring"
+  // must always be a count, never an adjective.
+  "certified framing",
+  "certified finding",
+  "validated coding",
+  "codebook-verified",
+  "recurring framing",
   "willingness to pay",
   "ideal price",
   "revenue",
