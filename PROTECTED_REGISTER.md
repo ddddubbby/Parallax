@@ -85,3 +85,18 @@ Every surface in the table above still exists. These two entries are **not** pro
 - **Next.js file-convention files** (`error.tsx`, `global-error.tsx`, `middleware.ts`, `page.tsx`, `route.ts`) are already covered by the `AUDIT_METHODOLOGY.md` §2 Pass 3 non-import checklist and are not re-listed here, except where a Decision Log entry adds a *specific* reason (e.g. `global-error.tsx` is prod-only — the dev overlay pre-empts it, per D-076 — so "never seen firing in dev" is not evidence it's dead).
 - **Content-hash-keyed fixtures** (D-016) and **Drizzle `meta/*.json` snapshots** are likewise handled by the Pass 3 checklist as non-import references, not by this register.
 - Decisions that merely rejected an alternative *approach* to a problem (e.g. "no `sessions` table" D-034, "no `exports` table" D-013) are **not** included — nothing existing was ever at risk of deletion, so there is no dead-looking surface to protect.
+
+---
+
+## D-114 supersession pass (M44, 2026-07-19)
+
+D-114 retires the human-codebook framing workflow and rewrites C-15. The following previously-protected rows change status; every other row above remains in force, and D-102's representation-intent + metric-wall rows (55, 56) are explicitly UNCHANGED.
+
+| Affected row | New status | Governing |
+|---|---|---|
+| M34A human workflow tables/routes/actions (codebook lock, reveal ordering, denominators, manual gaps) | **Retired as workflow; protected as read-only historical rendering.** Routes become historical surfaces; tables and stored rows are never migrated or deleted (C-3). Do not resurrect as a required path; do not delete either. | D-114 (was D-102/D-099) |
+| `framing_evidence_snapshots` + `resonance_stimuli.framing_evidence_snapshot_id` + C-15 render surfaces | **No longer an approval requirement.** Columns, stored snapshots, and historical rendering stay (old studies render truthfully). New approvals use the D-114 verbatim-baseline + auto-stamp path. | D-114 (was D-102) |
+| `m34a-simulation-evidence.v2` + `live_audit`/actionable-gap admission | **Admission gates retired.** Records remain readable; canonical-hash verification (D-104) stays for reading them. | D-114 (was D-103) |
+| M34A interrupted-call accounting (`m34a-budget.ts`, `generation_unavailable`, `span_assist_not_requested`) | **Unchanged for stored/historical data**; no new codebook runs will exercise it. Do not delete — historical denominators must stay interpretable. | D-100 (D-114 noted) |
+
+**New protected surface (D-114):** the verbatim-stimulus rule — a Simulation baseline stimulus is always a stored raw response cited by id (C-13), with the auto-stamp rendered wherever results render; theme labels/synthesized summaries must never become the stimulus, and clustering/central-selection must never become an admission gate. A proposal to "simplify" the picker into free-text baseline entry, or to "harden" themes into eligibility law, is an automatic Keep/Reject respectively — cite D-114.
