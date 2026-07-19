@@ -110,4 +110,45 @@ describe("migration metadata", () => {
     expect(assuranceSql).toContain("app.bypass_resonance_stimulus_freeze");
     expect(assuranceSql).not.toContain("DROP TABLE");
   });
+
+  it("ships M46 progress + brand-order migration without rewriting historical rows", () => {
+    const migrationsDir = join(process.cwd(), "src", "db", "migrations");
+    const sql = readFileSync(
+      join(migrationsDir, "0021_m46_progress_and_brand_order.sql"),
+      "utf8",
+    );
+
+    expect(sql).toContain('ADD COLUMN "brand_order_json" jsonb');
+    expect(sql).not.toMatch(/brand_order_json" jsonb NOT NULL/i);
+    expect(sql).toContain('CREATE TABLE "framing_observation_batches"');
+    expect(sql).toContain("framing_observation_batches_project_active_uq");
+    expect(sql).toContain("'queued', 'running', 'paused'");
+    expect(sql).toContain('ADD COLUMN "batch_id" uuid');
+    expect(sql).toContain('ADD COLUMN "locked_at"');
+    expect(sql).toContain('ADD COLUMN "locked_by"');
+    expect(sql).toContain("'queued', 'running', 'valid', 'failed'");
+    expect(sql).not.toContain("UPDATE \"prompt_cells\"");
+    expect(sql).not.toContain("DROP TABLE");
+
+    const snapshot = readFileSync(
+      join(migrationsDir, "meta", "0021_snapshot.json"),
+      "utf8",
+    );
+    expect(snapshot).toContain("brand_order_json");
+    expect(snapshot).toContain("framing_observation_batches");
+  });
+
+  it("ships M46 comparison-template grammar refresh as a migrate-path data upgrade", () => {
+    const migrationsDir = join(process.cwd(), "src", "db", "migrations");
+    const sql = readFileSync(
+      join(migrationsDir, "0022_m46_comparison_template_grammar.sql"),
+      "utf8",
+    );
+    expect(sql).toContain('UPDATE "prompt_templates"');
+    expect(sql).toContain("{brand_list}");
+    expect(sql).toContain("{competitor_list}");
+    expect(sql).toContain("intent\" = 'comparison'");
+    expect(sql).not.toContain("UPDATE \"prompt_cells\"");
+    expect(sql).not.toContain("DROP TABLE");
+  });
 });

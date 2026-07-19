@@ -10,7 +10,21 @@ import {
   promptCells,
   responses,
 } from "@/db/schema";
-import { buildFramingObservations } from "./observations";
+import { framingObservationBatches } from "@/db/schema";
+import {
+  claimFramingObservations,
+  completeFramingObservation,
+  getActiveFramingBatch,
+  getFramingBatchProgress,
+  reclaimStaleFramingLocks,
+} from "@/db/repositories/framing-observations";
+import {
+  buildFramingObservations,
+  enqueueFramingObservations,
+  FRAMING_STALE_LOCK_MS,
+  processClaimedFramingObservation,
+  tickFramingObservationBatches,
+} from "./observations";
 import { listBaselinePickerData } from "@/db/repositories/resonance";
 import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
 
@@ -113,6 +127,11 @@ afterAll(async () => {
       .where(inArray(framingObservations.responseId, createdResponseIds));
     await db.delete(responses).where(inArray(responses.id, createdResponseIds));
   }
+  // Batches may linger after terminal tests; clear any for the demo project.
+  const [demo] = await db.select({ id: projects.id }).from(projects).where(eq(projects.slug, "ledgerfox-demo"));
+  if (demo) {
+    await db.delete(framingObservationBatches).where(eq(framingObservationBatches.projectId, demo.id));
+  }
   for (const runId of createdRunIds) {
     await db.delete(jobs).where(eq(jobs.runId, runId));
     await db.delete(auditRuns).where(eq(auditRuns.id, runId));
@@ -148,10 +167,10 @@ describe("blind framing-observation batch (M44 / D-114 themes v2)", () => {
       expect(Number(row.embeddingCostUsd)).toBe(0);
     }
 
-    // Idempotent: the second run skips every valid row.
-    const second = await buildFramingObservations(projectId, 200);
-    expect(second.processed).toBe(0);
-    expect(second.skipped).toBeGreaterThanOrEqual(RAW_TEXTS.length);
+    // Idempotent: a second enqueue refuses when every latest row is already valid.
+    await expect(buildFramingObservations(projectId, 200)).rejects.toThrow(
+      /already have framing observations/i,
+    );
 
     // Picker flips to machine-grouped framing themes; the shared sentence
     // across both responses clusters into one theme spanning both.
@@ -247,6 +266,17 @@ describe("blind framing-observation batch (M44 / D-114 themes v2)", () => {
     process.env.PROVIDER_DAILY_BUDGET_USD = "0.25";
     try {
       await expect(buildFramingObservations(projectId, 200)).rejects.toThrow(/C-2/);
+      // Pause leaves an active batch — clear it so later tests can enqueue.
+      const paused = await getActiveFramingBatch(projectId);
+      expect(paused?.state).toBe("paused");
+      if (paused) {
+        await db
+          .delete(framingObservations)
+          .where(eq(framingObservations.batchId, paused.id));
+        await db
+          .delete(framingObservationBatches)
+          .where(eq(framingObservationBatches.id, paused.id));
+      }
     } finally {
       if (previousBudget === undefined) delete process.env.PROVIDER_DAILY_BUDGET_USD;
       else process.env.PROVIDER_DAILY_BUDGET_USD = previousBudget;
@@ -279,5 +309,209 @@ describe("blind framing-observation batch (M44 / D-114 themes v2)", () => {
         ),
       );
     expect(row?.state).toBe("valid");
+  }, 30_000);
+
+  it("rejects a second active batch and recovers stale locks (M46/D-117)", async () => {
+    const projectId = await demoProjectId();
+    // Fresh responses so enqueue has work (prior tests left valids).
+    const responseIds = await seedCompletedMockResponses(projectId);
+    const first = await enqueueFramingObservations(projectId, 200);
+    expect(first.totalCount).toBeGreaterThanOrEqual(RAW_TEXTS.length);
+    await expect(enqueueFramingObservations(projectId, 200)).rejects.toThrow(
+      /already in progress/i,
+    );
+    const active = await getActiveFramingBatch(projectId);
+    expect(active?.id).toBe(first.batchId);
+    expect(active?.state).toBe("queued");
+
+    // Plant a stale running lock; reclaim must return it to queued.
+    const [queued] = await db
+      .select()
+      .from(framingObservations)
+      .where(
+        and(
+          eq(framingObservations.batchId, first.batchId),
+          eq(framingObservations.state, "queued"),
+        ),
+      )
+      .limit(1);
+    await db
+      .update(framingObservations)
+      .set({
+        state: "running",
+        lockedAt: new Date(Date.now() - 120_000),
+        lockedBy: "dead-worker",
+      })
+      .where(eq(framingObservations.id, queued.id));
+    const reclaimed = await reclaimStaleFramingLocks(60_000);
+    expect(reclaimed.some((r) => r.id === queued.id)).toBe(true);
+    const [after] = await db
+      .select({ state: framingObservations.state, lockedAt: framingObservations.lockedAt })
+      .from(framingObservations)
+      .where(eq(framingObservations.id, queued.id));
+    expect(after.state).toBe("queued");
+    expect(after.lockedAt).toBeNull();
+
+    // Drain to terminal so later tests aren't blocked by the active batch.
+    let terminal = await getFramingBatchProgress(first.batchId);
+    for (let i = 0; i < 20 && terminal && !["completed", "partial", "failed"].includes(terminal.state); i++) {
+      await tickFramingObservationBatches(`test-${process.pid}`);
+      terminal = await getFramingBatchProgress(first.batchId);
+    }
+    expect(terminal?.state).toMatch(/completed|partial/);
+    expect(terminal?.processedCount).toBeGreaterThanOrEqual(RAW_TEXTS.length);
+    expect(FRAMING_STALE_LOCK_MS).toBeGreaterThan(120_000);
+    void responseIds;
+  }, 30_000);
+
+  it("refuses completeFramingObservation when lockedBy does not match (M46 lease fence)", async () => {
+    const projectId = await demoProjectId();
+    await seedCompletedMockResponses(projectId);
+    const enqueued = await enqueueFramingObservations(projectId, 200);
+    const [row] = await db
+      .select()
+      .from(framingObservations)
+      .where(
+        and(
+          eq(framingObservations.batchId, enqueued.batchId),
+          eq(framingObservations.state, "queued"),
+        ),
+      )
+      .limit(1);
+    await db
+      .update(framingObservations)
+      .set({
+        state: "running",
+        lockedAt: new Date(),
+        lockedBy: "owner-a",
+      })
+      .where(eq(framingObservations.id, row.id));
+
+    await completeFramingObservation({
+      observationId: row.id,
+      batchId: enqueued.batchId,
+      lockedBy: "intruder-b",
+      state: "valid",
+      observationsJson: [],
+      vectorsJson: [],
+      model: "test",
+      embeddingModel: null,
+      llmCostUsd: 0,
+      embeddingCostUsd: 0,
+      tokensIn: 0,
+      tokensOut: 0,
+      error: null,
+    });
+
+    const [after] = await db
+      .select({
+        state: framingObservations.state,
+        lockedBy: framingObservations.lockedBy,
+      })
+      .from(framingObservations)
+      .where(eq(framingObservations.id, row.id));
+    expect(after.state).toBe("running");
+    expect(after.lockedBy).toBe("owner-a");
+
+    // Owner can finalize; drain batch so later tests stay unblocked.
+    await completeFramingObservation({
+      observationId: row.id,
+      batchId: enqueued.batchId,
+      lockedBy: "owner-a",
+      state: "failed",
+      observationsJson: [],
+      vectorsJson: [],
+      model: null,
+      embeddingModel: null,
+      llmCostUsd: 0,
+      embeddingCostUsd: 0,
+      tokensIn: 0,
+      tokensOut: 0,
+      error: "test cleanup",
+    });
+    let terminal = await getFramingBatchProgress(enqueued.batchId);
+    for (let i = 0; i < 20 && terminal && !["completed", "partial", "failed"].includes(terminal.state); i++) {
+      await tickFramingObservationBatches(`fence-${process.pid}`);
+      terminal = await getFramingBatchProgress(enqueued.batchId);
+    }
+    expect(terminal?.state).toMatch(/completed|partial|failed/);
+  }, 30_000);
+
+  it("renews before each claimed item so a second row aged behind the first is not double-spent", async () => {
+    const projectId = await demoProjectId();
+    await seedCompletedMockResponses(projectId);
+    const enqueued = await enqueueFramingObservations(projectId, 200);
+    const claimed = await claimFramingObservations(2, "worker-a");
+    expect(claimed.length).toBe(2);
+    const [first, second] = claimed;
+
+    await processClaimedFramingObservation(first);
+
+    // Shared claim clock: second row sat idle while the first ran a full pipeline.
+    const agedOut = new Date(Date.now() - (FRAMING_STALE_LOCK_MS + 1_000));
+    await db
+      .update(framingObservations)
+      .set({ lockedAt: agedOut })
+      .where(eq(framingObservations.id, second.id));
+
+    // Without a pre-work renew, another worker reclaiming at the framing stale
+    // window would steal this lease mid-generation (duplicate spend).
+    const stolen = await reclaimStaleFramingLocks(FRAMING_STALE_LOCK_MS);
+    expect(stolen.some((r) => r.id === second.id)).toBe(true);
+
+    // Re-plant the race: A still thinks it owns an aged claim.
+    await db
+      .update(framingObservations)
+      .set({
+        state: "running",
+        lockedBy: "worker-a",
+        lockedAt: agedOut,
+      })
+      .where(eq(framingObservations.id, second.id));
+
+    // processClaimed renews first — ownership is refreshed before mock/live work.
+    const outcome = await processClaimedFramingObservation(second);
+    expect(outcome).toBe("done");
+    const [finished] = await db
+      .select({
+        state: framingObservations.state,
+        lockedBy: framingObservations.lockedBy,
+      })
+      .from(framingObservations)
+      .where(eq(framingObservations.id, second.id));
+    expect(finished.state).toBe("valid");
+    expect(finished.lockedBy).toBeNull();
+
+    // Lost-lease path: reclaim wins before A's renew → A must not finalize.
+    const remaining = await claimFramingObservations(1, "worker-a");
+    if (remaining.length === 1) {
+      const orphan = remaining[0]!;
+      await db
+        .update(framingObservations)
+        .set({
+          lockedAt: new Date(Date.now() - (FRAMING_STALE_LOCK_MS + 1_000)),
+        })
+        .where(eq(framingObservations.id, orphan.id));
+      const raced = await reclaimStaleFramingLocks(FRAMING_STALE_LOCK_MS);
+      expect(raced.some((r) => r.id === orphan.id)).toBe(true);
+      expect(await processClaimedFramingObservation(orphan)).toBe("done");
+      const [after] = await db
+        .select({ state: framingObservations.state, lockedBy: framingObservations.lockedBy })
+        .from(framingObservations)
+        .where(eq(framingObservations.id, orphan.id));
+      expect(after.state).toBe("queued");
+      expect(after.lockedBy).toBeNull();
+    }
+
+    let terminal = await getFramingBatchProgress(enqueued.batchId);
+    for (
+      let i = 0;
+      i < 20 && terminal && !["completed", "partial", "failed"].includes(terminal.state);
+      i++
+    ) {
+      await tickFramingObservationBatches(`renew-${process.pid}`);
+      terminal = await getFramingBatchProgress(enqueued.batchId);
+    }
+    expect(terminal?.state).toMatch(/completed|partial|failed/);
   }, 30_000);
 });

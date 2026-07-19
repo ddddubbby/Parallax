@@ -6,6 +6,11 @@ import { useEffect, useState, useTransition } from "react";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, InlineStatus, Input, Select, Stamp } from "@/components/ui";
+import {
+  drawFloorMet,
+  drawsPerVariant,
+  totalSimulationCalls,
+} from "@/core/resonance-draws";
 import type { GenerationMode, ProviderId, RunMode } from "@/core/runner";
 import { startRunLabel } from "@/core/run-labels";
 import {
@@ -46,6 +51,8 @@ export function RunCreationForm({
   singleMode = false,
   secondaryRequirement = null,
   matrixLabel,
+  panelCount = null,
+  framingCount = null,
 }: {
   projectId: string;
   cellCount: number;
@@ -60,6 +67,9 @@ export function RunCreationForm({
   /** M32 / D-088: extraction (audit) or embedding (simulation) readiness. */
   secondaryRequirement?: SecondaryRequirement | null;
   matrixLabel?: string;
+  /** M46/D-117: Simulation footprint for draw math when projection is sparse. */
+  panelCount?: number | null;
+  framingCount?: number | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -81,6 +91,11 @@ export function RunCreationForm({
     plannedCalls: number;
     projectedCostUsd: number;
     budgets: Array<{ providerId: string; spentUsd: number; budgetUsd: number; projectedUsd: number }>;
+    drawsPerVariant: number | null;
+    totalCalls: number;
+    drawFloorMet: boolean | null;
+    panelCount: number | null;
+    framingCount: number | null;
   } | null>(null);
 
   const visibleProviders = providers.filter((p) =>
@@ -147,6 +162,11 @@ export function RunCreationForm({
             plannedCalls: result.plannedCalls,
             projectedCostUsd: result.projectedCostUsd,
             budgets: result.budgets,
+            drawsPerVariant: result.drawsPerVariant,
+            totalCalls: result.totalCalls,
+            drawFloorMet: result.drawFloorMet,
+            panelCount: result.panelCount,
+            framingCount: result.framingCount,
           });
         } else {
           setProjection(null);
@@ -194,6 +214,34 @@ export function RunCreationForm({
   }
 
   const overCap = projection ? projection.projectedCostUsd > costCapUsd : false;
+  // Prefer live projection; fall back to server-passed study footprint so
+  // draw-floor copy stays visible when live providers aren't selected yet.
+  const effectivePanelCount = projection?.panelCount ?? panelCount;
+  const effectiveFramingCount = projection?.framingCount ?? framingCount;
+  const effectiveDraws =
+    projection?.drawsPerVariant ??
+    (effectivePanelCount !== null
+      ? drawsPerVariant(effectivePanelCount, effectiveRepetitions)
+      : null);
+  const effectiveFloorMet =
+    projection?.drawFloorMet ??
+    (effectiveDraws !== null ? drawFloorMet(effectiveDraws) : null);
+  const effectiveTotalCalls =
+    projection?.totalCalls ??
+    (effectivePanelCount !== null && effectiveFramingCount !== null
+      ? totalSimulationCalls({
+          framingCount: effectiveFramingCount,
+          personaCount: effectivePanelCount,
+          repetitions: effectiveRepetitions,
+          providerCount: Math.max(1, selectedProviders.length),
+        })
+      : null);
+  const belowLiveDrawFloor =
+    singleMode && runMode === "live_audit" && effectiveFloorMet === false;
+  const previewBelowFloor =
+    singleMode &&
+    (runMode === "mock" || runMode === "live_validation") &&
+    effectiveFloorMet === false;
   const canSubmit =
     !pending &&
     selectedProviders.length > 0 &&
@@ -201,16 +249,19 @@ export function RunCreationForm({
     !selectedBlocked &&
     !secondaryBlocks &&
     !projecting &&
-    !overCap;
+    !overCap &&
+    !belowLiveDrawFloor;
   const projectionState = projectionFailed
     ? "UNAVAILABLE"
     : projecting
       ? "LOADING"
       : overCap
         ? "OVER CAP"
-        : projection
-          ? "READY"
-          : "UNAVAILABLE";
+        : belowLiveDrawFloor
+          ? "BELOW FLOOR"
+          : projection
+            ? "READY"
+            : "UNAVAILABLE";
 
   return (
     <div className="flex flex-col gap-6">
@@ -430,7 +481,7 @@ export function RunCreationForm({
         </div>
         <span
           className={`label-mono shrink-0 text-xs ${
-            projectionState === "OVER CAP"
+            projectionState === "OVER CAP" || projectionState === "BELOW FLOOR"
               ? "text-danger"
               : projectionState === "UNAVAILABLE"
                 ? "text-warn"
@@ -445,6 +496,40 @@ export function RunCreationForm({
         <InlineStatus tone="warning">
           Cost projection is unavailable right now. You can still submit — the run&rsquo;s cost cap
           and daily budgets are re-checked server-side before any spend.
+        </InlineStatus>
+      )}
+
+      {singleMode && effectiveDraws !== null && (
+        <div className="rounded-xl border border-ink/15 p-4 font-mono text-xs text-ink/70">
+          <p className="label-mono mb-2 text-xs text-ink/60">Simulation math</p>
+          <p>
+            {effectivePanelCount ?? "—"} personas × {effectiveRepetitions} repetitions ={" "}
+            {effectiveDraws} draws per framing/provider
+          </p>
+          <p className="mt-1">
+            {effectiveFramingCount ?? "—"} framings × {effectivePanelCount ?? "—"} personas ×{" "}
+            {effectiveRepetitions} repetitions × {Math.max(1, selectedProviders.length)} providers ={" "}
+            {effectiveTotalCalls ?? "—"} total calls
+          </p>
+          <p className="mt-1 text-ink/55">
+            Draw floor is per framing and provider — multiple providers do not combine toward n≥30.
+          </p>
+        </div>
+      )}
+
+      {previewBelowFloor && (
+        <InlineStatus tone="warning">
+          Preview only — directional. This configuration yields {effectiveDraws ?? 0} draws per
+          framing/provider (below the n≥30 floor). Live audit runs are blocked until the study has
+          enough personas at k=5.
+        </InlineStatus>
+      )}
+
+      {belowLiveDrawFloor && (
+        <InlineStatus tone="danger">
+          Live audit blocked — need at least 30 draws per framing/provider (personas ×
+          repetitions). With k=5 that means ≥6 personas. Do not invent personas; use mock or
+          live validation for preview-only configs.
         </InlineStatus>
       )}
 

@@ -222,6 +222,43 @@ export const framingEvidenceSnapshots = pgTable(
  * (C-5): versioned, recomputable, never a substitute for the raw response.
  * Costs recorded per row feed the C-2 daily budgets via getProviderSpendToday.
  */
+/**
+ * M46/D-117: persistent framing-extraction worker batch. One active
+ * (queued|running|paused) batch per project; progress survives refresh/restart.
+ */
+export const framingObservationBatches = pgTable(
+  "framing_observation_batches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id),
+    state: text("state").notNull().default("queued"),
+    totalCount: integer("total_count").notNull().default(0),
+    processedCount: integer("processed_count").notNull().default(0),
+    validCount: integer("valid_count").notNull().default(0),
+    failedCount: integer("failed_count").notNull().default(0),
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
+    pausedReason: text("paused_reason"),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("framing_observation_batches_project_idx").on(t.projectId),
+    check(
+      "framing_observation_batches_state_ck",
+      sql`${t.state} in ('queued', 'running', 'paused', 'completed', 'partial', 'failed')`,
+    ),
+    // At most one non-terminal batch per project (P2 enqueue rejects duplicates).
+    uniqueIndex("framing_observation_batches_project_active_uq")
+      .on(t.projectId)
+      .where(sql`${t.state} in ('queued', 'running', 'paused')`),
+  ],
+);
+
 export const framingObservations = pgTable(
   "framing_observations",
   {
@@ -231,6 +268,9 @@ export const framingObservations = pgTable(
       .references((): AnyPgColumn => responses.id),
     version: integer("version").notNull().default(1),
     state: text("state").notNull(),
+    batchId: uuid("batch_id").references(() => framingObservationBatches.id),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: text("locked_by"),
     observationsJson: jsonb("observations_json").notNull().default([]),
     vectorsJson: jsonb("vectors_json").notNull().default([]),
     model: text("model"),
@@ -246,6 +286,10 @@ export const framingObservations = pgTable(
   (t) => [
     uniqueIndex("framing_observations_response_version_uq").on(t.responseId, t.version),
     index("framing_observations_response_idx").on(t.responseId),
-    check("framing_observations_state_ck", sql`${t.state} in ('valid', 'failed')`),
+    index("framing_observations_batch_state_idx").on(t.batchId, t.state),
+    check(
+      "framing_observations_state_ck",
+      sql`${t.state} in ('queued', 'running', 'valid', 'failed')`,
+    ),
   ],
 );

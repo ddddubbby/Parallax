@@ -65,6 +65,43 @@ describe("matrix action id guards", () => {
 describe.skipIf(!dbUp || !demoProjectId)(
   "matrix actions against the dev database",
   () => {
+    it("keeps frozen brand order on comparison regenerate unless roster changes", async () => {
+      const { generateMatrix, regenerateCell } = await import("./actions");
+      const projectId = demoProjectId as string;
+      const generated = await generateMatrix(projectId);
+      expect(generated.ok).toBe(true);
+      const versionId = (generated as { versionId: string }).versionId;
+      createdVersionIds.push(versionId);
+
+      const cells = await db
+        .select({
+          id: promptCells.id,
+          intent: promptCells.intent,
+          brandOrderJson: promptCells.brandOrderJson,
+          variantKey: promptCells.variantKey,
+        })
+        .from(promptCells)
+        .where(eq(promptCells.matrixVersionId, versionId));
+      const target = cells.find((c) => c.intent === "comparison");
+      expect(target).toBeDefined();
+      const before = target!.brandOrderJson as string[];
+      expect(before.length).toBeGreaterThanOrEqual(2);
+
+      const regen = await regenerateCell(projectId, versionId, target!.id);
+      expect(regen.ok).toBe(true);
+      const [after] = await db
+        .select({
+          brandOrderJson: promptCells.brandOrderJson,
+          variantKey: promptCells.variantKey,
+          resolvedText: promptCells.resolvedText,
+        })
+        .from(promptCells)
+        .where(eq(promptCells.id, target!.id));
+      expect(after.brandOrderJson).toEqual(before);
+      expect(after.variantKey).not.toBe(target!.variantKey);
+      expect(after.resolvedText).toContain(before.join(", "));
+    });
+
     it("caps at 50, rejects the 51st server-side, and freezes on approval", async () => {
       const { addCell, approveMatrix, generateMatrix, newDraftFromVersion, removeCell, saveCellText } =
         await import("./actions");
@@ -88,6 +125,32 @@ describe.skipIf(!dbUp || !demoProjectId)(
             .where(eq(promptCells.matrixVersionId, versionId))
         ).length;
       expect(await countCells()).toBe(40);
+
+      // M46/D-117: comparison cells persist balanced brand_order_json; others empty.
+      const generatedCells = await db
+        .select({
+          intent: promptCells.intent,
+          brandOrderJson: promptCells.brandOrderJson,
+          competitorOrderJson: promptCells.competitorOrderJson,
+          resolvedText: promptCells.resolvedText,
+        })
+        .from(promptCells)
+        .where(eq(promptCells.matrixVersionId, versionId));
+      const comparisonCells = generatedCells.filter((c) => c.intent === "comparison");
+      expect(comparisonCells.length).toBeGreaterThan(0);
+      for (const cell of comparisonCells) {
+        const brandOrder = cell.brandOrderJson as string[];
+        expect(brandOrder.length).toBeGreaterThanOrEqual(2);
+        expect(cell.resolvedText).toContain(brandOrder.join(", "));
+        expect(cell.competitorOrderJson).toEqual(
+          brandOrder.filter((name) => name !== "LedgerFox"),
+        );
+      }
+      expect(
+        generatedCells
+          .filter((c) => c.intent !== "comparison")
+          .every((c) => Array.isArray(c.brandOrderJson) && (c.brandOrderJson as unknown[]).length === 0),
+      ).toBe(true);
 
       // Fill to the cap through the real action.
       let guard = 30;
@@ -225,6 +288,7 @@ describe.skipIf(!dbUp || !demoProjectId)(
         variantKey: `${cell.variantKey}-${index}`,
         resolvedText: `${cell.resolvedText} ${index}`,
         competitorOrder: (cell.competitorOrderJson as string[]) ?? [],
+        brandOrder: (cell.brandOrderJson as string[]) ?? [],
       }));
       await expect(createDraftVersion(projectId, overCap)).rejects.toThrow(/cap exceeded/i);
 

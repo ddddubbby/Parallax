@@ -256,7 +256,7 @@ export const METRIC_GLOSSARY: Record<string, MetricGlossaryEntry> = {
     pillar: "position",
     question: PILLARS.position.clientQuestion,
     definition: "In a forced head-to-head against the competitor set, how often AI picks the client.",
-    computationSummary: "Comparison-frame samples where the client brand is marked recommended, divided by all comparison eligible samples in scope. No comparative rank metric exists: position inside comparison answers mirrors prompt order (the template names the client first), so it is not reported (D-054).",
+    computationSummary: "Comparison-frame samples where the client brand is marked recommended, divided by all comparison eligible samples in scope. No comparative rank metric exists: position inside comparison answers mirrors the frozen prompt brand order (M46/D-117 balances that order; it is still prompt-planted), so it is not reported (D-054).",
     intervalCaveat: WILSON_CAVEAT,
     directionOfGood: "higher",
   },

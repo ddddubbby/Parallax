@@ -2,16 +2,22 @@ import { describe, expect, it } from "vitest";
 import {
   allocateMatrix,
   ALLOCATED_INTENT_ORDER,
+  balancedBrandOrders,
+  brandRosterMatches,
   type BrandTerms,
   type CellPlan,
+  competitorOrderFromBrandOrder,
   findBrandTerms,
   findBusinessVoicePhrases,
   intentQuotas,
   type MatrixContext,
+  nextBalancedBrandOrder,
   renderTemplate,
   renderRepresentationTemplate,
+  rotateBrandOrder,
   scanUnbrandedCells,
   shuffle,
+  trackedBrandRoster,
   type TemplateInput,
 } from "./matrix";
 import { TEMPLATE_SEED } from "./prompt-templates";
@@ -29,7 +35,7 @@ const TEMPLATES: TemplateInput[] = (
   [
     ["discovery", "What tools should a {persona} in {market} consider for {job_to_be_done}?"],
     ["consideration", "Best options for {persona} teams evaluating {category} in {market}?"],
-    ["comparison", "Compare {client_brand} against {competitor_list} for {persona} in {market}."],
+    ["comparison", "Compare {brand_list} for {persona} in {market}."],
     ["validation", "Is {client_brand} good for {persona} teams that care about {attribute_list}?"],
     ["objection", "What concerns should a {persona} have before choosing {client_brand}?"],
   ] as const
@@ -134,22 +140,38 @@ describe("allocateMatrix", () => {
     expect(broaderIdx).toBeLessThan(v3Idx === -1 ? Infinity : v3Idx);
   });
 
-  it("stores randomized competitor order on comparison cells only (PM-8)", () => {
+  it("stores balanced frozen brand order on comparison cells only (M46/D-117)", () => {
     const cells = alloc(2, 2);
-    for (const cell of cells) {
-      if (cell.intent === "comparison") {
-        expect([...cell.competitorOrder].sort()).toEqual(
-          ["CloseBooks AI", "Northstar AP", "SpendPilot"].sort(),
-        );
-        expect(cell.resolvedText).toContain(cell.competitorOrder.join(", "));
-      } else {
-        expect(cell.competitorOrder).toEqual([]);
-      }
+    const roster = trackedBrandRoster(CTX);
+    const comparison = cells.filter((c) => c.intent === "comparison");
+    expect(comparison.length).toBeGreaterThan(1);
+    const positionCounts = new Map(roster.map((name) => [name, new Array(roster.length).fill(0)]));
+    for (const cell of comparison) {
+      expect(brandRosterMatches(cell.brandOrder, roster)).toBe(true);
+      expect(cell.competitorOrder).toEqual(
+        competitorOrderFromBrandOrder(cell.brandOrder, CTX.clientBrand.name),
+      );
+      expect(cell.resolvedText).toContain(cell.brandOrder.join(", "));
+      // Client is in the list but not fixed at position 0 across the matrix.
+      cell.brandOrder.forEach((name, pos) => {
+        positionCounts.get(name)![pos] += 1;
+      });
     }
-    const orders = new Set(
-      cells.filter((c) => c.intent === "comparison").map((c) => c.competitorOrder.join("|")),
+    for (const cell of cells.filter((c) => c.intent !== "comparison")) {
+      expect(cell.brandOrder).toEqual([]);
+      expect(cell.competitorOrder).toEqual([]);
+    }
+    for (const name of roster) {
+      const counts = positionCounts.get(name)!;
+      expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
+    }
+    // Same seed ⇒ same orders (reproducible balancing).
+    const again = alloc(2, 2).filter((c) => c.intent === "comparison");
+    expect(again.map((c) => c.brandOrder.join("|"))).toEqual(
+      comparison.map((c) => c.brandOrder.join("|")),
     );
-    expect(orders.size).toBeGreaterThan(1);
+    // Client is not fixed first on every cell.
+    expect(comparison.every((c) => c.brandOrder[0] === CTX.clientBrand.name)).toBe(false);
   });
 
   it("returns nothing without personas or markets", () => {
@@ -186,6 +208,7 @@ describe("allocateMatrix", () => {
         variantKey: template.variantKey,
         resolvedText: renderRepresentationTemplate(template.templateText, "LedgerFox"),
         competitorOrder: [],
+        brandOrder: [],
       })),
     );
     expect(ALLOCATED_INTENT_ORDER).not.toContain("representation");
@@ -214,18 +237,19 @@ describe("allocateMatrix", () => {
 });
 
 describe("renderTemplate (PM-1)", () => {
-  it("resolves every placeholder", () => {
+  it("resolves every placeholder including brand_list", () => {
     const text = renderTemplate(
-      "{persona} / {market} / {category} / {job_to_be_done} / {client_brand} / {competitor_list} / {attribute_list}",
+      "{persona} / {market} / {category} / {job_to_be_done} / {client_brand} / {brand_list} / {competitor_list} / {attribute_list}",
       {
         persona: { id: "p", title: "VP Finance" },
         market: { id: "m", name: "US" },
         ctx: CTX,
         competitorOrder: ["A", "B"],
+        brandOrder: ["B", "LedgerFox", "A"],
       },
     );
     expect(text).toBe(
-      "VP Finance / US / spend management / reduce manual reconciliation / LedgerFox / A, B / easy implementation, mid-market fit",
+      "VP Finance / US / spend management / reduce manual reconciliation / LedgerFox / B, LedgerFox, A / A, B / easy implementation, mid-market fit",
     );
   });
 
@@ -235,8 +259,57 @@ describe("renderTemplate (PM-1)", () => {
       market: { id: "m", name: "US" },
       ctx: CTX,
       competitorOrder: [],
+      brandOrder: [],
     });
     expect(text).toBe("VP wants {unknown_thing}");
+  });
+});
+
+describe("balanced brand order helpers (M46/D-117)", () => {
+  const roster = ["LedgerFox", "SpendPilot", "Northstar AP", "CloseBooks AI"];
+
+  it("rotates cyclically and balances position counts within one", () => {
+    const orders = balancedBrandOrders(roster, 12, seededRng(3));
+    expect(orders[0]).toEqual(rotateBrandOrder(orders[0]!, 0));
+    expect(orders[1]).toEqual(rotateBrandOrder(orders[0]!, 1));
+    const counts = roster.map(() => new Array(roster.length).fill(0));
+    for (const order of orders) {
+      expect(brandRosterMatches(order, roster)).toBe(true);
+      order.forEach((name, pos) => {
+        counts[roster.indexOf(name)]![pos] += 1;
+      });
+    }
+    for (const perBrand of counts) {
+      expect(Math.max(...perBrand) - Math.min(...perBrand)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("nextBalancedBrandOrder continues the rotation sequence", () => {
+    const base = shuffle(roster, seededRng(11));
+    const existing = [0, 1, 2].map((i) => rotateBrandOrder(base, i));
+    expect(nextBalancedBrandOrder(existing, roster, seededRng(99))).toEqual(
+      rotateBrandOrder(base, 3),
+    );
+  });
+
+  it("seeded comparison templates use brand_list and keep ranking prompts unbranded", () => {
+    const comparison = TEMPLATE_SEED.filter((t) => t.intent === "comparison");
+    expect(comparison.length).toBeGreaterThan(0);
+    for (const t of comparison) {
+      expect(t.text).toContain("{brand_list}");
+      expect(t.text).not.toContain("{competitor_list}");
+    }
+    const ranking = TEMPLATE_SEED.filter(
+      (t) =>
+        (t.intent === "discovery" || t.intent === "consideration") &&
+        t.text.toLowerCase().includes("rank"),
+    );
+    expect(ranking.length).toBeGreaterThan(0);
+    for (const t of ranking) {
+      expect(t.text).not.toContain("{brand_list}");
+      expect(t.text).not.toContain("{client_brand}");
+      expect(t.text).not.toContain("{competitor_list}");
+    }
   });
 });
 

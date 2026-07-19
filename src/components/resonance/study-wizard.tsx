@@ -2,15 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { FramingBatchProgress } from "@/components/resonance/framing-batch-progress";
 import { Button, Field, InlineStatus, Input, Select, Textarea } from "@/components/ui";
-import { AppConfirmDialog } from "@/components/ui/dialog";
+import { AppConfirmDialog, AppDialog } from "@/components/ui/dialog";
 import { useUnsavedEdit } from "@/components/unsaved-edit";
+import type { FramingObservationBatchProgress } from "@/core/framing-batch";
+import { AUDIT_REPETITIONS } from "@/core/constants";
+import {
+  formatSimulationMath,
+  isPreviewOnlyPersonaCount,
+  MIN_PERSONAS_FOR_LIVE_AUDIT_DRAW_FLOOR,
+} from "@/core/resonance-draws";
 import { STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import {
   addStimulusAction,
   buildFramingThemesAction,
   approveStudyAction,
   deleteStimulusAction,
+  fetchFramingBatchProgressAction,
   updateStimulusAction,
   updateStudyAction,
 } from "@/modules/resonance/actions";
@@ -60,11 +69,16 @@ interface ResponseOption {
   verbatim: string;
   providerId: string;
   promptText: string;
+  generationMode?: string;
+  modelVersion?: string;
+  createdAt?: string;
+  /** Exact framing-observation quote when available (M46/D-117). */
+  observationQuote?: string | null;
 }
 
 const STEPS = [
   { n: 1, title: "Name your study" },
-  { n: 2, title: "Who reacts — the buyer panel" },
+  { n: 2, title: "Who reacts — the panel" },
   { n: 3, title: "What they react to — framings" },
   { n: 4, title: "Review & run" },
 ] as const;
@@ -90,6 +104,7 @@ export function StudyWizard({
   themes,
   responseOptions,
   themesSource,
+  initialFramingBatch,
 }: {
   projectId: string;
   study: { id: string; name: string };
@@ -98,6 +113,7 @@ export function StudyWizard({
   themes: BaselineTheme[];
   responseOptions: ResponseOption[];
   themesSource: "framing_observations" | "attributes";
+  initialFramingBatch?: FramingObservationBatchProgress | null;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -105,6 +121,9 @@ export function StudyWizard({
   const [pending, startTransition] = useTransition();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [framingBatch, setFramingBatch] = useState<FramingObservationBatchProgress | null>(
+    initialFramingBatch ?? null,
+  );
   const [confirmation, setConfirmation] = useState<
     { kind: "approve" } | { kind: "delete"; stimulus: StimulusRow } | null
   >(null);
@@ -142,7 +161,7 @@ export function StudyWizard({
       return;
     }
     if (step === 2 && !personas.some(personaComplete)) {
-      setError("Add at least one buyer type with all five fields filled in.");
+      setError("Add at least one persona with all five fields filled in.");
       const firstIncomplete = personas.findIndex((persona) => !personaComplete(persona));
       wizardRef.current
         ?.querySelector<HTMLInputElement>(`[data-persona-row="${Math.max(firstIncomplete, 0)}"] input`)
@@ -192,7 +211,21 @@ export function StudyWizard({
   }
 
   function refineThemes() {
-    runAction("refine-themes", () => buildFramingThemesAction(projectId, study.id));
+    setError(null);
+    setPendingKey("refine-themes");
+    startTransition(async () => {
+      const res = await buildFramingThemesAction(projectId, study.id);
+      if (!res.ok) {
+        setError(res.error ?? "Something went wrong");
+        setPendingKey(null);
+        return;
+      }
+      if (res.batchId) {
+        const progress = await fetchFramingBatchProgressAction(projectId, res.batchId);
+        if (progress) setFramingBatch(progress);
+      }
+      setPendingKey(null);
+    });
   }
 
   function addFraming() {
@@ -251,7 +284,7 @@ export function StudyWizard({
   // --- review-step readiness checks (plain language) ---
   const readiness: string[] = [];
   if (name.trim().length === 0) readiness.push("This study needs a name (step 1).");
-  if (!personas.some(personaComplete)) readiness.push("Add at least one buyer type (step 2).");
+  if (!personas.some(personaComplete)) readiness.push("Add at least one persona (step 2).");
   if (stimuli.length < 2) readiness.push("Add at least two framings to compare (step 3).");
   // C-13 hard rule (M22/D-078): every study needs a Measured AI framing
   // with real evidence attached before it can be approved — no exceptions.
@@ -325,14 +358,14 @@ export function StudyWizard({
       {step === 2 && (
         <div>
           <p className="mb-4 max-w-2xl text-sm leading-6 text-ink/70">
-            Add the buyer types the simulated panel will represent. <strong>Age and income</strong> are the
-            research-validated axes; location and buying habits add context. One row per buyer type.
+            Add the personas the simulated panel will represent. <strong>Age and income</strong> are the
+            research-validated axes; location and buying habits add context. One row per persona.
           </p>
           <div className="flex flex-col gap-3">
             {personas.map((p, i) => (
               <div key={i} data-persona-row={i} className="rounded-lg border border-ink/10 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="label-mono text-xs text-ink/65">Buyer type {i + 1}</span>
+                  <span className="label-mono text-xs text-ink/65">Persona {i + 1}</span>
                   {personas.length > 1 && (
                     <Button
                       type="button"
@@ -354,7 +387,7 @@ export function StudyWizard({
                 <div className="grid gap-3 md:grid-cols-2">
                   {(
                     [
-                      ["label", "Label (required)", "e.g. Young professional"],
+                      ["label", "Persona name (required)", "e.g. Young professional"],
                       ["ageBand", "Age band (required)", "e.g. 25–34"],
                       ["incomeBand", "Income band (required)", "e.g. $60k–$90k"],
                       ["locationContext", "Location (required)", "e.g. Singapore"],
@@ -382,7 +415,7 @@ export function StudyWizard({
               setDirtySource("study", true);
               window.setTimeout(() => wizardRef.current?.querySelector<HTMLInputElement>(`[data-persona-row="${nextIndex}"] input`)?.focus(), 0);
             }}>
-              + Add buyer type
+              + Add persona
             </Button>
           </div>
         </div>
@@ -398,6 +431,21 @@ export function StudyWizard({
             (C-13).
           </p>
 
+          {/* Study-level batch ring (one poller) — not per measured-AI card. */}
+          {framingBatch && (
+            <div className="mb-4">
+              <FramingBatchProgress
+                projectId={projectId}
+                studyId={study.id}
+                initial={framingBatch}
+                onTerminal={() => {
+                  setFramingBatch(null);
+                  router.refresh();
+                }}
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             {stimuli.map((s) => (
               <FramingCard
@@ -408,6 +456,7 @@ export function StudyWizard({
                 themesSource={themesSource}
                 onRefineThemes={refineThemes}
                 refining={pendingKey === "refine-themes"}
+                framingBatchActive={Boolean(framingBatch)}
                 pending={pendingKey === `save-${s.id}` || pendingKey === `delete-${s.id}`}
                 pendingKey={pendingKey}
                 onDirty={(dirty) => setDirtySource(`stimulus-${s.id}`, dirty)}
@@ -435,34 +484,66 @@ export function StudyWizard({
       {/* STEP 4 — review & run */}
       {step === 4 && (
         <div className="max-w-2xl">
-          <ul className="mb-4 flex flex-col gap-2 font-mono text-sm">
-            <li>Study: {name || "—"}</li>
-            <li>Buyer types: {personas.filter(personaComplete).length}</li>
-            <li>Framings: {stimuli.length}</li>
-          </ul>
-          {readiness.length > 0 ? (
-            <div className="rounded-lg border border-warn p-3">
-              <p className="mb-2 label-mono text-xs text-warn">Before you can run this study:</p>
-              <ul className="flex flex-col gap-1 font-mono text-xs text-warn">
-                {readiness.map((r) => (
-                  <li key={r}>• {r}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="mb-4 rounded-lg border border-ink/15 p-3 font-mono text-xs text-ink/60">
-              Ready. Approving freezes this study and compiles a simulated matrix. Next: configure a simulation run.
-            </p>
-          )}
-          <div className="mt-4">
-            <Button
-              type="button"
-              disabled={pending || readiness.length > 0}
-              onClick={() => setConfirmation({ kind: "approve" })}
-            >
-              Approve study
-            </Button>
-          </div>
+          {(() => {
+            const personaCount = personas.filter(personaComplete).length;
+            const math = formatSimulationMath({
+              personaCount,
+              framingCount: stimuli.length,
+              repetitions: AUDIT_REPETITIONS,
+              providerCount: 1,
+            });
+            const previewOnly = isPreviewOnlyPersonaCount(personaCount);
+            return (
+              <>
+                <ul className="mb-4 flex flex-col gap-2 font-mono text-sm">
+                  <li>Study: {name || "—"}</li>
+                  <li>Personas: {personaCount}</li>
+                  <li>Framings: {stimuli.length}</li>
+                </ul>
+                <div className="mb-4 rounded-lg border border-ink/15 p-3 font-mono text-xs text-ink/70">
+                  <p className="label-mono mb-2 text-xs text-ink/60">Simulation math (at k={AUDIT_REPETITIONS})</p>
+                  <p>{math.drawsLine}</p>
+                  <p className="mt-1">{math.totalLine}</p>
+                  <p className="mt-1 text-ink/55">
+                    Providers never combine toward the n≥30 floor — each provider is its own population.
+                  </p>
+                </div>
+                {previewOnly && readiness.length === 0 && (
+                  <InlineStatus tone="warning" className="mb-4">
+                    Preview-only at live audit grade — {personaCount} persona
+                    {personaCount === 1 ? "" : "s"} × k={AUDIT_REPETITIONS} yields {math.drawsPerVariant}{" "}
+                    draws per framing/provider (below 30). A full live study needs at least{" "}
+                    {MIN_PERSONAS_FOR_LIVE_AUDIT_DRAW_FLOOR} personas. Approval is still allowed; mock and
+                    live validation remain available. Do not invent personas.
+                  </InlineStatus>
+                )}
+                {readiness.length > 0 ? (
+                  <div className="rounded-lg border border-warn p-3">
+                    <p className="mb-2 label-mono text-xs text-warn">Before you can run this study:</p>
+                    <ul className="flex flex-col gap-1 font-mono text-xs text-warn">
+                      {readiness.map((r) => (
+                        <li key={r}>• {r}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="mb-4 rounded-lg border border-ink/15 p-3 font-mono text-xs text-ink/60">
+                    Ready. Approving freezes this study and compiles a simulated matrix. Next: configure a
+                    simulation run.
+                  </p>
+                )}
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    disabled={pending || readiness.length > 0}
+                    onClick={() => setConfirmation({ kind: "approve" })}
+                  >
+                    Approve study
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -490,7 +571,7 @@ export function StudyWizard({
         title={confirmation?.kind === "approve" ? "Approve and lock this study?" : "Delete framing?"}
         description={
           confirmation?.kind === "approve"
-            ? "Approval freezes the buyer panel, framings, and evidence provenance as an immutable Simulation definition (C-13/C-15). Review every blocker before continuing."
+            ? "Approval freezes the persona panel, framings, and evidence provenance as an immutable Simulation definition (C-13/C-15). Review every blocker before continuing."
             : confirmation?.kind === "delete"
               ? `Permanently delete “${confirmation.stimulus.label}” from this draft study?`
               : ""
@@ -522,6 +603,7 @@ function FramingCard({
   themesSource,
   onRefineThemes,
   refining,
+  framingBatchActive,
   pending,
   pendingKey,
   onDirty,
@@ -534,6 +616,8 @@ function FramingCard({
   themesSource: "framing_observations" | "attributes";
   onRefineThemes: () => void;
   refining: boolean;
+  /** True while a study-level framing batch is active (hides per-card refine CTA). */
+  framingBatchActive: boolean;
   pending: boolean;
   pendingKey: string | null;
   onDirty: (dirty: boolean) => void;
@@ -547,12 +631,23 @@ function FramingCard({
     stimulus.evidenceResponseIdsJson?.[0] ?? "",
   );
   const [themeKey, setThemeKey] = useState("");
+  const [fullResponseId, setFullResponseId] = useState<string | null>(null);
 
   const needsEvidence = kind === "measured_ai" && selectedResponseId === "";
   const activeTheme = themes.find((t) => t.key === themeKey) ?? null;
   const visibleResponses = activeTheme
     ? responseOptions.filter((r) => activeTheme.responseIds.includes(r.id))
     : responseOptions;
+  const fullResponse = fullResponseId
+    ? responseOptions.find((r) => r.id === fullResponseId) ?? null
+    : null;
+
+  function chooseAsBaseline(row: ResponseOption) {
+    setSelectedResponseId(row.id);
+    setBody(row.verbatim);
+    onDirty(true);
+    setFullResponseId(null);
+  }
 
   return (
     <div
@@ -616,48 +711,126 @@ function FramingCard({
                 </div>
               )}
               <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto pr-1" role="radiogroup" aria-label="Stored responses">
-                {visibleResponses.slice(0, 12).map((row) => (
-                  <label
-                    key={row.id}
-                    className={`flex cursor-pointer gap-2 rounded-md border p-2 font-mono text-xs transition-micro ${selectedResponseId === row.id ? "border-accent bg-paper-2/50 text-ink/85" : "border-ink/10 text-ink/65 hover:border-ink/30"}`}
-                  >
-                    <input
-                      type="radio"
-                      name={`baseline-${stimulus.id}`}
-                      checked={selectedResponseId === row.id}
-                      onChange={() => {
-                        setSelectedResponseId(row.id);
-                        setBody(row.verbatim);
-                        onDirty(true);
-                      }}
-                    />
-                    <span>
-                      <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-ink/45">
-                        {row.providerId} · “{row.promptText.slice(0, 64)}{row.promptText.length > 64 ? "…" : ""}”
-                      </span>
-                      {row.excerpt}
-                    </span>
-                  </label>
-                ))}
+                {visibleResponses.slice(0, 12).map((row) => {
+                  const preview = row.observationQuote?.trim() || row.excerpt;
+                  return (
+                    <div
+                      key={row.id}
+                      className={`rounded-md border p-2 font-mono text-xs transition-micro ${selectedResponseId === row.id ? "border-accent bg-paper-2/50 text-ink/85" : "border-ink/10 text-ink/65"}`}
+                    >
+                      <label className="flex cursor-pointer gap-2">
+                        <input
+                          type="radio"
+                          name={`baseline-${stimulus.id}`}
+                          checked={selectedResponseId === row.id}
+                          onChange={() => chooseAsBaseline(row)}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-ink/45">
+                            {row.providerId}
+                            {row.generationMode ? ` · ${row.generationMode}` : ""}
+                            {" · “"}
+                            {row.promptText.slice(0, 64)}
+                            {row.promptText.length > 64 ? "…" : ""}”
+                          </span>
+                          {preview}
+                        </span>
+                      </label>
+                      <div className="mt-2 pl-6">
+                        <button
+                          type="button"
+                          className="label-mono rounded-sm text-[11px] text-ink/55 underline underline-offset-4 transition-micro hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                          onClick={() => setFullResponseId(row.id)}
+                        >
+                          View full response
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <p className="font-mono text-[11px] text-ink/65">
-                  {themesSource === "framing_observations"
-                    ? "Themes machine-grouped from blind framing observations (D-114) — labels are machine-generated."
-                    : "Themes grouped by extracted attributes."}
-                </p>
-                {themesSource === "attributes" && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    pending={refining}
-                    pendingLabel="Extracting framings"
-                    disabled={pending && !refining}
-                    onClick={onRefineThemes}
-                  >
-                    Refine themes with AI framing extraction
-                  </Button>
+              <AppDialog
+                open={fullResponse !== null}
+                onOpenChange={(open) => {
+                  if (!open) setFullResponseId(null);
+                }}
+                title="Full stored response"
+                description="Choose as baseline selects this response; Save framing still stamps provenance (C-13/C-15)."
+                className="w-[min(100%-2rem,48rem)]"
+              >
+                {fullResponse && (
+                  <div className="space-y-4">
+                    <dl className="grid gap-2 font-mono text-xs text-ink/65 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-ink/45">Provider</dt>
+                        <dd>{fullResponse.providerId}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-ink/45">Mode</dt>
+                        <dd>{fullResponse.generationMode ?? "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-ink/45">Model</dt>
+                        <dd>{fullResponse.modelVersion ?? "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-ink/45">Date</dt>
+                        <dd>
+                          {fullResponse.createdAt
+                            ? new Date(fullResponse.createdAt).toLocaleString("en-GB", {
+                                hour12: false,
+                              })
+                            : "—"}
+                        </dd>
+                      </div>
+                    </dl>
+                    <div>
+                      <p className="label-mono mb-1 text-xs text-ink/45">Original prompt</p>
+                      <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-md border border-ink/10 bg-paper-2/40 p-3 font-mono text-xs text-ink/75">
+                        {fullResponse.promptText}
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="label-mono mb-1 text-xs text-ink/45">Full response</p>
+                      <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md border border-ink/10 bg-paper-2/40 p-3 font-mono text-xs text-ink/80">
+                        {fullResponse.verbatim}
+                      </pre>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" onClick={() => chooseAsBaseline(fullResponse)}>
+                        Choose as baseline
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setFullResponseId(null)}
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
                 )}
+              </AppDialog>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-mono text-[11px] text-ink/65">
+                    {themesSource === "framing_observations"
+                      ? "Themes machine-grouped from blind framing observations (D-114) — labels are machine-generated."
+                      : "Themes grouped by extracted attributes."}
+                  </p>
+                  {themesSource === "attributes" && !framingBatchActive && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      pending={refining}
+                      pendingLabel="Queueing extraction"
+                      disabled={pending && !refining}
+                      onClick={onRefineThemes}
+                    >
+                      Refine themes with AI framing extraction
+                    </Button>
+                  )}
+                </div>
               </div>
               {activeTheme && (
                 <p className="mt-2 font-mono text-[11px] text-ink/65">

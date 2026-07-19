@@ -123,7 +123,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `AGENT_PRD.md` | ACTIVE | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
 | `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
 | `M43_BUILD_PLAN.md` | ACTIVE | M43 authenticated Resonance web UI refinement, route/state inventory, live-demo protocol, and acceptance |
-| `M44_BUILD_PLAN.md` | ACTIVE | M44 methodology simplification (D-114): guided operator path, theme-organized baseline picker, framing-workflow retirement, blind extractor v2 |
+| `M46_BUILD_PLAN.md` | ACTIVE | M46 trustworthy progress and Simulation readiness (D-117): balanced brand order, framing-batch persistence, stage-aware ETA, Persona copy, live draw floor |
 | `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
@@ -135,7 +135,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `BUILD_NOTES.md` | ACTIVE | Disposable per-session working memory; pruned at milestone merge (D-025) |
 | `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice / site guide (the active brand, D-106) |
 | `README.md` | ACTIVE | Quick orientation and local setup pointer |
-| `PRD.md` | ACTIVE | Resonance audit+simulation contract through M34A, the M43 UI refinement, and the M44/D-114 simplified simulation methodology (See → Pick → Rewrite → Test) |
+| `PRD.md` | ACTIVE | Resonance audit+simulation contract through M34A, M43–M45 delivered scope, and M46/D-117 trustworthy progress + Simulation readiness |
 | `CALIBRATION_PROTOCOL.md` | PARKED | SSR calibration design for the parked Simulation Layer (M26, D-082) |
 | `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
 | `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |

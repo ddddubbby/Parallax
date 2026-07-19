@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M45 execution — durable brand-name resolution (compact matching, containment, collision guard, re-resolve, resolution health) · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M45 execution — durable brand-name resolution (compact matching, containment, collision guard, re-resolve, resolution health) · DISPOSITION: EXECUTED (merged to main via PR #6; trunk reconciles under M46/D-117)
 
 # M45_BUILD_PLAN.md — Durable brand resolution
 

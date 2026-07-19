@@ -520,6 +520,37 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     expect(multiMode.ok).toBe(false);
     if (!multiMode.ok) expect(multiMode.error).toContain("D-080");
 
+    // M46/D-117: default compiled study has 1 persona — below live draw floor.
+    const previewProjection = await projectRunCost(projectId, {
+      matrixVersionId: version.id,
+      runMode: "mock",
+      providers: ["mock"],
+      modes: ["ungrounded"],
+      repetitions: 5,
+      costCapUsd: 1,
+    });
+    expect(previewProjection.ok).toBe(true);
+    if (previewProjection.ok) {
+      expect(previewProjection.panelCount).toBe(1);
+      expect(previewProjection.framingCount).toBe(2);
+      expect(previewProjection.drawsPerVariant).toBe(5);
+      expect(previewProjection.drawFloorMet).toBe(false);
+      expect(previewProjection.totalCalls).toBe(10);
+    }
+    const liveBlocked = await createRun(projectId, {
+      matrixVersionId: version.id,
+      runMode: "live_audit",
+      providers: ["deepseek"],
+      modes: ["ungrounded"],
+      repetitions: 5,
+      costCapUsd: 25,
+    });
+    expect(liveBlocked.ok).toBe(false);
+    if (!liveBlocked.ok) {
+      expect(liveBlocked.error).toMatch(/at least 30 draws/i);
+      expect(liveBlocked.error).toMatch(/at least 6/);
+    }
+
     const run = await createRun(projectId, {
       matrixVersionId: version.id,
       runMode: "mock",

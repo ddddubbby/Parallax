@@ -15,6 +15,7 @@ import {
   withViewParam,
   type StudyView,
 } from "@/core/views";
+import { getActiveFramingBatchProgress } from "@/db/repositories/framing-observations";
 import {
   getResonanceStudy,
   getResonanceStudyResultSummary,
@@ -101,7 +102,7 @@ function LockedDefinition({
         <p className="text-sm text-ink/80">{studyName}</p>
       </div>
       <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/65">Buyer panel ({personas.length})</h3>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Personas ({personas.length})</h3>
         <ul className="grid gap-2">
           {personas.map((p) => (
             <li key={p.key} className="rounded-lg border border-ink/10 bg-paper px-3 py-2 font-mono text-xs text-ink/70">
@@ -163,7 +164,7 @@ export default async function ResonanceStudyPage({
   const base = `/projects/${id}/resonance/${studyId}`;
 
   const needsResults = view === "results" || view === "overview" || view === "evidence";
-  const [results, pickerData, evidencePageData] = await Promise.all([
+  const [results, pickerData, evidencePageData, activeFramingBatch] = await Promise.all([
     needsResults
       ? getResonanceStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
       : Promise.resolve(null),
@@ -181,6 +182,7 @@ export default async function ResonanceStudyPage({
           pageSize: 25,
         })
       : Promise.resolve(null),
+    view === "design" && isDraft ? getActiveFramingBatchProgress(id) : Promise.resolve(null),
   ]);
 
   const engine =
@@ -268,7 +270,7 @@ export default async function ResonanceStudyPage({
             )}
           </div>
           <p className="text-sm leading-6 text-ink/65">
-            {personas.length} buyer persona{personas.length === 1 ? "" : "s"} · {stimuli.length} framing
+            {personas.length} persona{personas.length === 1 ? "" : "s"} · {stimuli.length} framing
             {stimuli.length === 1 ? "" : "s"}
             {matrixVersion ? ` · matrix v${matrixVersion.version} (${matrixVersion.cellCount} cells)` : ""}
           </p>
@@ -300,12 +302,20 @@ export default async function ResonanceStudyPage({
               total: t.total,
             }))}
             themesSource={pickerData.themesSource}
+            initialFramingBatch={activeFramingBatch}
             responseOptions={pickerData.responses.map((row) => ({
               id: row.id,
               excerpt: excerpt(row.rawText),
               verbatim: row.rawText,
               providerId: row.providerId,
               promptText: row.promptText,
+              generationMode: row.generationMode,
+              modelVersion: row.modelVersion,
+              createdAt:
+                row.createdAt instanceof Date
+                  ? row.createdAt.toISOString()
+                  : String(row.createdAt),
+              observationQuote: row.observationQuote ?? null,
             }))}
           />
         ) : (
