@@ -134,6 +134,13 @@
       "when": 1783912024758,
       "tag": "0018_deliverable_report_json",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784435041733,
+      "tag": "0019_baseline_stamp",
+      "breakpoints": true
     }
   ]
 }

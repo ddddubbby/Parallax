@@ -7,8 +7,15 @@ import {
   type StimulusKind,
   type ResonanceBaselineProvenance,
   validateResonanceCellCount,
+  stampBaselineProvenance,
 } from "@/core/resonance";
 import { isUuid } from "@/core/id";
+import {
+  baselineStampSchema,
+  groupResponsesByAttributeThemes,
+  type BaselineStamp,
+  type FramingTheme,
+} from "@/core/baseline";
 import type { ResonanceStudyTemplate } from "@/core/resonance-templates";
 import { unresolvedStimulusPlaceholders } from "@/core/resonance-templates";
 import { getSsrAnchorSet } from "@/core/ssr-anchors";
@@ -16,6 +23,8 @@ import { pmfMean } from "@/core/ssr";
 import { db } from "../client";
 import {
   auditRuns,
+  brandMentions,
+  brands,
   extractions,
   framingEvidenceSnapshots,
   metrics,
@@ -210,6 +219,7 @@ async function getResonanceBaselineProvenance(input: {
       stimulusId: resonanceStimuli.id,
       stimulusBody: resonanceStimuli.body,
       evidenceResponseIdsJson: resonanceStimuli.evidenceResponseIdsJson,
+      baselineStampJson: resonanceStimuli.baselineStampJson,
     })
     .from(resonanceStimuli)
     .leftJoin(
@@ -226,6 +236,12 @@ async function getResonanceBaselineProvenance(input: {
     .orderBy(asc(resonanceStimuli.position))
     .limit(1);
   if (!row?.snapshotId) {
+    // M44 / D-114: stamped baselines render their own provenance; only rows
+    // with neither snapshot nor stamp fall through to the historical labels.
+    const stamp = row ? baselineStampSchema.safeParse(row.baselineStampJson) : null;
+    if (stamp?.success) {
+      return stampBaselineProvenance(stamp.data);
+    }
     return historicalBaselineProvenance({
       state: input.studyState,
       categoryArchetype: input.categoryArchetype,
@@ -1030,30 +1046,31 @@ export async function addResonanceStimulus(input: {
   body: string;
   evidenceResponseIds: string[];
   framingEvidenceSnapshotId?: string | null;
+  baselineThemeKey?: string | null;
 }) {
   assertEvidenceResponseIdShape(input.evidenceResponseIds);
   return db.transaction(async (tx) => {
-    const study = await lockStudyForMutation(tx, input.projectId, input.studyId);
+    await lockStudyForMutation(tx, input.projectId, input.studyId);
     let body = input.body;
-    let evidenceResponseIds = input.evidenceResponseIds;
-    let framingEvidenceSnapshotId: string | null = null;
-    if (input.kind === "measured_ai" && study.categoryArchetype !== "b2b") {
-      if (!input.framingEvidenceSnapshotId) {
-        throw new Error("Consumer measured-AI stimuli must select a reviewed framing snapshot (C-15)");
+    const evidenceResponseIds = input.evidenceResponseIds;
+    let baselineStampJson: BaselineStamp | null = null;
+    if (input.framingEvidenceSnapshotId) {
+      // D-114: the snapshot ceremony is retired for new writes; historical
+      // rows keep their linkage for truthful rendering.
+      throw new Error("The framing-snapshot workflow is retired (D-114) — pick a stored response instead");
+    }
+    if (input.kind === "measured_ai") {
+      if (evidenceResponseIds.length === 0) {
+        throw new Error("Pick the stored AI response this baseline quotes (C-13)");
       }
-      const snapshot = await loadVerifiedFramingSnapshot(
-        tx,
+      await assertEvidenceIds(input.projectId, evidenceResponseIds);
+      const source = await loadVerbatimBaselineSource(input.projectId, evidenceResponseIds[0]);
+      body = source.rawText; // verbatim, server-enforced (C-13/C-15)
+      baselineStampJson = await buildBaselineStamp(
         input.projectId,
-        input.framingEvidenceSnapshotId,
+        source,
+        input.baselineThemeKey ?? null,
       );
-      if (snapshot.payload.snapshotVersion !== "m34a-simulation-evidence.v2") {
-        throw new Error("New consumer studies require a live-audit M34A v2 snapshot (C-15)");
-      }
-      body = snapshot.payload.verbatimResponse;
-      evidenceResponseIds = [snapshot.payload.responseId];
-      framingEvidenceSnapshotId = snapshot.row.id;
-    } else if (input.framingEvidenceSnapshotId) {
-      throw new Error("Framing snapshots may attach only to consumer measured-AI stimuli");
     }
     const [{ latest }] = await tx
       .select({ latest: max(resonanceStimuli.position) })
@@ -1067,7 +1084,8 @@ export async function addResonanceStimulus(input: {
         label: input.label,
         body,
         evidenceResponseIdsJson: evidenceResponseIds,
-        framingEvidenceSnapshotId,
+        framingEvidenceSnapshotId: null,
+        baselineStampJson,
         position: (latest ?? 0) + 1,
       })
       .returning({ id: resonanceStimuli.id });
@@ -1084,30 +1102,31 @@ export async function updateResonanceStimulus(input: {
   body: string;
   evidenceResponseIds: string[];
   framingEvidenceSnapshotId?: string | null;
+  baselineThemeKey?: string | null;
 }) {
   assertEvidenceResponseIdShape(input.evidenceResponseIds);
   return db.transaction(async (tx) => {
-    const study = await lockStudyForMutation(tx, input.projectId, input.studyId);
+    await lockStudyForMutation(tx, input.projectId, input.studyId);
     let body = input.body;
-    let evidenceResponseIds = input.evidenceResponseIds;
-    let framingEvidenceSnapshotId: string | null = null;
-    if (input.kind === "measured_ai" && study.categoryArchetype !== "b2b") {
-      if (!input.framingEvidenceSnapshotId) {
-        throw new Error("Consumer measured-AI stimuli must select a reviewed framing snapshot (C-15)");
+    const evidenceResponseIds = input.evidenceResponseIds;
+    let baselineStampJson: BaselineStamp | null = null;
+    if (input.framingEvidenceSnapshotId) {
+      // D-114: the snapshot ceremony is retired for new writes; historical
+      // rows keep their linkage for truthful rendering.
+      throw new Error("The framing-snapshot workflow is retired (D-114) — pick a stored response instead");
+    }
+    if (input.kind === "measured_ai") {
+      if (evidenceResponseIds.length === 0) {
+        throw new Error("Pick the stored AI response this baseline quotes (C-13)");
       }
-      const snapshot = await loadVerifiedFramingSnapshot(
-        tx,
+      await assertEvidenceIds(input.projectId, evidenceResponseIds);
+      const source = await loadVerbatimBaselineSource(input.projectId, evidenceResponseIds[0]);
+      body = source.rawText; // verbatim, server-enforced (C-13/C-15)
+      baselineStampJson = await buildBaselineStamp(
         input.projectId,
-        input.framingEvidenceSnapshotId,
+        source,
+        input.baselineThemeKey ?? null,
       );
-      if (snapshot.payload.snapshotVersion !== "m34a-simulation-evidence.v2") {
-        throw new Error("New consumer studies require a live-audit M34A v2 snapshot (C-15)");
-      }
-      body = snapshot.payload.verbatimResponse;
-      evidenceResponseIds = [snapshot.payload.responseId];
-      framingEvidenceSnapshotId = snapshot.row.id;
-    } else if (input.framingEvidenceSnapshotId) {
-      throw new Error("Framing snapshots may attach only to consumer measured-AI stimuli");
     }
     const updated = await tx
       .update(resonanceStimuli)
@@ -1116,7 +1135,8 @@ export async function updateResonanceStimulus(input: {
         label: input.label,
         body,
         evidenceResponseIdsJson: evidenceResponseIds,
-        framingEvidenceSnapshotId,
+        framingEvidenceSnapshotId: null,
+        baselineStampJson,
         updatedAt: new Date(),
       })
       .where(and(eq(resonanceStimuli.id, input.stimulusId), eq(resonanceStimuli.studyId, input.studyId)))
@@ -1187,6 +1207,145 @@ async function assertEvidenceIds(projectId: string, ids: string[]) {
   }
 }
 
+/**
+ * M44 / D-114: the verbatim source for a measured_ai baseline — the stored
+ * response row plus its resolved prompt, project-checked. The stimulus body
+ * is always set from rawText server-side, never trusted from the client.
+ */
+async function loadVerbatimBaselineSource(projectId: string, responseId: string) {
+  const [row] = await db
+    .select({
+      responseId: responses.id,
+      rawText: responses.rawText,
+      providerId: responses.providerId,
+      generationMode: responses.generationMode,
+      modelVersion: responses.modelVersion,
+      createdAt: responses.createdAt,
+      promptText: promptCells.resolvedText,
+    })
+    .from(responses)
+    .innerJoin(promptCells, eq(promptCells.id, responses.cellId))
+    .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        eq(responses.id, responseId),
+        eq(auditRuns.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+        eq(auditRuns.state, "completed"),
+      ),
+    )
+    .limit(1);
+  if (!row) {
+    throw new Error("Measured-AI stimuli can only cite stored audit responses from the same project (C-13)");
+  }
+  return row;
+}
+
+/**
+ * M44 / D-114: picker data — stored responses with their client-brand
+ * attributes (latest valid extraction per response) plus the derived framing
+ * themes. Themes are presentation metadata for browsing; they never gate.
+ */
+export async function listBaselinePickerData(projectId: string, limit = 60) {
+  const responseRows = await db
+    .select({
+      id: responses.id,
+      rawText: responses.rawText,
+      providerId: responses.providerId,
+      generationMode: responses.generationMode,
+      modelVersion: responses.modelVersion,
+      createdAt: responses.createdAt,
+      promptText: promptCells.resolvedText,
+    })
+    .from(responses)
+    .innerJoin(promptCells, eq(promptCells.id, responses.cellId))
+    .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
+    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .where(
+      and(
+        eq(auditRuns.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+        eq(auditRuns.state, "completed"),
+      ),
+    )
+    .orderBy(desc(responses.createdAt))
+    .limit(limit);
+  if (responseRows.length === 0) {
+    return { responses: [], themes: [] as FramingTheme[] };
+  }
+  const ids = responseRows.map((r) => r.id);
+  const attributeRows = await db
+    .select({
+      responseId: extractions.responseId,
+      extractionVersion: extractions.extractionVersion,
+      attributesJson: brandMentions.attributesJson,
+    })
+    .from(extractions)
+    .innerJoin(brandMentions, eq(brandMentions.extractionId, extractions.id))
+    .innerJoin(brands, eq(brands.id, brandMentions.brandId))
+    .where(
+      and(
+        inArray(extractions.responseId, ids),
+        eq(extractions.state, "valid"),
+        eq(brands.role, "client"),
+      ),
+    );
+  // Latest valid extraction version per response wins (C-3: re-extraction
+  // creates new versions; older versions stay but must not double-count).
+  const latestVersion = new Map<string, number>();
+  for (const row of attributeRows) {
+    const seen = latestVersion.get(row.responseId) ?? 0;
+    if (row.extractionVersion > seen) latestVersion.set(row.responseId, row.extractionVersion);
+  }
+  const attributesByResponse = new Map<string, string[]>();
+  for (const row of attributeRows) {
+    if (row.extractionVersion !== latestVersion.get(row.responseId)) continue;
+    const list = attributesByResponse.get(row.responseId) ?? [];
+    const attrs = Array.isArray(row.attributesJson) ? (row.attributesJson as string[]) : [];
+    attributesByResponse.set(row.responseId, [...list, ...attrs.filter((a) => typeof a === "string")]);
+  }
+  const themeSource = responseRows.map((r) => ({
+    responseId: r.id,
+    attributes: attributesByResponse.get(r.id) ?? [],
+  }));
+  return {
+    responses: responseRows.map((r) => ({
+      ...r,
+      attributes: attributesByResponse.get(r.id) ?? [],
+    })),
+    themes: groupResponsesByAttributeThemes(themeSource),
+  };
+}
+
+/** Build the immutable D-114 baseline stamp for a picked response. */
+async function buildBaselineStamp(
+  projectId: string,
+  source: Awaited<ReturnType<typeof loadVerbatimBaselineSource>>,
+  themeKey: string | null,
+): Promise<BaselineStamp> {
+  let themeLabel: string | null = null;
+  let recurrence: BaselineStamp["recurrence"] = null;
+  if (themeKey) {
+    const { themes } = await listBaselinePickerData(projectId);
+    const theme = themes.find((t) => t.key === themeKey);
+    if (theme) {
+      themeLabel = theme.label;
+      recurrence = { matching: theme.matching, total: theme.total };
+    }
+  }
+  return baselineStampSchema.parse({
+    responseId: source.responseId,
+    providerId: source.providerId,
+    generationMode: source.generationMode,
+    modelVersion: source.modelVersion,
+    promptText: source.promptText,
+    respondedAt: source.createdAt.toISOString(),
+    themeLabel,
+    recurrence,
+  });
+}
+
 export async function approveAndCompileResonanceStudy(projectId: string, studyId: string) {
   return db.transaction(async (tx) => {
     const locked = await tx.execute<{
@@ -1248,35 +1407,40 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
     }
     for (const stimulus of measured) {
       const evidenceIds = readEvidenceResponseIds(stimulus.evidenceResponseIdsJson);
-      if (study.categoryArchetype !== "b2b") {
-        if (!stimulus.framingEvidenceSnapshotId) {
-          throw new Error("Consumer measured-AI baselines require a reviewed framing snapshot (C-15)");
-        }
+      if (stimulus.framingEvidenceSnapshotId) {
+        // Codebook-era draft (pre-D-114): keep the original strict checks so
+        // legacy drafts stay approvable exactly as their evidence recorded.
         const snapshot = await loadVerifiedFramingSnapshot(
           tx,
           projectId,
           stimulus.framingEvidenceSnapshotId,
         );
         if (snapshot.payload.snapshotVersion !== "m34a-simulation-evidence.v2") {
-          throw new Error("New consumer approvals require a live-audit M34A v2 snapshot (C-15)");
+          throw new Error("Legacy consumer approvals require a live-audit M34A v2 snapshot (C-15)");
         }
         if (stimulus.body !== snapshot.payload.verbatimResponse) {
-          throw new Error("Consumer measured-AI baseline must be byte-equal to its snapshotted response (C-15)");
+          throw new Error("Measured-AI baseline must be byte-equal to its snapshotted response (C-15)");
         }
-        if (
-          evidenceIds.length !== 1 ||
-          evidenceIds[0] !== snapshot.payload.responseId
-        ) {
-          throw new Error("Consumer measured-AI evidence ids must match the framing snapshot (C-15)");
+        if (evidenceIds.length !== 1 || evidenceIds[0] !== snapshot.payload.responseId) {
+          throw new Error("Measured-AI evidence ids must match the framing snapshot (C-15)");
         }
-      } else {
-        if (stimulus.framingEvidenceSnapshotId) {
-          throw new Error("B2B uses the evidence-response-id baseline path, not consumer framing snapshots");
-        }
-        if (evidenceIds.length === 0) {
-          throw new Error("measured_ai stimuli must cite at least one stored audit response (C-13)");
-        }
-        await assertEvidenceIds(projectId, evidenceIds);
+        continue;
+      }
+      // D-114 path (all archetypes): stored-response baseline + immutable stamp.
+      if (evidenceIds.length === 0) {
+        throw new Error("measured_ai stimuli must cite at least one stored audit response (C-13)");
+      }
+      await assertEvidenceIds(projectId, evidenceIds);
+      const stamp = baselineStampSchema.safeParse(stimulus.baselineStampJson);
+      if (!stamp.success) {
+        throw new Error("Measured-AI baseline is missing its provenance stamp — re-pick the stored response (C-15)");
+      }
+      if (stamp.data.responseId !== evidenceIds[0]) {
+        throw new Error("Baseline stamp must reference the cited stored response (C-15)");
+      }
+      const source = await loadVerbatimBaselineSource(projectId, stamp.data.responseId);
+      if (stimulus.body !== source.rawText) {
+        throw new Error("Measured-AI baseline must be byte-equal to its stored response (C-13/C-15)");
       }
     }
 

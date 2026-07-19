@@ -121,6 +121,7 @@ export async function addStimulusAction(
       body,
       evidenceResponseIds,
       framingEvidenceSnapshotId: framingSnapshotId(formData),
+      baselineThemeKey: textField(formData, "baselineThemeKey") || null,
     });
     revalidateStudyPaths(projectId, studyId);
     return { ok: true, id: stimulus.id };
@@ -151,6 +152,7 @@ export async function updateStimulusAction(
       body,
       evidenceResponseIds,
       framingEvidenceSnapshotId: framingSnapshotId(formData),
+      baselineThemeKey: textField(formData, "baselineThemeKey") || null,
     });
     if (updated === 0) return { ok: false, error: "Stimulus not found" };
   } catch (err) {

@@ -617,6 +617,8 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
 
     const simulation = await createResonanceStudy(project.id, "M34A snapshot handoff");
     made.resonanceStudyIds.push(simulation.id);
+    // M44 / D-114: unevidenced measured_ai rejects at save; the snapshot
+    // ceremony itself is retired for new writes.
     await expect(addResonanceStimulus({
       projectId: project.id,
       studyId: simulation.id,
@@ -624,8 +626,8 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
       label: "Measured baseline",
       body: "operator-authored text must not survive",
       evidenceResponseIds: [],
-    })).rejects.toThrow(/reviewed framing snapshot/i);
-    const baseline = await addResonanceStimulus({
+    })).rejects.toThrow(/C-13/);
+    await expect(addResonanceStimulus({
       projectId: project.id,
       studyId: simulation.id,
       kind: "measured_ai",
@@ -633,6 +635,16 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
       body: "operator-authored text must not survive",
       evidenceResponseIds: [],
       framingEvidenceSnapshotId: handoff.snapshot.id,
+    })).rejects.toThrow(/retired \(D-114\)/);
+    // The D-114 path: pick the stored response directly — the body is still
+    // server-enforced verbatim, exactly as the snapshot ceremony guaranteed.
+    const baseline = await addResonanceStimulus({
+      projectId: project.id,
+      studyId: simulation.id,
+      kind: "measured_ai",
+      label: "Measured baseline",
+      body: "operator-authored text must not survive",
+      evidenceResponseIds: [handoff.payload.responseId],
     });
     await addResonanceStimulus({
       projectId: project.id,
@@ -649,7 +661,10 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
     expect(storedBaseline).toMatchObject({
       body: handoff.payload.verbatimResponse,
       evidenceResponseIdsJson: [handoff.payload.responseId],
-      framingEvidenceSnapshotId: handoff.snapshot.id,
+      framingEvidenceSnapshotId: null,
+    });
+    expect(storedBaseline.baselineStampJson).toMatchObject({
+      responseId: handoff.payload.responseId,
     });
     await db
       .update(resonanceStimuli)
@@ -663,9 +678,15 @@ describe.skipIf(!dbUp)("M34A framing production repository", () => {
       kind: "measured_ai",
       label: "Measured baseline",
       body: "still ignored",
-      evidenceResponseIds: [],
-      framingEvidenceSnapshotId: handoff.snapshot.id,
+      evidenceResponseIds: [handoff.payload.responseId],
     });
+    // Legacy rows (pre-D-114 snapshot linkage) must stay approvable with
+    // their original strict checks and snapshot provenance rendering:
+    // plant the linkage behind the API, as history would have left it.
+    await db
+      .update(resonanceStimuli)
+      .set({ framingEvidenceSnapshotId: handoff.snapshot.id, baselineStampJson: null })
+      .where(eq(resonanceStimuli.id, baseline.id));
     const compiled = await approveAndCompileResonanceStudy(project.id, simulation.id);
     made.resonanceVersionIds.push(compiled.id);
     expect((await getResonanceStudy(project.id, simulation.id))?.baselineProvenance).toMatchObject({

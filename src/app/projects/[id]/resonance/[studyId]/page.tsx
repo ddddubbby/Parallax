@@ -18,11 +18,11 @@ import {
 import {
   getResonanceStudy,
   getResonanceStudyResultSummary,
-  listAuditEvidenceResponses,
+  listBaselinePickerData,
   listResonanceEvidencePage,
 } from "@/db/repositories/resonance";
 import { getProjectSummary } from "@/db/repositories/runner";
-import { listFramingEvidenceSnapshots } from "@/db/repositories/framing";
+import { baselineStampSchema, recurrenceLine } from "@/core/baseline";
 
 export const dynamic = "force-dynamic";
 
@@ -163,14 +163,13 @@ export default async function ResonanceStudyPage({
   const base = `/projects/${id}/resonance/${studyId}`;
 
   const needsResults = view === "results" || view === "overview" || view === "evidence";
-  const [results, evidenceOptions, snapshotOptions, evidencePageData] = await Promise.all([
+  const [results, pickerData, evidencePageData] = await Promise.all([
     needsResults
       ? getResonanceStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
       : Promise.resolve(null),
-    view === "design" && isDraft ? listAuditEvidenceResponses(id) : Promise.resolve([]),
-    view === "design" && isDraft && project.categoryArchetype !== "b2b"
-      ? listFramingEvidenceSnapshots(id)
-      : Promise.resolve([]),
+    view === "design" && isDraft
+      ? listBaselinePickerData(id)
+      : Promise.resolve({ responses: [], themes: [] }),
     view === "evidence"
       ? listResonanceEvidencePage({
           projectId: id,
@@ -210,14 +209,18 @@ export default async function ResonanceStudyPage({
     },
   ];
 
-  const wizardStimuli = stimuli.map((s) => ({
-    id: s.id,
-    kind: s.kind as StimulusKind,
-    label: s.label,
-    body: s.body,
-    evidenceResponseIdsJson: (s.evidenceResponseIdsJson as string[] | null) ?? null,
-    framingEvidenceSnapshotId: s.framingEvidenceSnapshotId,
-  }));
+  const wizardStimuli = stimuli.map((s) => {
+    const stamp = baselineStampSchema.safeParse(s.baselineStampJson);
+    return {
+      id: s.id,
+      kind: s.kind as StimulusKind,
+      label: s.label,
+      body: s.body,
+      evidenceResponseIdsJson: (s.evidenceResponseIdsJson as string[] | null) ?? null,
+      framingEvidenceSnapshotId: s.framingEvidenceSnapshotId,
+      stampLine: stamp.success ? recurrenceLine(stamp.data) : null,
+    };
+  });
   const personaRows = personas.map(
     ({ label, ageBand, incomeBand, locationContext, behavioralProfile }) => ({
       label,
@@ -289,20 +292,20 @@ export default async function ResonanceStudyPage({
             study={{ id: study.id, name: study.name }}
             initialPersonas={personaRows}
             stimuli={wizardStimuli}
-            evidenceOptions={evidenceOptions.map((row) => ({
+            themes={pickerData.themes.map((t) => ({
+              key: t.key,
+              label: t.label,
+              responseIds: t.responseIds,
+              matching: t.matching,
+              total: t.total,
+            }))}
+            responseOptions={pickerData.responses.map((row) => ({
               id: row.id,
               excerpt: excerpt(row.rawText),
+              verbatim: row.rawText,
+              providerId: row.providerId,
+              promptText: row.promptText,
             }))}
-            snapshotOptions={snapshotOptions
-              .filter((snapshot) => snapshot.payload.snapshotVersion === "m34a-simulation-evidence.v2")
-              .map((snapshot) => ({
-              id: snapshot.id,
-              label: snapshot.payload.recurrence.label,
-              associationId: snapshot.payload.associationId,
-              excerpt: excerpt(snapshot.payload.evidence.text),
-              verbatimResponse: snapshot.payload.verbatimResponse,
-              }))}
-            requiresFramingSnapshot={project.categoryArchetype !== "b2b"}
           />
         ) : (
           <LockedDefinition

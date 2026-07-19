@@ -34,7 +34,7 @@ export function resonanceExportMetadata(study: ResonanceExportStudyLabel | null)
 }
 
 export type ResonanceBaselineProvenance = {
-  status: "snapshot" | "legacy" | "pre_m34" | "b2b_evidence_id";
+  status: "snapshot" | "stamp" | "legacy" | "pre_m34" | "b2b_evidence_id";
   label: string;
   snapshotId: string | null;
   responseId: string | null;
@@ -70,6 +70,42 @@ export type ResonanceBaselineProvenance = {
     denominator: number;
   }>;
 };
+
+/**
+ * M44 / D-114: provenance for a stamped baseline — the stored verbatim
+ * response the operator picked, with its machine-grouped theme and
+ * descriptive recurrence. Replaces the codebook snapshot ceremony for new
+ * studies; the label stays truthful for single observations.
+ */
+export function stampBaselineProvenance(stamp: {
+  responseId: string;
+  providerId: string;
+  generationMode: string;
+  modelVersion: string;
+  respondedAt: string;
+  themeLabel: string | null;
+  recurrence: { matching: number; total: number } | null;
+}): ResonanceBaselineProvenance {
+  const single = stamp.recurrence === null || stamp.recurrence.matching <= 1;
+  return {
+    status: "stamp",
+    label: single ? "SINGLE OBSERVED INSTANCE" : "MEASURED BASELINE",
+    snapshotId: null,
+    responseId: stamp.responseId,
+    associationId: null,
+    numerator: stamp.recurrence?.matching ?? null,
+    denominator: stamp.recurrence?.total ?? null,
+    promptSpread: null,
+    promptDenominator: null,
+    providerId: stamp.providerId,
+    modelVersion: stamp.modelVersion,
+    generationMode: stamp.generationMode,
+    reviewMethod: "machine-grouped theme (D-114)",
+    codebookVersion: null,
+    observedAt: stamp.respondedAt,
+    associationLabel: stamp.themeLabel,
+  };
+}
 
 export function historicalBaselineProvenance(input: {
   state: string;

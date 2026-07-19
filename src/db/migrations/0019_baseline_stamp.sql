@@ -1,0 +1,1 @@
+ALTER TABLE "resonance_stimuli" ADD COLUMN "baseline_stamp_json" jsonb;

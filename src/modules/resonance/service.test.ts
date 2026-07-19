@@ -198,14 +198,32 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const projectId = await demoProjectId();
     const study = await createResonanceStudy(projectId, "M20 C13 Missing Evidence");
     createdStudyIds.push(study.id);
-    await addResonanceStimulus({
+    // M44 / D-114: enforcement moved to save time — the mutation itself
+    // rejects ids that are missing or belong to another project.
+    await expect(
+      addResonanceStimulus({
+        projectId,
+        studyId: study.id,
+        kind: "measured_ai",
+        label: "Measured AI framing",
+        body: "LedgerFox is described as easy to implement.",
+        evidenceResponseIds: ["00000000-0000-4000-8000-000000000000"],
+      }),
+    ).rejects.toThrow(/stored audit responses/);
+    // Approval re-checks stored rows too (legacy/plant protection): flip a
+    // custom stimulus to measured_ai with a foreign id behind the API's back.
+    const planted = await addResonanceStimulus({
       projectId,
       studyId: study.id,
-      kind: "measured_ai",
-      label: "Measured AI framing",
+      kind: "custom",
+      label: "Planted",
       body: "LedgerFox is described as easy to implement.",
-      evidenceResponseIds: ["00000000-0000-4000-8000-000000000000"],
+      evidenceResponseIds: [],
     });
+    await db
+      .update(resonanceStimuli)
+      .set({ kind: "measured_ai", evidenceResponseIdsJson: ["00000000-0000-4000-8000-000000000000"] })
+      .where(eq(resonanceStimuli.id, planted.id));
     await addResonanceStimulus({
       projectId,
       studyId: study.id,
@@ -239,13 +257,14 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const projectId = await demoProjectId();
     const study = await createResonanceStudy(projectId, "M20 C13 Corrupted Evidence JSON");
     createdStudyIds.push(study.id);
+    const evidenceResponseId = await createCompletedEvidenceResponseId(projectId);
     const stimulus = await addResonanceStimulus({
       projectId,
       studyId: study.id,
       kind: "measured_ai",
       label: "Measured AI framing",
       body: "LedgerFox is described as easy to implement.",
-      evidenceResponseIds: [],
+      evidenceResponseIds: [evidenceResponseId],
     });
     await db
       .update(resonanceStimuli)
@@ -334,24 +353,17 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
 
     const study = await createResonanceStudy(projectId, "M20 C13 Incomplete Evidence");
     createdStudyIds.push(study.id);
-    await addResonanceStimulus({
-      projectId,
-      studyId: study.id,
-      kind: "measured_ai",
-      label: "Measured AI framing",
-      body: "LedgerFox is described before the run is complete.",
-      evidenceResponseIds: [response.id],
-    });
-    await addResonanceStimulus({
-      projectId,
-      studyId: study.id,
-      kind: "corrected",
-      label: "Corrected framing",
-      body: "LedgerFox is described with completed evidence only.",
-      evidenceResponseIds: [],
-    });
-
-    await expect(approveAndCompileResonanceStudy(projectId, study.id)).rejects.toThrow(/stored audit responses/);
+    // M44 / D-114: an incomplete run's response is refused at save time.
+    await expect(
+      addResonanceStimulus({
+        projectId,
+        studyId: study.id,
+        kind: "measured_ai",
+        label: "Measured AI framing",
+        body: "LedgerFox is described before the run is complete.",
+        evidenceResponseIds: [response.id],
+      }),
+    ).rejects.toThrow(/stored audit responses/);
   });
 
   it("freezes stimuli once a study is approved (C-4)", async () => {
@@ -426,14 +438,21 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const projectId = await demoProjectId();
     const study = await createResonanceStudy(projectId, "M17 Compiler E2E");
     createdStudyIds.push(study.id);
+    // M44 / D-114: an unevidenced measured_ai can no longer be SAVED, so the
+    // unconditioned draft this test guards against is planted behind the API
+    // (legacy/stray-row shape) — approval must still refuse it.
     const measuredStimulus = await addResonanceStimulus({
       projectId,
       studyId: study.id,
-      kind: "measured_ai",
+      kind: "custom",
       label: "Measured AI framing",
       body: "LedgerFox is described as easy to implement.",
       evidenceResponseIds: [],
     });
+    await db
+      .update(resonanceStimuli)
+      .set({ kind: "measured_ai" })
+      .where(eq(resonanceStimuli.id, measuredStimulus.id));
     await addResonanceStimulus({
       projectId,
       studyId: study.id,
