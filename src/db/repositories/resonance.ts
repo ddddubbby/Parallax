@@ -10,6 +10,7 @@ import {
   stampBaselineProvenance,
 } from "@/core/resonance";
 import { isUuid } from "@/core/id";
+import { clusterFramingObservations } from "@/core/framing-themes";
 import {
   baselineStampSchema,
   groupResponsesByAttributeThemes,
@@ -26,6 +27,7 @@ import {
   brandMentions,
   brands,
   extractions,
+  framingObservations,
   framingEvidenceSnapshots,
   metrics,
   matrixVersions,
@@ -1272,7 +1274,7 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
     .orderBy(desc(responses.createdAt))
     .limit(limit);
   if (responseRows.length === 0) {
-    return { responses: [], themes: [] as FramingTheme[] };
+    return { responses: [], themes: [] as FramingTheme[], themesSource: "attributes" as const };
   }
   const ids = responseRows.map((r) => r.id);
   const attributeRows = await db
@@ -1305,6 +1307,53 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
     const attrs = Array.isArray(row.attributesJson) ? (row.attributesJson as string[]) : [];
     attributesByResponse.set(row.responseId, [...list, ...attrs.filter((a) => typeof a === "string")]);
   }
+  // M44 / D-114 themes v2: when blind framing observations exist, cluster
+  // them over their stored vectors (pure math, $0 at read time); otherwise
+  // fall back to v1 attribute grouping. Source is reported so the UI can
+  // label machine-grouped provenance and offer the extraction affordance.
+  const observationRows = await db
+    .select({
+      responseId: framingObservations.responseId,
+      version: framingObservations.version,
+      state: framingObservations.state,
+      observationsJson: framingObservations.observationsJson,
+      vectorsJson: framingObservations.vectorsJson,
+    })
+    .from(framingObservations)
+    .where(inArray(framingObservations.responseId, ids));
+  const latestByResponse = new Map<string, (typeof observationRows)[number]>();
+  for (const row of observationRows) {
+    const seen = latestByResponse.get(row.responseId);
+    if (!seen || row.version > seen.version) latestByResponse.set(row.responseId, row);
+  }
+  const validObservations = [...latestByResponse.values()].filter((r) => r.state === "valid");
+  if (validObservations.length > 0) {
+    const clusterInput = validObservations
+      .map((row) => {
+        const observations = Array.isArray(row.observationsJson)
+          ? (row.observationsJson as Array<{ phrase?: unknown }>)
+          : [];
+        const vectors = Array.isArray(row.vectorsJson) ? (row.vectorsJson as number[][]) : [];
+        return {
+          responseId: row.responseId,
+          phrases: observations.map((o) => String(o?.phrase ?? "")).filter((p) => p !== ""),
+          vectors,
+        };
+      })
+      .filter((row) => row.phrases.length > 0 && row.phrases.length === row.vectors.length)
+      .sort((a, b) => a.responseId.localeCompare(b.responseId));
+    const themes = clusterFramingObservations(clusterInput, responseRows.length);
+    if (themes.length > 0) {
+      return {
+        responses: responseRows.map((r) => ({
+          ...r,
+          attributes: attributesByResponse.get(r.id) ?? [],
+        })),
+        themes,
+        themesSource: "framing_observations" as const,
+      };
+    }
+  }
   const themeSource = responseRows.map((r) => ({
     responseId: r.id,
     attributes: attributesByResponse.get(r.id) ?? [],
@@ -1315,6 +1364,7 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
       attributes: attributesByResponse.get(r.id) ?? [],
     })),
     themes: groupResponsesByAttributeThemes(themeSource),
+    themesSource: "attributes" as const,
   };
 }
 

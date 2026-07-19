@@ -8,6 +8,7 @@ import { useUnsavedEdit } from "@/components/unsaved-edit";
 import { STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import {
   addStimulusAction,
+  buildFramingThemesAction,
   approveStudyAction,
   deleteStimulusAction,
   updateStimulusAction,
@@ -88,6 +89,7 @@ export function StudyWizard({
   stimuli,
   themes,
   responseOptions,
+  themesSource,
 }: {
   projectId: string;
   study: { id: string; name: string };
@@ -95,6 +97,7 @@ export function StudyWizard({
   stimuli: StimulusRow[];
   themes: BaselineTheme[];
   responseOptions: ResponseOption[];
+  themesSource: "framing_observations" | "attributes";
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -186,6 +189,10 @@ export function StudyWizard({
       }
       setPendingKey(null);
     });
+  }
+
+  function refineThemes() {
+    runAction("refine-themes", () => buildFramingThemesAction(projectId, study.id));
   }
 
   function addFraming() {
@@ -398,6 +405,9 @@ export function StudyWizard({
                 stimulus={s}
                 themes={themes}
                 responseOptions={responseOptions}
+                themesSource={themesSource}
+                onRefineThemes={refineThemes}
+                refining={pendingKey === "refine-themes"}
                 pending={pendingKey === `save-${s.id}` || pendingKey === `delete-${s.id}`}
                 pendingKey={pendingKey}
                 onDirty={(dirty) => setDirtySource(`stimulus-${s.id}`, dirty)}
@@ -509,6 +519,9 @@ function FramingCard({
   stimulus,
   themes,
   responseOptions,
+  themesSource,
+  onRefineThemes,
+  refining,
   pending,
   pendingKey,
   onDirty,
@@ -518,6 +531,9 @@ function FramingCard({
   stimulus: StimulusRow;
   themes: BaselineTheme[];
   responseOptions: ResponseOption[];
+  themesSource: "framing_observations" | "attributes";
+  onRefineThemes: () => void;
+  refining: boolean;
   pending: boolean;
   pendingKey: string | null;
   onDirty: (dirty: boolean) => void;
@@ -624,8 +640,27 @@ function FramingCard({
                   </label>
                 ))}
               </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <p className="font-mono text-[11px] text-ink/65">
+                  {themesSource === "framing_observations"
+                    ? "Themes machine-grouped from blind framing observations (D-114) — labels are machine-generated."
+                    : "Themes grouped by extracted attributes."}
+                </p>
+                {themesSource === "attributes" && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    pending={refining}
+                    pendingLabel="Extracting framings"
+                    disabled={pending && !refining}
+                    onClick={onRefineThemes}
+                  >
+                    Refine themes with AI framing extraction
+                  </Button>
+                )}
+              </div>
               {activeTheme && (
-                <p className="mt-2 font-mono text-[11px] text-ink/55">
+                <p className="mt-2 font-mono text-[11px] text-ink/65">
                   {activeTheme.matching <= 1
                     ? "SINGLE OBSERVED INSTANCE — this framing was seen once; it can be tested, but is never called recurring."
                     : `Theme “${activeTheme.label}” appears in ${activeTheme.matching}/${activeTheme.total} sampled responses (descriptive count).`}

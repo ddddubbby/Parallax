@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   text,
   timestamp,
@@ -210,5 +211,41 @@ export const framingEvidenceSnapshots = pgTable(
       "framing_evidence_snapshots_sha256_ck",
       sql`${t.sha256} ~ '^[0-9a-f]{64}$'`,
     ),
+  ],
+);
+
+/**
+ * M44 / D-114 (themes v2): blind framing observations per stored response —
+ * short framing phrases + verbatim quotes extracted by the blind extractor
+ * (raw text + brand name in, nothing else), with embedding vectors stored at
+ * extraction time so theme clustering at read time costs $0. Derived data
+ * (C-5): versioned, recomputable, never a substitute for the raw response.
+ * Costs recorded per row feed the C-2 daily budgets via getProviderSpendToday.
+ */
+export const framingObservations = pgTable(
+  "framing_observations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    responseId: uuid("response_id")
+      .notNull()
+      .references((): AnyPgColumn => responses.id),
+    version: integer("version").notNull().default(1),
+    state: text("state").notNull(),
+    observationsJson: jsonb("observations_json").notNull().default([]),
+    vectorsJson: jsonb("vectors_json").notNull().default([]),
+    model: text("model"),
+    embeddingModel: text("embedding_model"),
+    llmCostUsd: numeric("llm_cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
+    embeddingCostUsd: numeric("embedding_cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
+    tokensIn: integer("tokens_in").notNull().default(0),
+    tokensOut: integer("tokens_out").notNull().default(0),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("framing_observations_response_version_uq").on(t.responseId, t.version),
+    index("framing_observations_response_idx").on(t.responseId),
+    check("framing_observations_state_ck", sql`${t.state} in ('valid', 'failed')`),
   ],
 );

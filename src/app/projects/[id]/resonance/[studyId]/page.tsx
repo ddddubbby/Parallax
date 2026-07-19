@@ -169,7 +169,7 @@ export default async function ResonanceStudyPage({
       : Promise.resolve(null),
     view === "design" && isDraft
       ? listBaselinePickerData(id)
-      : Promise.resolve({ responses: [], themes: [] }),
+      : Promise.resolve({ responses: [], themes: [], themesSource: "attributes" as const }),
     view === "evidence"
       ? listResonanceEvidencePage({
           projectId: id,
@@ -299,6 +299,7 @@ export default async function ResonanceStudyPage({
               matching: t.matching,
               total: t.total,
             }))}
+            themesSource={pickerData.themesSource}
             responseOptions={pickerData.responses.map((row) => ({
               id: row.id,
               excerpt: excerpt(row.rawText),

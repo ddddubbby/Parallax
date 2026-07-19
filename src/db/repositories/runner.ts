@@ -18,6 +18,7 @@ import {
   jobs,
   matrixVersions,
   projects,
+  framingObservations,
   resonanceStimuli,
   resonanceStudies,
   promptCells,
@@ -976,7 +977,29 @@ export async function getProviderSpendToday(providerId: string): Promise<number>
     embeddingTotal = Number(ssrRow?.total ?? 0);
   }
 
-  return Number(genRow?.total ?? 0) + extractionTotal + embeddingTotal;
+  // M44 / D-114: blind framing-observation batches are paid secondary-engine
+  // calls too — LLM extraction cost to the extraction engine, phrase
+  // embeddings to the embedding engine (same D-041/D-022 attribution as runs).
+  let framingLlmTotal = 0;
+  let framingEmbeddingTotal = 0;
+  if (providerId === extractionEngine) {
+    const [row] = await db
+      .select({ total: sql<string>`coalesce(sum(${framingObservations.llmCostUsd}), 0)` })
+      .from(framingObservations)
+      .where(gte(framingObservations.updatedAt, todayStart));
+    framingLlmTotal = Number(row?.total ?? 0);
+  }
+  if (providerId === embeddingEngine) {
+    const [row] = await db
+      .select({ total: sql<string>`coalesce(sum(${framingObservations.embeddingCostUsd}), 0)` })
+      .from(framingObservations)
+      .where(gte(framingObservations.updatedAt, todayStart));
+    framingEmbeddingTotal = Number(row?.total ?? 0);
+  }
+
+  return (
+    Number(genRow?.total ?? 0) + extractionTotal + embeddingTotal + framingLlmTotal + framingEmbeddingTotal
+  );
 }
 
 export async function getProjectStatus(projectId: string) {
