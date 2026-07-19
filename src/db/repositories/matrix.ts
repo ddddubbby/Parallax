@@ -181,6 +181,7 @@ export async function getVersionWithCells(versionId: string, projectId?: string)
       variantKey: promptCells.variantKey,
       resolvedText: promptCells.resolvedText,
       competitorOrderJson: promptCells.competitorOrderJson,
+      brandOrderJson: promptCells.brandOrderJson,
     })
     .from(promptCells)
     .where(eq(promptCells.matrixVersionId, versionId))
@@ -194,6 +195,40 @@ export async function getVersionWithCells(versionId: string, projectId?: string)
       return { ...cell, intent: cell.intent };
     }),
   };
+}
+
+/** M46/D-117: comparison cells must carry a full brand order; derive competitor provenance. */
+function persistableOrders(cell: {
+  intent: string;
+  brandOrder: string[];
+  competitorOrder: string[];
+}): { brandOrderJson: string[] | null; competitorOrderJson: string[] } {
+  if (cell.intent !== "comparison") {
+    return { brandOrderJson: [], competitorOrderJson: [] };
+  }
+  const brandOrder = cell.brandOrder;
+  if (!Array.isArray(brandOrder) || brandOrder.length < 2) {
+    throw new Error(
+      "Comparison cells require brand_order_json with client + competitors (M46/D-117)",
+    );
+  }
+  if (new Set(brandOrder).size !== brandOrder.length) {
+    throw new Error("brand_order_json must not contain duplicate brand names (M46/D-117)");
+  }
+  const competitorOrder = cell.competitorOrder;
+  if (competitorOrder.length !== brandOrder.length - 1) {
+    throw new Error(
+      "competitor_order_json must be brand_order_json without the client (M46/D-117)",
+    );
+  }
+  for (const name of competitorOrder) {
+    if (!brandOrder.includes(name)) {
+      throw new Error(
+        "competitor_order_json must be a subset of brand_order_json (M46/D-117)",
+      );
+    }
+  }
+  return { brandOrderJson: brandOrder, competitorOrderJson: competitorOrder };
 }
 
 export type CellInput = Omit<CellPlan, "personaId" | "marketId"> & {
@@ -221,6 +256,7 @@ export async function createDraftVersion(projectId: string, cells: CellInput[]) 
       })
       .returning({ id: matrixVersions.id, version: matrixVersions.version });
     for (const cell of cells) {
+      const orders = persistableOrders(cell);
       await tx.insert(promptCells).values({
         matrixVersionId: version.id,
         intent: cell.intent,
@@ -228,7 +264,8 @@ export async function createDraftVersion(projectId: string, cells: CellInput[]) 
         marketId: cell.marketId,
         variantKey: cell.variantKey,
         resolvedText: cell.resolvedText,
-        competitorOrderJson: cell.competitorOrder,
+        competitorOrderJson: orders.competitorOrderJson,
+        brandOrderJson: orders.brandOrderJson,
       });
     }
     return version;
@@ -276,16 +313,24 @@ export async function updateCellText(versionId: string, cellId: string, resolved
 export async function replaceCell(
   versionId: string,
   cellId: string,
-  cell: { variantKey: string; resolvedText: string; competitorOrder: string[] },
+  cell: {
+    variantKey: string;
+    resolvedText: string;
+    competitorOrder: string[];
+    brandOrder: string[];
+    intent: string;
+  },
   projectId?: string,
 ) {
   await assertDraft(versionId, projectId);
+  const orders = persistableOrders(cell);
   const updated = await db
     .update(promptCells)
     .set({
       variantKey: cell.variantKey,
       resolvedText: cell.resolvedText,
-      competitorOrderJson: cell.competitorOrder,
+      competitorOrderJson: orders.competitorOrderJson,
+      brandOrderJson: orders.brandOrderJson,
     })
     .where(and(eq(promptCells.id, cellId), eq(promptCells.matrixVersionId, versionId)))
     .returning({ id: promptCells.id });
@@ -301,6 +346,7 @@ export async function insertCell(versionId: string, cell: CellPlan, projectId?: 
   if (n >= MAX_CELLS_PER_RUN) {
     throw new Error(`Cap reached: a run processes at most ${MAX_CELLS_PER_RUN} cells (C-1)`);
   }
+  const orders = persistableOrders(cell);
   await db.insert(promptCells).values({
     matrixVersionId: versionId,
     intent: cell.intent,
@@ -308,7 +354,8 @@ export async function insertCell(versionId: string, cell: CellPlan, projectId?: 
     marketId: cell.marketId,
     variantKey: cell.variantKey,
     resolvedText: cell.resolvedText,
-    competitorOrderJson: cell.competitorOrder,
+    competitorOrderJson: orders.competitorOrderJson,
+    brandOrderJson: orders.brandOrderJson,
   });
   await syncCellCount(versionId);
 }
@@ -367,15 +414,31 @@ export async function approveVersion(projectId: string, versionId: string) {
 export async function copyToNewDraft(projectId: string, sourceVersionId: string) {
   const source = await getVersionWithCells(sourceVersionId, projectId);
   if (!source) throw new Error("Source version not found");
+  const inputs = await getMatrixInputs(projectId);
+  const clientName = inputs?.client?.name ?? "";
   return createDraftVersion(
     projectId,
-    source.cells.map((c) => ({
-      intent: c.intent,
-      personaId: c.personaId,
-      marketId: c.marketId,
-      variantKey: c.variantKey,
-      resolvedText: c.resolvedText,
-      competitorOrder: (c.competitorOrderJson as string[]) ?? [],
-    })),
+    source.cells.map((c) => {
+      const competitorOrder = (c.competitorOrderJson as string[]) ?? [];
+      const stored = c.brandOrderJson as string[] | null;
+      // Pre-M46 rows have null brand_order_json; reconstruct client-first from
+      // competitor provenance so the draft satisfies the M46 persist backstop
+      // without rewriting frozen resolvedText (C-4).
+      const brandOrder =
+        Array.isArray(stored) && stored.length > 0
+          ? stored
+          : c.intent === "comparison" && clientName
+            ? [clientName, ...competitorOrder]
+            : [];
+      return {
+        intent: c.intent,
+        personaId: c.personaId,
+        marketId: c.marketId,
+        variantKey: c.variantKey,
+        resolvedText: c.resolvedText,
+        competitorOrder,
+        brandOrder,
+      };
+    }),
   );
 }

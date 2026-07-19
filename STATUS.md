@@ -1,27 +1,28 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M45 product, milestone state, next action, and integration target · TRACKER: M45_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M46 product, milestone state, next action, and integration target · TRACKER: M46_BUILD_PLAN.md
 
-# STATUS.md — M45 control plane
+# STATUS.md — M46 control plane
 
-> Read this file first in the `m45` worktree. It describes only this branch (D-112).
+> Read this file first in the `m46` worktree. It describes only this branch (D-112).
 
 | Field | Value |
 |---|---|
-| **Active product** | Resonance authenticated operator web product — M45 durable brand-name resolution (D-115) |
-| **Product contract** | [PRD.md](PRD.md) (audit measurement semantics; SM-4/PM-9 strengthened per D-115, never loosened) |
-| **Build plan** | [M45_BUILD_PLAN.md](M45_BUILD_PLAN.md) |
-| **Branch** | `m45`, cut from `main` at `9254c1a` (post-M44 merge); integration target `main` (D-113) |
-| **Current milestone** | M45 — compact matching, unique containment, PM-9 upgrade, collision guard, re-resolve operation, resolution health |
-| **Milestone state** | All phases complete (P0–P4) — gates green (lint 0-warn, docs:check, typecheck, Vitest 818/0, e2e 16/16, build) and the fix verified live against the real Insta 360 run: one click re-resolved 52 extractions at $0, unresolved mentions 143 → 1, client mention rate 0.85% → 94.9%. Ready to merge |
-| **Next action** | PR `m45` → `main`; archive this plan to docs/history in the merge commit and prune M45 session notes (D-025). Trunk housekeeping owed: M44_BUILD_PLAN.md archival |
-| **Blocked on** | Nothing — all phases are $0 and mock-testable |
+| **Active product** | Resonance authenticated operator web product — M46 trustworthy progress and Simulation readiness (D-117) |
+| **Product contract** | [PRD.md](PRD.md) (§8.35; audit measurement semantics unchanged; Simulation draw-floor enforcement strengthens existing `n≥30`, never loosens) |
+| **Build plan** | [M46_BUILD_PLAN.md](M46_BUILD_PLAN.md) |
+| **Branch** | `m46`, cut from `main` at `61e573c` (post-M45 merge); integration target `main` (D-113) |
+| **Current milestone** | M46 — balanced brand order, persistent framing-batch progress, stage-aware ETA, Persona copy, live Simulation draw floor |
+| **Milestone state** | M46 complete (P0–P5); ready to merge |
+| **Next action** | Open PR `m46` → `main`; archive `M46_BUILD_PLAN.md` + prune M46 BUILD_NOTES in the merge commit (D-025/D-113) |
+| **Blocked on** | Nothing — all P5 gates green |
 | **Parked product** | Resonance GEO agent — parked without further notice (D-116); branches/docs/code untouched and recoverable. Codebook framing workflow remains read-only historical (D-114) |
 
-## M45 phase ledger
+## M46 phase ledger
 
 | Phase | Scope | State |
 |---|---|---|
-| P0 | Governance: D-115/D-116, STATUS, plan | Complete this session |
-| P1 | Matching core + resolveBrandId/findBrandTerms rewire + tests/golden | Complete (S-111) |
-| P2 | Re-resolve service (new extraction versions) + tests | Complete (S-111) |
-| P3 | Collision guard + resolution-health panel + add-alias + re-resolve button | Complete (S-111) |
-| P4 | Full gates + interactive verification + handoff | Complete (S-111) |
+| P0 | Governance: D-117, archive M44/M45, STATUS, plan, PRD §8.35 | Complete |
+| P1 | Migration 0021 + balanced frozen brand order | Complete |
+| P2 | Persistent framing-extraction batches + progress UI | Complete |
+| P3 | Stage-aware run progress + EWMA ETA | Complete |
+| P4 | Persona copy, Simulation math, draw floor, full-response dialog | Complete |
+| P5 | Full gates + interactive Chrome verification | Complete this session |

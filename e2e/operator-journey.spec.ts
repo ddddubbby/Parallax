@@ -133,6 +133,75 @@ test.describe("operator journey smoke", () => {
     ).toEqual([]);
   });
 
+  test("M46: Simulation math, below-floor live audit block, Persona copy, full-response dialog", async ({
+    page,
+  }) => {
+    await page.goto("/projects");
+    const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
+    const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(projectHref).toBeTruthy();
+
+    // Floor-met evidence: seeded study results already label DRAW FLOOR MET (n=30).
+    await page.goto(`${projectHref}/resonance`);
+    const studyCard = page.locator("section").filter({ hasText: "M43 positioning clarity study" });
+    const studyHref = await studyCard.getByRole("link", { name: "Open →" }).getAttribute("href");
+    expect(studyHref).toBeTruthy();
+    await page.goto(`${studyHref}?view=overview`);
+    await expect(page.getByText(/1 persona · 2 framings/)).toBeVisible();
+    await page.goto(`${studyHref}?view=results`);
+    await page.getByRole("link", { name: "Deltas", exact: true }).click();
+    await expect(page.getByText("DRAW FLOOR MET", { exact: true }).first()).toBeVisible();
+
+    // Below-floor creation: 1 persona × k=5 is preview-only; live audit blocked.
+    await page.goto(`${studyHref}?view=runs`);
+    await page.getByRole("link", { name: "Configure simulation run →" }).click();
+    await expect(page).toHaveURL(/matrixVersionId=/);
+    await expect(page.getByText("Simulation math")).toBeVisible();
+    await expect(page.getByText(/1 personas × 5 repetitions = 5 draws per framing\/provider/)).toBeVisible();
+    await expect(page.getByText(/Preview only — directional/)).toBeVisible();
+    await page.getByRole("button", { name: /Live audit: real spend, k=5 locked/ }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Cost projection" })).toContainText(
+      "BELOW FLOOR",
+    );
+    await expect(page.getByText(/Live audit blocked/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start live audit" })).toBeDisabled();
+
+    // Persona copy + full-response dialog on a template draft (has Measured AI framing).
+    await page.goto(`${projectHref}/resonance`);
+    await page.getByRole("button", { name: "New study", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "New study" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Template", exact: true }).click();
+    await dialog.getByRole("button", { name: "Create draft" }).first().click();
+    await expect(page).toHaveURL(/\/resonance\/[0-9a-f-]{36}\?view=design/);
+
+    await expect(page.getByText(/STEP 1 OF 4 — Name your study/)).toBeVisible();
+    await page.getByRole("button", { name: "Next →" }).click();
+    await expect(page.getByText(/STEP 2 OF 4 — Who reacts — the panel/)).toBeVisible();
+    await expect(page.getByText("Persona name (required)")).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ Add persona" })).toBeVisible();
+    await expect(page.getByText("Buyer type")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Next →" }).click();
+    await expect(page.getByText(/STEP 3 OF 4/)).toBeVisible();
+    await expect(page.getByText(/Pick the framing to fight/)).toBeVisible();
+
+    const viewFull = page.getByRole("button", { name: "View full response" }).first();
+    await expect(viewFull).toBeVisible();
+    await viewFull.click();
+    const fullDialog = page.getByRole("dialog", { name: "Full stored response" });
+    await expect(fullDialog).toBeVisible();
+    await expect(fullDialog.getByText("Original prompt")).toBeVisible();
+    await expect(fullDialog.getByText("Full response")).toBeVisible();
+    const chooseBaseline = fullDialog.getByRole("button", { name: "Choose as baseline" });
+    await expect(chooseBaseline).toBeVisible();
+    await chooseBaseline.click();
+    await expect(fullDialog).toHaveCount(0);
+    await expect(page.getByRole("radio", { checked: true })).toHaveCount(1);
+    // Focus returns to the picker after Escape/choose (keyboard path covered above via dialog).
+    await page.keyboard.press("Escape");
+  });
+
   test("axe pass on projects and a project hub", async ({ page }) => {
     await page.goto("/projects");
     await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
@@ -329,8 +398,10 @@ test.describe("operator journey smoke", () => {
     await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("progressbar", { name: "Run progress" })).toHaveAttribute(
       "aria-valuetext",
-      /0 of \d+ jobs complete/,
+      /0 of \d+ calls complete/,
     );
+    await expect(page.getByText("Generating AI responses")).toBeVisible();
+    await expect(page.getByText("Extracting evidence")).toBeVisible();
     await expect(page.getByText(/WORKER OFFLINE/)).toBeVisible();
 
     await page.getByRole("button", { name: "Cancel", exact: true }).click();

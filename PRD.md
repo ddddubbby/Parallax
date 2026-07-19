@@ -1,10 +1,10 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M34A and presentation-only M43 refinement · TRACKER: M44_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M46 trustworthy progress and Simulation readiness · TRACKER: M46_BUILD_PLAN.md
 
 # PRD.md - Resonance (Parallax engine) MVP
 
-> **STATUS: ACTIVE ON `m44` FOR THE D-114 METHODOLOGY SIMPLIFICATION (2026-07-19).** M44 unfreezes exactly one scope: the Simulation baseline path and its operator journey (See → Pick → Rewrite → Test, §8.34) — the codebook framing workflow retires per D-114. Audit measurement, extraction, metrics, cost guards, epistemic walls (C-12/C-14), and export payloads remain frozen at M34A/M43. The Resonance GEO agent continues independently on its own branches under D-112/D-113; `AGENT_PRD.md` remains authoritative for that product.
+> **STATUS: M46 (D-117) COMPLETE ON `m46` — PENDING MERGE TO `main` (2026-07-19).** Trustworthy progress + Simulation readiness shipped: balanced comparison brand order, persistent framing-batch progress, stage-aware run ETA, baseline full-response selection, Persona terminology, and live Simulation draw-floor enforcement (§8.35). Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen at M34A/M43–M45. M44's See → Pick → Rewrite → Test journey (D-114, §8.34) stays governing. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
-> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution and route/state acceptance live in `M43_BUILD_PLAN.md`.
+> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44/M45 plans are in `docs/history/`.
 
 ---
 
@@ -114,7 +114,7 @@ PM-4: Priority is primary persona x primary market x two variants first, then br
 PM-5: UI shows a live cell counter; add-cell is disabled at 50.
 PM-6: Server rejects approval above 50 cells.
 PM-7: Inline text edit and per-cell variant regeneration are supported.
-PM-8: Comparison cells store randomized competitor order.
+PM-8: Comparison cells store a balanced, frozen brand order (client + competitors in `brand_order_json`; M46/D-117). Position counts across comparison cells differ by at most one.
 PM-9: Unbranded discovery and consideration cells must contain no tracked brand names or aliases at approval.
 PM-10: Approval creates an immutable version; later edits create a new version.
 PM-11: If an intent's allocation quota exceeds the available persona x market x variant combinations, the allocator fills what exists and redistributes the remainder to other intents; it never duplicates identical cells.
@@ -123,7 +123,7 @@ Seed prompt templates must exist as database seed data, not hard-coded UI string
 
 - discovery: "What tools should a {persona} in {market} consider for {job_to_be_done}?"
 - consideration: "What are the best options for {persona} teams evaluating {category} in {market}?"
-- comparison: "Compare {client_brand} against {competitor_list} for a {persona} buyer in {market}."
+- comparison: "Compare {brand_list} for a {persona} buyer in {market}."
 - validation: "Is {client_brand} a good fit for {persona} teams that care about {attribute_list}?"
 - objection: "What concerns should a {persona} have before choosing {client_brand}?"
 
@@ -228,7 +228,7 @@ MT-8: Metrics are computed at overall, provider, mode, intent, market, persona, 
 MT-9: Sentiment reports as distributions per brand per scope in two groups that are never pooled and never averaged into a single score: organic (client mentions in unbranded samples) and solicited (validation samples). Objection cells feed no sentiment metric — their prompts solicit concerns, so their skew is planted by design; their content feeds findings instead.
 MT-10: The attribute-association matrix cell (brand x attribute) = share of client-mentioning samples associating that attribute, excluding samples whose resolved prompt text contains the attribute phrase (MT-12: an echo of a planted attribute — validation's `{attribute_list}` or an operator edit — is not perception).
 MT-11: Interval methods are per metric per D-023: Wilson for MT-1, MT-2, MT-6, and MT-13; MT-3, MT-4, MT-5, and MT-7 render as point estimates labeled without intervals in MVP.
-MT-13: Comparative Win Rate = comparison samples where client brand is recommended / comparison eligible samples. No comparative rank metric exists: position inside comparison answers mirrors prompt order (the template names the client first), so it is not reported.
+MT-13: Comparative Win Rate = comparison samples where client brand is recommended / comparison eligible samples. No comparative rank metric exists: position inside comparison answers mirrors the frozen prompt brand order (balanced under M46/D-117, still prompt-planted), so it is not reported.
 
 ### 8.10 Dashboard
 
@@ -488,6 +488,19 @@ The operator journey collapses to four comprehensible steps, each surface always
 
 Guided path requirement (product-wide, this milestone's second deliverable): a single derived **next step** — computed from existing project state by one pure function — renders consistently on the project hub, in every empty state, and as a per-project hint in the library. Exactly one primary next action at any time; every dead end names its unblock and links to it; the four-step rail (SEE → PICK → REWRITE → TEST) shows journey position on all Simulation surfaces. The codebook-era Framing Evidence workflow retires to read-only historical rendering; historical studies keep truthful labels.
 
+### 8.35 Trustworthy progress and Simulation readiness (M46, D-117)
+
+Operator-trust surfaces only — measurement semantics unchanged:
+
+1. **Balanced brand order** — comparison prompts list the client and every active competitor exactly once in a frozen, balanced order (`brand_order_json`); position counts differ by at most one across the matrix. Unbranded discovery/consideration ranking prompts stay brand-free (PM-9). Approved matrices remain byte-frozen (C-4).
+2. **Persistent framing extraction** — theme refinement enqueues a worker batch with persisted progress (processed/total, valid/failed, approximate remaining, pause/resume on C-2). Progress survives navigation, refresh, and worker restart.
+3. **Stage-aware run ETA** — one approximate remaining-time line plus separate generation and extraction/scoring lanes; EWMA-based estimate with paused/offline suppression.
+4. **Baseline selection clarity** — exact framing-observation quotes when available; full-response dialog for evidence reading; Choose-as-baseline still requires Save and C-13/C-15 stamp.
+5. **Persona terminology** — Simulation UI says “Persona” / “Persona name”; stored `PanelPersona` / protocol versions unchanged.
+6. **Live draw floor** — show `personas × repetitions` and total-call math before approval/run creation. Mock and `live_validation` may run below 30 draws per framing/provider with a directional warning. `live_audit` Simulation creation is blocked when draws per framing/provider are below 30 (with `k=5`, ≥6 personas). Sub-six-persona study approval warns preview-only; personas are never invented; providers never pool toward the floor.
+
+Execution playbook: `M46_BUILD_PLAN.md`. Schema: migration `0021_m46_progress_and_brand_order.sql`.
+
 ## 9. Data model summary
 
 `projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`; from M17: `resonance_studies`, `resonance_stimuli` (migration 0008, which also adds the `simulation` value to the `intent` enum, `matrix_versions.kind`, `matrix_versions.resonance_study_id`, `prompt_cells.stimulus_id`, and `prompt_cells.panel_persona_key`; `prompt_cells.persona_id`/`market_id` are already nullable — D-066). From M34A (D-099/D-102): `framing_studies`, `framing_response_reviews`, `framing_annotations`, `framing_gap_classifications`, `framing_evidence_snapshots`, plus `resonance_stimuli.framing_evidence_snapshot_id` and the `representation` value on the `intent` enum (migration 0013 enum-only, then 0014 structure, then 0015 assurance — the last adding the append-only snapshot trigger and the approved-study stimulus-freeze trigger; digests use canonical sorted-key JSON with dual-verification backward compat per D-104).
@@ -548,9 +561,21 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M32 | Operator workflow UI architecture | One responsive left sidebar, explicit read-only/edit states, URL-addressable local views, segmented Setup/Matrix/Run/Dashboard/Report surfaces, and Simulation library/detail/results/evidence hierarchy; no migration or route-segment rename; audit and Simulation remain structurally walled (D-088) | Done |
 | M33 | M32 verification, focus/edit-state fixes, demo-readiness close-out | The interactive browser walk M32's own build plan required but never got (`preview_start` sandbox failure deferred it, BUILD_NOTES S-063/S-064); a real, untested focus-management gap on the mobile sidebar drawer (`aria-modal="true"` with zero focus-trap/restore, unlike every Radix-backed overlay elsewhere); the unsaved-edit context M32 spec'd but never wired, plus an on-page unsaved-changes signal; study-detail evidence filters finished to match the already-built repository contract (stimulus/persona, not engine-only); minimal loading affordance where none exists (sharpest on Dashboard's blocking per-study Simulation recompute); lint-hygiene items plus a pluralization typo fix. Also folds in a reviewed external repo-quality audit's two verified engineering findings (D-092): CI fails hard rather than skip-passing when embedded Postgres can't start under `CI=true`, and one Playwright smoke spec + `axe` pass over the critical operator journey as a floor beneath manual QA. Embeds a decision gate: isolated bugs fixed in place, structural rot escalated for a revert-to-M31 call, never silently patched. No migration, no IA change (D-089, D-091, D-092; execution detail lives in `BUILD_NOTES.md` S-065, not a standalone plan file) | Done |
 | M34 | → M34A Framing Evidence & Actionable Gap (descoped by D-099) + M34B automated eligibility (deferred) | M34A ships human-reviewed framing evidence: bare pinned representation prompts (CAL-2-validated), offset-verified span assist, blind discovery → locked versioned codebook → full-sample human coding with literal-span linkage, descriptive recurrence matrix (complete denominators, no CI claims), reinforced/missing/misframed/unsupported/non-actionable gap classification, and a C-15 (D-099 form) simulation handoff with an immutable evidence snapshot. Production v1 permits only the evidenced single-analyst method; richer consistency/reliability modes require future structured records. Automated certification machinery (clustering, eligibility law, medoid, hard admission) remains removed; M34B stays deferred behind accumulated coded corpora under the D-099 reuse conditions | Done — M34A production integration verified; M34B deferred |
-| M43 | Authenticated Resonance web UI refinement | Every route/state in `M43_BUILD_PLAN.md` is reviewed; accessible/responsive/live-browser and automated gates pass; the diff contains no product, schema, API, metric, methodology, cost, agent, or brand-site change | In progress — Phase 0 green; Phase 1 activation |
+| M43 | Authenticated Resonance web UI refinement | Every route/state in `M43_BUILD_PLAN.md` is reviewed; accessible/responsive/live-browser and automated gates pass; the diff contains no product, schema, API, metric, methodology, cost, agent, or brand-site change | Done |
+| M44 | Simplified simulation methodology + guided path (D-114) | See → Pick → Rewrite → Test; theme-organized verbatim baselines; framing workflow read-only historical; `deriveNextStep` guidance; blind extractor themes v2 | Done |
+| M45 | Durable brand-name resolution (D-115) | Compact-key equality + unique containment; PM-9 same matcher; collision guard; $0 re-resolve; resolution-health card | Done |
+| M46 | Trustworthy progress + Simulation readiness (D-117) | Balanced frozen brand order; persistent framing batches; stage-aware ETA; Persona copy; full-response baseline dialog; live Simulation draw-floor enforcement; migration 0021 | Done — pending merge |
 
 Progress notes:
+
+- 2026-07-19 M46 P5 (D-117): full gates — lint 0-warn, docs:check, typecheck, Vitest 848/0, Playwright 17/17 (incl. M46 math/floor/Persona/full-response), build green. Ready for `m46` → `main`.
+- 2026-07-19 M46 P4 (D-117): Persona terminology; observation-quote picker + full-response dialog; Simulation math on approve/run; live_audit blocked below n≥30 draws/framing/provider (repo backstop); mock/validation preview warnings. Gates: lint 0-warn, typecheck, Vitest 848/0; docs:check.
+- 2026-07-19 M46 P3 (D-117): stage-aware run progress — generation + extraction/scoring lanes, overall pipeline vs planned calls, EWMA ETA (α=0.35, outlier filter, historical seed), pause/offline suppression, completed-with-gap warning. Gates: lint 0-warn, typecheck, Vitest 842/0; docs:check.
+- 2026-07-19 M46 P2 (D-117): persistent framing observation batches — enqueue/claim/finalize, C-2 pause/resume, stale-lock recovery, study-page progress ring (ARIA). Gates: lint 0-warn, typecheck, Vitest 828/0; docs:check.
+- 2026-07-19 M46 P1 (D-117, migration 0021): balanced frozen `{brand_list}` / `brand_order_json` on comparison cells; framing-batch schema landed for P2; ranking prompts stay unbranded. Gates: lint 0-warn, typecheck, Vitest 823/0.
+- 2026-07-19 M46 P0 governance (D-117): post-M45 trunk reconciled — M44/M45 plans archived to `docs/history/`, merged session notes pruned, `M46_BUILD_PLAN.md` created (D-090: multi-phase + migration), STATUS/PRD/index retargeted.
+- 2026-07-19 M45 Done (D-115/D-116, no migration): durable brand matching + re-resolve + resolution health; GEO agent parked. Merged to `main` via PR #6; plan archival completed in M46 P0 (merge commit itself left archival owed).
+- 2026-07-19 M44 Done (D-114, migrations 0019/0020): guided path, stamped verbatim baselines, framing retirement, blind framing themes v2. Merged to `main`; plan archival completed in M46 P0.
 
 - 2026-07-12 M34A digest compatibility hardening (D-104): new manifests and snapshots use recursively sorted-key canonical JSON before SHA-256, while verification accepts both canonical and legacy `JSON.stringify` digests so immutable v1/v2 evidence remains readable without backfill. Regression tests prove reordered JSON hashes identically and legacy snapshot/manifest records still verify. Approval ordering remains draft verification/write → final approved-state flip, and the post-approval database trigger test remains intact.
 

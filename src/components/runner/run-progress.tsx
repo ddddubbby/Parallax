@@ -7,6 +7,11 @@ import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import type { RunDetailView } from "@/core/views";
 import { resolvePauseReason } from "@/core/runner";
+import {
+  formatApproxRemaining,
+  type RunEta,
+  type RunStageProgress,
+} from "@/core/run-progress";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
 
@@ -36,6 +41,8 @@ interface RunDetail {
   progress: Record<string, number>;
   failureCounts: { succeeded: number; deadLettered: number; cancelled: number };
   workerOffline?: boolean;
+  stageProgress?: RunStageProgress;
+  eta?: RunEta;
   events: Array<{
     id: string;
     level: string;
@@ -43,6 +50,40 @@ interface RunDetail {
     message: string;
     createdAt: string | Date;
   }>;
+}
+
+function stagePct(completed: number, total: number): number {
+  return total > 0 ? Math.round((completed / total) * 100) : 0;
+}
+
+function StageLane({
+  label,
+  completed,
+  total,
+  suppressMotion,
+}: {
+  label: string;
+  completed: number;
+  total: number;
+  suppressMotion: boolean;
+}) {
+  const pct = stagePct(completed, total);
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-3 font-mono text-xs text-ink/70">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          {completed} / {total}
+        </span>
+      </div>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-paper-2">
+        <div
+          className={`h-full bg-ink/35 ${suppressMotion ? "" : "transition-standard"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 const TERMINAL_STATES = new Set(["completed", "failed", "cancelled"]);
@@ -130,13 +171,17 @@ export function RunProgress({
     })();
   }
 
-  const total = detail.run.plannedCalls;
-  const finished =
+  // Legacy job-state fallback when stageProgress is absent (older payloads).
+  const legacyFinished =
     (detail.progress.succeeded ?? 0) +
     (detail.progress.dead_lettered ?? 0) +
     (detail.progress.cancelled ?? 0) +
     (detail.progress.skipped ?? 0);
-  const pct = total > 0 ? Math.round((finished / total) * 100) : 0;
+  const overallCompleted = detail.stageProgress?.overall.completed ?? legacyFinished;
+  const overallTotal =
+    detail.stageProgress?.overall.total ?? detail.run.plannedCalls;
+  const pct = stagePct(overallCompleted, overallTotal);
+  const etaLabel = formatApproxRemaining(detail.eta?.approxRemainingSeconds ?? null);
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
   const isResonance = detail.run.matrixKind === "resonance";
   // A bare "paused" stamp with no reason is an anxiety generator; the
@@ -251,7 +296,7 @@ export function RunProgress({
       <div className="mb-6 rounded-xl border border-ink/15 p-4">
         <div className="mb-2 flex items-center justify-between font-mono text-sm">
           <span>
-            {finished} / {total} jobs
+            {overallCompleted} / {overallTotal} calls
           </span>
           <span>{pct}%</span>
         </div>
@@ -260,15 +305,44 @@ export function RunProgress({
           role="progressbar"
           aria-label="Run progress"
           aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={finished}
-          aria-valuetext={`${finished} of ${total} jobs complete`}
+          aria-valuemax={overallTotal}
+          aria-valuenow={overallCompleted}
+          aria-valuetext={`${overallCompleted} of ${overallTotal} calls complete`}
         >
           <div
             className={`h-full bg-accent ${suppressProgressMotion ? "" : "transition-standard"}`}
             style={{ width: `${pct}%` }}
           />
         </div>
+        {etaLabel && (
+          <p className="mt-2 font-mono text-xs text-ink/60" data-testid="run-eta">
+            {etaLabel}
+          </p>
+        )}
+        {detail.stageProgress && (
+          <div className="mt-4 flex flex-col gap-3">
+            <StageLane
+              label={detail.stageProgress.generation.label}
+              completed={detail.stageProgress.generation.completed}
+              total={detail.stageProgress.generation.total}
+              suppressMotion={suppressProgressMotion}
+            />
+            {detail.stageProgress.secondary.applicable && (
+              <StageLane
+                label={detail.stageProgress.secondary.label}
+                completed={detail.stageProgress.secondary.completed}
+                total={detail.stageProgress.secondary.total}
+                suppressMotion={suppressProgressMotion}
+              />
+            )}
+          </div>
+        )}
+        {detail.stageProgress?.extractionGap && (
+          <InlineStatus tone="warning" className="mt-4">
+            This run finished generation, but some responses still lack a terminal
+            extraction or scoring result.
+          </InlineStatus>
+        )}
         <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-xs text-ink/60 sm:grid-cols-4">
           {JOB_STATES.map((s) => (
             <div key={s}>

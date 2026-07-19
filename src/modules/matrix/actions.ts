@@ -6,14 +6,17 @@ import { isUuid } from "@/core/id";
 import { findAliasOverlaps } from "@/core/intake";
 import {
   allocateMatrix,
+  brandRosterMatches,
   type BrandTerms,
+  competitorOrderFromBrandOrder,
   type Intent,
   isAuditIntent,
   type MatrixContext,
+  nextBalancedBrandOrder,
   renderRepresentationTemplate,
   renderTemplate,
   scanUnbrandedCells,
-  shuffle,
+  trackedBrandRoster,
 } from "@/core/matrix";
 import type { FrameAspect } from "@/core/prompt-templates";
 import {
@@ -32,14 +35,24 @@ import {
 } from "@/db/repositories/matrix";
 
 /**
- * PM-9-adjacent guard (M27/D-084, pinned decision 6a): a comparison-intent
- * cell's rendered text interpolates {competitor_list}; with zero active
- * competitors that renders as an empty/broken fragment rather than throwing,
- * so generation of comparison cells is blocked server-side with a clear
- * error instead of silently producing malformed prompt text.
+ * PM-9-adjacent guard (M27/D-084, pinned decision 6a; M46/D-117): a
+ * comparison-intent cell's rendered text interpolates {brand_list}; with
+ * zero active competitors that renders as client-only rather than a true
+ * comparison, so generation is blocked server-side with a clear error.
  */
 const NO_ACTIVE_COMPETITORS_ERROR =
   "At least one active competitor is required for comparison prompts — unarchive a competitor or add a new one in Setup";
+
+function storedBrandOrder(cell: {
+  brandOrderJson?: unknown;
+  competitorOrderJson?: unknown;
+  resolvedText?: string;
+}): string[] {
+  if (Array.isArray(cell.brandOrderJson)) {
+    return cell.brandOrderJson.filter((name): name is string => typeof name === "string");
+  }
+  return [];
+}
 
 type ActionResult =
   | { ok: true; versionId?: string }
@@ -152,6 +165,7 @@ export async function addCell(
             loaded.ctx.clientBrand.name,
           ),
           competitorOrder: [],
+          brandOrder: [],
         },
         projectId,
       );
@@ -161,14 +175,22 @@ export async function addCell(
     revalidatePath(`/projects/${projectId}/matrix`);
     return { ok: true };
   }
+  const roster = trackedBrandRoster(loaded.ctx);
+  const existingComparisonOrders = existing.cells
+    .filter((c) => c.intent === "comparison")
+    .map((c) => storedBrandOrder(c));
   for (const persona of loaded.personas) {
     for (const market of loaded.markets) {
       for (const template of variants) {
         const key = `${persona.id}|${market.id}|${template.variantKey}`;
         if (used.has(key)) continue;
+        const brandOrder =
+          intent === "comparison"
+            ? nextBalancedBrandOrder(existingComparisonOrders, roster, Math.random)
+            : [];
         const competitorOrder =
           intent === "comparison"
-            ? shuffle(loaded.ctx.competitors.map((c) => c.name), Math.random)
+            ? competitorOrderFromBrandOrder(brandOrder, loaded.ctx.clientBrand.name)
             : [];
         try {
           await insertCell(versionId, {
@@ -181,8 +203,10 @@ export async function addCell(
               market,
               ctx: loaded.ctx,
               competitorOrder,
+              brandOrder,
             }),
             competitorOrder,
+            brandOrder,
           }, projectId);
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Add cell failed" };
@@ -260,20 +284,38 @@ export async function regenerateCell(
   const market =
     marketLabels.find((m) => m.id === cell.marketId) ?? loaded.markets[0];
   if (!persona || !market) return { ok: false, error: "No persona/market available to render this cell" };
+  // M46/D-117: keep frozen brand order unless the active roster changed.
+  const roster = trackedBrandRoster(loaded.ctx);
+  const frozen = storedBrandOrder(cell);
+  const brandOrder =
+    cell.intent === "comparison"
+      ? brandRosterMatches(frozen, roster)
+        ? frozen
+        : nextBalancedBrandOrder(
+            existing.cells
+              .filter((c) => c.intent === "comparison" && c.id !== cellId)
+              .map((c) => storedBrandOrder(c)),
+            roster,
+            Math.random,
+          )
+      : [];
   const competitorOrder =
     cell.intent === "comparison"
-      ? shuffle(loaded.ctx.competitors.map((c) => c.name), Math.random)
+      ? competitorOrderFromBrandOrder(brandOrder, loaded.ctx.clientBrand.name)
       : [];
   try {
     const updated = await replaceCell(versionId, cellId, {
+      intent: cell.intent,
       variantKey: next.variantKey,
       resolvedText: renderTemplate(next.templateText, {
         persona,
         market,
         ctx: loaded.ctx,
         competitorOrder,
+        brandOrder,
       }),
       competitorOrder,
+      brandOrder,
     }, projectId);
     if (updated === 0) return { ok: false, error: "Cell not found in this version" };
   } catch (err) {

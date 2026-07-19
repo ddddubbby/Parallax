@@ -42,7 +42,16 @@ import {
   secondaryProviderIdForKind,
   validateSecondaryProviderConfig,
 } from "@/modules/runner/budget";
-import { getResonanceStudyAnchorSetVersion } from "@/db/repositories/resonance";
+import {
+  drawFloorMet,
+  drawsPerVariant,
+  liveAuditDrawFloorError,
+  totalSimulationCalls,
+} from "@/core/resonance-draws";
+import {
+  getResonanceDrawFootprint,
+  getResonanceStudyAnchorSetVersion,
+} from "@/db/repositories/resonance";
 import { anchorStatementSets, getSsrAnchorSet } from "@/core/ssr-anchors";
 import { estimateExtractionCostUsd } from "@/providers/deepseek";
 import { estimateOpenAIEmbeddingCostUsd } from "@/providers/openai/embeddings";
@@ -301,7 +310,46 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
     }
   }
 
-  return { ok: true as const, plannedCalls, projectedCostUsd, cellCount, versionId: version.id, budgets };
+  // M46/D-117: Simulation draw math — per framing/provider; providers never pool.
+  let simulationDraws: {
+    drawsPerVariant: number;
+    totalCalls: number;
+    drawFloorMet: boolean;
+    panelCount: number;
+    framingCount: number;
+  } | null = null;
+  if (isResonance && version.resonanceStudyId) {
+    const footprint = await getResonanceDrawFootprint(version.resonanceStudyId);
+    if (footprint) {
+      const draws = drawsPerVariant(footprint.panelCount, input.repetitions);
+      simulationDraws = {
+        drawsPerVariant: draws,
+        totalCalls: totalSimulationCalls({
+          framingCount: footprint.framingCount,
+          personaCount: footprint.panelCount,
+          repetitions: input.repetitions,
+          providerCount: input.providers.length,
+        }),
+        drawFloorMet: drawFloorMet(draws),
+        panelCount: footprint.panelCount,
+        framingCount: footprint.framingCount,
+      };
+    }
+  }
+
+  return {
+    ok: true as const,
+    plannedCalls,
+    projectedCostUsd,
+    cellCount,
+    versionId: version.id,
+    budgets,
+    drawsPerVariant: simulationDraws?.drawsPerVariant ?? null,
+    totalCalls: simulationDraws?.totalCalls ?? plannedCalls,
+    drawFloorMet: simulationDraws?.drawFloorMet ?? null,
+    panelCount: simulationDraws?.panelCount ?? null,
+    framingCount: simulationDraws?.framingCount ?? null,
+  };
 }
 
 /** RN-2, RN-3, PV-5, C-9: validated, capped, mode-consistent run creation. */
@@ -331,23 +379,36 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
     };
   }
 
+  // Resolve the run's matrix kind ONCE (was fetched three times across the two
+  // preflights and the cost projection) so the secondary-engine decision can't
+  // desync between the credential and budget checks.
+  const runMatrixVersion = input.matrixVersionId
+    ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
+    : await getApprovedVersionForRun(projectId);
+  const secondaryProvider = secondaryProviderIdForKind(runMatrixVersion?.kind);
+
+  // M46/D-117: reject below-floor live_audit Simulation before credential preflight
+  // so the operator sees the persona/draw fix, not a missing-key error.
+  if (
+    input.runMode === "live_audit" &&
+    runMatrixVersion?.kind === "resonance" &&
+    runMatrixVersion.resonanceStudyId
+  ) {
+    const footprint = await getResonanceDrawFootprint(runMatrixVersion.resonanceStudyId);
+    if (footprint) {
+      const draws = drawsPerVariant(footprint.panelCount, input.repetitions);
+      if (!drawFloorMet(draws)) {
+        return { ok: false, error: liveAuditDrawFloorError(draws) };
+      }
+    }
+  }
+
   // Preflight active credentials for a LIVE run so it can't burn real
   // generation money and then be unable to extract (or unable to generate
   // at all) for a key the operator never entered. Checks each selected
   // generation provider AND the extraction engine (D-041) — the latter is
   // the subtle one: without its key, generation succeeds and spends, then
   // every extraction dead-letters and the run yields no usable metrics.
-  // Resolve the run's matrix kind ONCE (was fetched three times across the two
-  // preflights and the cost projection) so the secondary-engine decision can't
-  // desync between the credential and budget checks.
-  const runMatrixVersion =
-    input.runMode !== "mock"
-      ? input.matrixVersionId
-        ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
-        : await getApprovedVersionForRun(projectId)
-      : null;
-  const secondaryProvider = secondaryProviderIdForKind(runMatrixVersion?.kind);
-
   if (input.runMode !== "mock") {
     const secondaryError = validateSecondaryProviderConfig(runMatrixVersion?.kind);
     if (secondaryError) return { ok: false, error: secondaryError };
@@ -375,6 +436,15 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
 
   const projection = await projectRunCost(projectId, input);
   if (!projection.ok) return { ok: false, error: projection.error };
+
+  // M46/D-117: live_audit Simulation must meet draws-per-framing/provider ≥ 30.
+  if (
+    input.runMode === "live_audit" &&
+    projection.drawFloorMet === false &&
+    typeof projection.drawsPerVariant === "number"
+  ) {
+    return { ok: false, error: liveAuditDrawFloorError(projection.drawsPerVariant) };
+  }
 
   const capCheck = checkCostCap(projection.projectedCostUsd, input.costCapUsd);
   if (!capCheck.ok) {

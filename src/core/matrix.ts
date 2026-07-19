@@ -77,10 +77,13 @@ export interface CellPlan {
   marketId: string | null;
   variantKey: string;
   resolvedText: string;
+  /** Competitors only — retained for legacy provenance (pre-M46 / D-117). */
   competitorOrder: string[];
+  /** M46/D-117: client + every active competitor, exact prompt order. */
+  brandOrder: string[];
 }
 
-/** Fisher-Yates with injectable RNG (PM-8 randomized competitor order). */
+/** Fisher-Yates with injectable RNG. */
 export function shuffle<T>(items: T[], rng: () => number): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
@@ -90,6 +93,65 @@ export function shuffle<T>(items: T[], rng: () => number): T[] {
   return out;
 }
 
+/** Client + active competitors — the M46 comparison roster (PM-9 stays off this). */
+export function trackedBrandRoster(ctx: MatrixContext): string[] {
+  return [ctx.clientBrand.name, ...ctx.competitors.map((c) => c.name)];
+}
+
+/** Cyclic rotation used to balance brand positions across comparison cells. */
+export function rotateBrandOrder(base: string[], offset: number): string[] {
+  if (base.length === 0) return [];
+  const n = base.length;
+  const i = ((offset % n) + n) % n;
+  return [...base.slice(i), ...base.slice(0, i)];
+}
+
+/** True when `order` is a permutation of `roster` (same multiset of names). */
+export function brandRosterMatches(
+  order: string[] | null | undefined,
+  roster: string[],
+): boolean {
+  if (!order || order.length !== roster.length) return false;
+  const a = [...order].sort();
+  const b = [...roster].sort();
+  return a.every((name, i) => name === b[i]);
+}
+
+export function competitorOrderFromBrandOrder(
+  brandOrder: string[],
+  clientName: string,
+): string[] {
+  return brandOrder.filter((name) => name !== clientName);
+}
+
+/**
+ * One shuffled base permutation, then cyclic rotations so each brand's
+ * position counts across `count` cells differ by at most one (D-117).
+ */
+export function balancedBrandOrders(
+  roster: string[],
+  count: number,
+  rng: () => number,
+): string[][] {
+  const base = shuffle(roster, rng);
+  return Array.from({ length: count }, (_, i) => rotateBrandOrder(base, i));
+}
+
+/**
+ * Next rotation when adding a comparison cell. Continues from the first
+ * roster-matching stored order when present; otherwise starts a new base.
+ */
+export function nextBalancedBrandOrder(
+  existingOrders: string[][],
+  roster: string[],
+  rng: () => number,
+): string[] {
+  const base =
+    existingOrders.find((order) => brandRosterMatches(order, roster)) ??
+    shuffle(roster, rng);
+  return rotateBrandOrder(base, existingOrders.length);
+}
+
 export function renderTemplate(
   templateText: string,
   input: {
@@ -97,15 +159,23 @@ export function renderTemplate(
     market: MarketInput;
     ctx: MatrixContext;
     competitorOrder: string[];
+    brandOrder?: string[];
   },
 ): string {
+  const brandOrder =
+    input.brandOrder ??
+    (input.competitorOrder.length > 0
+      ? [input.ctx.clientBrand.name, ...input.competitorOrder]
+      : []);
   const replacements: Record<string, string> = {
     persona: input.persona.title,
     market: input.market.name,
     category: input.ctx.category,
     job_to_be_done: input.ctx.jobToBeDone,
     client_brand: input.ctx.clientBrand.name,
+    // Legacy placeholder kept for historical template rows until seed refresh.
     competitor_list: input.competitorOrder.join(", "),
+    brand_list: brandOrder.join(", "),
     attribute_list: input.ctx.attributes.join(", "),
   };
   return templateText.replace(/\{(\w+)\}/g, (match, key: string) =>
@@ -255,15 +325,23 @@ export function allocateMatrix(
   }
 
   const cells: CellPlan[] = [];
-  const competitorNames = ctx.competitors.map((c) => c.name);
+  const roster = trackedBrandRoster(ctx);
+  const comparisonCount = (taken.get("comparison") ?? []).length;
+  const comparisonOrders =
+    comparisonCount > 0 ? balancedBrandOrders(roster, comparisonCount, rng) : [];
+  let comparisonIdx = 0;
   for (const intent of ALLOCATED_INTENT_ORDER) {
     const variants = variantsByIntent.get(intent) ?? [];
     for (const combo of taken.get(intent) ?? []) {
       const persona = personas[combo.personaIdx];
       const market = markets[combo.marketIdx];
       const template = variants[combo.variantIdx];
+      const brandOrder =
+        intent === "comparison" ? (comparisonOrders[comparisonIdx++] ?? []) : [];
       const competitorOrder =
-        intent === "comparison" ? shuffle(competitorNames, rng) : [];
+        intent === "comparison"
+          ? competitorOrderFromBrandOrder(brandOrder, ctx.clientBrand.name)
+          : [];
       cells.push({
         intent,
         personaId: persona.id,
@@ -274,8 +352,10 @@ export function allocateMatrix(
           market,
           ctx,
           competitorOrder,
+          brandOrder,
         }),
         competitorOrder,
+        brandOrder,
       });
     }
   }
@@ -290,6 +370,7 @@ export function allocateMatrix(
         ctx.clientBrand.name,
       ),
       competitorOrder: [],
+      brandOrder: [],
     });
   }
   return cells.slice(0, MAX_CELLS_PER_RUN);

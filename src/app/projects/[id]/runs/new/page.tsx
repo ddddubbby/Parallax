@@ -4,7 +4,10 @@ import { RunCreationForm } from "@/components/runner/run-creation-form";
 import { DEFAULT_AUDIT_RUN_CAP_USD, DEFAULT_VALIDATION_RUN_CAP_USD } from "@/core/constants";
 import { isUuid } from "@/core/id";
 import { getApprovedVersionForRun, getMatrixVersionForRun, getProjectSummary } from "@/db/repositories/runner";
-import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
+import {
+  getResonanceDrawFootprint,
+  getResonanceStudyExportLabel,
+} from "@/db/repositories/resonance";
 import { getSecondaryRequirement, listProviderOptions } from "@/modules/runner/actions";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +39,14 @@ export default async function NewRunPage({
   ]);
 
   let matrixLabel = `V${version.version}`;
+  let panelCount: number | null = null;
+  let framingCount: number | null = null;
   if (version.kind === "resonance" && version.resonanceStudyId) {
     const study = await getResonanceStudyExportLabel(id, version.resonanceStudyId);
     if (study?.name) matrixLabel = `${study.name} · V${version.version}`;
+    const footprint = await getResonanceDrawFootprint(version.resonanceStudyId);
+    panelCount = footprint?.panelCount ?? null;
+    framingCount = footprint?.framingCount ?? null;
   }
 
   return (
@@ -64,6 +72,8 @@ export default async function NewRunPage({
         singleMode={version.kind === "resonance"}
         secondaryRequirement={secondaryRequirement}
         matrixLabel={matrixLabel}
+        panelCount={panelCount}
+        framingCount={framingCount}
       />
     </main>
   );

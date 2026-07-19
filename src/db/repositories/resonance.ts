@@ -1166,6 +1166,29 @@ export async function getResonanceStudyAnchorSetVersion(studyId: string): Promis
   return study?.anchorSetVersion ?? null;
 }
 
+/** M46/D-117: persona × framing footprint for Simulation draw-floor math. */
+export async function getResonanceDrawFootprint(studyId: string): Promise<{
+  panelCount: number;
+  framingCount: number;
+} | null> {
+  const [study] = await db
+    .select({ panelPersonasJson: resonanceStudies.panelPersonasJson })
+    .from(resonanceStudies)
+    .where(eq(resonanceStudies.id, studyId));
+  if (!study) return null;
+  let panelCount = 0;
+  try {
+    panelCount = panelPersonasSchema.parse(study.panelPersonasJson).length;
+  } catch {
+    panelCount = 0;
+  }
+  const [countRow] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(resonanceStimuli)
+    .where(eq(resonanceStimuli.studyId, studyId));
+  return { panelCount, framingCount: countRow?.n ?? 0 };
+}
+
 export async function listAuditEvidenceResponses(projectId: string, limit = 20) {
   return db
     .select({
@@ -1327,6 +1350,23 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
     if (!seen || row.version > seen.version) latestByResponse.set(row.responseId, row);
   }
   const validObservations = [...latestByResponse.values()].filter((r) => r.state === "valid");
+  // M46/D-117: surface the first verbatim observation quote for picker rows.
+  const quoteByResponse = new Map<string, string>();
+  for (const row of validObservations) {
+    const observations = Array.isArray(row.observationsJson)
+      ? (row.observationsJson as Array<{ quote?: unknown }>)
+      : [];
+    const quote = observations
+      .map((o) => (typeof o?.quote === "string" ? o.quote.trim() : ""))
+      .find((q) => q.length > 0);
+    if (quote) quoteByResponse.set(row.responseId, quote);
+  }
+  const mapResponses = () =>
+    responseRows.map((r) => ({
+      ...r,
+      attributes: attributesByResponse.get(r.id) ?? [],
+      observationQuote: quoteByResponse.get(r.id) ?? null,
+    }));
   if (validObservations.length > 0) {
     const clusterInput = validObservations
       .map((row) => {
@@ -1345,10 +1385,7 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
     const themes = clusterFramingObservations(clusterInput, responseRows.length);
     if (themes.length > 0) {
       return {
-        responses: responseRows.map((r) => ({
-          ...r,
-          attributes: attributesByResponse.get(r.id) ?? [],
-        })),
+        responses: mapResponses(),
         themes,
         themesSource: "framing_observations" as const,
       };
@@ -1359,10 +1396,7 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
     attributes: attributesByResponse.get(r.id) ?? [],
   }));
   return {
-    responses: responseRows.map((r) => ({
-      ...r,
-      attributes: attributesByResponse.get(r.id) ?? [],
-    })),
+    responses: mapResponses(),
     themes: groupResponsesByAttributeThemes(themeSource),
     themesSource: "attributes" as const,
   };
@@ -1535,6 +1569,7 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
             genericUnconditioned: study.genericUnconditioned,
           }),
           competitorOrderJson: [],
+          brandOrderJson: [],
         });
       }
     }

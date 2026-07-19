@@ -92,6 +92,8 @@ export const promptCells = pgTable(
     variantKey: text("variant_key").notNull(),
     resolvedText: text("resolved_text").notNull(),
     competitorOrderJson: jsonb("competitor_order_json").notNull().default([]),
+    /** M46/D-117: full prompt brand order (client + competitors). Null on pre-M46 rows. */
+    brandOrderJson: jsonb("brand_order_json"),
     // No updated_at: cells are immutable once their parent version is approved.
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

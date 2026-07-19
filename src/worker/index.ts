@@ -39,7 +39,9 @@ import {
   recordSuccess,
 } from "@/db/repositories/runner";
 import { listResponsesMissingExtraction, listResponsesWithStaleExtraction } from "@/db/repositories/extraction";
+import { recordHeartbeat } from "@/db/repositories/agent-commerce";
 import { extractResponse, recoverStaleExtraction } from "@/modules/extraction/service";
+import { tickFramingObservationBatches } from "@/modules/framing/observations";
 import { findExceededDailyBudget, secondaryProviderIdForKind } from "@/modules/runner/budget";
 import { handleProviderDownAfterDeadLetter } from "@/modules/runner/degradation";
 import { resolveRuntimeProvider } from "@/modules/runner/provider-resolver";
@@ -482,6 +484,20 @@ async function tick() {
       set.add(promise);
     }
   }
+  // M46/D-117: persistent framing-observation batches (independent of run jobs).
+  try {
+    const framing = await tickFramingObservationBatches(`worker-${process.pid}`);
+    if (framing.claimed > 0 || framing.reclaimed > 0) {
+      console.log(
+        `[worker] framing batch: claimed=${framing.claimed} processed=${framing.processed} paused=${framing.paused} reclaimed=${framing.reclaimed}`,
+      );
+    }
+  } catch (err) {
+    console.error(
+      "[worker] framing batch tick failed:",
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 async function main() {
@@ -563,8 +579,10 @@ async function main() {
 
   // RN-9: a heartbeat run_events row per active run, so a hung worker is
   // visible in Debug (staleness), distinct from the reclaim mechanism
-  // (which handles a *dead* worker's orphaned job locks).
+  // (which handles a *dead* worker's orphaned job locks). Also write a
+  // service_heartbeats beat so framing batches (no run id) can detect offline.
   const heartbeatTimer = setInterval(async () => {
+    await recordHeartbeat("parallax-worker", `pid-${process.pid}`);
     const activeRunIds = await listActiveRunIds();
     for (const runId of activeRunIds) {
       await appendRunEvent({

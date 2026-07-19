@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M44 execution — D-114 methodology simplification, guided operator path, theme-organized baseline picker, framing-workflow retirement · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M44 execution — D-114 methodology simplification, guided operator path, theme-organized baseline picker, framing-workflow retirement · DISPOSITION: EXECUTED (merged to main via M44; trunk reconciles under M46/D-117)
 
 # M44_BUILD_PLAN.md — Simplified simulation methodology + guided operator path
 

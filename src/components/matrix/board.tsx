@@ -204,7 +204,7 @@ export function MatrixBoard({
       )}
 
       {/* M27/D-084 pinned decision 6a: comparison prompts need >=1 active
-          competitor; zero renders a broken {competitor_list} and is blocked
+          competitor; zero yields a non-comparison {brand_list} and is blocked
           server-side, so warn here before the operator hits that error. */}
       {activeCompetitorCount === 0 && (
         <InlineStatus tone="warning" className="mb-4">

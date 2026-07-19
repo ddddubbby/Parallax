@@ -60,6 +60,7 @@ interface DemoProject {
 
 async function seedTemplates(): Promise<number> {
   let inserted = 0;
+  let updated = 0;
   for (const t of TEMPLATE_SEED) {
     // M23 (D-079): match on the natural key alone, not active=true. The
     // opt-in price/promo templates seed with active:false, and the partial
@@ -67,7 +68,7 @@ async function seedTemplates(): Promise<number> {
     // active-only existence check would re-insert an inactive seed row on
     // every run, breaking seed-twice idempotency.
     const existing = await db
-      .select({ id: promptTemplates.id })
+      .select({ id: promptTemplates.id, templateText: promptTemplates.templateText })
       .from(promptTemplates)
       .where(
         and(
@@ -85,7 +86,21 @@ async function seedTemplates(): Promise<number> {
         active: t.active ?? true,
       });
       inserted += 1;
+    } else if (
+      // M46/D-117: refresh stored comparison grammar to {brand_list}. Approved
+      // matrix cells stay byte-frozen (C-4); only the template catalog updates.
+      t.intent === "comparison" &&
+      existing[0]!.templateText !== t.text
+    ) {
+      await db
+        .update(promptTemplates)
+        .set({ templateText: t.text, updatedAt: new Date() })
+        .where(eq(promptTemplates.id, existing[0]!.id));
+      updated += 1;
     }
+  }
+  if (updated > 0) {
+    console.log(`[seed] comparison templates refreshed to M46 grammar: ${updated}`);
   }
   return inserted;
 }

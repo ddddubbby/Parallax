@@ -5,7 +5,15 @@ import { redirect } from "next/navigation";
 import { isUuid } from "@/core/id";
 import { parsePanelPersonaLines, STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
 import { getResonanceStudyTemplate } from "@/core/resonance-templates";
-import { buildFramingObservations } from "@/modules/framing/observations";
+import {
+  enqueueFramingObservations,
+  resumeFramingObservationBatch,
+} from "@/modules/framing/observations";
+import {
+  getActiveFramingBatchProgress,
+  getFramingBatchProgress,
+} from "@/db/repositories/framing-observations";
+import type { FramingObservationBatchProgress } from "@/core/framing-batch";
 import {
   addResonanceStimulus,
   approveAndCompileResonanceStudy,
@@ -21,13 +29,15 @@ function revalidateStudyPaths(projectId: string, studyId?: string) {
   if (studyId) revalidatePath(`/projects/${projectId}/resonance/${studyId}`);
 }
 
-type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; id?: string; batchId?: string }
+  | { ok: false; error: string };
 
 /**
- * M44 / D-114 themes v2: operator-triggered blind framing extraction over
- * stored responses. Mock responses cost $0; live responses spend under the
- * C-2 daily budgets and the batch refuses before any call when a budget is
- * exhausted. Explicit action — a page load never triggers paid work.
+ * M46/D-117: atomically enqueue a persistent framing-observation batch.
+ * The worker processes items; the study page polls progress. Rejects when an
+ * active batch already exists. Explicit action — a page load never triggers
+ * paid work.
  */
 export async function buildFramingThemesAction(
   projectId: string,
@@ -37,19 +47,54 @@ export async function buildFramingThemesAction(
     return { ok: false, error: "Invalid id" };
   }
   try {
-    const result = await buildFramingObservations(projectId);
+    const result = await enqueueFramingObservations(projectId);
     revalidateStudyPaths(projectId, studyId);
-    if (result.processed === 0 && result.skipped === 0) {
-      return { ok: false, error: "No stored responses to extract from — complete an audit run first" };
-    }
-    if (result.valid === 0 && result.failed > 0) {
-      return { ok: false, error: `Framing extraction failed for all ${result.failed} responses — see stored errors` };
-    }
-    return { ok: true };
+    return { ok: true, batchId: result.batchId };
   } catch (error) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Framing extraction failed",
+    };
+  }
+}
+
+export async function fetchFramingBatchProgressAction(
+  projectId: string,
+  batchId: string,
+): Promise<FramingObservationBatchProgress | null> {
+  if (!isUuid(projectId) || !isUuid(batchId)) return null;
+  const progress = await getFramingBatchProgress(batchId);
+  if (!progress || progress.projectId !== projectId) return null;
+  return progress;
+}
+
+export async function fetchActiveFramingBatchProgressAction(
+  projectId: string,
+): Promise<FramingObservationBatchProgress | null> {
+  if (!isUuid(projectId)) return null;
+  return getActiveFramingBatchProgress(projectId);
+}
+
+export async function resumeFramingBatchAction(
+  projectId: string,
+  batchId: string,
+  studyId?: string,
+): Promise<ActionResult> {
+  if (!isUuid(projectId) || !isUuid(batchId) || (studyId !== undefined && !isUuid(studyId))) {
+    return { ok: false, error: "Invalid id" };
+  }
+  const progress = await getFramingBatchProgress(batchId);
+  if (!progress || progress.projectId !== projectId) {
+    return { ok: false, error: "Framing batch not found" };
+  }
+  try {
+    await resumeFramingObservationBatch(batchId);
+    revalidateStudyPaths(projectId, studyId);
+    return { ok: true, batchId };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Resume failed",
     };
   }
 }
