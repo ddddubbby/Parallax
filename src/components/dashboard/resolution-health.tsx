@@ -5,6 +5,7 @@ import { Button, Select, Stamp } from "@/components/ui";
 import {
   adoptBrandAliasAction,
   fetchUnresolvedMentions,
+  reResolveRunAction,
 } from "@/modules/dashboard/actions";
 
 type Summary = {
@@ -108,6 +109,37 @@ export function ResolutionHealthCard({
           {notice}
         </p>
       )}
+      <div className="mb-3">
+        <Button
+          type="button"
+          variant="secondary"
+          pending={pendingName === "__reresolve__"}
+          pendingLabel="Re-resolving"
+          disabled={pending && pendingName !== "__reresolve__"}
+          onClick={() => {
+            setError(null);
+            setPendingName("__reresolve__");
+            startTransition(async () => {
+              const result = await reResolveRunAction(projectId, runId);
+              if (!result.ok) {
+                setError(result.error);
+              } else {
+                setNotice(
+                  result.reResolved === 0
+                    ? "Nothing changed — these names need aliases (or belong to untracked brands)."
+                    : `${result.reResolved} extraction${result.reResolved === 1 ? "" : "s"} re-resolved at $0 under the current matching rules.`,
+                );
+                const refreshed = await fetchUnresolvedMentions(projectId, runId);
+                if (refreshed) setSummary(refreshed.summary);
+                onMetricsChanged();
+              }
+              setPendingName(null);
+            });
+          }}
+        >
+          Re-resolve with current rules ($0)
+        </Button>
+      </div>
       <ul className="flex flex-col gap-2">
         {summary.top.map((row) => (
           <li

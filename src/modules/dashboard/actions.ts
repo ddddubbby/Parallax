@@ -144,6 +144,22 @@ export async function fetchUnresolvedMentions(projectId: string, runId: string) 
   return { summary, brands: brandRows };
 }
 
+/** M45 / D-115: re-run resolution under the CURRENT matcher/aliases — the
+ * matcher-upgrade path, where the unresolved tail needs no alias at all. */
+export async function reResolveRunAction(
+  projectId: string,
+  runId: string,
+): Promise<{ ok: true; reResolved: number } | { ok: false; error: string }> {
+  if (!isUuid(projectId) || !isUuid(runId)) return { ok: false, error: "Invalid id" };
+  try {
+    const summary = await reResolveRunBrands(projectId, runId);
+    revalidatePath(`/projects/${projectId}/dashboard`);
+    return { ok: true, reResolved: summary.reResolved };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Re-resolve failed" };
+  }
+}
+
 /**
  * M45 / D-115: one-click alias adoption — append the observed name as an
  * alias on the chosen brand (compact-collision guarded), then re-resolve the
