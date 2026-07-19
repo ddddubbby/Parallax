@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { Button, Input, Stamp } from "@/components/ui";
 import { AppMenu, AppMenuItem } from "@/components/ui/menu";
+import { projectListHint } from "@/core/pipeline";
 
 type ProjectRow = {
   id: string;
@@ -114,7 +115,12 @@ export function ProjectsTable({ projects }: { projects: ProjectRow[] }) {
                   key={p.id}
                   className={`border-b border-ink/10 last:border-b-0 ${i % 2 === 1 ? "bg-paper-2/40" : ""}`}
                 >
-                  <td className="px-4 py-3 font-sans font-medium text-ink">{p.name}</td>
+                  <td className="px-4 py-3 font-sans">
+                    <span className="font-medium text-ink">{p.name}</span>
+                    <span className="mt-0.5 block font-mono text-[11px] text-ink/50">
+                      {projectListHint(p.status, p.intakeStep)}
+                    </span>
+                  </td>
                   <td className="py-3 pr-4">
                     <Stamp tone={p.status === "active" ? "ok" : "ink"}>{p.status}</Stamp>
                   </td>

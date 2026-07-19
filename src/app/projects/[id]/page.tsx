@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/core/id";
 import { resolveProjectStage } from "@/core/pipeline";
+import { NextStepCard } from "@/components/next-step-card";
 import { workspaceHubSections } from "@/core/workspace";
 import { listResonanceStudies } from "@/db/repositories/resonance";
 import {
@@ -44,12 +45,6 @@ export default async function ProjectHubPage({
     approvedStudies,
   });
   const stage = resolveProjectStage(pipeline);
-  const nextHref =
-    stage.nextPath === ""
-      ? `/projects/new?id=${id}`
-      : stage.nextPath
-        ? `/projects/${id}/${stage.nextPath}`
-        : null;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
@@ -63,18 +58,10 @@ export default async function ProjectHubPage({
         / {project.name}
       </div>
       <h1 className="label-mono mb-2 text-lg font-semibold">{project.name}</h1>
-      <p className="mb-8 text-sm text-ink/65">
-        Project workspace · {stage.stageLabel}
-        {stage.nextLabel && nextHref && (
-          <>
-            {" "}
-            ·{" "}
-            <Link href={nextHref} className="label-mono text-accent-ink underline underline-offset-2 hover:text-accent">
-              {stage.nextLabel} →
-            </Link>
-          </>
-        )}
-      </p>
+      <p className="mb-4 text-sm text-ink/65">Project workspace · {stage.stageLabel}</p>
+      <div className="mb-8">
+        <NextStepCard stage={stage} projectId={id} />
+      </div>
 
       <div className="flex flex-col gap-4">
         {sections.map((section) => (

@@ -18,6 +18,7 @@ import {
   jobs,
   matrixVersions,
   projects,
+  resonanceStimuli,
   resonanceStudies,
   promptCells,
   responses,
@@ -1001,7 +1002,7 @@ export async function getProjectSummary(projectId: string) {
 
 /** OX-2: the booleans resolveProjectStage needs to pick a project's next action. */
 export async function getProjectPipelineState(projectId: string) {
-  const [statusRow, versionRow, runRows, resonanceStudyRows, resonanceRunRows] = await Promise.all([
+  const [statusRow, versionRow, runRows, resonanceStudyRows, draftStimulusRows, resonanceRunRows] = await Promise.all([
     db.select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)),
     db
       .select({ state: matrixVersions.state })
@@ -1016,6 +1017,11 @@ export async function getProjectPipelineState(projectId: string) {
       .select({ state: resonanceStudies.state })
       .from(resonanceStudies)
       .where(eq(resonanceStudies.projectId, projectId)),
+    db
+      .select({ kind: resonanceStimuli.kind })
+      .from(resonanceStimuli)
+      .innerJoin(resonanceStudies, eq(resonanceStudies.id, resonanceStimuli.studyId))
+      .where(and(eq(resonanceStudies.projectId, projectId), eq(resonanceStudies.state, "draft"))),
     db
       .select({ state: auditRuns.state })
       .from(auditRuns)
@@ -1033,6 +1039,9 @@ export async function getProjectPipelineState(projectId: string) {
     hasActiveRun: runStates.some((s) => s === "queued" || s === "running"),
     hasCompletedRun: runStates.includes("completed"),
     hasApprovedResonanceStudy: resonanceStudyStates.includes("approved"),
+    hasStudy: resonanceStudyStates.length > 0,
+    hasStudyBaseline: draftStimulusRows.some((r) => r.kind === "measured_ai"),
+    hasStudyChallengers: draftStimulusRows.some((r) => r.kind !== "measured_ai"),
     hasActiveResonanceRun: resonanceRunStates.some((s) => s === "queued" || s === "running"),
     hasCompletedResonanceRun: resonanceRunStates.includes("completed"),
   };

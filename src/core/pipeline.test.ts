@@ -43,3 +43,71 @@ describe("resolveProjectStage (OX-2)", () => {
     expect(resolveProjectStage({ ...base, hasActiveResonanceRun: true }).nextPath).toBe("resonance");
   });
 });
+
+describe("resolveProjectStage (M44 / D-114 journey stages)", () => {
+  const done = { ...base, hasCompletedRun: true };
+
+  it("walks See -> Pick -> Rewrite -> Test in order", () => {
+    // Results, no study yet: the See step.
+    expect(resolveProjectStage(done).journey).toBe("see");
+    expect(resolveProjectStage(done).nextPath).toBe("dashboard");
+    // Draft study without baseline: Pick.
+    const started = resolveProjectStage({ ...done, hasStudy: true });
+    expect(started.journey).toBe("pick");
+    expect(started.nextLabel).toBe("Pick the framing to fight");
+    expect(started.nextPath).toBe("resonance");
+    // Baseline attached: Rewrite.
+    const picked = resolveProjectStage({ ...done, hasStudy: true, hasStudyBaseline: true });
+    expect(picked.journey).toBe("rewrite");
+    expect(picked.nextLabel).toBe("Write challenger framings");
+    // Challengers drafted: approve (Test boundary).
+    const drafted = resolveProjectStage({
+      ...done, hasStudy: true, hasStudyBaseline: true, hasStudyChallengers: true,
+    });
+    expect(drafted.journey).toBe("test");
+    expect(drafted.nextLabel).toBe("Approve and run the panel");
+    // Approved: run.
+    expect(resolveProjectStage({ ...done, hasApprovedResonanceStudy: true }).journey).toBe("test");
+    // Running and complete stay on Test.
+    expect(resolveProjectStage({ ...done, hasActiveResonanceRun: true }).journey).toBe("test");
+    expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).journey).toBe("test");
+  });
+
+  it("study stages outrank the bare Results stage but never an approved/running/complete study", () => {
+    // Approved study wins over draft flags (drafts of a second study do not regress guidance).
+    const s = resolveProjectStage({
+      ...done, hasStudy: true, hasStudyBaseline: true, hasApprovedResonanceStudy: true,
+    });
+    expect(s.nextLabel).toBe("Run the simulation study");
+  });
+
+  it("audit-setup stages carry no journey position", () => {
+    expect(resolveProjectStage({ ...base, intakeComplete: false }).journey).toBeNull();
+    expect(resolveProjectStage({ ...base, hasMatrix: false }).journey).toBeNull();
+    expect(resolveProjectStage(base).journey).toBeNull();
+    expect(resolveProjectStage({ ...base, hasActiveRun: true }).journey).toBeNull();
+  });
+
+  it("no dead ends: every stage with a nextLabel carries a nextPath and a hint", () => {
+    const states = [
+      { ...base, intakeComplete: false },
+      { ...base, hasMatrix: false },
+      { ...base, hasApprovedMatrix: false },
+      base,
+      { ...base, hasActiveRun: true },
+      { ...base, hasActiveResonanceRun: true },
+      done,
+      { ...done, hasStudy: true },
+      { ...done, hasStudy: true, hasStudyBaseline: true },
+      { ...done, hasStudy: true, hasStudyBaseline: true, hasStudyChallengers: true },
+      { ...done, hasApprovedResonanceStudy: true },
+      { ...done, hasActiveResonanceRun: true },
+      { ...done, hasCompletedResonanceRun: true },
+    ];
+    for (const state of states) {
+      const stage = resolveProjectStage(state);
+      expect(stage.hint.length).toBeGreaterThan(0);
+      if (stage.nextLabel !== null) expect(stage.nextPath).not.toBeNull();
+    }
+  });
+});

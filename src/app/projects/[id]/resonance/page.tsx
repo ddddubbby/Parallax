@@ -7,7 +7,10 @@ import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
 import { type PanelPersona } from "@/core/resonance";
 import { listResonanceStudies } from "@/db/repositories/resonance";
-import { getProjectSummary } from "@/db/repositories/runner";
+import { getProjectPipelineState, getProjectSummary } from "@/db/repositories/runner";
+import { resolveProjectStage } from "@/core/pipeline";
+import { JourneyRail } from "@/components/journey-rail";
+import { NextStepCard } from "@/components/next-step-card";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +26,13 @@ export default async function ResonanceLibraryPage({
 }) {
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const [project, studies] = await Promise.all([getProjectSummary(id), listResonanceStudies(id)]);
+  const [project, studies, pipeline] = await Promise.all([
+    getProjectSummary(id),
+    listResonanceStudies(id),
+    getProjectPipelineState(id),
+  ]);
   if (project === null) notFound();
+  const stage = resolveProjectStage(pipeline);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -45,17 +53,27 @@ export default async function ResonanceLibraryPage({
           <NewStudyDialog projectId={id} />
         </div>
       </div>
+      <div className="mb-4"><JourneyRail current={stage.journey} /></div>
       <p className="mb-6 max-w-3xl text-sm leading-6 text-ink/70">
         Library of Simulation Layer studies. Open a study for design, runs, results, and evidence.
         Completed headlines also appear under Results → Simulation on the Evidence dashboard (C-12).
       </p>
 
       {studies.length === 0 ? (
-        <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-6 text-center sm:p-8">
-          <p className="label-mono text-sm text-ink/60">No Simulation studies yet</p>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-ink/65">
-            Create a study, add buyer-panel personas and framing variants, then approve its immutable definition before configuring a run.
-          </p>
+        <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-6 sm:p-8">
+          <p className="label-mono text-center text-sm text-ink/60">No Simulation studies yet</p>
+          {pipeline.hasCompletedRun ? (
+            <p className="mx-auto mt-2 max-w-xl text-center text-sm leading-6 text-ink/65">
+              Create a study to test challenger framings against what AI says about you today, measured as ΔPI by a synthetic panel. Use “New study” above to start.
+            </p>
+          ) : (
+            <div className="mx-auto mt-4 max-w-2xl">
+              <p className="mb-4 text-center text-sm leading-6 text-ink/65">
+                Studies test challenger framings against measured AI responses — so the audit comes first.
+              </p>
+              <NextStepCard stage={stage} projectId={id} />
+            </div>
+          )}
         </section>
       ) : (
         <div className="flex flex-col gap-3">
