@@ -34,6 +34,25 @@ describe("M43 shared UI contracts", () => {
     expect(loading).not.toContain("animate-pulse");
   });
 
+  it("M47/D-118: LocalViewTabs and ReportRunSwitcher use local pending transitions", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const tabs = await fs.readFile(
+      path.join(process.cwd(), "src/components/local-view-tabs.tsx"),
+      "utf8",
+    );
+    const switcher = await fs.readFile(
+      path.join(process.cwd(), "src/components/report/report-run-switcher.tsx"),
+      "utf8",
+    );
+    expect(tabs).toContain("useTransition");
+    expect(tabs).toContain("Opening section…");
+    expect(tabs).toContain("aria-busy={isPending || undefined}");
+    expect(switcher).toContain("useTransition");
+    expect(switcher).toContain("Opening report run…");
+    expect(switcher).toContain("aria-busy={isPending || undefined}");
+  });
+
   it("M46/D-117: Simulation wizard uses Persona copy, full-response dialog, and draw math", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");

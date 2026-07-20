@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Button, Field, InlineStatus, Input, Select, Stamp, Textarea } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
@@ -103,7 +102,6 @@ function WorkspaceInner({
   elapsedLabel: string;
   snapshots: Array<{ id: string; annotationId: string; gapClassificationId: string | null; label: string }>;
 }) {
-  const router = useRouter();
   const [stage, setStage] = useState<Stage>(defaultStage(state, initialGaps.length > 0));
   const [, startTransition] = useTransition();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -149,7 +147,6 @@ function WorkspaceInner({
         else {
           if (dirtyKey) setDirtySource(dirtyKey, false);
           onSuccess?.();
-          router.refresh();
         }
       } catch {
         setError("The request did not complete. Your unsaved work remains on this page; retry the action.");

@@ -142,7 +142,6 @@ export function MatrixBoard({
         });
       } finally {
         onSettled?.();
-        router.refresh();
       }
     });
   }

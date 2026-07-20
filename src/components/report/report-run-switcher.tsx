@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
-import { Select } from "@/components/ui";
+import { useRef, useState, useTransition } from "react";
+import { InlineStatus, Select } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import { useUnsavedEdit } from "@/components/unsaved-edit";
 import { withViewParam } from "@/core/views";
@@ -24,6 +24,7 @@ export function ReportRunSwitcher({
   const searchParams = useSearchParams();
   const { dirty, clearDirty } = useUnsavedEdit();
   const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const selectRef = useRef<HTMLSelectElement | null>(null);
   const view = searchParams.get("view") ?? undefined;
   if (runs.length < 2) return null;
@@ -32,17 +33,25 @@ export function ReportRunSwitcher({
     const href = view
       ? withViewParam(`/projects/${projectId}/report`, view, { runId: nextRunId })
       : `/projects/${projectId}/report?runId=${nextRunId}`;
-    router.push(href);
+    startTransition(() => {
+      router.push(href);
+    });
   }
 
   return (
     <>
-      <label className="mb-6 flex max-w-xl flex-col gap-1">
+      {isPending && (
+        <InlineStatus className="mb-4" aria-busy="true">
+          Opening report run…
+        </InlineStatus>
+      )}
+      <label className="mb-6 flex max-w-xl flex-col gap-1" aria-busy={isPending || undefined}>
         <span className="label-mono text-xs text-ink/60">Report run</span>
         <Select
           ref={selectRef}
           className="font-mono text-xs"
           value={runId}
+          disabled={isPending}
           onChange={(event) => {
             const nextRunId = event.target.value;
             if (dirty) {

@@ -1,28 +1,27 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M46 product, milestone state, next action, and integration target · TRACKER: M46_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M47 product, milestone state, next action, and integration target · TRACKER: M47_BUILD_PLAN.md
 
-# STATUS.md — M46 control plane
+# STATUS.md — M47 control plane
 
-> Read this file first in the `m46` worktree. It describes only this branch (D-112).
+> Read this file first in the `m47` worktree. It describes only this branch (D-112).
 
 | Field | Value |
 |---|---|
-| **Active product** | Resonance authenticated operator web product — M46 trustworthy progress and Simulation readiness (D-117) |
-| **Product contract** | [PRD.md](PRD.md) (§8.35; audit measurement semantics unchanged; Simulation draw-floor enforcement strengthens existing `n≥30`, never loosens) |
-| **Build plan** | [M46_BUILD_PLAN.md](M46_BUILD_PLAN.md) |
-| **Branch** | `m46`, cut from `main` at `61e573c` (post-M45 merge); integration target `main` (D-113) |
-| **Current milestone** | M46 — balanced brand order, persistent framing-batch progress, stage-aware ETA, Persona copy, live Simulation draw floor |
-| **Milestone state** | M46 complete (P0–P5); ready to merge |
-| **Next action** | Open PR `m46` → `main`; archive `M46_BUILD_PLAN.md` + prune M46 BUILD_NOTES in the merge commit (D-025/D-113) |
-| **Blocked on** | Nothing — all P5 gates green |
+| **Active product** | Resonance authenticated operator web product — M47 transition feedback and refresh cleanup (D-118) |
+| **Product contract** | [PRD.md](PRD.md) (§8.36; no measurement/schema change) |
+| **Build plan** | [M47_BUILD_PLAN.md](M47_BUILD_PLAN.md) |
+| **Branch** | `m47`, cut from `main` at `ec9f2f8` (post-M46 merge PR #7); integration target `main` (D-113) |
+| **Current milestone** | M47 — reachable route loading, same-segment pending feedback, redundant refresh removal |
+| **Milestone state** | M47 complete (P0–P4); ready to merge |
+| **Next action** | Open PR `m47` → `main`; archive `M47_BUILD_PLAN.md` + prune M47 BUILD_NOTES in the merge commit (D-025/D-113) |
+| **Blocked on** | Nothing — gates green |
 | **Parked product** | Resonance GEO agent — parked without further notice (D-116); branches/docs/code untouched and recoverable. Codebook framing workflow remains read-only historical (D-114) |
 
-## M46 phase ledger
+## M47 phase ledger
 
 | Phase | Scope | State |
 |---|---|---|
-| P0 | Governance: D-117, archive M44/M45, STATUS, plan, PRD §8.35 | Complete |
-| P1 | Migration 0021 + balanced frozen brand order | Complete |
-| P2 | Persistent framing-extraction batches + progress UI | Complete |
-| P3 | Stage-aware run progress + EWMA ETA | Complete |
-| P4 | Persona copy, Simulation math, draw floor, full-response dialog | Complete |
-| P5 | Full gates + interactive Chrome verification | Complete this session |
+| P0 | Governance: archive M46, D-118, STATUS, plan, PRD §8.36 | Complete |
+| P1 | Reachable `projects` / `[id]` loading + sync layout Suspense split | Complete |
+| P2 | LocalViewTabs + ReportRunSwitcher pending feedback | Complete |
+| P3 | Remove duplicate `router.refresh` after `revalidatePath` | Complete |
+| P4 | Playwright + source contract + full gates | Complete |

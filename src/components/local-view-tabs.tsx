@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type MouseEvent } from "react";
+import { useRef, useState, useTransition, type MouseEvent } from "react";
 import { cn } from "@/core/cn";
+import { InlineStatus } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import { useUnsavedEdit } from "@/components/unsaved-edit";
 
@@ -12,6 +13,16 @@ export type LocalViewTab = {
   label: string;
   href: string;
 };
+
+function isUnmodifiedPrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
 
 /** M32 / D-088: vertical-or-horizontal local view switcher for one-section pages. */
 export function LocalViewTabs({
@@ -26,13 +37,24 @@ export function LocalViewTabs({
   const router = useRouter();
   const { dirty, clearDirty } = useUnsavedEdit();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const returnFocusRef = useRef<HTMLAnchorElement | null>(null);
 
+  function navigate(href: string) {
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
   function onTabClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
-    if (!dirty) return;
+    if (!isUnmodifiedPrimaryClick(event)) return;
     event.preventDefault();
-    returnFocusRef.current = event.currentTarget;
-    setPendingHref(href);
+    if (dirty) {
+      returnFocusRef.current = event.currentTarget;
+      setPendingHref(href);
+      return;
+    }
+    navigate(href);
   }
 
   function closeConfirmation() {
@@ -45,14 +67,20 @@ export function LocalViewTabs({
     const href = pendingHref;
     clearDirty();
     setPendingHref(null);
-    router.push(href);
+    navigate(href);
   }
 
   return (
     <>
+      {isPending && (
+        <InlineStatus className="mb-4" aria-busy="true">
+          Opening section…
+        </InlineStatus>
+      )}
       <nav
         className="local-tab-rail -mx-1 mb-6 flex gap-1 overflow-x-auto px-1 pb-1"
         aria-label={label}
+        aria-busy={isPending || undefined}
       >
         {tabs.map((tab) => {
           const active = tab.id === activeId;

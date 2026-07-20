@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button, Field, InlineStatus, Input, Select, Stamp, Textarea } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
@@ -118,7 +117,6 @@ export function SetupClient({
   /** M32: one Setup section at a time via URL `view`. */
   view?: "basics" | "brands" | "personas" | "markets" | "attributes" | "facts";
 }) {
-  const router = useRouter();
   const [, startTransition] = useTransition();
   const [actionState, setActionState] = useState<{
     key: string;
@@ -156,7 +154,6 @@ export function SetupClient({
           message: "This change could not be saved. Your input is still here; try again.",
         });
       }
-      router.refresh();
     });
   }
 

@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M46 execution — trustworthy progress, balanced brand order, framing-batch persistence, stage-aware ETA, Simulation Persona clarity, live draw-floor enforcement · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M46 execution — trustworthy progress, balanced brand order, framing-batch persistence, stage-aware ETA, Simulation Persona clarity, live draw-floor enforcement · DISPOSITION: EXECUTED (merged to main via PR #7; trunk reconciles under M47/D-118)
 
 # M46_BUILD_PLAN.md — Trustworthy Progress and Simulation Readiness
 

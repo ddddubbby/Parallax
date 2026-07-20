@@ -1,10 +1,10 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M46 trustworthy progress and Simulation readiness · TRACKER: M46_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M47 transition feedback and refresh cleanup · TRACKER: M47_BUILD_PLAN.md
 
 # PRD.md - Resonance (Parallax engine) MVP
 
-> **STATUS: M46 (D-117) COMPLETE ON `m46` — PENDING MERGE TO `main` (2026-07-19).** Trustworthy progress + Simulation readiness shipped: balanced comparison brand order, persistent framing-batch progress, stage-aware run ETA, baseline full-response selection, Persona terminology, and live Simulation draw-floor enforcement (§8.35). Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen at M34A/M43–M45. M44's See → Pick → Rewrite → Test journey (D-114, §8.34) stays governing. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M47 (D-118) ACTIVE ON `m47` (2026-07-20).** Transition feedback: reachable route loading, same-segment tab/run pending acknowledgment, and removal of redundant `router.refresh` after `revalidatePath` (§8.36). M46 (D-117) trustworthy progress + Simulation readiness is merged to `main` (§8.35). Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen. M44's See → Pick → Rewrite → Test journey (D-114, §8.34) stays governing. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
-> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44/M45 plans are in `docs/history/`.
+> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44–M46 plans are in `docs/history/`.
 
 ---
 
@@ -499,7 +499,17 @@ Operator-trust surfaces only — measurement semantics unchanged:
 5. **Persona terminology** — Simulation UI says “Persona” / “Persona name”; stored `PanelPersona` / protocol versions unchanged.
 6. **Live draw floor** — show `personas × repetitions` and total-call math before approval/run creation. Mock and `live_validation` may run below 30 draws per framing/provider with a directional warning. `live_audit` Simulation creation is blocked when draws per framing/provider are below 30 (with `k=5`, ≥6 personas). Sub-six-persona study approval warns preview-only; personas are never invented; providers never pool toward the floor.
 
-Execution playbook: `M46_BUILD_PLAN.md`. Schema: migration `0021_m46_progress_and_brand_order.sql`.
+Execution playbook (historical): `docs/history/M46_BUILD_PLAN.md`. Schema: migration `0021_m46_progress_and_brand_order.sql`.
+
+### 8.36 Transition feedback and refresh cleanup (M47, D-118)
+
+Navigation must acknowledge work immediately. No schema, metric, or measurement change:
+
+1. **Reachable route loading** — `loading.tsx` at `projects/` and `projects/[id]/` using existing `PageLoading`, so library→workspace and nested project navigations show feedback while async layouts/pages resolve. Existing layout Suspense boundaries stay for client hydration only.
+2. **Same-segment pending controls** — `LocalViewTabs` and `ReportRunSwitcher` show local pending status (`InlineStatus` + `aria-busy`) via `useTransition` for unmodified in-app `?view=` / `runId=` changes; modified-click and unsaved-edit confirmation unchanged.
+3. **No duplicate refresh** — client `router.refresh()` is not called after server actions that already `revalidatePath`, except login (post-cookie) and async framing-batch terminal handling.
+
+Execution playbook: `M47_BUILD_PLAN.md`. No migration.
 
 ## 9. Data model summary
 
@@ -564,10 +574,14 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M43 | Authenticated Resonance web UI refinement | Every route/state in `M43_BUILD_PLAN.md` is reviewed; accessible/responsive/live-browser and automated gates pass; the diff contains no product, schema, API, metric, methodology, cost, agent, or brand-site change | Done |
 | M44 | Simplified simulation methodology + guided path (D-114) | See → Pick → Rewrite → Test; theme-organized verbatim baselines; framing workflow read-only historical; `deriveNextStep` guidance; blind extractor themes v2 | Done |
 | M45 | Durable brand-name resolution (D-115) | Compact-key equality + unique containment; PM-9 same matcher; collision guard; $0 re-resolve; resolution-health card | Done |
-| M46 | Trustworthy progress + Simulation readiness (D-117) | Balanced frozen brand order; persistent framing batches; stage-aware ETA; Persona copy; full-response baseline dialog; live Simulation draw-floor enforcement; migration 0021 | Done — pending merge |
+| M46 | Trustworthy progress + Simulation readiness (D-117) | Balanced frozen brand order; persistent framing batches; stage-aware ETA; Persona copy; full-response baseline dialog; live Simulation draw-floor enforcement; migration 0021 | Done |
+| M47 | Transition feedback + refresh cleanup (D-118) | Reachable `projects`/`[id]` loading; LocalViewTabs + ReportRunSwitcher pending; remove duplicate `router.refresh` after `revalidatePath` | Done — pending merge |
 
 Progress notes:
 
+- 2026-07-20 M47 P4 (D-118): full gates — lint 0-warn, docs:check, typecheck, Vitest 853/0, Playwright 18/18 (incl. delayed-RSC transition feedback), build green. Ready for `m47` → `main`.
+- 2026-07-20 M47 P0 (D-118): post-M46 trunk — archived `M46_BUILD_PLAN.md`, pruned M46 BUILD_NOTES, opened `M47_BUILD_PLAN.md` + STATUS/PRD §8.36.
+- 2026-07-19 M46 merged to `main` via PR #7 (D-117). Archive/prune completed on `m47` P0 (merge commit itself left archival owed).
 - 2026-07-19 M46 P5 (D-117): full gates — lint 0-warn, docs:check, typecheck, Vitest 848/0, Playwright 17/17 (incl. M46 math/floor/Persona/full-response), build green. Ready for `m46` → `main`.
 - 2026-07-19 M46 P4 (D-117): Persona terminology; observation-quote picker + full-response dialog; Simulation math on approve/run; live_audit blocked below n≥30 draws/framing/provider (repo backstop); mock/validation preview warnings. Gates: lint 0-warn, typecheck, Vitest 848/0; docs:check.
 - 2026-07-19 M46 P3 (D-117): stage-aware run progress — generation + extraction/scoring lanes, overall pipeline vs planned calls, EWMA ETA (α=0.35, outlier filter, historical seed), pause/offline suppression, completed-with-gap warning. Gates: lint 0-warn, typecheck, Vitest 842/0; docs:check.
