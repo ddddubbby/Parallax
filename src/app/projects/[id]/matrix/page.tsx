@@ -6,6 +6,7 @@ import { countAspects, evaluatePackCoverage } from "@/core/coverage";
 import { isUuid } from "@/core/id";
 import { scanUnbrandedCells } from "@/core/matrix";
 import { frameAspectsForCell } from "@/core/prompt-templates";
+import { e2eNavDelay } from "@/app/e2e-nav-delay";
 import { parseMatrixView, withViewParam } from "@/core/views";
 import {
   getMarketLabelsForProject,
@@ -28,6 +29,7 @@ export default async function MatrixPage({
   const { v, view: viewRaw } = await searchParams;
   const view = parseMatrixView(viewRaw);
   if (!isUuid(id)) notFound();
+  await e2eNavDelay();
 
   const inputs = await getMatrixInputs(id);
   if (!inputs) notFound();

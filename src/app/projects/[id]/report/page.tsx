@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ReportClient } from "@/components/report/report-client";
 import { ReportRunSwitcher } from "@/components/report/report-run-switcher";
+import { e2eNavDelay } from "@/app/e2e-nav-delay";
 import { isUuid } from "@/core/id";
 import { reportSectionsForKind } from "@/core/report-templates";
 import { parseReportView } from "@/core/views";
@@ -22,6 +23,7 @@ export default async function ReportPage({
   const { id } = await params;
   const { runId: requestedRunId, view: viewRaw } = await searchParams;
   if (!isUuid(id)) notFound();
+  await e2eNavDelay();
   const project = await getProjectSummary(id);
   if (project === null) notFound();
 

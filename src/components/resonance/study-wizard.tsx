@@ -149,7 +149,6 @@ export function StudyWizard({
       return false;
     }
     clearDirty();
-    router.refresh();
     return true;
   }
 
@@ -204,7 +203,6 @@ export function StudyWizard({
       else {
         if (dirtyKey) setDirtySource(dirtyKey, false);
         onSuccess?.();
-        router.refresh();
       }
       setPendingKey(null);
     });
@@ -275,7 +273,6 @@ export function StudyWizard({
       else {
         setConfirmation(null);
         clearDirty();
-        router.refresh();
       }
       setPendingKey(null);
     });

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { requeueJob } from "@/modules/runner/actions";
@@ -37,7 +36,6 @@ function stateTone(state: string) {
 }
 
 export function DebugJobsTable({ jobs, events }: { jobs: JobRow[]; events: EventRow[] }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<{
@@ -60,7 +58,6 @@ export function DebugJobsTable({ jobs, events }: { jobs: JobRow[]; events: Event
         tone: result.ok ? "success" : "danger",
         message: result.ok ? `Job ${job.id.slice(0, 8)} requeued.` : result.error,
       });
-      router.refresh();
     });
   }
 

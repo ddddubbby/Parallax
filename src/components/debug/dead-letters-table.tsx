@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, InlineStatus } from "@/components/ui";
 import { reExtract } from "@/modules/extraction/actions";
@@ -17,7 +16,6 @@ interface DeadLetterRow {
 
 /** AD-2: dead-lettered extractions with re-extract, parallel to the jobs table. */
 export function DeadLettersTable({ rows }: { rows: DeadLetterRow[] }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<{
@@ -40,7 +38,6 @@ export function DeadLettersTable({ rows }: { rows: DeadLetterRow[] }) {
         tone: result.ok ? "success" : "danger",
         message: result.ok ? `Response ${row.responseId.slice(0, 8)} queued for re-extraction.` : result.error,
       });
-      router.refresh();
     });
   }
 

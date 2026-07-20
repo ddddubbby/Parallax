@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Fragment, useRef, useState, useTransition } from "react";
 import { AppConfirmDialog, AppDialog } from "@/components/ui/dialog";
 import { AppMenu, AppMenuItem, AppMenuSeparator } from "@/components/ui/menu";
@@ -56,7 +55,6 @@ function statusTone(status: string): "ok" | "warn" | "danger" | "ink" {
 }
 
 export function CredentialsPanel({ credentials }: { credentials: CredentialRow[] }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
@@ -133,7 +131,6 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
       setNotice(
         `${LIVE_PROVIDERS.find((provider) => provider.id === targetProvider)?.displayName ?? targetProvider} credential ${dialogMode === "rotate" ? "rotated" : "saved"}.`,
       );
-      router.refresh();
     });
   }
 
@@ -158,7 +155,6 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
         tone: result.ok ? "success" : "danger",
         message: result.ok ? successMessage : result.error,
       });
-      router.refresh();
     });
   }
 
@@ -208,7 +204,6 @@ export function CredentialsPanel({ credentials }: { credentials: CredentialRow[]
       setDeleteTarget(null);
       setNotice(`${target.providerId} credential deleted.`);
       window.setTimeout(() => deleteTriggerRef.current?.focus(), 0);
-      router.refresh();
     });
   }
 

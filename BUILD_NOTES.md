@@ -188,43 +188,21 @@ DONE: (1) Removed the unused `CATEGORY_ARCHETYPES` import at `src/core/semantic.
 NEXT (this session, in progress): fast-forward `main` to trunk HEAD (pure ff, `main` is ancestor), run `docs:check`, push `main`, add `.github/CODEOWNERS` + branch protection, then reconcile+PR `m43`. `gh` is NOT installed on this machine — PR opening and branch-protection API need `gh` (or the GitHub web UI); flagged to operator.
 GOTCHAS: Branch protection modifies repo access-control settings — handed to the operator to apply, not done autonomously. The `.claude/worktrees/strange-carson-2839bc` nested worktree is a local artifact only; it never reaches CI.
 
-## S-112 / 2026-07-19 / M46 P0: trustworthy progress — governance (Fable)
-GOAL: Reconcile the stale post-M45 trunk control plane and open M46 (D-117): balanced brand order, persistent framing batches, stage-aware ETA, Persona copy, live Simulation draw floor.
-DONE: Branch `m46` cut from `main@61e573c`. Archived `M44_BUILD_PLAN.md` + `M45_BUILD_PLAN.md` to `docs/history/` (DISPOSITION EXECUTED). Pruned merged M44/M45 BUILD_NOTES (S-107–S-111). Appended D-117 (no supersession). Created `M46_BUILD_PLAN.md` (D-090: multi-phase + migration 0021). STATUS/PRD §8.35/tracker/MASTER_CONTEXT index retargeted to M46.
-NEXT: P1 — migration `0021_m46_progress_and_brand_order.sql` + balanced frozen `{brand_list}` / `brand_order_json` for comparison cells (templates, generation/regeneration, seeds, property tests).
-GOTCHAS: M43_BUILD_PLAN.md remains root-ACTIVE (archival still deferred from its merge — out of M46 scope unless operator asks). Ten calls from 2 framings × 1 persona × k=5 is five draws/framing/provider — below floor; do not invent personas.
+## S-112..S-117 / 2026-07-19 / M46: merged to main via PR #7, entries truncated per Rule 2 (D-025)
+GOAL/DONE: M46 (D-117) trustworthy progress + Simulation readiness — graduated into `PRD.md` §8.35, `DECISIONS.md` D-117, and `docs/history/M46_BUILD_PLAN.md`.
+NEXT: Nothing pending from M46. Current work is M47 (D-118) on `m47`.
+GOTCHAS: Archive/prune ran on `m47` P0 because PR #7's merge commit left the D-025 ritual owed (same pattern as M44/M45 → M46 P0).
 
-## S-113 / 2026-07-19 / M46 P1: migration 0021 + balanced brand order (Fable)
-GOAL: Ship migration 0021 and replace client-first comparison grammar with balanced frozen `{brand_list}` / `brand_order_json`.
-DONE: **Migration** `0021_m46_progress_and_brand_order.sql` — nullable `prompt_cells.brand_order_json`; `framing_observation_batches` + active-batch unique index; observation `batch_id`/`locked_at`/`locked_by` + states `queued|running|valid|failed`. Core: `trackedBrandRoster` / `balancedBrandOrders` / `rotateBrandOrder` / `nextBalancedBrandOrder`; `allocateMatrix` one shuffle + cyclic rotate; `competitor_order_json` retained as brand-order-minus-client. Templates (v1–v5 × 3 archetypes) → `{brand_list}`; seed refreshes stored comparison text. Actions: regen keeps order unless roster changed; addCell takes next rotation. Repo `persistableOrders` backstop. Ranking prompts stay unbranded (PM-9).
-VERIFIED: lint 0-warn; typecheck; Vitest 823/0 (12 skipped); matrix property tests (membership, spread ≤1, client not fixed first, reproducible seed); regen freeze DB test; migration-metadata for 0021; C-4 approval freeze still green.
-NEXT: P2 — framing observation batch enqueue/claim/finalize + study-page progress ring (schema already in 0021).
-GOTCHAS: Dev DB needs `pnpm db:migrate` before generating matrices against it. copyToNewDraft reconstructs client-first `brand_order_json` for pre-M46 nulls without rewriting frozen `resolvedText`.
+## S-118 / 2026-07-20 / M47 P0: transition feedback — governance (Fable)
+GOAL: Open M47 (D-118): reachable route loading, same-segment pending tabs, redundant refresh removal.
+DONE: Branch `m47` cut from `main@ec9f2f8`. Archived `M46_BUILD_PLAN.md` to `docs/history/` (DISPOSITION EXECUTED). Pruned M46 BUILD_NOTES (S-112–S-117). Appended D-118 (no supersession). Created compact `M47_BUILD_PLAN.md` (D-112 tracker). STATUS/PRD §8.36/MASTER_CONTEXT index retargeted to M47.
+NEXT: P1–P4 implementation (loading boundaries, pending tabs, refresh allowlist, gates).
+GOTCHAS: M43_BUILD_PLAN.md remains root-ACTIVE (archival still deferred). Cold `next dev` compile time is out of M47 scope.
 
-## S-114 / 2026-07-19 / M46 P2: persistent framing-extraction batches + progress UI (Fable)
-GOAL: Theme refinement enqueues a durable worker batch with progress that survives navigation, refresh, and worker restart; C-2 pauses mid-batch with Resume.
-DONE: DTO `src/core/framing-batch.ts`. Repo enqueue/`claimFramingObservations` (SKIP LOCKED)/reclaim/complete/pause/resume/`maybeFinalize`/progress (workerOffline via heartbeats). Service: `enqueueFramingObservations` (active-batch check first), `processClaimedFramingObservation` (C-2 before every live item), `tickFramingObservationBatches`, `resumeFramingObservationBatch`; sync `buildFramingObservations` kept for tests. Worker tick + `recordHeartbeat("parallax-worker")`. Actions: enqueue returns `batchId`; fetch/resume progress. UI `FramingBatchProgress` (SVG ring, ARIA progressbar, 1.5s poll, Resume, reduced-motion / `transition-standard`). Wired on study wizard + study page.
-VERIFIED: lint 0-warn; typecheck; Vitest 828/0 (12 skipped); docs:check; framing-batch unit + observations enqueue/claim/finalize, C-2 pause, stale-lock recovery, duplicate-active-batch rejection.
-NEXT: P3 — stage-aware run progress + EWMA ETA on run detail.
-GOTCHAS: Second enqueue must reject on active batch before the “all already have observations” path (queued rows are not pending). Live framing-batch UX still needs a running worker.
-
-## S-115 / 2026-07-19 / M46 P3: stage-aware run progress + EWMA ETA (Fable)
-GOAL: Run detail shows generation + extraction/scoring lanes, overall pipeline completion, and one approximate ETA (EWMA) with pause/offline suppression.
-DONE: Core `src/core/run-progress.ts` — latest-extraction overall-complete rule (crypto no-extraction path), audit/Simulation labels, EWMA α=0.35 over latest 20 intervals, 3× rolling-median outlier filter, historical seed from compatible prior runs, `formatApproxRemaining` reuse. Repo: `listJobPipelineRows`, `listCompatiblePriorCompletionTimestamps`; `getRunDetail` returns `stageProgress` + `eta`. UI `RunProgress`: overall calls bar, ETA line, two stage lanes, completed-with-gap warning; e2e aria-valuetext → `calls complete`.
-VERIFIED: lint 0-warn; typecheck; Vitest 842/0 (12 skipped); docs:check; unit matrix for counting/EWMA/suppress/labels/gap; fetchRunDetail asserts stage labels + sparse ETA.
-NEXT: P4 — Persona copy, Simulation math preview, live draw-floor block, full-response baseline dialog.
-GOTCHAS: Run state can be `completed` while extraction still pending (generation-finished); gap warning covers that. ETA needs ≥2 filtered intervals (current and/or seed).
-
-## S-116 / 2026-07-19 / M46 P4: Persona copy, Simulation math, draw floor, full-response dialog (Fable)
-GOAL: Baseline picker clarity + Persona terminology + pre-flight Simulation math + live_audit draw-floor enforcement (n≥30 per framing/provider).
-DONE: Core `resonance-draws.ts` (drawsPerVariant / totalCalls / drawFloorMet / preview-only personas≥6 at k=5). Picker DTO adds `observationQuote`; rows show quote else excerpt; widened `AppDialog` with provider/mode/model/date, prompt, full response, Choose-as-baseline (does not bypass Save/stamp). Wizard Buyer type→Persona; step-4 math + preview-only warn. `projectRunCost` returns draw fields; action+repo block `live_audit` below floor; mock/live_validation warn but allow. Run form shows math + BELOW FLOOR.
-VERIFIED: lint 0-warn; typecheck; Vitest 848/0 (12 skipped); docs:check; draw-math unit tests; service.test live_audit rejection + mock projection fields; UI contract for Persona/dialog copy.
-NEXT: P5 — full gates + interactive Chrome verification (Playwright/axe/build evidence).
-GOTCHAS: Providers never pool toward the floor. Draw-floor check runs before credential preflight so operators see the persona fix first.
-
-## S-117 / 2026-07-19 / M46 P5: full gates + Chrome verification (Fable)
-GOAL: Close M46 with lint/docs/typecheck/Vitest/Playwright/axe/build green and BUILD_NOTES evidence for framing batch, stage ETA, full-response dialog, below-floor + floor-met Simulation configs.
-DONE: Gates green. E2E `M46:` covers DRAW FLOOR MET (seeded n=30), Simulation math + preview warning, live_audit BELOW FLOOR (footprint props so floor shows without live credentials), Persona copy, View full response → Choose as baseline. Run overview asserts generation + extraction lanes. Framing-batch + EWMA covered by Vitest (P2/P3). Run form accepts `panelCount`/`framingCount` from study footprint.
-VERIFIED: lint 0-warn; docs:check; typecheck; Vitest 848/0 (12 skipped); Playwright 17/17; `pnpm build` green.
-NEXT: PR `m46` → `main`; archive plan + prune M46 notes in merge commit.
-GOTCHAS: Live providers clear on mode switch — footprint props keep draw math/floor visible before a provider is selected.
+## S-119 / 2026-07-20 / M47 P1–P4: loading, pending controls, refresh cleanup, gates (Fable)
+GOAL: Immediate navigation acknowledgment; remove duplicate refreshes; prove with delayed-RSC Playwright + allowlist test.
+DONE: `projects/loading.tsx` + `[id]/loading.tsx`; sync `ProjectLayout` Suspense split so layout data awaits are reachable; `LocalViewTabs`/`ReportRunSwitcher` `useTransition` + `InlineStatus`/`aria-busy`; removed 11 `router.refresh()` after `revalidatePath` (kept login + framing-batch terminal); allowlist Vitest; `e2e/transition-feedback.spec.ts` (cookie-gated `e2eNavDelay`); Chrome desktop/390/reduced-motion covered by existing journey specs.
+VERIFIED: lint 0-warn; docs:check; typecheck; Vitest 853/0 (12 skipped); Playwright 18/18; `pnpm build` green.
+WARM-NAV SAMPLE (`pnpm build` then `next start`, library→workspace click, wall-clock to first loading/`aria-busy`): not separately timed this session — Playwright presence checks prove acknowledgment under stretched RSC; if production warm nav still feels >~500ms after merge, open a measurement follow-up (D-118), do not expand M47.
+NEXT: PR `m47` → `main`; archive plan + prune M47 notes in merge commit.
+GOTCHAS: Async layouts that await before returning never show a sibling Suspense — must split sync shell + async chrome. Prefetch can hide loading UI in tests; cookie-gated server delay is more reliable than route interception.
