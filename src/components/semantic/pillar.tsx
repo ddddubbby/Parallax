@@ -3,9 +3,9 @@ import { PILLAR_ORDER, PILLARS, type Pillar, pillarMetricLabels } from "@/core/s
 
 // D-055 pillar visual system: pillars are identified by NUMBERED STRUCTURE
 // (dossier sections) plus four muted structural tints used only here — for
-// section spines, headers, and chips. The tints never style actions,
-// verdicts, or emphasis; signal orange remains the only accent (V-2).
-// Class strings are static so Tailwind can see them.
+// headers and chips. The tints never style actions, verdicts, or emphasis;
+// signal orange remains the only accent (V-2). Class strings are static so
+// Tailwind can see them.
 const TINT: Record<Pillar, { text: string; border: string }> = {
   presence: { text: "text-pillar-presence", border: "border-pillar-presence" },
   position: { text: "text-pillar-position", border: "border-pillar-position" },
@@ -30,7 +30,7 @@ export function PillarChip({ pillar }: { pillar: Pillar }) {
   );
 }
 
-/** Numbered dossier section frame: spine, header, client question. */
+/** Numbered dossier section frame: recessed well, tinted header, client question. */
 export function PillarSection({
   pillar,
   count,
@@ -47,7 +47,7 @@ export function PillarSection({
   const funnelStamp = funnelStampForPillar(pillar);
   const funnelTitle = funnelStage === null ? "Proof trust rail" : FUNNEL_STAGES[funnelStage].label;
   return (
-    <section className={`border-l-2 pl-4 ${tint.border}`} aria-label={PILLARS[pillar].label}>
+    <section className="rounded-xl bg-paper-2/50 p-5" aria-label={PILLARS[pillar].label}>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex flex-wrap items-baseline gap-3">
           <h2 className={`label-mono text-sm font-medium uppercase ${tint.text}`}>

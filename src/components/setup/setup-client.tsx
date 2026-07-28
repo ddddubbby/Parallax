@@ -98,7 +98,7 @@ function linesToList(value: string): string[] {
 
 function SectionHeader({ n, title, hint }: { n: string; title: string; hint?: string }) {
   return (
-    <div className="mb-3 flex flex-wrap items-baseline gap-3 border-l-2 border-ink/25 pl-4">
+    <div className="mb-3 flex flex-wrap items-baseline gap-3">
       <h2 className="label-mono text-sm font-medium uppercase text-ink/80">
         {n} · {title}
       </h2>
