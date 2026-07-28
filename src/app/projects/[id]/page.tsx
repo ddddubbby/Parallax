@@ -68,7 +68,7 @@ export default async function ProjectHubPage({
           <Link
             key={section.href}
             href={`/projects/${id}/${section.href}`}
-            className="group rounded-r-lg border-l-2 border-ink/20 py-2 pl-4 pr-2 transition-micro hover:border-accent hover:bg-paper-2/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="group rounded-xl bg-paper-2/40 px-4 py-3 transition-micro hover:bg-paper-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="label-mono text-sm font-medium uppercase text-ink/80 group-hover:text-ink">

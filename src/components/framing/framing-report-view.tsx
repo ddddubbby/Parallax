@@ -27,7 +27,7 @@ export function FramingReportView({ report }: { report: FramingReportModel }) {
         </div>
       </header>
 
-      <section className="framing-report-section py-8">
+      <section className="framing-report-section mt-6 rounded-xl bg-paper-2/50 p-6">
         <h2 className="label-mono mb-4 text-sm font-semibold">01 / Decision summary</h2>
         {report.gapOutcome === "no_actionable_gap_identified" ? (
           <p className="text-base leading-7 text-ink/75">
@@ -55,7 +55,7 @@ export function FramingReportView({ report }: { report: FramingReportModel }) {
         )}
       </section>
 
-      <section className="framing-report-section border-t border-ink/15 py-8">
+      <section className="framing-report-section mt-6 rounded-xl bg-paper-2/50 p-6">
         <h2 className="label-mono mb-2 text-sm font-semibold">02 / Descriptive recurrence</h2>
         <p className="mb-4 text-sm leading-6 text-ink/70">
           Denominator: {report.denominator} sampled answer attempts / source jobs ({report.availableResponses} stored responses; {report.unavailableJobs} unavailable). Counts describe this reviewed sample only; they are not population estimates.
@@ -91,17 +91,17 @@ export function FramingReportView({ report }: { report: FramingReportModel }) {
         </div>
       </section>
 
-      <section className="framing-report-section border-t border-ink/15 py-8">
+      <section className="framing-report-section mt-6 rounded-xl bg-paper-2/50 p-6">
         <h2 className="label-mono mb-4 text-sm font-semibold">03 / Positioning used for comparison</h2>
         <p className="mb-2 font-mono text-xs text-ink/65">SOURCE · {report.positioningSource.toUpperCase()}</p>
         <p className="whitespace-pre-wrap break-words text-base leading-7 text-ink/80">{report.positioningText}</p>
       </section>
 
-      <section className="framing-report-section border-t border-ink/15 py-8">
+      <section className="framing-report-section mt-6 rounded-xl bg-paper-2/50 p-6">
         <h2 className="label-mono mb-4 text-sm font-semibold">04 / Evidence excerpts</h2>
         <div className="grid gap-3">
           {report.evidence.slice(0, 16).map((item, index) => (
-            <blockquote key={`${item.variantKey}-${index}`} className="break-inside-avoid border-l-2 border-ink/30 pl-4">
+            <blockquote key={`${item.variantKey}-${index}`} className="break-inside-avoid">
               <p className="text-sm leading-6 text-ink/80">“{item.quote}”</p>
               <footer className="mt-1 font-mono text-xs text-ink/65">
                 {item.associationLabel} · {item.variantKey} · {item.providerId}/{item.modelVersion}/{item.generationMode}
@@ -116,7 +116,7 @@ export function FramingReportView({ report }: { report: FramingReportModel }) {
         )}
       </section>
 
-      <section className="framing-report-section border-t border-ink/15 py-8">
+      <section className="framing-report-section mt-6 rounded-xl bg-paper-2/50 p-6">
         <h2 className="label-mono mb-4 text-sm font-semibold">05 / Method</h2>
         <div className="space-y-3 text-sm leading-6 text-ink/75">
           <p><strong>Review:</strong> {report.reviewerIdentity}; {report.reviewMethod.replaceAll("_", " ")}. {report.reviewDisclosure}</p>
@@ -128,14 +128,14 @@ export function FramingReportView({ report }: { report: FramingReportModel }) {
         <h3 className="label-mono mb-2 mt-6 text-xs font-semibold">Fixed prompts, verbatim</h3>
         <ol className="grid gap-2">
           {report.promptWording.map((prompt) => (
-            <li key={prompt.variantKey} className="break-inside-avoid rounded-lg bg-paper-2/50 px-3 py-2 text-sm leading-6">
+            <li key={prompt.variantKey} className="break-inside-avoid rounded-lg bg-paper px-3 py-2 text-sm leading-6">
               <strong className="font-mono text-xs">{prompt.variantKey}</strong> · {prompt.text}
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="framing-report-section border-t border-ink/15 py-8">
+      <section className="framing-report-section mt-6 rounded-xl bg-paper-2/50 p-6">
         <h2 className="label-mono mb-3 text-sm font-semibold">06 / Recommended next step</h2>
         <p className="text-base leading-7 text-ink/80">
           {report.gapOutcome === "actionable_gap_identified"
