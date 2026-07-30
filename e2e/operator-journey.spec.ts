@@ -30,17 +30,17 @@ test.describe("operator journey smoke", () => {
 
     await page.goto(`${projectBase}/dashboard?view=overview`);
     await expect(page.getByRole("heading", { name: "Evidence dashboard", exact: true })).toBeVisible();
-    await expect(page.getByText("Simulation results").first()).toBeVisible();
+    await expect(page.getByText("Message Lift results").first()).toBeVisible();
 
     await page.goto(`${projectBase}/dashboard?view=simulation`);
-    await expect(page.getByRole("heading", { name: "Simulation results", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Message Lift results", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "← Evidence dashboard", exact: true })).toBeVisible();
 
     await page.goto(`${projectBase}/resonance`);
     await expect(page.locator("main h1").first()).toBeVisible();
   });
 
-  test("D-114: framing is historical and the guided path routes to the Simulation picker", async ({ page }) => {
+  test("D-114: framing is historical and the guided path routes to Message Lift", async ({ page }) => {
     // The hub always shows exactly one guided next step (M44 contract).
     await page.goto("/projects");
     const ledgerFoxRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
@@ -56,20 +56,20 @@ test.describe("operator journey smoke", () => {
     await expect(ledgerFoxRow.getByText(/next: finish intake|open workspace/)).toBeVisible();
 
     // Framing evidence is read-only historical: no review can start, stored
-    // reviews stay readable, and the surface routes to Simulation.
+    // reviews stay readable, and the surface routes to Message Lift.
     await page.goto(`${href}/framing`);
     await expect(page.getByText("HISTORICAL — RETIRED BY D-114")).toBeVisible();
     await expect(page.getByRole("button", { name: "Start review →" })).toHaveCount(0);
-    const toSimulation = page.getByRole("link", { name: "Open Simulation studies →" });
+    const toSimulation = page.getByRole("link", { name: "Open Message Lift →" });
     await expect(toSimulation).toBeVisible();
     await toSimulation.click();
     await expect(page).toHaveURL(/\/resonance$/);
 
-    // The Simulation library wears the journey rail once audit results exist.
+    // The Message Lift library wears the journey rail once audit results exist.
     await expect(page.getByRole("list", { name: "Journey progress" })).toBeVisible();
   });
 
-  test("Simulation results keep engines separate and evidence filters URL-backed", async ({ page }) => {
+  test("Message Lift results keep AI models separate and evidence filters URL-backed", async ({ page }) => {
     await page.goto("/projects");
     const projectRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
     const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
@@ -83,33 +83,33 @@ test.describe("operator journey smoke", () => {
     expect(studyHref).toBeTruthy();
 
     await page.goto(`${studyHref}?view=results`);
-    await expect(page.getByText("MODEL-IMPLIED", { exact: true })).toBeVisible();
-    await expect(page.getByText("UNCALIBRATED", { exact: true })).toBeVisible();
-    await expect(page.getByText(/never pooled across engines/)).toBeVisible();
-    await expect(page.getByText("mean PI · n=30", { exact: true })).toHaveCount(2);
+    await expect(page.getByText("MODEL-IMPLIED", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("UNCALIBRATED", { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/It is a controlled comparison/)).toBeVisible();
+    await expect(page.getByText("buyer response score · 30 responses", { exact: true })).toHaveCount(2);
     await expect(page.getByRole("img", { name: /Evidence-led framing Likert distribution/ })).toBeVisible();
 
-    await page.getByRole("link", { name: "Deltas", exact: true }).click();
+    await page.getByRole("link", { name: "Lift", exact: true }).click();
     await expect(page.getByRole("region", { name: "Simulation deltas table" })).toBeVisible();
-    await expect(page.getByText("DRAW FLOOR MET", { exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "Segments", exact: true }).click();
+    await expect(page.getByText("Enough samples", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Buyer profiles", exact: true }).click();
     await expect(page.getByRole("region", { name: "Simulation segment table" })).toBeVisible();
-    await expect(page.getByText("DIRECTIONAL SLICE", { exact: true }).first()).toBeVisible();
-    await page.getByRole("link", { name: "Excerpts", exact: true }).click();
+    await expect(page.getByText("Profile detail", { exact: true }).first()).toBeVisible();
+    await page.getByRole("link", { name: "Responses", exact: true }).click();
     await expect(page.getByText("LOW", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("HIGH", { exact: true }).first()).toBeVisible();
 
     const resultsAxe = await new AxeBuilder({ page }).analyze();
     expect(
       resultsAxe.violations.filter((violation) => ["critical", "serious"].includes(violation.impact ?? "")),
-      "critical or serious axe violations on Simulation results",
+      "critical or serious axe violations on Message Lift results",
     ).toEqual([]);
 
     await page.goto(`${studyHref}?view=evidence&engine=mock&page=2`);
     await expect(page.getByText("60 responses · page 2 of 3", { exact: true })).toBeVisible();
-    await page.getByRole("combobox", { name: "Stimulus" }).selectOption({ label: "Observed AI framing" });
+    await page.getByRole("combobox", { name: "Message" }).selectOption({ label: "Observed AI framing" });
     await expect(page).toHaveURL(/stimulus=[0-9a-f-]{36}.*page=1/);
-    await page.getByRole("combobox", { name: "Persona" }).selectOption({ label: "Finance operations lead" });
+    await page.getByRole("combobox", { name: "Buyer profile" }).selectOption({ label: "Finance operations lead" });
     await expect(page).toHaveURL(/stimulus=[0-9a-f-]{36}.*persona=finance-ops-lead.*page=1/);
     await expect(page.getByText("30 responses · page 1 of 2", { exact: true })).toBeVisible();
     const evidenceCards = page.locator("main article");
@@ -129,11 +129,11 @@ test.describe("operator journey smoke", () => {
     const evidenceAxe = await new AxeBuilder({ page }).analyze();
     expect(
       evidenceAxe.violations.filter((violation) => ["critical", "serious"].includes(violation.impact ?? "")),
-      "critical or serious axe violations on Simulation evidence",
+      "critical or serious axe violations on Message Lift evidence",
     ).toEqual([]);
   });
 
-  test("M46: Simulation math, below-floor live audit block, Persona copy, full-response dialog", async ({
+  test("M49: fixed settings, full-run context block, Buyer profile copy, full-response dialog", async ({
     page,
   }) => {
     await page.goto("/projects");
@@ -141,50 +141,54 @@ test.describe("operator journey smoke", () => {
     const projectHref = await projectRow.getByRole("link", { name: "Open →" }).getAttribute("href");
     expect(projectHref).toBeTruthy();
 
-    // Floor-met evidence: seeded study results already label DRAW FLOOR MET (n=30).
+    // Seeded study results already meet the required sample level.
     await page.goto(`${projectHref}/resonance`);
     const studyCard = page.locator("section").filter({ hasText: "M43 positioning clarity study" });
     const studyHref = await studyCard.getByRole("link", { name: "Open →" }).getAttribute("href");
     expect(studyHref).toBeTruthy();
     await page.goto(`${studyHref}?view=overview`);
-    await expect(page.getByText(/1 persona · 2 framings/)).toBeVisible();
+    await expect(page.getByText(/1 buyer profile · 2 messages/)).toBeVisible();
     await page.goto(`${studyHref}?view=results`);
-    await page.getByRole("link", { name: "Deltas", exact: true }).click();
-    await expect(page.getByText("DRAW FLOOR MET", { exact: true }).first()).toBeVisible();
+    await page.getByRole("link", { name: "Lift", exact: true }).click();
+    await expect(page.getByText("Enough samples", { exact: true }).first()).toBeVisible();
 
-    // Below-floor creation: 1 persona × k=5 is preview-only; live audit blocked.
+    // A single context can preview, while a full run stays blocked.
     await page.goto(`${studyHref}?view=runs`);
-    await page.getByRole("link", { name: "Configure simulation run →" }).click();
+    await page.getByRole("link", { name: "Configure test run →" }).click();
     await expect(page).toHaveURL(/matrixVersionId=/);
-    await expect(page.getByText("Simulation math")).toBeVisible();
-    await expect(page.getByText(/1 personas × 5 repetitions = 5 draws per framing\/provider/)).toBeVisible();
-    await expect(page.getByText(/Preview only — directional/)).toBeVisible();
-    await page.getByRole("button", { name: /Live audit: real spend, k=5 locked/ }).click();
+    await expect(page.getByText("Simulation math")).toHaveCount(0);
+    await expect(page.getByText(/Early read. A full run needs at least six contexts/)).toBeVisible();
+    await page.getByRole("button", { name: /Full run: real spend/ }).click();
     await expect(page.getByRole("status").filter({ hasText: "Cost projection" })).toContainText(
-      "BELOW FLOOR",
+      "MORE CONTEXT NEEDED",
     );
-    await expect(page.getByText(/Live audit blocked/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start live audit" })).toBeDisabled();
+    await expect(page.getByText(/Full run blocked/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start full run" })).toBeDisabled();
 
-    // Persona copy + full-response dialog on a template draft (has Measured AI framing).
+    // Buyer profile copy + exact stored-response picker on a new test.
     await page.goto(`${projectHref}/resonance`);
-    await page.getByRole("button", { name: "New study", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "New study" });
+    await page.getByRole("button", { name: "New test", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "New Message Lift test" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: "Template", exact: true }).click();
-    await dialog.getByRole("button", { name: "Create draft" }).first().click();
+    await dialog.getByRole("textbox", { name: "Test name" }).fill("M49 browser message test");
+    await dialog.getByRole("button", { name: "Create test" }).click();
     await expect(page).toHaveURL(/\/resonance\/[0-9a-f-]{36}\?view=design/);
 
-    await expect(page.getByText(/STEP 1 OF 4 — Name your study/)).toBeVisible();
+    await expect(page.getByText(/STEP 1 OF 4 — Name the test/)).toBeVisible();
     await page.getByRole("button", { name: "Next →" }).click();
-    await expect(page.getByText(/STEP 2 OF 4 — Who reacts — the panel/)).toBeVisible();
-    await expect(page.getByText("Persona name (required)")).toBeVisible();
-    await expect(page.getByRole("button", { name: "+ Add persona" })).toBeVisible();
+    await expect(page.getByText(/STEP 2 OF 4 — Set the context/)).toBeVisible();
+    await expect(page.getByText("Profile name (required)")).toBeVisible();
+    await expect(page.getByRole("button", { name: "+ Add buyer profile" })).toBeVisible();
     await expect(page.getByText("Buyer type")).toHaveCount(0);
 
+    await page.getByRole("textbox", { name: "Profile name (required)" }).fill("Finance lead");
+    await page.getByRole("textbox", { name: "Age band (required)" }).fill("35–44");
+    await page.getByRole("textbox", { name: "Income band (required)" }).fill("$80k–$120k");
+    await page.getByRole("textbox", { name: "Location (required)" }).fill("Singapore");
+    await page.getByRole("textbox", { name: "Buying habits (required)" }).fill("Evaluates finance tools");
     await page.getByRole("button", { name: "Next →" }).click();
-    await expect(page.getByText(/STEP 3 OF 4/)).toBeVisible();
-    await expect(page.getByText(/Pick the framing to fight/)).toBeVisible();
+    await expect(page.getByText(/STEP 3 OF 4 — Compare messages/)).toBeVisible();
+    await expect(page.getByText(/Pick one stored response as the Current message/)).toBeVisible();
 
     const viewFull = page.getByRole("button", { name: "View full response" }).first();
     await expect(viewFull).toBeVisible();
@@ -193,7 +197,7 @@ test.describe("operator journey smoke", () => {
     await expect(fullDialog).toBeVisible();
     await expect(fullDialog.getByText("Original prompt")).toBeVisible();
     await expect(fullDialog.getByText("Full response")).toBeVisible();
-    const chooseBaseline = fullDialog.getByRole("button", { name: "Choose as baseline" });
+    const chooseBaseline = fullDialog.getByRole("button", { name: "Use as Current message" });
     await expect(chooseBaseline).toBeVisible();
     await chooseBaseline.click();
     await expect(fullDialog).toHaveCount(0);

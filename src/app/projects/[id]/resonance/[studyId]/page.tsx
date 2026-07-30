@@ -3,12 +3,18 @@ import { notFound } from "next/navigation";
 import { LocalViewTabs } from "@/components/local-view-tabs";
 import { EvidenceFilters } from "@/components/resonance/evidence-filters";
 import { StudyResultsPanel } from "@/components/resonance/study-results-panel";
+import { RecommendationResultsPanel } from "@/components/resonance/recommendation-results-panel";
+import { PromptDisclosurePanel } from "@/components/resonance/prompt-disclosure-panel";
 import { StudyWizard } from "@/components/resonance/study-wizard";
 import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
-import { type PanelPersona, type StimulusKind } from "@/core/resonance";
+import {
+  recommendationScenariosSchema,
+  type PanelPersona,
+  type StimulusKind,
+} from "@/core/resonance";
 import {
   parseStudyResultSection,
   parseStudyView,
@@ -19,6 +25,8 @@ import { getActiveFramingBatchProgress } from "@/db/repositories/framing-observa
 import {
   getResonanceStudy,
   getResonanceStudyResultSummary,
+  getRecommendationStudyResultSummary,
+  getMessageLiftPromptDisclosure,
   listBaselinePickerData,
   listResonanceEvidencePage,
 } from "@/db/repositories/resonance";
@@ -53,7 +61,7 @@ function nextAction(input: {
   }
   if (!input.latestRun) {
     return {
-      label: "Configure simulation run",
+      label: "Configure test run",
       href: `/projects/${input.projectId}/runs/new?matrixVersionId=${input.matrixVersionId}`,
     };
   }
@@ -67,20 +75,24 @@ function nextAction(input: {
     return { label: "View results", href: withViewParam(base, "results") };
   }
   return {
-    label: "Configure simulation run",
+    label: "Configure test run",
     href: `/projects/${input.projectId}/runs/new?matrixVersionId=${input.matrixVersionId}`,
   };
 }
 
 function LockedDefinition({
   studyName,
+  testType,
   personas,
+  recommendationScenarios,
   stimuli,
   genericUnconditioned,
   baselineProvenance,
 }: {
   studyName: string;
+  testType: "buyer_response" | "ai_recommendation";
   personas: PanelPersona[];
+  recommendationScenarios: Array<{ key: string; label: string; promptText: string }>;
   stimuli: Array<{ id: string; kind: string; label: string; body: string }>;
   genericUnconditioned: boolean;
   baselineProvenance: import("@/core/resonance").ResonanceBaselineProvenance;
@@ -94,15 +106,16 @@ function LockedDefinition({
         {genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
       </div>
       <p className="text-sm leading-6 text-ink/65">
-        Approved studies are immutable (C-13). Create a new study to change the panel or framings.
+        Approved tests are locked. Create a new test to change either message or the test context.
       </p>
       <BaselineProvenance provenance={baselineProvenance} />
       <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/65">Study</h3>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Test</h3>
         <p className="text-sm text-ink/80">{studyName}</p>
       </div>
-      <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/65">Personas ({personas.length})</h3>
+      {testType === "buyer_response" ? (
+        <div>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Buyer profiles ({personas.length})</h3>
         <ul className="grid gap-2">
           {personas.map((p) => (
             <li key={p.key} className="rounded-lg border border-ink/10 bg-paper px-3 py-2 font-mono text-xs text-ink/70">
@@ -110,15 +123,32 @@ function LockedDefinition({
             </li>
           ))}
         </ul>
-      </div>
+        </div>
+      ) : (
+        <div>
+          <h3 className="label-mono mb-2 text-xs text-ink/65">
+            Shopping situations ({recommendationScenarios.length})
+          </h3>
+          <ul className="grid gap-2">
+            {recommendationScenarios.map((scenario) => (
+              <li
+                key={scenario.key}
+                className="rounded-lg border border-ink/10 bg-paper px-3 py-2 text-sm text-ink/70"
+              >
+                <strong className="label-mono text-xs">{scenario.label}</strong>
+                <p className="mt-1 leading-6">{scenario.promptText}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div>
-        <h3 className="label-mono mb-2 text-xs text-ink/65">Framings ({stimuli.length})</h3>
+        <h3 className="label-mono mb-2 text-xs text-ink/65">Messages ({stimuli.length})</h3>
         <ul className="grid gap-3">
           {stimuli.map((s) => (
             <li key={s.id} className="rounded-lg border border-ink/10 bg-paper p-3">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <strong className="label-mono text-xs">{s.label}</strong>
-                <Stamp tone="ink">{s.kind}</Stamp>
               </div>
               <p className="text-sm leading-6 text-ink/70">{s.body}</p>
             </li>
@@ -160,18 +190,24 @@ export default async function ResonanceStudyPage({
 
   const { study, stimuli, matrixVersion, latestRun, studyRuns, baselineProvenance } = detail;
   const personas = study.panelPersonasJson as PanelPersona[];
+  const testType = study.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response";
+  const recommendationScenarios = testType === "ai_recommendation"
+    ? recommendationScenariosSchema.parse(study.recommendationScenariosJson)
+    : [];
   const isDraft = study.state === "draft";
   const base = `/projects/${id}/resonance/${studyId}`;
 
   const needsResults = view === "results" || view === "overview" || view === "evidence";
-  const [results, pickerData, evidencePageData, activeFramingBatch] = await Promise.all([
+  const [results, pickerData, evidencePageData, activeFramingBatch, promptDisclosure] = await Promise.all([
     needsResults
-      ? getResonanceStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
+      ? testType === "ai_recommendation"
+        ? getRecommendationStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
+        : getResonanceStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
       : Promise.resolve(null),
     view === "design" && isDraft
       ? listBaselinePickerData(id)
       : Promise.resolve({ responses: [], themes: [], themesSource: "attributes" as const }),
-    view === "evidence"
+    view === "evidence" && testType === "buyer_response"
       ? listResonanceEvidencePage({
           projectId: id,
           studyId,
@@ -183,6 +219,9 @@ export default async function ResonanceStudyPage({
         })
       : Promise.resolve(null),
     view === "design" && isDraft ? getActiveFramingBatchProgress(id) : Promise.resolve(null),
+    view === "design" || view === "prompts"
+      ? getMessageLiftPromptDisclosure(id, studyId)
+      : Promise.resolve(null),
   ]);
 
   const engine =
@@ -202,6 +241,7 @@ export default async function ResonanceStudyPage({
   const tabs: Array<{ id: StudyView; label: string; href: string }> = [
     { id: "overview", label: "Overview", href: withViewParam(base, "overview") },
     { id: "design", label: "Design", href: withViewParam(base, "design") },
+    { id: "prompts", label: "Prompts", href: withViewParam(base, "prompts") },
     { id: "runs", label: "Runs", href: withViewParam(base, "runs") },
     { id: "results", label: "Results", href: withViewParam(base, "results", engine ? { engine } : undefined) },
     {
@@ -245,7 +285,7 @@ export default async function ResonanceStudyPage({
         </Link>{" "}
         /{" "}
         <Link href={`/projects/${id}/resonance`} className="hover:text-ink">
-          Simulation studies
+          Message Lift
         </Link>{" "}
         / {study.name}
       </div>
@@ -254,6 +294,7 @@ export default async function ResonanceStudyPage({
         <h1 className="label-mono text-lg font-semibold">{study.name}</h1>
         <Stamp tone={study.state === "approved" ? "ok" : "ink"}>{study.state}</Stamp>
         <SimulatedBadge />
+        <Stamp tone="ink">{testType === "buyer_response" ? "Buyer response" : "AI recommendation"}</Stamp>
         {study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
       </div>
 
@@ -270,8 +311,11 @@ export default async function ResonanceStudyPage({
             )}
           </div>
           <p className="text-sm leading-6 text-ink/65">
-            {personas.length} persona{personas.length === 1 ? "" : "s"} · {stimuli.length} framing
-            {stimuli.length === 1 ? "" : "s"}
+            {testType === "buyer_response"
+              ? `${personas.length} buyer profile${personas.length === 1 ? "" : "s"}`
+              : `${recommendationScenarios.length} shopping situation${recommendationScenarios.length === 1 ? "" : "s"}`}
+            {" · "}
+            {stimuli.length} message{stimuli.length === 1 ? "" : "s"}
             {matrixVersion ? ` · matrix v${matrixVersion.version} (${matrixVersion.cellCount} cells)` : ""}
           </p>
           <BaselineProvenance provenance={baselineProvenance} />
@@ -292,6 +336,18 @@ export default async function ResonanceStudyPage({
           <StudyWizard
             projectId={id}
             study={{ id: study.id, name: study.name }}
+            testType={testType}
+            recommendationScenarios={recommendationScenarios}
+            promptDisclosure={promptDisclosure ?? {
+              testType,
+              state: "preview",
+              protocolVersion: null,
+              matrixVersion: null,
+              parityVerified: false,
+              currentMessage: null,
+              newMessage: null,
+              pairs: [],
+            }}
             initialPersonas={personaRows}
             stimuli={wizardStimuli}
             themes={pickerData.themes.map((t) => ({
@@ -321,7 +377,9 @@ export default async function ResonanceStudyPage({
         ) : (
           <LockedDefinition
             studyName={study.name}
+            testType={testType}
             personas={personas}
+            recommendationScenarios={recommendationScenarios}
             stimuli={stimuli.map((s) => ({
               id: s.id,
               kind: s.kind,
@@ -333,6 +391,13 @@ export default async function ResonanceStudyPage({
           />
         ))}
 
+      {view === "prompts" &&
+        (promptDisclosure ? (
+          <PromptDisclosurePanel disclosure={promptDisclosure} />
+        ) : (
+          <p className="text-sm text-ink/65">Add both messages to preview the exact A/B prompts.</p>
+        ))}
+
       {view === "runs" && (
         <section className="space-y-4">
           {matrixVersion && (
@@ -340,12 +405,12 @@ export default async function ResonanceStudyPage({
               href={`/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`}
               className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              Configure simulation run →
+              Configure test run →
             </Link>
           )}
           {!matrixVersion && (
             <p className="text-sm text-ink/65">
-              Approve the study before configuring a simulation run.
+              Approve the test before configuring a run.
             </p>
           )}
           {studyRuns.length === 0 ? (
@@ -373,16 +438,23 @@ export default async function ResonanceStudyPage({
 
       {view === "results" &&
         (results ? (
-          <StudyResultsPanel
-            projectId={id}
-            studyId={studyId}
-            results={results}
-            engine={engine || results.providers[0] || ""}
-            section={section}
-          />
+          "testType" in results ? (
+            <RecommendationResultsPanel
+              results={results}
+              model={engine || results.providers[0] || ""}
+            />
+          ) : (
+            <StudyResultsPanel
+              projectId={id}
+              studyId={studyId}
+              results={results}
+              engine={engine || results.providers[0] || ""}
+              section={section}
+            />
+          )
         ) : (
           <p className="text-sm text-ink/65">
-            No completed simulation results yet.{" "}
+            No completed test results yet.{" "}
             {matrixVersion ? (
               <Link
                 href={`/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`}
@@ -403,7 +475,7 @@ export default async function ResonanceStudyPage({
             <SimulatedBadge />
             {results && results.providers.length > 0 && (
               <>
-                <span className="label-mono text-xs text-ink/65">Engine</span>
+                <span className="label-mono text-xs text-ink/65">AI model</span>
                 {results.providers.map((providerId) => {
                   const active = providerId === (engine || results.providers[0]);
                   return (
@@ -437,7 +509,12 @@ export default async function ResonanceStudyPage({
               personas={personas.map((p) => ({ key: p.key, label: p.label }))}
             />
           </div>
-          {!evidencePageData || evidencePageData.total === 0 ? (
+          {testType === "ai_recommendation" ? (
+            <p className="text-sm leading-6 text-ink/65">
+              Recommendation responses, deterministic extractions, and exact request content are included
+              in the Evidence JSON export. Use the Prompts view for the frozen A/B manifest.
+            </p>
+          ) : !evidencePageData || evidencePageData.total === 0 ? (
             <p className="text-sm text-ink/65">No evidence responses for this filter yet.</p>
           ) : (
             <>
@@ -453,7 +530,7 @@ export default async function ResonanceStudyPage({
                       <span>{response.responseId.slice(0, 8)}</span>
                       <span>{response.stimulusLabel}</span>
                       <span>{response.panelPersonaLabel}</span>
-                      <span>PI {formatPi(response.meanScore)}</span>
+                      <span>Buyer response score {formatPi(response.meanScore)}</span>
                       <SimulatedBadge />
                     </div>
                     <p className="whitespace-pre-wrap break-words text-sm leading-6 text-ink/80">{response.rawText}</p>

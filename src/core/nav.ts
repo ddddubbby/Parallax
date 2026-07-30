@@ -38,7 +38,7 @@ export function projectNavGroups(projectId: string): NavGroup[] {
         },
         {
           id: "studies",
-          label: "Simulation studies",
+          label: "Message Lift tests",
           href: `${base}/resonance`,
           match: [`${base}/resonance`],
         },
@@ -68,7 +68,7 @@ export function projectNavGroups(projectId: string): NavGroup[] {
         },
         {
           id: "sim-results",
-          label: "Simulation results",
+          label: "Message Lift results",
           href: `${base}/dashboard?view=simulation`,
           match: [`${base}/dashboard`],
         },

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getRunMatrixKind: vi.fn(),
   recomputeMetrics: vi.fn(),
   getResonanceStudyExportLabel: vi.fn(),
+  getMessageLiftPromptDisclosure: vi.fn(),
   getExportCitations: vi.fn(),
   getExportExtractions: vi.fn(),
   getExportMetrics: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock("@/db/repositories/metrics", () => ({
 
 vi.mock("@/db/repositories/resonance", () => ({
   getResonanceStudyExportLabel: mocks.getResonanceStudyExportLabel,
+  getMessageLiftPromptDisclosure: mocks.getMessageLiftPromptDisclosure,
 }));
 
 import { GET } from "./route";
@@ -39,7 +41,8 @@ describe("GET report evidence JSON", () => {
   const studyId = "22222222-2222-4222-8222-222222222222";
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    mocks.getMessageLiftPromptDisclosure.mockResolvedValue(null);
   });
 
   it("rejects malformed project ids before UUID-backed DB queries", async () => {

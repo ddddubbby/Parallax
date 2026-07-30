@@ -23,28 +23,28 @@ export function SimulationSummarySection({
   return (
     <section
       className="mt-10 border-t border-ink/15 pt-8"
-      aria-label="Simulation Layer"
+      aria-label="Message Lift"
       data-testid="dashboard-simulation-section"
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h2 className="label-mono text-sm font-semibold uppercase text-ink/80">Simulation</h2>
+        <h2 className="label-mono text-sm font-semibold uppercase text-ink/80">Message Lift</h2>
         <SimulatedBadge />
         <span className="text-sm text-ink/65">
-          comparative ΔPI only · not pooled with audit metrics
+          Current message vs New message · not pooled with audit metrics
         </span>
       </div>
 
       {summaries.length === 0 ? (
         <div className="rounded-xl border border-ink/15 bg-paper-2/30 p-6">
-          <p className="label-mono text-sm text-ink/60">No simulation results yet</p>
+          <p className="label-mono text-sm text-ink/60">No Message Lift results yet</p>
           <p className="mt-1 text-sm text-ink/65">
-            Approve a study under Setup → Simulation studies, then complete its run.
+            Approve a test under Setup → Message Lift, then complete its run.
           </p>
           <Link
             href={`/projects/${projectId}/resonance`}
             className="label-mono mt-3 inline-flex min-h-11 items-center rounded-sm text-xs text-accent-ink hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            Simulation studies →
+            Message Lift tests →
           </Link>
         </div>
       ) : (
@@ -83,17 +83,17 @@ export function SimulationSummarySection({
                       className="rounded-lg border border-ink/10 bg-paper-2/40 px-3 py-2"
                     >
                       <div className="label-mono text-[11px] text-ink/65">
-                        Engine · {engine.providerId}
+                        AI model · {engine.providerId}
                       </div>
                       {engine.topDeltaPiMean === null ? (
-                        <p className="mt-1 font-mono text-xs text-ink/65">No ΔPI yet</p>
+                        <p className="mt-1 font-mono text-xs text-ink/65">No Response lift yet</p>
                       ) : (
                         <>
                           <p className="mt-1 font-mono text-base tabular-nums text-ink">
-                            ΔPI {formatDelta(engine.topDeltaPiMean)}
+                            Response lift {formatDelta(engine.topDeltaPiMean)}
                             {engine.directionalOnly && (
                               <span className="ml-2 label-mono text-[10px] text-ink/65">
-                                DIRECTIONAL
+                                Early read
                               </span>
                             )}
                           </p>

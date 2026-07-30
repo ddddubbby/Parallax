@@ -27,9 +27,9 @@ export const REPORT_SECTIONS = [
 export type SectionKey = (typeof REPORT_SECTIONS)[number]["key"];
 
 export const RESONANCE_REPORT_SECTIONS = [
-  { key: "resonance_method", title: "Simulation Method" },
-  { key: "resonance_results", title: "Simulation Results" },
-  { key: "resonance_evidence", title: "Simulation Evidence" },
+  { key: "resonance_method", title: "How this was tested" },
+  { key: "resonance_results", title: "Message Lift Results" },
+  { key: "resonance_evidence", title: "Evidence" },
 ] as const;
 
 export type ResonanceSectionKey = (typeof RESONANCE_REPORT_SECTIONS)[number]["key"];
@@ -141,6 +141,7 @@ export interface ResonanceProviderSection {
 }
 
 export interface ResonanceReportContext {
+  testType?: "buyer_response" | "ai_recommendation";
   studyName: string;
   runMode: string;
   runDate: string;
@@ -155,6 +156,31 @@ export interface ResonanceReportContext {
   anchorSetCalibrated: boolean;
   embeddingModel: string;
   providerSections: ResonanceProviderSection[];
+  promptDisclosure?: {
+    protocolVersion: string | null;
+    matrixVersion: number | null;
+    parityVerified: boolean;
+    currentMessage: string;
+    newMessage: string;
+    representativePair: {
+      contextLabel: string;
+      currentPrompt: string;
+      newPrompt: string;
+    } | null;
+  };
+  recommendationProviderSections?: Array<{
+    providerId: string;
+    current: { inclusionRate: number; topPickRate: number; n: number };
+    next: { inclusionRate: number; topPickRate: number; n: number };
+    lift: {
+      shortlistLiftPp: number;
+      shortlistCiLow: number | null;
+      shortlistCiHigh: number | null;
+      topPickLiftPp: number;
+      scenarioCount: number;
+      directionalOnly: boolean;
+    };
+  }>;
 }
 
 function overall(ctx: ReportContext, key: string): MetricLike | undefined {
@@ -239,7 +265,7 @@ function badgeLine(ctx: ReportContext): string {
 }
 
 function resonanceBadgeLine(ctx: ResonanceReportContext): string {
-  const badges = ["**SIMULATED** — this Simulation Layer section reports synthetic-panel proxy output, not measured human behavior."];
+  const badges = ["**SIMULATED** — this Message Lift section reports simulated response output, not measured human behavior."];
   if (ctx.isMock) badges.push("**MOCK** — this run used fixture-backed provider responses.");
   if (ctx.genericUnconditioned) badges.push("**GENERIC** — this study was not conditioned on stored AI-channel evidence.");
   return badges.map((b) => `> ${b}`).join("\n") + "\n\n";
@@ -493,13 +519,44 @@ const GENERATORS: Record<SectionKey, (ctx: ReportContext) => string> = {
   raw_answer_appendix: generateRawAnswerAppendix,
 };
 
-function pmfText(pmf: number[]): string {
-  return pmf.map((value, idx) => `${idx + 1}: ${Math.round(value * 100)}%`).join("; ");
-}
-
 function generateResonanceMethod(ctx: ResonanceReportContext): string {
+  if (ctx.testType === "ai_recommendation") {
+    const prompt = ctx.promptDisclosure;
+    return `${resonanceBadgeLine(ctx)}This Message Lift test compares the same brand-neutral shopping situations under two conditions. The AI model receives either the Current message or the New message as explicitly untrusted reference material, then returns exactly five ranked recommendations. Only the message changes.
+
+| Field | Value |
+|---|---|
+| Test type | AI recommendation |
+| Current message | ${escapeModelText(prompt?.currentMessage ?? "not available")} |
+| New message | ${escapeModelText(prompt?.newMessage ?? "not available")} |
+| Prompt protocol | ${escapeModelText(prompt?.protocolVersion ?? "historical protocol")} |
+| Matrix version | ${prompt?.matrixVersion ?? "not available"} |
+| AI model | ${escapedList(ctx.providers)} |
+| Mode | ungrounded |
+| Repetitions | ${ctx.repetitions} |
+| Prompt parity | ${prompt?.parityVerified ? "passed — only the message changes" : "not verified"} |
+
+${prompt?.representativePair ? `## Representative exact A/B pair
+
+Context: ${escapeModelText(prompt.representativePair.contextLabel)}
+
+### Current
+
+\`\`\`text
+${escapeModelText(prompt.representativePair.currentPrompt)}
+\`\`\`
+
+### New
+
+\`\`\`text
+${escapeModelText(prompt.representativePair.newPrompt)}
+\`\`\`` : "No compiled prompt pair is available."}
+
+Shortlist lift is an absolute percentage-point change, not a relative percentage. Results describe this controlled simulation only; they do not predict search ranking, buyer choice, sales, or ROI. The Evidence JSON contains every exact request, raw response, and deterministic extraction.`;
+  }
   const provenance = ctx.baselineProvenance;
-  return `${resonanceBadgeLine(ctx)}**MODEL-IMPLIED · ${ctx.anchorSetCalibrated ? "CALIBRATED CONSTRUCT" : "UNCALIBRATED"} · COMPARATIVE.** This Simulation Layer study reports simulated free-text reactions scored into a five-point purchase-intent construct with Semantic Similarity Rating (SSR). ΔPI means a Likert-scale purchase-intent mean shift vs baseline, a survey construct — not predicted buying behavior. The n>=30 marker is only a minimum model-signal draw floor, not aggregate-grade evidence.
+  const prompt = ctx.promptDisclosure;
+  return `${resonanceBadgeLine(ctx)}This Message Lift test compares simulated buyer response to the Current and New messages on a 1–5 scale. Response lift is the New score minus the Current score. It is not predicted buying behavior.
 
 | Field | Value |
 |---|---|
@@ -520,8 +577,26 @@ function generateResonanceMethod(ctx: ResonanceReportContext): string {
 | SSR anchor version | ${escapeModelText(ctx.anchorSetVersion)} |
 | Anchor calibration | ${ctx.anchorSetCalibrated ? "calibrated" : "uncalibrated anchor sets"} |
 | Embedding model | ${escapeModelText(ctx.embeddingModel)} |
+| Prompt protocol | ${escapeModelText(prompt?.protocolVersion ?? "historical protocol")} |
+| Prompt parity | ${prompt?.parityVerified ? "passed — only the message changes" : "not verified"} |
 
-Respondents saw text-only stimulus variants. This limitation matters: the reference SSR method also studies image stimuli, and text-only stimuli should be read as a narrower proxy. Means are point estimates with no confidence interval; per-persona slices are always directional-only. Panel personas use age and income as validated conditioning axes, with location and behavioral profile as prompt context.`;
+${prompt?.representativePair ? `## Representative exact A/B pair
+
+Context: ${escapeModelText(prompt.representativePair.contextLabel)}
+
+### Current
+
+\`\`\`text
+${escapeModelText(prompt.representativePair.currentPrompt)}
+\`\`\`
+
+### New
+
+\`\`\`text
+${escapeModelText(prompt.representativePair.newPrompt)}
+\`\`\`` : ""}
+
+Respondents saw text-only messages. Scores are point estimates; buyer-profile details are secondary and directional. Technical scoring details and every exact request are retained in the Evidence JSON.`;
 }
 
 // D-080: each provider is its own synthetic population — a variant ranking,
@@ -531,46 +606,62 @@ function generateResonanceResultsSection(section: ResonanceProviderSection): str
   const variantRows = section.variants
     .map(
       (v) =>
-        `| ${escapeModelText(v.label)} | ${escapeModelText(v.stimulusKind)} | ${v.piMean.toFixed(2)} | ${v.n} | ${pmfText(v.pmf)} | ${v.sufficientN ? "draw floor met" : "below draw floor"} |`,
+        `| ${escapeModelText(v.label)} | ${v.piMean.toFixed(2)} | ${v.n} | ${v.sufficientN ? "Enough samples" : "Early read"} |`,
     )
     .join("\n");
   const deltaRows = section.deltas
     .map(
       (d) =>
-        `| ${escapeModelText(d.label)} | ${escapeModelText(d.baselineLabel)} | ${d.deltaPiMean > 0 ? "+" : ""}${d.deltaPiMean.toFixed(2)} | ${d.n} | ${d.directionalOnly ? "below draw floor" : "draw floor met"} |`,
+        `| ${escapeModelText(d.label)} | ${escapeModelText(d.baselineLabel)} | ${d.deltaPiMean > 0 ? "+" : ""}${d.deltaPiMean.toFixed(2)} | ${d.n} | ${d.directionalOnly ? "Early read" : "Enough samples"} |`,
     )
     .join("\n");
   const personaRows = section.personaRows
     .map(
       (p) =>
-        `| ${escapeModelText(p.panelPersonaLabel)} | ${escapeModelText(p.stimulusLabel)} | ${p.piMean.toFixed(2)} | ${p.n} | directional |`,
+        `| ${escapeModelText(p.panelPersonaLabel)} | ${escapeModelText(p.stimulusLabel)} | ${p.piMean.toFixed(2)} | ${p.n} | Profile detail |`,
     )
     .join("\n");
 
-  return `### Engine: ${escapeModelText(section.providerId)}
+  return `### AI model: ${escapeModelText(section.providerId)}
 
-## Variant ranking
+## Message scores
 
-| Variant | Kind | Mean PI | n | PMF | Gate |
-|---|---|---:|---:|---|---|
-${variantRows || "| No variant metrics | — | — | — | — | — |"}
+| Message | Buyer response score | Valid responses | Status |
+|---|---:|---:|---|
+${variantRows || "| No message metrics | — | — | — |"}
 
-## Delta vs baseline
+## Lift vs Current message
 
-| Variant | Baseline | ΔPI | n | Gate |
+| New message | Current message | Response lift | Valid responses | Status |
 |---|---|---:|---:|---|
-${deltaRows || "| No delta metrics | — | — | — | — |"}
+${deltaRows || "| No lift metrics | — | — | — | — |"}
 
-## Persona slices
+## Buyer-profile breakdown
 
-Persona slices are included for diagnosis and are always directional-only.
+Buyer-profile details are included for diagnosis and are always secondary.
 
-| Persona | Variant | Mean PI | n | Gate |
+| Buyer profile | Message | Buyer response score | Valid responses | Status |
 |---|---|---:|---:|---|
-${personaRows || "| No persona metrics | — | — | — | — |"}`;
+${personaRows || "| No buyer-profile metrics | — | — | — | — |"}`;
 }
 
 function generateResonanceResults(ctx: ResonanceReportContext): string {
+  if (ctx.testType === "ai_recommendation") {
+    const sections = (ctx.recommendationProviderSections ?? []).map((section) => {
+      const ci = section.lift.shortlistCiLow === null || section.lift.shortlistCiHigh === null
+        ? "not available"
+        : `${section.lift.shortlistCiLow.toFixed(1)} to ${section.lift.shortlistCiHigh.toFixed(1)} pp`;
+      return `### AI model: ${escapeModelText(section.providerId)}
+
+| Result | Current | New | Lift |
+|---|---:|---:|---:|
+| Top-five inclusion | ${Math.round(section.current.inclusionRate * 100)}% | ${Math.round(section.next.inclusionRate * 100)}% | ${section.lift.shortlistLiftPp >= 0 ? "+" : ""}${section.lift.shortlistLiftPp.toFixed(1)} pp |
+| Top-choice rate | ${Math.round(section.current.topPickRate * 100)}% | ${Math.round(section.next.topPickRate * 100)}% | ${section.lift.topPickLiftPp >= 0 ? "+" : ""}${section.lift.topPickLiftPp.toFixed(1)} pp |
+
+Uncertainty range for shortlist lift: ${ci}. Valid responses per condition: ${Math.min(section.current.n, section.next.n)} across ${section.lift.scenarioCount} equally weighted shopping situations. Status: ${section.lift.directionalOnly ? "Early read" : "Enough samples"}.`;
+    }).join("\n\n---\n\n");
+    return `${resonanceBadgeLine(ctx)}${sections || "No valid recommendation results for this run."}`;
+  }
   const sections = ctx.providerSections.map(generateResonanceResultsSection).join("\n\n---\n\n");
   return `${resonanceBadgeLine(ctx)}${sections || "No variant metrics for this run."}`;
 }
@@ -583,16 +674,19 @@ function generateResonanceEvidenceSection(section: ResonanceProviderSection): st
 
 > "${escapeModelText(e.rawText)}"
 
-Response: \`${e.responseId}\` · scored mean PI: ${e.meanScore.toFixed(2)}`,
+Response: \`${e.responseId}\` · buyer response score: ${e.meanScore.toFixed(2)}`,
     )
     .join("\n\n---\n\n");
 
-  return `### Engine: ${escapeModelText(section.providerId)}
+  return `### AI model: ${escapeModelText(section.providerId)}
 
-${rows || "No eligible SSR-scored responses were available for this engine."}`;
+${rows || "No eligible scored responses were available for this AI model."}`;
 }
 
 function generateResonanceEvidence(ctx: ResonanceReportContext): string {
+  if (ctx.testType === "ai_recommendation") {
+    return `${resonanceBadgeLine(ctx)}Every exact provider request, raw ranked response, deterministic recommendation extraction, prompt/cell identifier, and computed metric is included in the Evidence JSON package. The Prompts view shows the complete frozen A/B manifest.`;
+  }
   const sections = ctx.providerSections.map(generateResonanceEvidenceSection).join("\n\n===\n\n");
 
   return `${resonanceBadgeLine(ctx)}Evidence excerpts below are deterministic: responses are sorted by response id within each stimulus and selected from eligible SSR-scored responses. They are shown so every simulated figure can be traced back to stored raw text.

@@ -151,4 +151,26 @@ describe("migration metadata", () => {
     expect(sql).not.toContain("UPDATE \"prompt_cells\"");
     expect(sql).not.toContain("DROP TABLE");
   });
+
+  it("ships M49 Message Lift fields as a forward-only compatibility migration", () => {
+    const migrationsDir = join(process.cwd(), "src", "db", "migrations");
+    const sql = readFileSync(
+      join(migrationsDir, "0023_m49_message_lift_tests.sql"),
+      "utf8",
+    );
+    expect(sql).toContain('ADD COLUMN "test_type"');
+    expect(sql).toContain("DEFAULT 'buyer_response' NOT NULL");
+    expect(sql).toContain('ADD COLUMN "recommendation_scenarios_json"');
+    expect(sql).toContain('ADD COLUMN "prompt_protocol_version"');
+    expect(sql).toContain("resonance_studies_test_type_ck");
+    expect(sql).not.toContain("UPDATE \"prompt_cells\"");
+    expect(sql).not.toContain("DROP TABLE");
+
+    const snapshot = readFileSync(
+      join(migrationsDir, "meta", "0023_snapshot.json"),
+      "utf8",
+    );
+    expect(snapshot).toContain("recommendation_scenarios_json");
+    expect(snapshot).toContain("resonance_studies_test_type_ck");
+  });
 });

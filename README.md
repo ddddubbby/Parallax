@@ -1,8 +1,10 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: quick orientation and local setup pointer
 
-# Parallax (product: Resonance)
+# Resonance
 
-Parallax is the measurement and simulation engine behind Resonance. It measures how AI assistants describe, rank, cite, and misrepresent brands, then tests candidate framing fixes on persona-conditioned synthetic buyer panels — two structurally separate epistemic layers, the Evidence Layer (audit) and the Simulation Layer (resonance studies), that never mix their data (D-077, C-12). Externally the product is one brand, Resonance, no exceptions (`BRAND_PLAYBOOK.md`); internally the repo, package, and code keep the Parallax name (D-063).
+Resonance measures how AI assistants describe, rank, cite, and misrepresent brands, then runs controlled Message Lift tests. Evidence audits and simulated tests remain structurally separate and never mix their data (C-12).
+
+Legacy lowercase `parallax` package, database, cookie, service, and module identifiers are compatibility-sensitive implementation details. They are not a second product or a human-facing brand.
 
 ## Start here
 
@@ -20,7 +22,7 @@ Parallax is the measurement and simulation engine behind Resonance. It measures 
 - **The Four P's** — every prompt, metric, and report chapter answers one client question: Presence, Position, Perception, Proof. The prompt-frame rule keeps metrics from counting a signal the prompt itself planted (D-054).
 - **Per-competitor spectrum** — the dashboard ranks the client against each tracked competitor, not "rest of the field."
 - **Trust and provenance** — report claims carry n, provider, mode, and date; every dashboard figure drills to the eligible raw responses behind it.
-- **Simulation Layer (M16+)** — persona-conditioned synthetic panels react to measured AI framing and candidate fixes, scored with Semantic Similarity Rating; results are always comparative (ΔPI, never a purchase-probability claim) and carry a SIMULATED badge, structurally walled off from audit data.
+- **Message Lift** — compare one verbatim Current message with one New message. Buyer response measures lift on a simulated 1–5 response scale; AI recommendation measures top-five and top-choice inclusion when the message is supplied as untrusted context. Exact A/B prompts are disclosed and only the message may change.
 - **Live infrastructure** — shared-password auth, encrypted-credential Settings, per-provider daily budgets, and one configured extraction engine.
 
 For milestone-by-milestone status, see `PRD.md` §11. For architecture decisions and their rationale, see the Decision Log in `MASTER_CONTEXT.md` §9.

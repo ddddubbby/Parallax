@@ -11,6 +11,10 @@ export async function getExportResponses(runId: string) {
     .select({
       id: responses.id,
       cellId: responses.cellId,
+      promptCellId: promptCells.id,
+      exactProviderRequest: promptCells.resolvedText,
+      contextKey: promptCells.panelPersonaKey,
+      messageId: promptCells.stimulusId,
       providerId: responses.providerId,
       generationMode: responses.generationMode,
       modelVersion: responses.modelVersion,
@@ -22,6 +26,7 @@ export async function getExportResponses(runId: string) {
       createdAt: responses.createdAt,
     })
     .from(responses)
+    .innerJoin(promptCells, eq(promptCells.id, responses.cellId))
     .where(eq(responses.runId, runId))
     .orderBy(desc(responses.createdAt));
 }

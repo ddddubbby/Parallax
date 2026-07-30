@@ -56,6 +56,6 @@ describe("nav config (M32 / D-088)", () => {
       "p1",
     );
     expect(action.href).toBe("/projects/p1/dashboard?view=simulation");
-    expect(action.nextLabel).toMatch(/simulation/i);
+    expect(action.nextLabel).toMatch(/message lift/i);
   });
 });

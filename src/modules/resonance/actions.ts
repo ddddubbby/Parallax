@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isUuid } from "@/core/id";
-import { parsePanelPersonaLines, STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
+import {
+  MESSAGE_LIFT_TEST_TYPES,
+  parsePanelPersonaLines,
+  recommendationScenariosSchema,
+  STIMULUS_KINDS,
+  type MessageLiftTestType,
+  type StimulusKind,
+} from "@/core/resonance";
 import { getResonanceStudyTemplate } from "@/core/resonance-templates";
 import {
   enqueueFramingObservations,
@@ -22,6 +29,8 @@ import {
   deleteResonanceStimulus,
   updateResonanceStimulus,
   updateResonanceStudy,
+  getMessageLiftPromptDisclosure,
+  getResonanceStudy,
 } from "@/db/repositories/resonance";
 
 function revalidateStudyPaths(projectId: string, studyId?: string) {
@@ -126,15 +135,61 @@ function framingSnapshotId(formData: FormData) {
 }
 
 export async function createStudyAction(projectId: string, formData: FormData): Promise<ActionResult> {
+  return createMessageLiftTestAction(projectId, formData);
+}
+
+export async function createMessageLiftTestAction(
+  projectId: string,
+  formData: FormData,
+): Promise<ActionResult> {
   if (!validIds(projectId)) return { ok: false, error: "Invalid id" };
   try {
     const name = textField(formData, "name");
-    if (!name) return { ok: false, error: "Study name is required" };
-    const study = await createResonanceStudy(projectId, name);
+    if (!name) return { ok: false, error: "Test name is required" };
+    const rawType = textField(formData, "testType") || "buyer_response";
+    if (!(MESSAGE_LIFT_TEST_TYPES as readonly string[]).includes(rawType)) {
+      return { ok: false, error: "Unknown Message Lift test type" };
+    }
+    const study = await createResonanceStudy(
+      projectId,
+      name,
+      rawType as MessageLiftTestType,
+      true,
+    );
     revalidateStudyPaths(projectId, study.id);
     return { ok: true, id: study.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Study create failed" };
+  }
+}
+
+export async function previewMessageLiftPromptsAction(projectId: string, studyId: string) {
+  if (!validIds(projectId, studyId)) return null;
+  return getMessageLiftPromptDisclosure(projectId, studyId);
+}
+
+export async function excludeRecommendationScenarioAction(
+  projectId: string,
+  studyId: string,
+  contextKey: string,
+): Promise<ActionResult> {
+  if (!validIds(projectId, studyId) || !contextKey) return { ok: false, error: "Invalid scenario" };
+  try {
+    const detail = await getResonanceStudy(projectId, studyId);
+    if (!detail || detail.study.state !== "draft" || detail.study.testType !== "ai_recommendation") {
+      return { ok: false, error: "Draft AI recommendation test not found" };
+    }
+    const scenarios = recommendationScenariosSchema
+      .parse(detail.study.recommendationScenariosJson)
+      .filter((scenario) => scenario.key !== contextKey);
+    if (scenarios.length < 6) {
+      return { ok: false, error: "Keep at least six shopping situations for a full test" };
+    }
+    await updateResonanceStudy(projectId, studyId, { recommendationScenarios: scenarios });
+    revalidateStudyPaths(projectId, studyId);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Scenario exclusion failed" };
   }
 }
 

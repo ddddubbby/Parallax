@@ -1,6 +1,6 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: architecture rules, provider contracts, test discipline, command tables
 
-# DEVELOPMENT_GUIDELINES.md - Parallax
+# DEVELOPMENT_GUIDELINES.md - Resonance
 
 > How to build. Constraints and decisions live in `MASTER_CONTEXT.md`; product scope lives in `PRD.md`.
 

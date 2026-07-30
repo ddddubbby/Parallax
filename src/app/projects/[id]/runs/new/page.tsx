@@ -31,23 +31,27 @@ export default async function NewRunPage({
     : await getApprovedVersionForRun(id);
   if (!version || version.state !== "approved") redirect(`/projects/${id}/matrix`);
 
-  // C-7: provider metadata comes through the runner module's action, never
-  // from /src/providers directly (lint-enforced for app/components).
-  const [providers, secondaryRequirement] = await Promise.all([
-    listProviderOptions(),
-    getSecondaryRequirement(version.kind === "resonance" ? "resonance" : "audit"),
-  ]);
-
   let matrixLabel = `V${version.version}`;
   let panelCount: number | null = null;
   let framingCount: number | null = null;
+  let messageLiftTestType: "buyer_response" | "ai_recommendation" | null = null;
   if (version.kind === "resonance" && version.resonanceStudyId) {
     const study = await getResonanceStudyExportLabel(id, version.resonanceStudyId);
     if (study?.name) matrixLabel = `${study.name} · V${version.version}`;
     const footprint = await getResonanceDrawFootprint(version.resonanceStudyId);
     panelCount = footprint?.panelCount ?? null;
     framingCount = footprint?.framingCount ?? null;
+    messageLiftTestType = footprint?.testType ?? null;
   }
+  // C-7: provider metadata comes through the runner module's action, never
+  // from /src/providers directly (lint-enforced for app/components).
+  const [providers, secondaryRequirement] = await Promise.all([
+    listProviderOptions(),
+    getSecondaryRequirement(
+      version.kind === "resonance" ? "resonance" : "audit",
+      messageLiftTestType,
+    ),
+  ]);
 
   return (
     <main className="mx-auto min-w-0 max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -74,6 +78,7 @@ export default async function NewRunPage({
         matrixLabel={matrixLabel}
         panelCount={panelCount}
         framingCount={framingCount}
+        messageLiftTestType={messageLiftTestType}
       />
     </main>
   );

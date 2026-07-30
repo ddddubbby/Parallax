@@ -3,38 +3,29 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { FramingBatchProgress } from "@/components/resonance/framing-batch-progress";
-import { Button, Field, InlineStatus, Input, Select, Textarea } from "@/components/ui";
+import {
+  PromptDisclosurePanel,
+  type PromptDisclosureData,
+} from "@/components/resonance/prompt-disclosure-panel";
+import { Button, Field, InlineStatus, Input, Stamp, Textarea } from "@/components/ui";
 import { AppConfirmDialog, AppDialog } from "@/components/ui/dialog";
 import { useUnsavedEdit } from "@/components/unsaved-edit";
 import type { FramingObservationBatchProgress } from "@/core/framing-batch";
-import { AUDIT_REPETITIONS } from "@/core/constants";
 import {
-  formatSimulationMath,
   isPreviewOnlyPersonaCount,
   MIN_PERSONAS_FOR_LIVE_AUDIT_DRAW_FLOOR,
 } from "@/core/resonance-draws";
-import { STIMULUS_KINDS, type StimulusKind } from "@/core/resonance";
+import type { StimulusKind } from "@/core/resonance";
 import {
   addStimulusAction,
   buildFramingThemesAction,
   approveStudyAction,
   deleteStimulusAction,
+  excludeRecommendationScenarioAction,
   fetchFramingBatchProgressAction,
   updateStimulusAction,
   updateStudyAction,
 } from "@/modules/resonance/actions";
-
-// Plain-language names + one-line help for the pipeline's stimulus kinds, so
-// the operator never sees a raw enum like "measured_ai".
-const KIND_META: Record<StimulusKind, { label: string; help: string }> = {
-  measured_ai: {
-    label: "Measured AI framing",
-    help: "What AI assistants actually say about you today — attach the real audit responses as evidence.",
-  },
-  corrected: { label: "Corrected framing", help: "The accurate version — how the facts should be stated." },
-  repositioned: { label: "Repositioned framing", help: "A new angle or positioning you want to test." },
-  custom: { label: "Custom framing", help: "Any other framing to put in front of the panel." },
-};
 
 interface PersonaRow {
   label: string;
@@ -77,10 +68,10 @@ interface ResponseOption {
 }
 
 const STEPS = [
-  { n: 1, title: "Name your study" },
-  { n: 2, title: "Who reacts — the panel" },
-  { n: 3, title: "What they react to — framings" },
-  { n: 4, title: "Review & run" },
+  { n: 1, title: "Name the test" },
+  { n: 2, title: "Set the context" },
+  { n: 3, title: "Compare messages" },
+  { n: 4, title: "Review prompts" },
 ] as const;
 
 const EMPTY_PERSONA: PersonaRow = { label: "", ageBand: "", incomeBand: "", locationContext: "", behavioralProfile: "" };
@@ -105,6 +96,9 @@ export function StudyWizard({
   responseOptions,
   themesSource,
   initialFramingBatch,
+  testType,
+  recommendationScenarios,
+  promptDisclosure,
 }: {
   projectId: string;
   study: { id: string; name: string };
@@ -114,6 +108,9 @@ export function StudyWizard({
   responseOptions: ResponseOption[];
   themesSource: "framing_observations" | "attributes";
   initialFramingBatch?: FramingObservationBatchProgress | null;
+  testType: "buyer_response" | "ai_recommendation";
+  recommendationScenarios: Array<{ key: string; label: string; promptText: string }>;
+  promptDisclosure: PromptDisclosureData;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -159,8 +156,8 @@ export function StudyWizard({
       nameRef.current?.focus();
       return;
     }
-    if (step === 2 && !personas.some(personaComplete)) {
-      setError("Add at least one persona with all five fields filled in.");
+    if (step === 2 && testType === "buyer_response" && !personas.some(personaComplete)) {
+      setError("Add at least one buyer profile with all five fields filled in.");
       const firstIncomplete = personas.findIndex((persona) => !personaComplete(persona));
       wizardRef.current
         ?.querySelector<HTMLInputElement>(`[data-persona-row="${Math.max(firstIncomplete, 0)}"] input`)
@@ -227,6 +224,7 @@ export function StudyWizard({
   }
 
   function addFraming() {
+    if (stimuli.length >= 2) return;
     const fd = new FormData();
     // First framing is the measured baseline when responses exist to pick
     // from; otherwise start with a custom challenger (never a dead end).
@@ -234,12 +232,12 @@ export function StudyWizard({
       ? "measured_ai"
       : "custom";
     fd.set("kind", kind);
-    fd.set("label", kind === "measured_ai" ? "What AI says today" : "New framing");
+    fd.set("label", kind === "measured_ai" ? "Current message" : "New message");
     if (kind === "measured_ai") {
       fd.set("body", responseOptions[0].verbatim);
       fd.append("evidenceResponseIds", responseOptions[0].id);
     } else {
-      fd.set("body", "Paste the framing the panel should react to.");
+      fd.set("body", "Paste the new message to test.");
     }
     runAction("add-framing", () => addStimulusAction(projectId, study.id, fd));
   }
@@ -280,21 +278,29 @@ export function StudyWizard({
 
   // --- review-step readiness checks (plain language) ---
   const readiness: string[] = [];
-  if (name.trim().length === 0) readiness.push("This study needs a name (step 1).");
-  if (!personas.some(personaComplete)) readiness.push("Add at least one persona (step 2).");
-  if (stimuli.length < 2) readiness.push("Add at least two framings to compare (step 3).");
-  // C-13 hard rule (M22/D-078): every study needs a Measured AI framing
+  if (name.trim().length === 0) readiness.push("This test needs a name (step 1).");
+  if (testType === "buyer_response" && !personas.some(personaComplete)) {
+    readiness.push("Add at least one buyer profile (step 2).");
+  }
+  if (testType === "ai_recommendation" && recommendationScenarios.length < 6) {
+    readiness.push("At least six eligible shopping situations are required (step 2).");
+  }
+  if (stimuli.length !== 2) readiness.push("Add exactly two messages to compare (step 3).");
+  // C-13 hard rule: every new test needs one evidence-backed Current message.
   // with real evidence attached before it can be approved — no exceptions.
   const hasEvidencedMeasuredAi = stimuli.some(
     (s) => s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length > 0,
   );
   if (!hasEvidencedMeasuredAi) {
-    readiness.push("Pick a stored AI response as the Measured AI baseline before approval (step 3, C-13).");
+    readiness.push("Pick a stored AI response as the Current message before approval (step 3).");
   }
   for (const s of stimuli) {
     if (s.kind === "measured_ai" && (s.evidenceResponseIdsJson ?? []).length === 0) {
-      readiness.push(`"${s.label}" is a Measured AI framing but no stored response is picked yet (step 3).`);
+      readiness.push(`"${s.label}" needs a stored response (step 3).`);
     }
+  }
+  if (!promptDisclosure.parityVerified) {
+    readiness.push("Prompt parity must pass: only the message may change (step 4).");
   }
 
   return (
@@ -340,7 +346,7 @@ export function StudyWizard({
       {/* STEP 1 — name */}
       {step === 1 && (
         <div className="max-w-xl">
-          <Field label="Study name (required)" hint="A short name for this simulation, e.g. 'Weekday lunch $1 off'.">
+          <Field label="Test name (required)" hint="A short name for this comparison.">
             <Input
               ref={nameRef}
               value={name}
@@ -351,18 +357,58 @@ export function StudyWizard({
         </div>
       )}
 
-      {/* STEP 2 — panel */}
+      {/* STEP 2 — context */}
       {step === 2 && (
         <div>
+          {testType === "ai_recommendation" ? (
+            <>
+              <p className="mb-4 max-w-2xl text-sm leading-6 text-ink/70">
+                Resonance selected brand-neutral shopping situations from the latest approved Evidence
+                audit. The same situations are used for both messages.
+              </p>
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Stamp tone={recommendationScenarios.length >= 6 ? "ok" : "warn"}>
+                  {recommendationScenarios.length} eligible situations
+                </Stamp>
+                <span className="text-xs text-ink/55">Six or more are required for a full run.</span>
+              </div>
+              <ul className="grid gap-2">
+                {recommendationScenarios.map((scenario) => (
+                  <li key={scenario.key} className="flex items-start gap-3 rounded-lg border border-ink/10 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="label-mono mb-1 text-xs text-ink/55">{scenario.label}</p>
+                      <p className="text-sm leading-6 text-ink/75">{scenario.promptText}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={pending || recommendationScenarios.length <= 6}
+                      pending={pendingKey === `exclude-${scenario.key}`}
+                      pendingLabel="Excluding"
+                      onClick={() =>
+                        runAction(
+                          `exclude-${scenario.key}`,
+                          () => excludeRecommendationScenarioAction(projectId, study.id, scenario.key),
+                        )
+                      }
+                    >
+                      Exclude
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <>
           <p className="mb-4 max-w-2xl text-sm leading-6 text-ink/70">
-            Add the personas the simulated panel will represent. <strong>Age and income</strong> are the
-            research-validated axes; location and buying habits add context. One row per persona.
+            Add the buyer profiles used for both messages. Six profiles are required for a full
+            run; fewer profiles produce an Early read.
           </p>
           <div className="flex flex-col gap-3">
             {personas.map((p, i) => (
               <div key={i} data-persona-row={i} className="rounded-lg border border-ink/10 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="label-mono text-xs text-ink/65">Persona {i + 1}</span>
+                  <span className="label-mono text-xs text-ink/65">Buyer profile {i + 1}</span>
                   {personas.length > 1 && (
                     <Button
                       type="button"
@@ -384,7 +430,7 @@ export function StudyWizard({
                 <div className="grid gap-3 md:grid-cols-2">
                   {(
                     [
-                      ["label", "Persona name (required)", "e.g. Young professional"],
+                      ["label", "Profile name (required)", "e.g. Young professional"],
                       ["ageBand", "Age band (required)", "e.g. 25–34"],
                       ["incomeBand", "Income band (required)", "e.g. $60k–$90k"],
                       ["locationContext", "Location (required)", "e.g. Singapore"],
@@ -412,9 +458,11 @@ export function StudyWizard({
               setDirtySource("study", true);
               window.setTimeout(() => wizardRef.current?.querySelector<HTMLInputElement>(`[data-persona-row="${nextIndex}"] input`)?.focus(), 0);
             }}>
-              + Add persona
+              + Add buyer profile
             </Button>
           </div>
+            </>
+          )}
         </div>
       )}
 
@@ -422,10 +470,8 @@ export function StudyWizard({
       {step === 3 && (
         <div>
           <p className="mb-3 max-w-2xl text-sm leading-6 text-ink/70">
-            Add at least <strong>two framings</strong> to compare — for example, what AI says about you today vs. a
-            corrected or repositioned version. The panel reacts to each. At least one framing must be a{" "}
-            <strong>Measured AI framing</strong> quoting a real stored response — that is the study&rsquo;s baseline
-            (C-13).
+            Pick one stored response as the <strong>Current message</strong>, then enter exactly one{" "}
+            <strong>New message</strong>. Both are tested in the same contexts with the same instructions.
           </p>
 
           {/* Study-level batch ring (one poller) — not per measured-AI card. */}
@@ -444,7 +490,7 @@ export function StudyWizard({
           )}
 
           <div className="flex flex-col gap-4">
-            {stimuli.map((s) => (
+            {stimuli.map((s, index) => (
               <FramingCard
                 key={s.id}
                 stimulus={s}
@@ -459,22 +505,23 @@ export function StudyWizard({
                 onDirty={(dirty) => setDirtySource(`stimulus-${s.id}`, dirty)}
                 onSave={(patch, evidenceIds, themeKey) => saveFraming(s, patch, evidenceIds, themeKey)}
                 onDelete={() => setConfirmation({ kind: "delete", stimulus: s })}
+                messageRole={index === 0 ? "Current message" : "New message"}
               />
             ))}
           </div>
 
-          <div className="mt-4">
+          {stimuli.length < 2 && <div className="mt-4">
             <Button
               type="button"
               variant="secondary"
               pending={pendingKey === "add-framing"}
-              pendingLabel="Adding framing"
+              pendingLabel="Adding message"
               disabled={pending && pendingKey !== "add-framing"}
               onClick={addFraming}
             >
-              + Add framing
+              + Add message
             </Button>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -482,41 +529,27 @@ export function StudyWizard({
       {step === 4 && (
         <div className="max-w-2xl">
           {(() => {
-            const personaCount = personas.filter(personaComplete).length;
-            const math = formatSimulationMath({
-              personaCount,
-              framingCount: stimuli.length,
-              repetitions: AUDIT_REPETITIONS,
-              providerCount: 1,
-            });
+            const personaCount = testType === "buyer_response"
+              ? personas.filter(personaComplete).length
+              : recommendationScenarios.length;
             const previewOnly = isPreviewOnlyPersonaCount(personaCount);
             return (
               <>
                 <ul className="mb-4 flex flex-col gap-2 font-mono text-sm">
-                  <li>Study: {name || "—"}</li>
-                  <li>Personas: {personaCount}</li>
-                  <li>Framings: {stimuli.length}</li>
+                  <li>Test: {name || "—"}</li>
+                  <li>{testType === "buyer_response" ? "Buyer profiles" : "Shopping situations"}: {personaCount}</li>
+                  <li>Messages: {stimuli.length}</li>
                 </ul>
-                <div className="mb-4 rounded-lg border border-ink/15 p-3 font-mono text-xs text-ink/70">
-                  <p className="label-mono mb-2 text-xs text-ink/60">Simulation math (at k={AUDIT_REPETITIONS})</p>
-                  <p>{math.drawsLine}</p>
-                  <p className="mt-1">{math.totalLine}</p>
-                  <p className="mt-1 text-ink/55">
-                    Providers never combine toward the n≥30 floor — each provider is its own population.
-                  </p>
-                </div>
+                <PromptDisclosurePanel disclosure={promptDisclosure} compact />
                 {previewOnly && readiness.length === 0 && (
                   <InlineStatus tone="warning" className="mb-4">
-                    Preview-only at live audit grade — {personaCount} persona
-                    {personaCount === 1 ? "" : "s"} × k={AUDIT_REPETITIONS} yields {math.drawsPerVariant}{" "}
-                    draws per framing/provider (below 30). A full live study needs at least{" "}
-                    {MIN_PERSONAS_FOR_LIVE_AUDIT_DRAW_FLOOR} personas. Approval is still allowed; mock and
-                    live validation remain available. Do not invent personas.
+                    Early read — add {testType === "buyer_response" ? "buyer profiles" : "shopping situations"} until
+                    you have at least {MIN_PERSONAS_FOR_LIVE_AUDIT_DRAW_FLOOR} for a full run.
                   </InlineStatus>
                 )}
                 {readiness.length > 0 ? (
                   <div className="rounded-lg border border-warn p-3">
-                    <p className="mb-2 label-mono text-xs text-warn">Before you can run this study:</p>
+                    <p className="mb-2 label-mono text-xs text-warn">Before you can run this test:</p>
                     <ul className="flex flex-col gap-1 font-mono text-xs text-warn">
                       {readiness.map((r) => (
                         <li key={r}>• {r}</li>
@@ -525,8 +558,7 @@ export function StudyWizard({
                   </div>
                 ) : (
                   <p className="mb-4 rounded-lg border border-ink/15 p-3 font-mono text-xs text-ink/60">
-                    Ready. Approving freezes this study and compiles a simulated matrix. Next: configure a
-                    simulation run.
+                    Ready. Approving freezes the messages, contexts, and exact prompts.
                   </p>
                 )}
                 <div className="mt-4">
@@ -535,7 +567,7 @@ export function StudyWizard({
                     disabled={pending || readiness.length > 0}
                     onClick={() => setConfirmation({ kind: "approve" })}
                   >
-                    Approve study
+                    Approve test
                   </Button>
                 </div>
               </>
@@ -565,15 +597,15 @@ export function StudyWizard({
       <AppConfirmDialog
         open={confirmation !== null}
         onOpenChange={(open) => { if (!open) setConfirmation(null); }}
-        title={confirmation?.kind === "approve" ? "Approve and lock this study?" : "Delete framing?"}
+        title={confirmation?.kind === "approve" ? "Approve and lock this test?" : "Delete message?"}
         description={
           confirmation?.kind === "approve"
-            ? "Approval freezes the persona panel, framings, and evidence provenance as an immutable Simulation definition (C-13/C-15). Review every blocker before continuing."
+            ? "Approval freezes the contexts, messages, evidence provenance, and exact A/B prompts."
             : confirmation?.kind === "delete"
-              ? `Permanently delete “${confirmation.stimulus.label}” from this draft study?`
+              ? `Permanently delete “${confirmation.stimulus.label}” from this draft test?`
               : ""
         }
-        confirmLabel={confirmation?.kind === "approve" ? "Approve and lock study" : `Delete ${confirmation?.kind === "delete" ? confirmation.stimulus.label : "framing"}`}
+        confirmLabel={confirmation?.kind === "approve" ? "Approve and lock test" : `Delete ${confirmation?.kind === "delete" ? confirmation.stimulus.label : "message"}`}
         tone={confirmation?.kind === "approve" ? "primary" : "danger"}
         pending={pendingKey === "approve" || pendingKey?.startsWith("delete-") === true}
         onConfirm={() => {
@@ -606,6 +638,7 @@ function FramingCard({
   onDirty,
   onSave,
   onDelete,
+  messageRole,
 }: {
   stimulus: StimulusRow;
   themes: BaselineTheme[];
@@ -620,8 +653,9 @@ function FramingCard({
   onDirty: (dirty: boolean) => void;
   onSave: (patch: Partial<StimulusRow>, evidenceIds: string[], themeKey: string | null) => void;
   onDelete: () => void;
+  messageRole: "Current message" | "New message";
 }) {
-  const [kind, setKind] = useState<StimulusKind>(stimulus.kind);
+  const kind = stimulus.kind;
   const [label, setLabel] = useState(stimulus.label);
   const [body, setBody] = useState(stimulus.body);
   const [selectedResponseId, setSelectedResponseId] = useState(
@@ -650,24 +684,10 @@ function FramingCard({
     <div
       className="rounded-lg border border-ink/10 p-4"
       role="group"
-      aria-label={`Framing ${label || stimulus.id.slice(0, 8)}`}
+      aria-label={`${messageRole} ${label || stimulus.id.slice(0, 8)}`}
     >
-      <div className="mb-3 grid gap-3 md:grid-cols-[16rem_1fr]">
-        <Field label="Framing type" hint={KIND_META[kind].help}>
-          <Select value={kind} onChange={(e) => {
-            const nextKind = e.target.value as StimulusKind;
-            setKind(nextKind);
-            if (nextKind !== "measured_ai") { setSelectedResponseId(""); setThemeKey(""); }
-            onDirty(true);
-          }}>
-            {STIMULUS_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {KIND_META[k].label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Short label" hint="How this framing is named in the results.">
+      <div className="mb-3">
+        <Field label={messageRole} hint={messageRole === "Current message" ? "A verbatim stored AI response." : "The only new wording being tested."}>
           <Input value={label} onChange={(e) => { setLabel(e.target.value); onDirty(true); }} placeholder="What AI says today" />
         </Field>
       </div>
@@ -675,17 +695,16 @@ function FramingCard({
       {kind === "measured_ai" && (
         <div className="mb-3">
           <span className="label-mono text-xs text-ink/60">
-            Pick the framing to fight — how AI talks about you today
+            Pick one verbatim stored response
           </span>
           {responseOptions.length === 0 ? (
             <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
-              No stored responses yet — the baseline must quote a real audit response (C-13). Complete an
-              audit run first, then return here to pick its framing.
+              No stored responses yet. Complete an Evidence audit first, then return here.
             </p>
           ) : (
             <>
               {themes.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Framing themes">
+                <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Message themes">
                   <button
                     type="button"
                     onClick={() => setThemeKey("")}
@@ -752,7 +771,7 @@ function FramingCard({
                   if (!open) setFullResponseId(null);
                 }}
                 title="Full stored response"
-                description="Choose as baseline selects this response; Save framing still stamps provenance (C-13/C-15)."
+                description="Use as Current message selects this stored response for the A/B comparison."
                 className="w-[min(100%-2rem,48rem)]"
               >
                 {fullResponse && (
@@ -795,7 +814,7 @@ function FramingCard({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" onClick={() => chooseAsBaseline(fullResponse)}>
-                        Choose as baseline
+                        Use as Current message
                       </Button>
                       <Button
                         type="button"
@@ -824,7 +843,7 @@ function FramingCard({
                       disabled={pending && !refining}
                       onClick={onRefineThemes}
                     >
-                      Refine themes with AI framing extraction
+                      Group messages from Evidence
                     </Button>
                   )}
                 </div>
@@ -837,7 +856,7 @@ function FramingCard({
                 </p>
               )}
               {stimulus.stampLine && selectedResponseId === (stimulus.evidenceResponseIdsJson?.[0] ?? "") && (
-                <p className="mt-1 font-mono text-[11px] text-ink/55">Saved baseline: {stimulus.stampLine}</p>
+                <p className="mt-1 font-mono text-[11px] text-ink/55">Saved Current message source: {stimulus.stampLine}</p>
               )}
             </>
           )}
@@ -845,24 +864,24 @@ function FramingCard({
       )}
 
       <Field
-        label="Framing text"
-        hint={kind === "measured_ai" ? "Verbatim from the picked stored response — saved server-side, never edited (C-13)." : "Paste the exact wording the panel should react to."}
+        label="Message text"
+        hint={kind === "measured_ai" ? "Verbatim from the stored response." : "Paste the exact new wording to test."}
       >
         <Textarea value={body} rows={4} readOnly={kind === "measured_ai"} onChange={(e) => { setBody(e.target.value); onDirty(true); }} />
       </Field>
 
       {needsEvidence && (
         <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
-          Pick the stored AI response this baseline quotes above (C-13).
+          Pick the stored AI response used as the Current message.
         </p>
       )}
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <Button
           type="button"
           variant="secondary"
           pending={pendingKey === `save-${stimulus.id}`}
-          pendingLabel={`Saving ${label || "framing"}`}
+          pendingLabel="Saving message"
           disabled={pending && pendingKey !== `save-${stimulus.id}`}
           onClick={() =>
             onSave(
@@ -872,7 +891,7 @@ function FramingCard({
             )
           }
         >
-          Save framing
+          Save message
         </Button>
         <Button type="button" variant="danger" disabled={pending} onClick={onDelete}>
           Delete

@@ -4,7 +4,10 @@ import { resonanceExportMetadata } from "@/core/resonance";
 import { isReportableRunState } from "@/core/runner";
 import { getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
 import { recomputeMetrics } from "@/db/repositories/metrics";
-import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
+import {
+  getMessageLiftPromptDisclosure,
+  getResonanceStudyExportLabel,
+} from "@/db/repositories/resonance";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
 import { reportError } from "@/observability";
 
@@ -27,6 +30,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     kind?.kind === "resonance" && kind.resonanceStudyId
       ? await getResonanceStudyExportLabel(id, kind.resonanceStudyId)
       : null;
+  const promptManifest =
+    kind?.kind === "resonance" && kind.resonanceStudyId
+      ? await getMessageLiftPromptDisclosure(id, kind.resonanceStudyId)
+      : null;
   await recomputeMetrics(runId);
 
   const [respRows, extRows, metricRows, citationRows] = await Promise.all([
@@ -41,6 +48,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       runId,
       kind: kind?.kind ?? "audit",
       resonance: resonanceExportMetadata(resonanceStudy),
+      promptDisclosure: promptManifest
+        ? {
+            description: "The complete request content supplied by Resonance to the provider API.",
+            ...promptManifest,
+          }
+        : null,
       responses: respRows,
       extractions: extRows,
       metrics: metricRows,

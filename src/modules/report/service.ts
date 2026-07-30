@@ -22,7 +22,11 @@ import { getCitedSources, getMisinformationRegister, getProjectBrandNames } from
 import { getExportExtractions } from "@/db/repositories/export";
 import { getCellBrandPresence, listFindings, saveFindings } from "@/db/repositories/findings";
 import { listMetrics } from "@/db/repositories/metrics";
-import { getResonanceStudyResults } from "@/db/repositories/resonance";
+import {
+  getMessageLiftPromptDisclosure,
+  getRecommendationStudyResultSummary,
+  getResonanceStudyResults,
+} from "@/db/repositories/resonance";
 import {
   ensureSection,
   getFindingEvidenceExcerpts,
@@ -150,9 +154,77 @@ async function buildResonanceReportContext(runId: string): Promise<ResonanceRepo
   const kind = await getRunMatrixKind(runId);
   if (kind?.kind !== "resonance" || !kind.resonanceStudyId) return null;
 
-  const [results, extractionRows] = await Promise.all([
+  if (kind.testType === "ai_recommendation") {
+    const [results, disclosure] = await Promise.all([
+      getRecommendationStudyResultSummary(run.projectId, kind.resonanceStudyId, runId),
+      getMessageLiftPromptDisclosure(run.projectId, kind.resonanceStudyId),
+    ]);
+    if (!results) return null;
+    return {
+      testType: "ai_recommendation",
+      studyName: results.study.name,
+      runMode: run.runMode,
+      runDate: (run.completedAt ?? run.createdAt).toISOString().slice(0, 10),
+      isMock: run.runMode === "mock",
+      genericUnconditioned: false,
+      baselineProvenance: results.study.baselineProvenance,
+      repetitions: run.repetitions,
+      panelCount: results.study.scenarioCount,
+      providers: results.providers,
+      modes: ["ungrounded"],
+      anchorSetVersion: "not applicable",
+      anchorSetCalibrated: false,
+      embeddingModel: "not used",
+      providerSections: [],
+      promptDisclosure: {
+        protocolVersion: disclosure?.protocolVersion ?? null,
+        matrixVersion: disclosure?.matrixVersion ?? null,
+        parityVerified: disclosure?.parityVerified ?? false,
+        currentMessage: disclosure?.currentMessage?.body ?? "not available",
+        newMessage: disclosure?.newMessage?.body ?? "not available",
+        representativePair: disclosure?.pairs[0]
+          ? {
+              contextLabel: disclosure.pairs[0].contextLabel,
+              currentPrompt: disclosure.pairs[0].currentPrompt,
+              newPrompt: disclosure.pairs[0].newPrompt,
+            }
+          : null,
+      },
+      recommendationProviderSections: results.providerGroups.flatMap((group) => {
+        const current = group.conditions[0];
+        const next = group.conditions[1];
+        const lift = group.lifts[0];
+        return current && next && lift
+          ? [{
+              providerId: group.providerId,
+              current: {
+                inclusionRate: current.inclusionRate,
+                topPickRate: current.topPickRate,
+                n: current.n,
+              },
+              next: {
+                inclusionRate: next.inclusionRate,
+                topPickRate: next.topPickRate,
+                n: next.n,
+              },
+              lift: {
+                shortlistLiftPp: lift.shortlistLiftPp,
+                shortlistCiLow: lift.shortlistCiLow,
+                shortlistCiHigh: lift.shortlistCiHigh,
+                topPickLiftPp: lift.topPickLiftPp,
+                scenarioCount: lift.scenarioCount,
+                directionalOnly: lift.directionalOnly,
+              },
+            }]
+          : [];
+      }),
+    };
+  }
+
+  const [results, extractionRows, disclosure] = await Promise.all([
     getResonanceStudyResults(run.projectId, kind.resonanceStudyId, runId),
     getExportExtractions(runId),
+    getMessageLiftPromptDisclosure(run.projectId, kind.resonanceStudyId),
   ]);
   if (!results) return null;
 
@@ -163,6 +235,7 @@ async function buildResonanceReportContext(runId: string): Promise<ResonanceRepo
     })?.extractionModel ?? "not available";
 
   return {
+    testType: "buyer_response",
     studyName: results.study.name,
     runMode: run.runMode,
     runDate: (run.completedAt ?? run.createdAt).toISOString().slice(0, 10),
@@ -176,6 +249,20 @@ async function buildResonanceReportContext(runId: string): Promise<ResonanceRepo
     anchorSetVersion: results.study.anchorSetVersion,
     anchorSetCalibrated: results.study.anchorSetCalibrated,
     embeddingModel,
+    promptDisclosure: {
+      protocolVersion: disclosure?.protocolVersion ?? null,
+      matrixVersion: disclosure?.matrixVersion ?? null,
+      parityVerified: disclosure?.parityVerified ?? false,
+      currentMessage: disclosure?.currentMessage?.body ?? "not available",
+      newMessage: disclosure?.newMessage?.body ?? "not available",
+      representativePair: disclosure?.pairs[0]
+        ? {
+            contextLabel: disclosure.pairs[0].contextLabel,
+            currentPrompt: disclosure.pairs[0].currentPrompt,
+            newPrompt: disclosure.pairs[0].newPrompt,
+          }
+        : null,
+    },
     // D-080: one section per engine — never pool a provider's variants,
     // deltas, persona slices, or evidence with another provider's.
     providerSections: results.providerGroups.map((group) => ({

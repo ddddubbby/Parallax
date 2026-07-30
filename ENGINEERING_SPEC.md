@@ -1,6 +1,6 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: detailed schema, lifecycle states, provider matrix, seeds, acceptance commands
 
-# ENGINEERING_SPEC.md - Parallax Execution Contract
+# ENGINEERING_SPEC.md - Resonance Execution Contract
 
 > Detailed implementation contract for schema, lifecycle states, provider capabilities, seeds, and milestone commands. Read after `MASTER_CONTEXT.md`, `PRD.md`, and `DEVELOPMENT_GUIDELINES.md` when starting M0.5, M1, or any worker/provider/schema work.
 

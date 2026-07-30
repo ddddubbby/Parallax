@@ -177,7 +177,11 @@ async function afterJobFinished(runId: string) {
     const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
     if (run.runMode !== "mock") {
       const kind = await getRunMatrixKind(runId);
-      budgetProviders.push(secondaryProviderIdForKind(kind?.kind));
+      const secondary = secondaryProviderIdForKind(
+        kind?.kind,
+        kind?.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response",
+      );
+      if (secondary) budgetProviders.push(secondary);
     }
     budgetTrip = await findExceededDailyBudget(budgetProviders);
   } catch (err) {
@@ -413,7 +417,11 @@ async function pauseIfSpendGuardAlreadyTripped(job: ClaimedJob): Promise<boolean
   try {
     const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
     const kind = await getRunMatrixKind(job.runId);
-    budgetProviders.push(secondaryProviderIdForKind(kind?.kind));
+    const secondary = secondaryProviderIdForKind(
+      kind?.kind,
+      kind?.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response",
+    );
+    if (secondary) budgetProviders.push(secondary);
     const budgetTrip = await findExceededDailyBudget(budgetProviders);
     if (!budgetTrip) return false;
 

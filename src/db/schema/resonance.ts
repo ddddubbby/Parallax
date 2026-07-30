@@ -24,7 +24,10 @@ export const resonanceStudies = pgTable(
       .references(() => projects.id),
     name: text("name").notNull(),
     state: text("state").notNull().default("draft"),
+    testType: text("test_type").notNull().default("buyer_response"),
     panelPersonasJson: jsonb("panel_personas_json").notNull().default([]),
+    recommendationScenariosJson: jsonb("recommendation_scenarios_json").notNull().default([]),
+    promptProtocolVersion: text("prompt_protocol_version"),
     anchorSetVersion: text("anchor_set_version").notNull().default("purchase_intent.v1"),
     baselineStimulusId: uuid("baseline_stimulus_id"),
     genericUnconditioned: boolean("generic_unconditioned").notNull().default(false),
@@ -35,6 +38,10 @@ export const resonanceStudies = pgTable(
   (t) => [
     index("resonance_studies_project_idx").on(t.projectId),
     check("resonance_studies_state_ck", sql`${t.state} in ('draft', 'approved', 'archived')`),
+    check(
+      "resonance_studies_test_type_ck",
+      sql`${t.testType} in ('buyer_response', 'ai_recommendation')`,
+    ),
   ],
 );
 

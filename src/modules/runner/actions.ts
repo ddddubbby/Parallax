@@ -51,6 +51,7 @@ import {
 import {
   getResonanceDrawFootprint,
   getResonanceStudyAnchorSetVersion,
+  getMessageLiftTestType,
 } from "@/db/repositories/resonance";
 import { anchorStatementSets, getSsrAnchorSet } from "@/core/ssr-anchors";
 import { estimateExtractionCostUsd } from "@/providers/deepseek";
@@ -172,9 +173,11 @@ export async function listProviderOptions() {
  */
 export async function getSecondaryRequirement(
   matrixKind: "audit" | "resonance",
+  testType?: "buyer_response" | "ai_recommendation" | null,
 ): Promise<SecondaryRequirement | null> {
   try {
-    const providerId = secondaryProviderIdForKind(matrixKind);
+    const providerId = secondaryProviderIdForKind(matrixKind, testType);
+    if (!providerId) return null;
     const summaries = await listCredentialSummaries();
     const byProvider = new Map<string, Array<(typeof summaries)[number]>>();
     for (const row of summaries) {
@@ -210,14 +213,21 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
     : await getApprovedVersionForRun(projectId);
   if (!version) return { ok: false as const, error: "No approved matrix version" };
   if (version.state !== "approved") return { ok: false as const, error: "Runs require an approved matrix version" };
-  // D-080 (supersedes D-067): a resonance run may select >=1 providers — each
-  // is scored as its own synthetic population, never pooled — but exactly one
-  // generation mode, since resonance metric scopes carry no mode dimension.
-  if (version.kind === "resonance" && input.modes.length !== 1) {
-    return { ok: false as const, error: "A Resonance run must select exactly one generation mode (D-080)" };
+  const testType =
+    version.kind === "resonance" && version.resonanceStudyId
+      ? await getMessageLiftTestType(version.resonanceStudyId)
+      : null;
+  if (
+    version.kind === "resonance" &&
+    (input.providers.length !== 1 || input.modes[0] !== "ungrounded" || input.repetitions !== 5)
+  ) {
+    return {
+      ok: false as const,
+      error: "Message Lift tests use one AI model, ungrounded mode, and exactly five completions",
+    };
   }
   if (input.runMode !== "mock") {
-    const secondaryError = validateSecondaryProviderConfig(version.kind);
+    const secondaryError = validateSecondaryProviderConfig(version.kind, testType);
     if (secondaryError) return { ok: false as const, error: secondaryError };
   }
   const capabilities = listRegisteredProviders().map((p) => ({
@@ -252,17 +262,18 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   // deepseek+grounded) are skipped at planning, so they contribute $0.
   const callsPerPair = cellCount * input.repetitions;
   const isResonance = version.kind === "resonance";
+  const isBuyerResponse = isResonance && testType !== "ai_recommendation";
   const extractionCostPerCall =
     input.runMode === "mock" || isResonance ? EXTRACTION_ENGINE_MOCK_COST_USD : estimateExtractionCostUsd();
   // Use the study's PINNED anchor set (D-066: future sets differ in statement
   // count/length) rather than hardcoding v1, so the embedding-cost estimate
   // tracks the run's real anchor set.
   const anchorSetVersion =
-    isResonance && version.resonanceStudyId
+    isBuyerResponse && version.resonanceStudyId
       ? (await getResonanceStudyAnchorSetVersion(version.resonanceStudyId)) ?? "purchase_intent.v1"
       : "purchase_intent.v1";
   const embeddingCostPerCall =
-    input.runMode === "mock" || !isResonance
+    input.runMode === "mock" || !isBuyerResponse
       ? 0
       : estimateOpenAIEmbeddingCostUsd([
           "x".repeat(2_000),
@@ -274,7 +285,7 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
     if (providerId === "mock" || costUsd <= 0) return;
     projectedByProvider.set(providerId, (projectedByProvider.get(providerId) ?? 0) + costUsd);
   };
-  const secondaryProvider = secondaryProviderIdForKind(version.kind);
+  const secondaryProvider = secondaryProviderIdForKind(version.kind, testType);
   for (const providerId of input.providers) {
     const provider = getProvider(providerId);
     if (!provider) continue;
@@ -288,7 +299,9 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
       // D-022: one estimated extraction call per generation call.
       projectedCostUsd += generationProjectedUsd + extractionProjectedUsd + embeddingProjectedUsd;
       addProjectedSpend(providerId, generationProjectedUsd);
-      addProjectedSpend(secondaryProvider, extractionProjectedUsd + embeddingProjectedUsd);
+      if (secondaryProvider) {
+        addProjectedSpend(secondaryProvider, extractionProjectedUsd + embeddingProjectedUsd);
+      }
     }
   }
   // A1: surface today's spend vs daily budget per relevant provider (live
@@ -297,7 +310,10 @@ export async function projectRunCost(projectId: string, input: RunCreationInput)
   // run paused mid-flight. Providers with no configured budget are omitted.
   const budgets: ProjectedBudget[] = [];
   if (input.runMode !== "mock") {
-    for (const providerId of new Set<string>([...input.providers, secondaryProvider])) {
+    for (const providerId of new Set<string>([
+      ...input.providers,
+      ...(secondaryProvider ? [secondaryProvider] : []),
+    ])) {
       if (providerId === "mock") continue;
       const budgetUsd = readDailyBudgetUsd(providerId);
       if (!Number.isFinite(budgetUsd)) continue;
@@ -385,7 +401,20 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
   const runMatrixVersion = input.matrixVersionId
     ? await getMatrixVersionForRun(projectId, input.matrixVersionId)
     : await getApprovedVersionForRun(projectId);
-  const secondaryProvider = secondaryProviderIdForKind(runMatrixVersion?.kind);
+  const runTestType =
+    runMatrixVersion?.kind === "resonance" && runMatrixVersion.resonanceStudyId
+      ? await getMessageLiftTestType(runMatrixVersion.resonanceStudyId)
+      : null;
+  const secondaryProvider = secondaryProviderIdForKind(runMatrixVersion?.kind, runTestType);
+  if (
+    runMatrixVersion?.kind === "resonance" &&
+    (input.providers.length !== 1 || input.modes[0] !== "ungrounded" || input.repetitions !== 5)
+  ) {
+    return {
+      ok: false,
+      error: "Message Lift tests use one AI model, ungrounded mode, and exactly five completions",
+    };
+  }
 
   // M46/D-117: reject below-floor live_audit Simulation before credential preflight
   // so the operator sees the persona/draw fix, not a missing-key error.
@@ -410,9 +439,12 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
   // the subtle one: without its key, generation succeeds and spends, then
   // every extraction dead-letters and the run yields no usable metrics.
   if (input.runMode !== "mock") {
-    const secondaryError = validateSecondaryProviderConfig(runMatrixVersion?.kind);
+    const secondaryError = validateSecondaryProviderConfig(runMatrixVersion?.kind, runTestType);
     if (secondaryError) return { ok: false, error: secondaryError };
-    const needed = new Set<string>([...input.providers, secondaryProvider]);
+    const needed = new Set<string>([
+      ...input.providers,
+      ...(secondaryProvider ? [secondaryProvider] : []),
+    ]);
     const missing: string[] = [];
     for (const providerId of needed) {
       if (providerId === "mock") continue;
@@ -429,7 +461,7 @@ export async function createRun(projectId: string, input: RunCreationInput): Pro
     if (missing.length > 0) {
       return {
         ok: false,
-        error: `No active credential in Settings for: ${missing.join(", ")} — a live run needs a key for every selected provider and the ${runMatrixVersion?.kind === "resonance" ? "embedding provider" : "extraction engine"} (${secondaryProvider}) before it can spend.`,
+        error: `No active credential in Settings for: ${missing.join(", ")} — add the required generation${secondaryProvider ? ` and ${runMatrixVersion?.kind === "resonance" ? "embedding" : "extraction"}` : ""} credentials before running.`,
       };
     }
   }
@@ -531,7 +563,12 @@ export async function resumeRun(projectId: string, runId: string): Promise<Actio
     }
     try {
       const kind = await getRunMatrixKind(runId);
-      const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? []), secondaryProviderIdForKind(kind?.kind)];
+      const budgetProviders = [...((run.selectedProvidersJson as string[]) ?? [])];
+      const secondary = secondaryProviderIdForKind(
+        kind?.kind,
+        kind?.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response",
+      );
+      if (secondary) budgetProviders.push(secondary);
       const trip = await findExceededDailyBudget(budgetProviders);
       if (trip) {
         return {

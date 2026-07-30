@@ -108,7 +108,6 @@ function SidebarBody({
           className="flex flex-col text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <span className="label-mono text-sm font-semibold">Resonance</span>
-          <span className="font-mono text-[10px] text-ink/60">Parallax measurement engine</span>
         </Link>
       </div>
 

@@ -7,7 +7,9 @@ import {
   approveAndCompileResonanceStudy,
   createResonanceStudy,
   deleteResonanceStimulus,
+  getRecommendationStudyResultSummary,
   getResonanceStudyResults,
+  getMessageLiftPromptDisclosure,
   updateResonanceStimulus,
   updateResonanceStudy,
 } from "@/db/repositories/resonance";
@@ -158,7 +160,157 @@ async function createCompletedEvidenceResponseId(projectId: string): Promise<str
   return response.id;
 }
 
+async function createRecommendationScenarioAudit(projectId: string, count = 6): Promise<void> {
+  const [{ latest }] = await db
+    .select({ latest: max(matrixVersions.version) })
+    .from(matrixVersions)
+    .where(eq(matrixVersions.projectId, projectId));
+  const [version] = await db
+    .insert(matrixVersions)
+    .values({
+      projectId,
+      version: (latest ?? 0) + 1,
+      state: "approved",
+      kind: "audit",
+      cellCount: count,
+      approvedAt: new Date(),
+    })
+    .returning({ id: matrixVersions.id });
+  createdVersionIds.push(version.id);
+  await db.insert(promptCells).values(
+    Array.from({ length: count }, (_, index) => ({
+      matrixVersionId: version.id,
+      intent: index % 2 === 0 ? ("discovery" as const) : ("consideration" as const),
+      variantKey: `recommendation-scenario-${index + 1}`,
+      resolvedText: `Which finance workflow tool is best for shopping situation ${index + 1}?`,
+      competitorOrderJson: [],
+      brandOrderJson: [],
+    })),
+  );
+}
+
 describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
+  it("compiles AI recommendation tests from eligible brand-neutral scenarios with byte-stable parity", async () => {
+    const projectId = await demoProjectId();
+    await createRecommendationScenarioAudit(projectId);
+    const study = await createResonanceStudy(projectId, "AI shortlist lift", "ai_recommendation");
+    createdStudyIds.push(study.id);
+    const evidenceResponseId = await createCompletedEvidenceResponseId(projectId);
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "measured_ai",
+      label: "Current message",
+      body: "LedgerFox is described as easy to implement.",
+      evidenceResponseIds: [evidenceResponseId],
+    });
+    await addResonanceStimulus({
+      projectId,
+      studyId: study.id,
+      kind: "custom",
+      label: "New message",
+      body: "LedgerFox gives finance teams auditable workflows.",
+      evidenceResponseIds: [],
+    });
+
+    const preview = await getMessageLiftPromptDisclosure(projectId, study.id);
+    expect(preview?.testType).toBe("ai_recommendation");
+    expect(preview?.pairs.length).toBeGreaterThanOrEqual(6);
+    expect(preview?.pairs.length).toBeLessThanOrEqual(20);
+    expect(preview?.parityVerified).toBe(true);
+    expect(preview?.pairs.every((pair) => !/current message|new message/i.test(pair.currentPrompt))).toBe(true);
+
+    const version = await approveAndCompileResonanceStudy(projectId, study.id);
+    createdVersionIds.push(version.id);
+    const frozen = await getMessageLiftPromptDisclosure(projectId, study.id);
+    expect(frozen?.state).toBe("frozen");
+    expect(frozen?.protocolVersion).toBe("resonance-ai-recommendation.v1");
+    expect(frozen?.parityVerified).toBe(true);
+    expect(frozen?.pairs).toEqual(
+      preview?.pairs.map((pair) => ({
+        ...pair,
+        currentCellId: expect.any(String),
+        newCellId: expect.any(String),
+        currentResponseIds: [],
+        newResponseIds: [],
+      })),
+    );
+
+    const run = await createRun(projectId, {
+      matrixVersionId: version.id,
+      runMode: "mock",
+      providers: ["mock"],
+      modes: ["ungrounded"],
+      repetitions: 5,
+      costCapUsd: 1,
+    });
+    expect(run.ok).toBe(true);
+    if (!run.ok || !run.runId) throw new Error("expected AI recommendation mock run");
+    createdRunIds.push(run.runId);
+    const jobRows = await db
+      .select({
+        id: jobs.id,
+        runId: jobs.runId,
+        cellId: jobs.cellId,
+        providerId: jobs.providerId,
+        generationMode: jobs.generationMode,
+        repIndex: jobs.repIndex,
+        attemptCount: jobs.attemptCount,
+        resolvedText: promptCells.resolvedText,
+      })
+      .from(jobs)
+      .innerJoin(promptCells, eq(promptCells.id, jobs.cellId))
+      .where(eq(jobs.runId, run.runId));
+    expect(jobRows).toHaveLength((preview?.pairs.length ?? 0) * 2 * 5);
+    await db.update(auditRuns).set({ state: "running" }).where(eq(auditRuns.id, run.runId));
+    for (const job of jobRows) {
+      await db.update(jobs).set({ state: "running" }).where(eq(jobs.id, job.id));
+      const generated = await mockProvider.generate({
+        promptText: job.resolvedText,
+        mode: job.generationMode,
+        repIndex: job.repIndex,
+      });
+      const responseId = await recordSuccess(job, {
+        modelVersion: generated.modelVersion,
+        rawText: generated.text,
+        citations: generated.citations,
+        tokensIn: generated.tokensIn,
+        tokensOut: generated.tokensOut,
+        costUsd: generated.costUsd,
+        latencyMs: generated.latencyMs,
+      });
+      await expect(extractResponse(responseId)).resolves.toMatchObject({
+        outcome: "valid",
+        attempts: 1,
+      });
+    }
+    expect(await isRunFinished(run.runId)).toBe(true);
+    await completeRun(run.runId);
+    const extractionRows = await db
+      .select()
+      .from(extractions)
+      .innerJoin(responses, eq(responses.id, extractions.responseId))
+      .where(eq(responses.runId, run.runId));
+    expect(extractionRows).toHaveLength(jobRows.length);
+    expect(
+      extractionRows.every(
+        (row) =>
+          (row.extractions.extractedJson as { kind?: string }).kind === "recommendation" &&
+          row.extractions.extractionModel === "deterministic-recommendation-v1",
+      ),
+    ).toBe(true);
+    const recommendationResults = await getRecommendationStudyResultSummary(
+      projectId,
+      study.id,
+      run.runId,
+      { refreshMetrics: true },
+    );
+    expect(recommendationResults?.providers).toEqual(["mock"]);
+    expect(recommendationResults?.providerGroups[0]?.lifts[0]?.scenarioCount).toBe(
+      preview?.pairs.length,
+    );
+  });
+
   it("rejects unresolved template placeholders before compiling a study (VA-2)", async () => {
     const projectId = await demoProjectId();
     const study = await createResonanceStudy(projectId, "M20 Placeholder Rejection");
@@ -496,29 +648,27 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     expect(cells.every((cell) => cell.intent === "simulation")).toBe(true);
     expect(cells.every((cell) => cell.personaId === null && cell.marketId === null)).toBe(true);
 
-    // D-080 (supersedes D-067): a Resonance run may now select multiple
-    // providers — each is scored as its own synthetic population — but
-    // exactly one generation mode (no mode dimension in resonance scopes).
+    // D-119: Message Lift fixes one model, ungrounded mode, and k=5.
     const multiProvider = await projectRunCost(projectId, {
       matrixVersionId: version.id,
       runMode: "live_validation",
       providers: ["deepseek", "openai"],
       modes: ["ungrounded"],
-      repetitions: 1,
+      repetitions: 5,
       costCapUsd: 1,
     });
-    expect(multiProvider.ok).toBe(true);
+    expect(multiProvider.ok).toBe(false);
+    if (!multiProvider.ok) expect(multiProvider.error).toContain("one AI model");
 
     const multiMode = await projectRunCost(projectId, {
       matrixVersionId: version.id,
       runMode: "live_validation",
       providers: ["deepseek"],
       modes: ["ungrounded", "grounded"],
-      repetitions: 1,
+      repetitions: 5,
       costCapUsd: 1,
     });
     expect(multiMode.ok).toBe(false);
-    if (!multiMode.ok) expect(multiMode.error).toContain("D-080");
 
     // M46/D-117: default compiled study has 1 persona — below live draw floor.
     const previewProjection = await projectRunCost(projectId, {
@@ -556,7 +706,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       runMode: "mock",
       providers: ["mock"],
       modes: ["ungrounded"],
-      repetitions: 1,
+      repetitions: 5,
       costCapUsd: 1,
     });
     expect(run.ok).toBe(true);
@@ -577,7 +727,7 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
       .from(jobs)
       .innerJoin(promptCells, eq(promptCells.id, jobs.cellId))
       .where(eq(jobs.runId, run.runId));
-    expect(jobRows).toHaveLength(2);
+    expect(jobRows).toHaveLength(10);
     await db.update(auditRuns).set({ state: "running" }).where(eq(auditRuns.id, run.runId));
     for (const job of jobRows) {
       await db.update(jobs).set({ state: "running" }).where(eq(jobs.id, job.id));
@@ -603,12 +753,12 @@ describe.skipIf(!dbUp)("Resonance study compiler (M17)", () => {
     const completed = await getRun(run.runId);
     expect(completed?.state).toBe("completed");
     const responseRows = await db.select().from(responses).where(eq(responses.runId, run.runId));
-    expect(responseRows).toHaveLength(2);
+    expect(responseRows).toHaveLength(10);
     const extractionRows = await db
       .select()
       .from(extractions)
       .where(inArray(extractions.responseId, responseRows.map((response) => response.id)));
-    expect(extractionRows).toHaveLength(2);
+    expect(extractionRows).toHaveLength(10);
     for (const row of extractionRows) {
       const payload = row.extractedJson as { kind?: string; pmf?: number[]; meanScore?: number };
       expect(row.state).toBe("valid");

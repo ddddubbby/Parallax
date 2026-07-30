@@ -78,45 +78,45 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
     // See → Pick → Rewrite → Test journey (M44/D-114).
     if (s.hasActiveResonanceRun) {
       return {
-        stageLabel: "Simulation running",
-        nextLabel: "Watch the simulation",
+        stageLabel: "Message Lift test running",
+        nextLabel: "Watch the test",
         nextPath: "resonance",
-        hint: "The synthetic panel is reacting to your framings now.",
+        hint: "Resonance is comparing the Current and New messages now.",
         journey: "test",
       };
     }
     if (s.hasCompletedResonanceRun) {
       // M32 / D-088: Simulation results live on the walled Dashboard view.
       return {
-        stageLabel: "Simulation results ready",
-        nextLabel: "View simulation results",
+        stageLabel: "Message Lift results ready",
+        nextLabel: "View Message Lift results",
         nextPath: "dashboard?view=simulation",
-        hint: "See which framing lifted purchase intent most — comparisons only, never absolutes.",
+        hint: "See whether the New message improved the measured response — comparisons only, never absolutes.",
         journey: "test",
       };
     }
     if (s.hasApprovedResonanceStudy) {
       return {
-        stageLabel: "Study ready to run",
-        nextLabel: "Run the simulation study",
+        stageLabel: "Test ready to run",
+        nextLabel: "Run the Message Lift test",
         nextPath: "resonance",
-        hint: "The study is approved and frozen — run the panel to measure ΔPI.",
+        hint: "The exact A/B prompts are approved and frozen — run the test to measure lift.",
         journey: "test",
       };
     }
     if (s.hasStudyChallengers) {
       return {
-        stageLabel: "Challengers drafted",
-        nextLabel: "Approve and run the panel",
+        stageLabel: "New message drafted",
+        nextLabel: "Approve and run the test",
         nextPath: "resonance",
-        hint: "Baseline and challengers are set. Approval freezes the study for the panel.",
+        hint: "Current and New messages are set. Approval freezes the exact A/B prompts.",
         journey: "test",
       };
     }
     if (s.hasStudyBaseline) {
       return {
-        stageLabel: "Baseline picked",
-        nextLabel: "Write challenger framings",
+        stageLabel: "Current message picked",
+        nextLabel: "Write the New message",
         nextPath: "resonance",
         hint: "Draft the messages you want to test against how AI describes you today.",
         journey: "rewrite",
@@ -144,17 +144,17 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
       stageLabel: "Run in progress",
       nextLabel: "Watch the run",
       nextPath: "runs",
-      hint: "Engines are being sampled. Results unlock the dashboard when the run completes.",
+      hint: "AI models are being sampled. Results unlock the dashboard when the run completes.",
       journey: null,
     };
   }
   // A study can exist before any audit run completes (historical GENERIC path).
   if (s.hasActiveResonanceRun) {
     return {
-      stageLabel: "Simulation running",
-      nextLabel: "Watch the simulation",
+      stageLabel: "Message Lift test running",
+      nextLabel: "Watch the test",
       nextPath: "resonance",
-      hint: "The synthetic panel is reacting to your framings now.",
+      hint: "Resonance is comparing the Current and New messages now.",
       journey: "test",
     };
   }

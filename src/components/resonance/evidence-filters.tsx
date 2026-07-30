@@ -39,7 +39,7 @@ export function EvidenceFilters({
   return (
     <div className="flex flex-wrap items-end gap-3" aria-busy={pending}>
       <label className="flex flex-col gap-1">
-        <span className="label-mono text-xs text-ink/65">Stimulus</span>
+        <span className="label-mono text-xs text-ink/65">Message</span>
         <Select
           disabled={pending}
           value={stimulus ?? ""}
@@ -47,7 +47,7 @@ export function EvidenceFilters({
             push({ stimulus: e.target.value || undefined, persona })
           }
         >
-          <option value="">All stimuli</option>
+          <option value="">All messages</option>
           {stimuli.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label}
@@ -56,7 +56,7 @@ export function EvidenceFilters({
         </Select>
       </label>
       <label className="flex flex-col gap-1">
-        <span className="label-mono text-xs text-ink/65">Persona</span>
+        <span className="label-mono text-xs text-ink/65">Buyer profile</span>
         <Select
           disabled={pending}
           value={persona ?? ""}
@@ -64,7 +64,7 @@ export function EvidenceFilters({
             push({ stimulus, persona: e.target.value || undefined })
           }
         >
-          <option value="">All personas</option>
+          <option value="">All buyer profiles</option>
           {personas.map((p) => (
             <option key={p.key} value={p.key}>
               {p.label}

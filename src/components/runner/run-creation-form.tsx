@@ -53,6 +53,7 @@ export function RunCreationForm({
   matrixLabel,
   panelCount = null,
   framingCount = null,
+  messageLiftTestType = null,
 }: {
   projectId: string;
   cellCount: number;
@@ -70,6 +71,7 @@ export function RunCreationForm({
   /** M46/D-117: Simulation footprint for draw math when projection is sparse. */
   panelCount?: number | null;
   framingCount?: number | null;
+  messageLiftTestType?: "buyer_response" | "ai_recommendation" | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -102,7 +104,8 @@ export function RunCreationForm({
     runMode === "mock" ? p.id === "mock" : p.id !== "mock",
   );
   const isLive = runMode !== "mock";
-  const effectiveRepetitions = runMode === "live_audit" ? 5 : repetitions;
+  const isMessageLift = messageLiftTestType !== null;
+  const effectiveRepetitions = isMessageLift || runMode === "live_audit" ? 5 : repetitions;
 
   const secondaryBlocks =
     isLive &&
@@ -258,7 +261,7 @@ export function RunCreationForm({
       : overCap
         ? "OVER CAP"
         : belowLiveDrawFloor
-          ? "BELOW FLOOR"
+          ? isMessageLift ? "MORE CONTEXT NEEDED" : "BELOW FLOOR"
           : projection
             ? "READY"
             : "UNAVAILABLE";
@@ -267,7 +270,7 @@ export function RunCreationForm({
     <div className="flex flex-col gap-6">
       <div className="rounded-xl border border-ink/15 p-4">
         <span className="label-mono text-xs text-ink/60">
-          {singleMode ? "Approved simulation matrix" : "Approved matrix"}
+          {isMessageLift ? "Approved Message Lift prompts" : singleMode ? "Approved simulation matrix" : "Approved matrix"}
         </span>
         <p className="text-sm text-ink/85">
           {matrixLabel ? <span>{matrixLabel} · </span> : null}
@@ -278,10 +281,15 @@ export function RunCreationForm({
             </span>
           )}
         </p>
-        {singleMode && (
+        {singleMode && !isMessageLift && (
           <p className="mt-2 text-sm leading-relaxed text-ink/60">
             Simulation runs may select multiple providers but exactly one generation mode; each
             engine is reported as its own synthetic population, never pooled (D-080).
+          </p>
+        )}
+        {isMessageLift && (
+          <p className="mt-2 text-sm leading-relaxed text-ink/60">
+            The test uses one AI model and the same settings for both messages.
           </p>
         )}
       </div>
@@ -289,31 +297,49 @@ export function RunCreationForm({
       <fieldset>
         <legend className="label-mono mb-1.5 text-xs text-ink/70">Run mode</legend>
         <div className="flex flex-wrap gap-2">
-          {RUN_MODES.map((m) => (
+          {RUN_MODES.map((m) => {
+            const label = isMessageLift
+              ? m.id === "mock"
+                ? "Mock preview"
+                : m.id === "live_validation"
+                  ? "Live check"
+                  : "Full run"
+              : m.label;
+            const hint = isMessageLift
+              ? m.id === "mock"
+                ? "fixtures, free"
+                : m.id === "live_validation"
+                  ? "real spend, early read"
+                  : "real spend"
+              : m.hint;
+            return (
             <button
               key={m.id}
               type="button"
               onClick={() => selectRunMode(m.id)}
               aria-pressed={runMode === m.id}
-              aria-label={`${m.label}: ${m.hint}`}
+              aria-label={`${label}: ${hint}`}
               className={`interactive-press label-mono min-h-11 rounded-full px-4 py-2 text-xs transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                 runMode === m.id
                   ? "bg-ink text-paper"
                   : "border border-ink/25 text-ink/60 hover:border-ink"
               }`}
             >
-              {m.label}
+              {label}
               <span className={runMode === m.id ? "ml-1.5 text-paper/60" : "ml-1.5 text-ink/40"}>
-                {m.hint}
+                {hint}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </fieldset>
 
       {isLive && (
         <InlineStatus tone="warning">
-          {runMode === "live_validation"
+          {isMessageLift
+            ? "This option spends real money. Resonance keeps the A/B settings fixed."
+            : runMode === "live_validation"
             ? "Live validation spends real money and is labeled VALIDATION-ONLY — never client-ready evidence."
             : (
                 <>
@@ -342,7 +368,7 @@ export function RunCreationForm({
                     ? undefined
                     : `${p.displayName} credential is ${p.credentialState} — add or enable in Settings`
                 }
-                onClick={() => toggle(selectedProviders, p.id, setSelectedProviders)}
+                onClick={() => toggle(selectedProviders, p.id, setSelectedProviders, isMessageLift)}
                 className={`interactive-press label-mono min-h-11 rounded-full px-4 py-2 text-xs transition-micro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                   !ready
                     ? "cursor-not-allowed border border-ink/10 text-ink/30"
@@ -407,7 +433,7 @@ export function RunCreationForm({
         </div>
       )}
 
-      <fieldset>
+      {!isMessageLift && <fieldset>
         <legend className="label-mono mb-1.5 text-xs text-ink/70">Generation modes</legend>
         <div className="flex flex-wrap gap-2">
           {MODES.map((mode) => (
@@ -432,10 +458,15 @@ export function RunCreationForm({
             Resonance runs lock to one mode; there is no mode dimension in resonance scopes (D-080).
           </p>
         )}
-      </fieldset>
+      </fieldset>}
+      {isMessageLift && (
+        <p className="text-sm text-ink/60">
+          Resonance keeps the sampling and comparison settings fixed so only the message changes.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field
+        {!isMessageLift && <Field
           label="Repetitions"
           hint={runMode === "live_audit" ? "k=5 is protected for audit-grade runs (C-1)" : undefined}
         >
@@ -447,7 +478,7 @@ export function RunCreationForm({
             disabled={runMode === "live_audit"}
             onChange={(e) => setRepetitions(Number(e.target.value))}
           />
-        </Field>
+        </Field>}
         <Field label="Run dollar cap (USD)">
           <Input
             type="number"
@@ -499,37 +530,33 @@ export function RunCreationForm({
         </InlineStatus>
       )}
 
-      {singleMode && effectiveDraws !== null && (
+      {singleMode && !isMessageLift && effectiveDraws !== null && (
         <div className="rounded-xl border border-ink/15 p-4 font-mono text-xs text-ink/70">
           <p className="label-mono mb-2 text-xs text-ink/60">Simulation math</p>
           <p>
-            {effectivePanelCount ?? "—"} personas × {effectiveRepetitions} repetitions ={" "}
-            {effectiveDraws} draws per framing/provider
+            {effectivePanelCount ?? "—"} {messageLiftTestType === "ai_recommendation" ? "shopping situations" : "buyer profiles"} × {effectiveRepetitions} repetitions ={" "}
+            {effectiveDraws} responses per message/model
           </p>
           <p className="mt-1">
-            {effectiveFramingCount ?? "—"} framings × {effectivePanelCount ?? "—"} personas ×{" "}
-            {effectiveRepetitions} repetitions × {Math.max(1, selectedProviders.length)} providers ={" "}
+            {effectiveFramingCount ?? "—"} messages × {effectivePanelCount ?? "—"} contexts ×{" "}
+            {effectiveRepetitions} repetitions × {Math.max(1, selectedProviders.length)} AI model ={" "}
             {effectiveTotalCalls ?? "—"} total calls
           </p>
           <p className="mt-1 text-ink/55">
-            Draw floor is per framing and provider — multiple providers do not combine toward n≥30.
+            Enough-samples status is assessed per message and AI model.
           </p>
         </div>
       )}
 
       {previewBelowFloor && (
         <InlineStatus tone="warning">
-          Preview only — directional. This configuration yields {effectiveDraws ?? 0} draws per
-          framing/provider (below the n≥30 floor). Live audit runs are blocked until the study has
-          enough personas at k=5.
+          Early read. A full run needs at least six contexts.
         </InlineStatus>
       )}
 
       {belowLiveDrawFloor && (
         <InlineStatus tone="danger">
-          Live audit blocked — need at least 30 draws per framing/provider (personas ×
-          repetitions). With k=5 that means ≥6 personas. Do not invent personas; use mock or
-          live validation for preview-only configs.
+          Full run blocked — at least six contexts are required.
         </InlineStatus>
       )}
 
@@ -546,7 +573,9 @@ export function RunCreationForm({
               Projected cost
               {isLive
                 ? singleMode
-                  ? " (generation + SSR scoring, D-022)"
+                  ? messageLiftTestType === "ai_recommendation"
+                    ? " (generation only)"
+                    : " (generation + response scoring)"
                   : " (generation + extraction, D-022)"
                 : ""}
             </span>
@@ -683,7 +712,13 @@ export function RunCreationForm({
         pendingLabel="Starting…"
         onClick={onSubmit}
       >
-        {startRunLabel(runMode)}
+        {isMessageLift
+          ? runMode === "mock"
+            ? "Start mock preview"
+            : runMode === "live_validation"
+              ? "Start live check"
+              : "Start full run"
+          : startRunLabel(runMode)}
       </Button>
     </div>
   );
