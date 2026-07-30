@@ -125,6 +125,54 @@ async function insertSsrSamples(input: {
   }
 }
 
+async function insertRecommendationSamples(input: {
+  runId: string;
+  cellId: string;
+  providerId: "mock" | "deepseek";
+  targetRank: number | null;
+  count?: number;
+}) {
+  const jobRows = await db
+    .insert(jobs)
+    .values(
+      Array.from({ length: input.count ?? 5 }, (_, repIndex) => ({
+        runId: input.runId,
+        cellId: input.cellId,
+        providerId: input.providerId,
+        generationMode: "ungrounded" as const,
+        repIndex,
+        state: "succeeded" as const,
+      })),
+    )
+    .returning({ id: jobs.id });
+  for (const job of jobRows) {
+    const [response] = await db
+      .insert(responses)
+      .values({
+        jobId: job.id,
+        runId: input.runId,
+        cellId: input.cellId,
+        providerId: input.providerId,
+        generationMode: "ungrounded",
+        modelVersion: `${input.providerId}-recommendation-fixture`,
+        rawText: "{\"recommendations\":[]}",
+      })
+      .returning({ id: responses.id });
+    await db.insert(extractions).values({
+      responseId: response.id,
+      state: "valid",
+      extractedJson: {
+        kind: "recommendation",
+        schemaVersion: "recommendation-v1",
+        recommendations: [],
+        targetIncluded: input.targetRank !== null,
+        targetRank: input.targetRank,
+        targetTopPick: input.targetRank === 1,
+      },
+    });
+  }
+}
+
 describe.skipIf(!dbUp)("recomputeResonanceMetrics multi-provider populations (D-080)", () => {
   it("scores each provider as its own population: per-provider variant/persona/delta keys, within-provider ΔPI baselines, independent sufficiency gates", async () => {
     const suffix = randomUUID().slice(0, 8);
@@ -355,5 +403,184 @@ describe.skipIf(!dbUp)("recomputeResonanceMetrics multi-provider populations (D-
     const sortRows = (a: { scopeType: string; scopeKey: string }, b: { scopeType: string; scopeKey: string }) =>
       `${a.scopeType}|${a.scopeKey}`.localeCompare(`${b.scopeType}|${b.scopeKey}`);
     expect(secondRows.map(stableShape).sort(sortRows)).toEqual(rows.map(stableShape).sort(sortRows));
+  });
+});
+
+describe.skipIf(!dbUp)("AI recommendation metrics (D-119)", () => {
+  it("keeps models separate, weights scenarios equally, and recomputes seeded bootstrap intervals byte-identically", async () => {
+    const suffix = randomUUID().slice(0, 8);
+    const [project] = await db
+      .insert(projects)
+      .values({
+        name: `M49 Recommendation ${suffix}`,
+        slug: `m49-recommendation-${suffix}`,
+        category: "synthetic research",
+        jobToBeDone: "test recommendation lift recompute",
+        status: "active",
+      })
+      .returning();
+    created.projectIds.push(project.id);
+    const [study] = await db
+      .insert(resonanceStudies)
+      .values({
+        projectId: project.id,
+        name: `M49 Recommendation Study ${suffix}`,
+        state: "draft",
+        testType: "ai_recommendation",
+        promptProtocolVersion: "resonance-ai-recommendation.v1",
+      })
+      .returning();
+    created.studyIds.push(study.id);
+    const [currentMessage] = await db
+      .insert(resonanceStimuli)
+      .values({
+        studyId: study.id,
+        kind: "measured_ai",
+        label: "Current message",
+        body: "Current message body.",
+        position: 1,
+      })
+      .returning();
+    const [newMessage] = await db
+      .insert(resonanceStimuli)
+      .values({
+        studyId: study.id,
+        kind: "custom",
+        label: "New message",
+        body: "New message body.",
+        position: 2,
+      })
+      .returning();
+    await db
+      .update(resonanceStudies)
+      .set({
+        baselineStimulusId: currentMessage.id,
+        state: "approved",
+        approvedAt: new Date(),
+      })
+      .where(eq(resonanceStudies.id, study.id));
+    const [version] = await db
+      .insert(matrixVersions)
+      .values({
+        projectId: project.id,
+        version: 1,
+        state: "approved",
+        kind: "resonance",
+        resonanceStudyId: study.id,
+        cellCount: 12,
+        approvedAt: new Date(),
+      })
+      .returning();
+    created.versionIds.push(version.id);
+
+    const currentCells: string[] = [];
+    const newCells: string[] = [];
+    for (let scenario = 1; scenario <= 6; scenario++) {
+      const inserted = await db
+        .insert(promptCells)
+        .values([
+          {
+            matrixVersionId: version.id,
+            intent: "simulation",
+            stimulusId: currentMessage.id,
+            panelPersonaKey: `scenario-${scenario}`,
+            variantKey: `scenario-${scenario}-current`,
+            resolvedText: `Recommendation current ${scenario}`,
+            competitorOrderJson: [],
+          },
+          {
+            matrixVersionId: version.id,
+            intent: "simulation",
+            stimulusId: newMessage.id,
+            panelPersonaKey: `scenario-${scenario}`,
+            variantKey: `scenario-${scenario}-new`,
+            resolvedText: `Recommendation new ${scenario}`,
+            competitorOrderJson: [],
+          },
+        ])
+        .returning({ id: promptCells.id });
+      currentCells.push(inserted[0]!.id);
+      newCells.push(inserted[1]!.id);
+    }
+
+    const [run] = await db
+      .insert(auditRuns)
+      .values({
+        projectId: project.id,
+        matrixVersionId: version.id,
+        runMode: "live_validation",
+        state: "completed",
+        repetitions: 5,
+        selectedProvidersJson: ["mock", "deepseek"],
+        selectedModesJson: ["ungrounded"],
+        plannedCalls: 120,
+        costCapUsd: "5",
+      })
+      .returning();
+    created.runIds.push(run.id);
+
+    for (let scenario = 0; scenario < 6; scenario++) {
+      await insertRecommendationSamples({
+        runId: run.id,
+        cellId: currentCells[scenario]!,
+        providerId: "mock",
+        targetRank: scenario < 3 ? 1 : null,
+      });
+      await insertRecommendationSamples({
+        runId: run.id,
+        cellId: newCells[scenario]!,
+        providerId: "mock",
+        targetRank: 2,
+      });
+      await insertRecommendationSamples({
+        runId: run.id,
+        cellId: currentCells[scenario]!,
+        providerId: "deepseek",
+        targetRank: 1,
+      });
+      await insertRecommendationSamples({
+        runId: run.id,
+        cellId: newCells[scenario]!,
+        providerId: "deepseek",
+        targetRank: null,
+      });
+    }
+
+    expect(await recomputeMetrics(run.id)).toBe(18);
+    const first = await listMetrics(run.id);
+    const lift = (providerId: string, metricKey: string) =>
+      first.find(
+        (row) =>
+          row.scopeType === "recommendation_delta" &&
+          row.scopeKey === `${newMessage.id}|${providerId}` &&
+          row.metricKey === metricKey,
+      );
+    expect(lift("mock", "top_k_lift_pp")?.value).toBeCloseTo(50, 8);
+    expect(lift("mock", "top_pick_lift_pp")?.value).toBeCloseTo(-50, 8);
+    expect(lift("deepseek", "top_k_lift_pp")?.value).toBeCloseTo(-100, 8);
+    expect(lift("deepseek", "top_pick_lift_pp")?.value).toBeCloseTo(-100, 8);
+    expect(lift("mock", "top_k_lift_pp")?.metadataJson).toMatchObject({
+      providerId: "mock",
+      scenarioCount: 6,
+      directionalOnly: false,
+    });
+
+    expect(await recomputeMetrics(run.id)).toBe(18);
+    const second = await listMetrics(run.id);
+    const stable = (row: (typeof first)[number]) => ({
+      scopeType: row.scopeType,
+      scopeKey: row.scopeKey,
+      metricKey: row.metricKey,
+      n: row.n,
+      value: row.value,
+      ciLow: row.ciLow,
+      ciHigh: row.ciHigh,
+      metadataJson: row.metadataJson,
+    });
+    const sort = (a: ReturnType<typeof stable>, b: ReturnType<typeof stable>) =>
+      `${a.scopeType}|${a.scopeKey}|${a.metricKey}`.localeCompare(
+        `${b.scopeType}|${b.scopeKey}|${b.metricKey}`,
+      );
+    expect(second.map(stable).sort(sort)).toEqual(first.map(stable).sort(sort));
   });
 });

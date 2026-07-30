@@ -44,10 +44,10 @@ export default async function ResonanceLibraryPage({
         <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
-        / Setup / Simulation studies
+        / Message Lift
       </div>
       <div className="mb-4 mt-4 flex flex-wrap items-center gap-3">
-        <h1 className="label-mono text-lg font-semibold">Simulation studies</h1>
+        <h1 className="label-mono text-lg font-semibold">Message Lift</h1>
         <SimulatedBadge />
         <div className="ml-auto">
           <NewStudyDialog projectId={id} />
@@ -55,21 +55,22 @@ export default async function ResonanceLibraryPage({
       </div>
       <div className="mb-4"><JourneyRail current={stage.journey} /></div>
       <p className="mb-6 max-w-3xl text-sm leading-6 text-ink/70">
-        Library of Simulation Layer studies. Open a study for design, runs, results, and evidence.
-        Completed headlines also appear under Results → Simulation on the Evidence dashboard (C-12).
+        Compare the current message with one new message and measure the lift. Choose buyer response or
+        AI recommendation; both use the same transparent A/B workflow.
       </p>
 
       {studies.length === 0 ? (
         <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-6 sm:p-8">
-          <p className="label-mono text-center text-sm text-ink/60">No Simulation studies yet</p>
+          <p className="label-mono text-center text-sm text-ink/60">No Message Lift tests yet</p>
           {pipeline.hasCompletedRun ? (
             <p className="mx-auto mt-2 max-w-xl text-center text-sm leading-6 text-ink/65">
-              Create a study to test challenger framings against what AI says about you today, measured as ΔPI by a synthetic panel. Use “New study” above to start.
+              Create a test to compare a current message with one new message. Use “New test” above to start.
             </p>
           ) : (
             <div className="mx-auto mt-4 max-w-2xl">
               <p className="mb-4 text-center text-sm leading-6 text-ink/65">
-                Studies test challenger framings against measured AI responses — so the audit comes first.
+                Tests use a verbatim response and brand-neutral contexts from an approved Evidence audit,
+                so the audit comes first.
               </p>
               <NextStepCard stage={stage} projectId={id} />
             </div>
@@ -91,6 +92,9 @@ export default async function ResonanceLibraryPage({
                   <h2 className="label-mono text-sm font-semibold">{study.name}</h2>
                   <Stamp tone={study.state === "approved" ? "ok" : "ink"}>{study.state}</Stamp>
                   <SimulatedBadge />
+                  <Stamp tone="ink">
+                    {study.testType === "ai_recommendation" ? "AI recommendation" : "Buyer response"}
+                  </Stamp>
                   {study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
                   <Link
                     href={href}
@@ -101,10 +105,12 @@ export default async function ResonanceLibraryPage({
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-ink/65">
                   <span>
-                    {personas.length} persona{personas.length === 1 ? "" : "s"}
+                    {study.testType === "ai_recommendation"
+                      ? `${Array.isArray(study.recommendationScenariosJson) ? study.recommendationScenariosJson.length : 0} shopping situations`
+                      : `${personas.length} buyer profile${personas.length === 1 ? "" : "s"}`}
                   </span>
                   <span>
-                    {stimuli.length} {stimuli.length === 1 ? "stimulus" : "stimuli"}
+                    {stimuli.length} message{stimuli.length === 1 ? "" : "s"}
                   </span>
                   {matrixVersion && (
                     <span>

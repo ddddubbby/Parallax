@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Parallax design tokens — DESIGN_GUIDELINES.md sections 3, 5, 7.
+ * Resonance design tokens — DESIGN_GUIDELINES.md sections 3, 5, 7.
  * Every color, radius, and motion value lives here (V-10). Components use
  * Tailwind utilities backed by these tokens; raw hex in a component is a
  * review-blocking defect.

@@ -1,6 +1,6 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance audit+simulation product scope through M47 transition feedback and refresh cleanup · TRACKER: M47_BUILD_PLAN.md
 
-# PRD.md - Resonance (Parallax engine) MVP
+# PRD.md - Resonance MVP
 
 > **STATUS: M47 (D-118) ACTIVE ON `m47` (2026-07-20).** Transition feedback: reachable route loading, same-segment tab/run pending acknowledgment, and removal of redundant `router.refresh` after `revalidatePath` (§8.36). M46 (D-117) trustworthy progress + Simulation readiness is merged to `main` (§8.35). Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen. M44's See → Pick → Rewrite → Test journey (D-114, §8.34) stays governing. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
@@ -12,11 +12,11 @@
 
 Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and simulates what that presentation does to buyers. It is organized around two named epistemic layers (D-077): the Evidence Layer (the audit engine — Presence, Position, and Perception as the Four P pillars answering the client's core questions, with Proof as the trust rail underneath all three), and the Simulation Layer (simulated buyer action via the synthetic panel), plus a value-add layer of test-before-you-spend study templates on top of it. The two-layer split is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
 
-Parallax remains the name of the measurement engine (M0-M15): it turns a multi-week manual research task, "how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?", into a same-day operator pipeline: structured intake, capped prompt matrix, sampled provider runs, structured extraction, metrics with confidence intervals, findings, and an editable report. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations.
+Resonance turns a multi-week manual research task—“how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?”—into a same-day operator pipeline. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations. Legacy lowercase `parallax` identifiers remain internal for compatibility (D-119).
 
 The Simulation Layer has a different epistemic status from the Evidence Layer: measured and simulated data never mix (C-12), simulations are conditioned on measured audit evidence by default (C-13), and simulation claims are comparative only (C-14). Scope through M20 is an internal tool for testing and demos: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
 
-## 2. How Parallax works
+## 2. How Resonance works
 
 1. The operator creates a project and enters the client brand, aliases, competitors, fact sheet, desired attributes, personas, and target markets.
 2. The app generates a prompt matrix across five intent types, defaulting to 40 prompt cells and never exceeding 50.
@@ -339,7 +339,7 @@ OX-6 (M15): Jargon pass: operator-facing terms (cell, rep, engine-mode) get inli
 
 FL-1: A pure core mapping (`src/core/funnel.ts`) assigns pillars to funnel stages: Presence -> Upper, Position + Perception -> Mid, Proof -> trust rail (never a stage), lower funnel fed by resonance metrics only. Additive over D-051; no pillar/metric/intent renames.
 FL-2: Dashboard and matrix pillar sections display their funnel-stage chip; Proof displays "TRUST RAIL". Chips are structural (badge tokens), never a new accent (V-2).
-FL-3: The app presents as Resonance; Parallax remains the engine name. No repo/package/identifier renames.
+FL-3 (superseded by D-119): Resonance is the only product name. Compatibility-sensitive lowercase internal identifiers are not renamed.
 FL-4: A shared `SimulatedBadge` component exists; every simulation surface added in M17+ must render it (C-12).
 FL-5: Project subnav gains a Resonance item from M16 (stub until M17); glossary gains funnel-stage and simulated terms.
 
@@ -511,6 +511,20 @@ Navigation must acknowledge work immediately. No schema, metric, or measurement 
 
 Execution playbook: `M47_BUILD_PLAN.md`. No migration.
 
+### 8.37 Resonance Message Lift tests (M49, D-119)
+
+The `/resonance` workspace is Message Lift: compare one verbatim Current message with one New message and measure the lift.
+
+1. **Buyer response** — shared buyer profiles, free-text responses, 1–5 Buyer response scores, and Response lift.
+2. **AI recommendation** — 6–20 deduplicated brand-neutral shopping situations from the latest approved Evidence audit, exactly five ranked JSON recommendations, deterministic brand/alias parsing, top-five and top-choice rates, and Shortlist lift in percentage points.
+3. **A/B integrity** — one server renderer per test type; message labels/kinds never enter model-visible text; approval requires matching parity hashes after replacing the message slot; previews use the approval renderer; frozen disclosure reads immutable prompt cells.
+4. **Simple controls** — exactly two messages, one AI model, ungrounded mode, fixed k=5. No exposed statistical or scoring configuration.
+5. **Transparent evidence** — Prompts view in draft and frozen states; representative and complete prompt pairs; reports call the method section “How this was tested”; Evidence JSON contains every exact request, raw response, deterministic extraction, and metric.
+6. **Strict dispatch** — Evidence audits use paid extraction; Buyer response uses response scoring/embeddings; AI recommendation has no secondary provider. Models and test types are never pooled.
+7. **Compatibility** — historical studies, prompts, results, routes, and IDs remain readable. Resonance is the sole product name; lowercase legacy internal identifiers remain implementation details.
+
+Execution playbook: `M49_BUILD_PLAN.md`. Schema: migration `0023_m49_message_lift_tests.sql`.
+
 ## 9. Data model summary
 
 `projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`; from M17: `resonance_studies`, `resonance_stimuli` (migration 0008, which also adds the `simulation` value to the `intent` enum, `matrix_versions.kind`, `matrix_versions.resonance_study_id`, `prompt_cells.stimulus_id`, and `prompt_cells.panel_persona_key`; `prompt_cells.persona_id`/`market_id` are already nullable — D-066). From M34A (D-099/D-102): `framing_studies`, `framing_response_reviews`, `framing_annotations`, `framing_gap_classifications`, `framing_evidence_snapshots`, plus `resonance_stimuli.framing_evidence_snapshot_id` and the `representation` value on the `intent` enum (migration 0013 enum-only, then 0014 structure, then 0015 assurance — the last adding the append-only snapshot trigger and the approved-study stimulus-freeze trigger; digests use canonical sorted-key JSON with dual-verification backward compat per D-104).
@@ -576,6 +590,8 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M45 | Durable brand-name resolution (D-115) | Compact-key equality + unique containment; PM-9 same matcher; collision guard; $0 re-resolve; resolution-health card | Done |
 | M46 | Trustworthy progress + Simulation readiness (D-117) | Balanced frozen brand order; persistent framing batches; stage-aware ETA; Persona copy; full-response baseline dialog; live Simulation draw-floor enforcement; migration 0021 | Done |
 | M47 | Transition feedback + refresh cleanup (D-118) | Reachable `projects`/`[id]` loading; LocalViewTabs + ReportRunSwitcher pending; remove duplicate `router.refresh` after `revalidatePath` | Done — pending merge |
+| M48 | UI cleanup | Existing UI-cleanup milestone merged to `main` at `7ff4a7c` via merge commit `4380e78` | Done |
+| M49 | Resonance Message Lift tests (D-119) | Two test types; exact A/B parity/disclosure; deterministic recommendation extraction and scenario-weighted lift; plain-language Resonance-only surfaces; migration 0023; full gates | Done on `m49`; ready for review/commit |
 
 Progress notes:
 
@@ -637,8 +653,8 @@ Progress notes:
 
 - 2026-07-06 Post-M20 error-handling hardening (D-076, no migration): App Router `error.tsx`/`global-error.tsx`/`projects/[id]/error.tsx` boundaries render a shared token-backed `ErrorFallback` (Retry + route back, digest only, no stack/secret); a `reportError` observability seam (`src/observability.ts`, Sentry swap-in point, not wired); `.catch`/try added to every fire-and-forget client async path (dashboard run-switch, run-progress poll + pause/resume/cancel, extraction poll + recompute, drilldown, cost projection) so a transient failure keeps last data + shows inline retry instead of blanking; narrow try/catch → sanitized 500 on the three export routes (id/state guards from D-072 untouched). No ActionResult sweep, no new deps. Typecheck/lint clean, 18 DB-free tests pass (4 observability + sanitized-500 per export route). `pnpm build` + in-browser walk deferred (operator dev server on :3010 shares `.next`, D-075).
 - 2026-07-05 M20 close-out: C-12 recompute-all sweep clean (35 runs, 0 violations); mock-e2e regression all PASS (injection + kill/resume); fresh-clone demo caught a real P1 — drizzle.config.ts ignored .env.local so db:migrate silently targeted the fallback DB — fixed via env-bootstrap import, then the clone ran migrate/seed/demos unassisted on a fresh database (23 resonance metrics, 90 SSR extractions). 298/298 tests green post-fix. Remaining: operator sign-off walk.
-- 2026-07-05 Resonance roadmap: product restructured as Resonance (funnel presentation layer over the Parallax engine) with the lower-funnel synthetic panel and value-add template packs specified as M16-M20 (PRD 8.19-8.22, D-063/D-064/D-065, constraints C-12/C-13/C-14). Execution playbook with per-milestone steps, QA gates, and critical-bug risk tables written for handover: `RESONANCE_BUILD_PLAN.md`. M10 close-out (deploy, grounded providers, Gemini caveat) still runs as the parallel ops track and is unaffected.
-- 2026-07-05 M16 done: Resonance identity is now product-facing in app chrome/title/login, with Parallax retained as the measurement-engine subtitle. `src/core/funnel.ts` adds the pure additive funnel-stage mapping; dashboard and matrix pillar sections render `UPPER FUNNEL`, `MID FUNNEL`, and Proof as `TRUST RAIL`.
+- 2026-07-05 Resonance roadmap: product restructured around a funnel presentation layer with the lower-funnel synthetic panel and value-add template packs specified as M16-M20 (PRD 8.19-8.22, D-063/D-064/D-065, constraints C-12/C-13/C-14). Execution playbook with per-milestone steps, QA gates, and critical-bug risk tables written for handover: `RESONANCE_BUILD_PLAN.md`. M10 close-out (deploy, grounded providers, Gemini caveat) still runs as the parallel ops track and is unaffected.
+- 2026-07-05 M16 done: Resonance identity became product-facing in app chrome/title/login. `src/core/funnel.ts` added the pure additive funnel-stage mapping; dashboard and matrix pillar sections rendered `UPPER FUNNEL`, `MID FUNNEL`, and Proof as `TRUST RAIL`. D-119 later removed the retired engine subtitle.
 - 2026-07-05 M16 verification: SimulatedBadge exists, `/projects/[id]/resonance` stub is linked from project subnav and carries `SIMULATED`; SSR curl confirmed required strings and no visible raw pillar ids; demo run recompute stayed byte-identical across two passes (312 rows). `pnpm lint`, `pnpm typecheck`, `pnpm test` (231 passed / 44 skipped), and `pnpm build` green.
 - 2026-07-05 M16 scope note: no migration, no metric/math/schema changes. M17 starts the real `kind` discriminator work and must implement D-068 shared-plumbing wall guards before completed resonance runs can exist.
 - 2026-07-05 M17 done: migration 0008 adds `resonance_studies`, `resonance_stimuli`, `matrix_versions.kind`, resonance study/cell links, and `intent='simulation'`; study builder now creates/edits personas and stimuli, compiles approved studies into frozen resonance matrices, and starts single-engine mock runs.
@@ -667,7 +683,7 @@ Progress notes:
 - 2026-07-02 M1 done: migration 0000 (20 tables per ENGINEERING_SPEC §2, C-1 cap and k=5 checks, partial unique indexes for one-client/one-active-credential/active-template), core constants, idempotent seed (15 templates = 5 intents x 3 variants, LedgerFox demo). Seed-twice acceptance and constraint rejections verified against embedded Postgres 17.
 - 2026-07-02 M1 note: local dev DB is `pnpm db:dev` (embedded PG 17, foreground, data in .pgdata); `db:migrate` now verified against a live database. CI verification still awaits a GitHub remote.
 - 2026-07-02 M2 done: intake wizard — 7 steps + review, Tailwind v4 design tokens per DESIGN_GUIDELINES, debounced server autosave into `intake_draft_json` (migration 0001, D-026), strict Zod step validation with field-level errors, alias-overlap flags on review, transactional normalization at completion. Acceptance verified live in the browser: empty submit blocked with field errors; draft → quit → resume restored all fields; step advance persists high-water.
-- 2026-07-02 M2 note: GitHub remote now exists (pushed by operator); this merge's push is the first CI execution — verify the Actions run. Repo pushed as ddddubbby/Parallax.
+- 2026-07-02 M2 note: GitHub remote now exists (pushed by operator); this merge's push is the first CI execution — verify the Actions run.
 - 2026-07-03 pre-M3 audit: full 7-step wizard now verified live through review and completion; alias-overlap warning rendered; completed intake appears as an active project. Static chain, production build, migrations, seed, and standalone `/health` smoke pass locally on the pinned toolchain.
 - 2026-07-03 pre-M3 note: local `main` remains ahead of `origin/main`; push and verify GitHub Actions plus Render deployment before treating M3 as remotely cleared.
 - 2026-07-03 M3 done: pure allocator (PM-2 quotas, PM-4 priority waves, PM-11 redistribution, PM-3 hard cap), template rendering with PM-8 randomized competitor order, PM-9 brand-term scanner; matrix board with live counter, inline edit, variant regeneration, versioned approval with supersede. 15 allocator unit tests plus a DB-backed acceptance test: demo generates exactly 40, filled to 50 via real actions, 51st rejected server-side on every intent, approved cells immutable (tamper attempt verified unchanged), new-draft copy editable.

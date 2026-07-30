@@ -121,10 +121,15 @@ export async function recomputeMetrics(runId: string) {
   const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
   if (!run) throw new Error(`run ${runId} not found`);
   const [version] = await db
-    .select({ kind: matrixVersions.kind })
+    .select({ kind: matrixVersions.kind, testType: resonanceStudies.testType })
     .from(matrixVersions)
+    .leftJoin(resonanceStudies, eq(resonanceStudies.id, matrixVersions.resonanceStudyId))
     .where(eq(matrixVersions.id, run.matrixVersionId));
-  if (version?.kind === "resonance") return recomputeResonanceMetrics(runId);
+  if (version?.kind === "resonance") {
+    return version.testType === "ai_recommendation"
+      ? recomputeRecommendationMetrics(runId)
+      : recomputeResonanceMetrics(runId);
+  }
 
   const [projectBrands, eligible] = await Promise.all([
     db
@@ -429,6 +434,40 @@ function readSsrPayload(payload: unknown): { pmf: number[]; meanScore: number } 
   return { pmf: parsed.pmf, meanScore: expectedMean };
 }
 
+type RecommendationMetricPayload = {
+  kind?: string;
+  schemaVersion?: string;
+  targetIncluded?: unknown;
+  targetRank?: unknown;
+  targetTopPick?: unknown;
+};
+
+function readRecommendationPayload(payload: unknown): {
+  targetIncluded: boolean;
+  targetRank: number | null;
+  targetTopPick: boolean;
+} | null {
+  const parsed = payload as RecommendationMetricPayload | null;
+  if (!parsed || parsed.kind !== "recommendation" || parsed.schemaVersion !== "recommendation-v1") {
+    return null;
+  }
+  if (typeof parsed.targetIncluded !== "boolean" || typeof parsed.targetTopPick !== "boolean") return null;
+  if (
+    parsed.targetRank !== null &&
+    (typeof parsed.targetRank !== "number" ||
+      !Number.isInteger(parsed.targetRank) ||
+      parsed.targetRank < 1 ||
+      parsed.targetRank > 5)
+  ) {
+    return null;
+  }
+  return {
+    targetIncluded: parsed.targetIncluded,
+    targetRank: parsed.targetRank as number | null,
+    targetTopPick: parsed.targetTopPick,
+  };
+}
+
 function averagePmf(pmfs: number[][]): number[] {
   if (pmfs.length === 0) return [0, 0, 0, 0, 0];
   const totals = [0, 0, 0, 0, 0];
@@ -442,6 +481,208 @@ function averagePmf(pmfs: number[][]): number[] {
 // primitive so it can't drift from every other point-estimate metric (D-023).
 function mean(values: number[]): number {
   return meanValue(values).value;
+}
+
+function seededRandom(seedText: string) {
+  let state = 2166136261;
+  for (const char of seedText) {
+    state ^= char.charCodeAt(0);
+    state = Math.imul(state, 16777619);
+  }
+  return () => {
+    state += 0x6d2b79f5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function clusterBootstrapInterval(values: number[], seed: string): [number | null, number | null] {
+  if (values.length < 2) return [null, null];
+  const random = seededRandom(seed);
+  const estimates: number[] = [];
+  for (let iteration = 0; iteration < 2_000; iteration++) {
+    let total = 0;
+    for (let index = 0; index < values.length; index++) {
+      total += values[Math.floor(random() * values.length)];
+    }
+    estimates.push(total / values.length);
+  }
+  estimates.sort((a, b) => a - b);
+  return [
+    estimates[Math.floor(estimates.length * 0.025)],
+    estimates[Math.floor(estimates.length * 0.975)],
+  ];
+}
+
+async function recomputeRecommendationMetrics(runId: string) {
+  const [run] = await db.select().from(auditRuns).where(eq(auditRuns.id, runId));
+  if (!run) throw new Error(`run ${runId} not found`);
+  const eligible = await getEligibleExtractionsForRun(runId);
+  const [study] = await db
+    .select({ baselineStimulusId: resonanceStudies.baselineStimulusId })
+    .from(matrixVersions)
+    .innerJoin(resonanceStudies, eq(resonanceStudies.id, matrixVersions.resonanceStudyId))
+    .where(eq(matrixVersions.id, run.matrixVersionId));
+  const cells = await db
+    .select({
+      id: promptCells.id,
+      stimulusId: promptCells.stimulusId,
+      contextKey: promptCells.panelPersonaKey,
+      stimulusKind: resonanceStimuli.kind,
+      stimulusLabel: resonanceStimuli.label,
+      stimulusPosition: resonanceStimuli.position,
+    })
+    .from(promptCells)
+    .innerJoin(resonanceStimuli, eq(resonanceStimuli.id, promptCells.stimulusId))
+    .where(eq(promptCells.matrixVersionId, run.matrixVersionId));
+  const cellById = new Map(cells.map((cell) => [cell.id, cell]));
+  const samples: Array<{
+    stimulusId: string;
+    contextKey: string;
+    stimulusKind: string;
+    stimulusLabel: string;
+    stimulusPosition: number;
+    providerId: string;
+    included: number;
+    topPick: number;
+    reciprocalRank: number;
+  }> = [];
+  for (const row of eligible) {
+    const parsed = readRecommendationPayload(row.extractedJson);
+    const cell = cellById.get(row.cellId);
+    if (!parsed || !cell?.stimulusId || !cell.contextKey) continue;
+    samples.push({
+      stimulusId: cell.stimulusId,
+      contextKey: cell.contextKey,
+      stimulusKind: cell.stimulusKind,
+      stimulusLabel: cell.stimulusLabel,
+      stimulusPosition: cell.stimulusPosition,
+      providerId: row.providerId,
+      included: parsed.targetIncluded ? 1 : 0,
+      topPick: parsed.targetTopPick ? 1 : 0,
+      reciprocalRank: parsed.targetRank ? 1 / parsed.targetRank : 0,
+    });
+  }
+
+  const rows: Array<typeof metrics.$inferInsert> = [];
+  for (const [providerId, providerSamples] of groupBy(samples, (sample) => sample.providerId)) {
+    const byStimulus = groupBy(providerSamples, (sample) => sample.stimulusId);
+    const summaries = new Map<
+      string,
+      {
+        label: string;
+        position: number;
+        n: number;
+        contextMeans: Map<string, { inclusion: number; topPick: number; reciprocalRank: number }>;
+      }
+    >();
+    for (const [stimulusId, stimulusSamples] of byStimulus) {
+      const byContext = groupBy(stimulusSamples, (sample) => sample.contextKey);
+      const contextMeans = new Map<string, { inclusion: number; topPick: number; reciprocalRank: number }>();
+      for (const [contextKey, contextSamples] of byContext) {
+        contextMeans.set(contextKey, {
+          inclusion: mean(contextSamples.map((sample) => sample.included)),
+          topPick: mean(contextSamples.map((sample) => sample.topPick)),
+          reciprocalRank: mean(contextSamples.map((sample) => sample.reciprocalRank)),
+        });
+      }
+      const first = stimulusSamples[0];
+      const summary = {
+        label: first.stimulusLabel,
+        position: first.stimulusPosition,
+        n: stimulusSamples.length,
+        contextMeans,
+      };
+      summaries.set(stimulusId, summary);
+      const conditionMetrics = [
+        ["top_k_inclusion_rate", mean([...contextMeans.values()].map((value) => value.inclusion))],
+        ["top_pick_rate", mean([...contextMeans.values()].map((value) => value.topPick))],
+        ["mean_reciprocal_rank", mean([...contextMeans.values()].map((value) => value.reciprocalRank))],
+      ] as const;
+      for (const [metricKey, value] of conditionMetrics) {
+        rows.push({
+          runId,
+          scopeType: "recommendation_condition",
+          scopeKey: `${stimulusId}|${providerId}`,
+          metricKey,
+          n: stimulusSamples.length,
+          value,
+          ciLow: null,
+          ciHigh: null,
+          metadataJson: {
+            label: first.stimulusLabel,
+            providerId,
+            scenarioCount: contextMeans.size,
+            sufficientN: stimulusSamples.length >= 30,
+          },
+        });
+      }
+    }
+
+    const ordered = [...summaries.entries()].sort((a, b) => a[1].position - b[1].position);
+    const baselineId = study?.baselineStimulusId ?? ordered[0]?.[0] ?? null;
+    const baseline = baselineId ? summaries.get(baselineId) : null;
+    if (!baselineId || !baseline) continue;
+    for (const [stimulusId, challenger] of ordered) {
+      if (stimulusId === baselineId) continue;
+      const sharedContexts = [...challenger.contextMeans.keys()].filter((key) => baseline.contextMeans.has(key));
+      const definitions = [
+        {
+          metricKey: "top_k_lift_pp",
+          scale: 100,
+          field: "inclusion" as const,
+        },
+        {
+          metricKey: "top_pick_lift_pp",
+          scale: 100,
+          field: "topPick" as const,
+        },
+        {
+          metricKey: "reciprocal_rank_lift",
+          scale: 1,
+          field: "reciprocalRank" as const,
+        },
+      ];
+      for (const definition of definitions) {
+        const differences = sharedContexts.map(
+          (key) =>
+            (challenger.contextMeans.get(key)![definition.field] -
+              baseline.contextMeans.get(key)![definition.field]) *
+            definition.scale,
+        );
+        if (differences.length === 0) continue;
+        const [ciLow, ciHigh] = clusterBootstrapInterval(
+          differences,
+          `${runId}|${providerId}|${stimulusId}|${definition.metricKey}`,
+        );
+        rows.push({
+          runId,
+          scopeType: "recommendation_delta",
+          scopeKey: `${stimulusId}|${providerId}`,
+          metricKey: definition.metricKey,
+          n: challenger.n,
+          value: mean(differences),
+          ciLow,
+          ciHigh,
+          metadataJson: {
+            label: challenger.label,
+            baselineStimulusId: baselineId,
+            providerId,
+            scenarioCount: sharedContexts.length,
+            directionalOnly: challenger.n < 30 || baseline.n < 30,
+          },
+        });
+      }
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(metrics).where(eq(metrics.runId, runId));
+    if (rows.length > 0) await tx.insert(metrics).values(rows);
+  });
+  return rows.length;
 }
 
 async function recomputeResonanceMetrics(runId: string) {

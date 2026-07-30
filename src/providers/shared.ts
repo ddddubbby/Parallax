@@ -1,3 +1,10 @@
+import {
+  EnvHttpProxyAgent,
+  fetch as undiciFetch,
+  type Dispatcher,
+  type RequestInit as UndiciRequestInit,
+} from "undici";
+
 // Shared plumbing for live provider adapters. Moved out of
 // src/providers/deepseek in M9 when four more adapters arrived; deepseek
 // re-exports these names so its existing importers keep working.
@@ -34,6 +41,41 @@ export interface LiveCredentials {
   apiKey: string;
   baseUrl?: string | null;
   defaultModel?: string | null;
+}
+
+type ProviderRequestInit = RequestInit & { dispatcher?: Dispatcher };
+
+let cachedProxy:
+  | {
+      key: string;
+      dispatcher: EnvHttpProxyAgent;
+    }
+  | undefined;
+
+/**
+ * Node fetch does not read macOS system-proxy settings. Provider traffic may
+ * opt into the standard HTTP(S)_PROXY environment contract instead. The
+ * dispatcher is request-local so database, app, and framework traffic are not
+ * accidentally routed through a provider proxy.
+ */
+function providerProxyDispatcher(): Dispatcher | undefined {
+  const httpProxy = process.env.http_proxy || process.env.HTTP_PROXY || "";
+  const httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY || "";
+  if (!httpProxy && !httpsProxy) return undefined;
+
+  const noProxy = process.env.no_proxy || process.env.NO_PROXY || "";
+  const key = `${httpProxy}\n${httpsProxy}\n${noProxy}`;
+  if (cachedProxy?.key !== key) {
+    cachedProxy = {
+      key,
+      dispatcher: new EnvHttpProxyAgent({
+        httpProxy: httpProxy || undefined,
+        httpsProxy: httpsProxy || undefined,
+        noProxy: noProxy || undefined,
+      }),
+    };
+  }
+  return cachedProxy.dispatcher;
 }
 
 const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = {
@@ -92,12 +134,17 @@ export async function postProviderJson(
 ): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(url, {
+    const dispatcher = providerProxyDispatcher();
+    const request: ProviderRequestInit = {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },
       body: JSON.stringify(body),
       signal,
-    });
+      ...(dispatcher ? { dispatcher } : {}),
+    };
+    response = dispatcher
+      ? ((await undiciFetch(url, request as UndiciRequestInit)) as unknown as Response)
+      : await fetch(url, request);
   } catch (err) {
     if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
       throw new ProviderCallError("timeout", `${providerName} request timed out or was aborted`);

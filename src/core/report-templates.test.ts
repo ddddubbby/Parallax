@@ -257,7 +257,7 @@ describe("resonance report templates (RR-3)", () => {
         },
       ],
     });
-    expect(md).toContain("| Primary buyer | Corrected proof framing | 3.80 | 5 | directional |");
+    expect(md).toContain("| Primary buyer | Corrected proof framing | 3.80 | 5 | Profile detail |");
   });
 
   it("labels each engine's variant/delta/persona/evidence blocks so two providers are never pooled (D-080)", () => {
@@ -282,8 +282,8 @@ describe("resonance report templates (RR-3)", () => {
       ...RESONANCE_CTX,
       providerSections: [...RESONANCE_CTX.providerSections, secondEngine],
     });
-    expect(md).toContain("Engine: mock");
-    expect(md).toContain("Engine: deepseek");
+    expect(md).toContain("AI model: mock");
+    expect(md).toContain("AI model: deepseek");
     // mock's mean PI (3.20) and deepseek's (2.50) must both appear — neither
     // engine's numbers are averaged into the other's.
     expect(md).toContain("3.20");

@@ -20,7 +20,7 @@ export const DASHBOARD_VIEWS = [
 ] as const;
 export type DashboardView = (typeof DASHBOARD_VIEWS)[number];
 
-export const STUDY_VIEWS = ["overview", "design", "runs", "results", "evidence"] as const;
+export const STUDY_VIEWS = ["overview", "design", "prompts", "runs", "results", "evidence"] as const;
 export type StudyView = (typeof STUDY_VIEWS)[number];
 
 export const STUDY_RESULT_SECTIONS = ["ranking", "deltas", "segments", "excerpts"] as const;

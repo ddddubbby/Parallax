@@ -55,11 +55,11 @@ export default async function DashboardPage({
         <Link href={`/projects/${id}`} className="hover:text-ink">
           {project.name}
         </Link>{" "}
-        / {view === "simulation" ? "Simulation results" : "Evidence dashboard"}
+        / {view === "simulation" ? "Message Lift results" : "Evidence dashboard"}
       </div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="label-mono text-lg font-semibold">
-          {view === "simulation" ? "Simulation results" : "Evidence dashboard"}
+          {view === "simulation" ? "Message Lift results" : "Evidence dashboard"}
         </h1>
         {view !== "simulation" && (
           <Link
@@ -88,7 +88,7 @@ export default async function DashboardPage({
             href={withViewParam(base, "simulation")}
             className="interactive-press label-mono inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/60 transition-micro hover:border-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            Simulation results
+            Message Lift results
             <SimulatedBadge />
           </Link>
         </div>

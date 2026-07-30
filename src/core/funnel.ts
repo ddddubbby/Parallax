@@ -22,7 +22,7 @@ export const FUNNEL_STAGES: Record<
     pillarIds: ["position", "perception"],
   },
   lower: {
-    label: "Simulation Layer - Simulated Action (SIM)",
+    label: "Message Lift - Simulated response (SIM)",
     question: "What would buyers do about it?",
     pillarIds: [],
   },

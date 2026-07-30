@@ -204,7 +204,7 @@ export function MisinformationRegister({
       <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">
         {PILLARS.proof.label} <span className="text-ink/65">— Misinformation Register ({rows.length})</span>
         {unreviewedCount > 0 && (
-          <span className="ml-2 text-warn">{unreviewedCount} unreviewed</span>
+          <span className="ml-2 font-semibold text-ink/80">{unreviewedCount} unreviewed</span>
         )}
       </h2>
       {rows.length === 0 ? (

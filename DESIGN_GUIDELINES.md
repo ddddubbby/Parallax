@@ -2,7 +2,7 @@
 
 # DESIGN_GUIDELINES.md - Resonance Visual Language
 
-> How the product looks, moves, and speaks. Applies to every surface — the Parallax measurement engine and the Resonance lower-funnel simulation layer alike. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.
+> How Resonance looks, moves, and speaks across Evidence and Message Lift surfaces. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.
 
 ---
 

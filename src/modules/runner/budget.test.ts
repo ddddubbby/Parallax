@@ -206,7 +206,17 @@ describe.skipIf(!dbUp)("provider daily-budget enforcement (C-2/D-012)", () => {
   });
 
   it("validates configured secondary provider ids before they can reach DB enum queries", async () => {
-    const { embeddingProviderId, extractionProviderId, validateSecondaryProviderConfig } = await import("./budget");
+    const {
+      embeddingProviderId,
+      extractionProviderId,
+      secondaryProviderIdForKind,
+      validateSecondaryProviderConfig,
+    } = await import("./budget");
+
+    // D-119: AI recommendation uses deterministic parsing and therefore has
+    // no paid embedding/extraction provider or secondary credentials.
+    expect(secondaryProviderIdForKind("resonance", "ai_recommendation")).toBeNull();
+    expect(validateSecondaryProviderConfig("resonance", "ai_recommendation")).toBeNull();
 
     process.env.EXTRACTION_PROVIDER = "not-a-provider";
     expect(() => extractionProviderId()).toThrow(/not a registered provider id/);

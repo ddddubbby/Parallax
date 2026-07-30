@@ -32,10 +32,10 @@ function EngineSectionNav({
   section: StudyResultSection;
 }) {
   const sections: Array<{ id: StudyResultSection; label: string }> = [
-    { id: "ranking", label: "Ranking" },
-    { id: "deltas", label: "Deltas" },
-    { id: "segments", label: "Segments" },
-    { id: "excerpts", label: "Excerpts" },
+    { id: "ranking", label: "Scores" },
+    { id: "deltas", label: "Lift" },
+    { id: "segments", label: "Buyer profiles" },
+    { id: "excerpts", label: "Responses" },
   ];
   return (
     <nav className="mb-4 flex gap-1 overflow-x-auto pb-1" aria-label="Results subsections">
@@ -64,22 +64,20 @@ function RankingSection({ group }: { group: ResonanceProviderSummaryGroup }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h4 className="label-mono text-xs text-ink/65">Variant ranking</h4>
+        <h4 className="label-mono text-xs text-ink/65">Message scores</h4>
         <SimulatedBadge />
       </div>
       <div className="grid gap-3">
-        {group.variants.map((variant, idx) => (
+        {group.variants.map((variant) => (
           <article key={variant.stimulusId} className="rounded-lg border border-ink/10 bg-paper p-3">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="label-mono text-xs text-ink/65">#{idx + 1}</span>
               <strong className="label-mono text-sm">{variant.label}</strong>
-              <Stamp tone="ink">{variant.stimulusKind}</Stamp>
-              <Stamp tone={variant.sufficientN ? "ink" : "warn"}>{variant.sufficientN ? "DRAW FLOOR MET" : "BELOW DRAW FLOOR"}</Stamp>
+              <Stamp tone={variant.sufficientN ? "ok" : "warn"}>{variant.sufficientN ? "Enough samples" : "Early read"}</Stamp>
             </div>
             <div className="grid gap-3 md:grid-cols-[7rem_1fr_4rem] md:items-end">
               <div>
                 <div className="font-mono text-3xl tabular-nums">{formatPi(variant.piMean)}</div>
-                <div className="label-mono text-xs text-ink/65">mean PI · n={variant.n}</div>
+                <div className="label-mono text-xs text-ink/65">buyer response score · {variant.n} responses</div>
               </div>
               <div
                 className="grid grid-cols-5 gap-2"
@@ -97,7 +95,7 @@ function RankingSection({ group }: { group: ResonanceProviderSummaryGroup }) {
                   </div>
                 ))}
               </div>
-              <div className="text-right font-mono text-xs text-ink/65">Likert 1-5 PMF</div>
+              <div className="text-right font-mono text-xs text-ink/65">1–5 response distribution</div>
             </div>
           </article>
         ))}
@@ -113,18 +111,18 @@ function DeltasSection({ group }: { group: ResonanceProviderSummaryGroup }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h4 className="label-mono text-xs text-ink/65">Delta vs baseline</h4>
+        <h4 className="label-mono text-xs text-ink/65">Response lift</h4>
         <SimulatedBadge />
       </div>
       <div className="overflow-x-auto rounded-lg border border-ink/10 bg-paper" role="region" aria-label="Simulation deltas table" tabIndex={0}>
         <table className="w-full border-collapse font-mono text-xs">
           <thead className="bg-paper-2 text-left text-ink/65">
             <tr>
-              <th className="px-3 py-2 font-medium">Variant</th>
-              <th className="px-3 py-2 font-medium">Baseline</th>
-              <th className="px-3 py-2 text-right font-medium">ΔPI</th>
+              <th className="px-3 py-2 font-medium">New message</th>
+              <th className="px-3 py-2 font-medium">Current message</th>
+              <th className="px-3 py-2 text-right font-medium">Response lift</th>
               <th className="px-3 py-2 text-right font-medium">n</th>
-              <th className="px-3 py-2 font-medium">Gate</th>
+              <th className="px-3 py-2 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -135,7 +133,7 @@ function DeltasSection({ group }: { group: ResonanceProviderSummaryGroup }) {
                 <td className="px-3 py-2 text-right tabular-nums">{formatDelta(delta.deltaPiMean)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{delta.n}</td>
                 <td className="px-3 py-2">
-                  {delta.directionalOnly ? <Stamp tone="warn">BELOW DRAW FLOOR</Stamp> : <Stamp tone="ink">DRAW FLOOR MET</Stamp>}
+                  {delta.directionalOnly ? <Stamp tone="warn">Early read</Stamp> : <Stamp tone="ok">Enough samples</Stamp>}
                 </td>
               </tr>
             ))}
@@ -153,18 +151,18 @@ function SegmentsSection({ group }: { group: ResonanceProviderSummaryGroup }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h4 className="label-mono text-xs text-ink/65">Segment slices</h4>
+        <h4 className="label-mono text-xs text-ink/65">Buyer-profile breakdown</h4>
         <SimulatedBadge />
       </div>
       <div className="overflow-x-auto rounded-lg border border-ink/10 bg-paper" role="region" aria-label="Simulation segment table" tabIndex={0}>
         <table className="w-full border-collapse font-mono text-xs">
           <thead className="bg-paper-2 text-left text-ink/65">
             <tr>
-              <th className="px-3 py-2 font-medium">Persona</th>
-              <th className="px-3 py-2 font-medium">Variant</th>
-              <th className="px-3 py-2 text-right font-medium">Mean PI</th>
+              <th className="px-3 py-2 font-medium">Buyer profile</th>
+              <th className="px-3 py-2 font-medium">Message</th>
+              <th className="px-3 py-2 text-right font-medium">Buyer response score</th>
               <th className="px-3 py-2 text-right font-medium">n</th>
-              <th className="px-3 py-2 font-medium">Gate</th>
+              <th className="px-3 py-2 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -175,7 +173,7 @@ function SegmentsSection({ group }: { group: ResonanceProviderSummaryGroup }) {
                 <td className="px-3 py-2 text-right tabular-nums">{formatPi(row.piMean)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{row.n}</td>
                 <td className="px-3 py-2">
-                  <Stamp tone="warn">DIRECTIONAL SLICE</Stamp>
+                  <Stamp tone="warn">Profile detail</Stamp>
                 </td>
               </tr>
             ))}
@@ -190,7 +188,7 @@ function ExcerptsSection({ group }: { group: ResonanceProviderSummaryGroup }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h4 className="label-mono text-xs text-ink/65">Deterministic excerpt panels</h4>
+        <h4 className="label-mono text-xs text-ink/65">Response examples</h4>
         <SimulatedBadge />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
@@ -235,15 +233,12 @@ export function StudyResultsPanel({
   return (
     <div className="space-y-5 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="label-mono text-xs font-semibold text-ink/70">Simulation Layer results</h3>
+        <h3 className="label-mono text-xs font-semibold text-ink/70">Buyer response results</h3>
         <SimulatedBadge />
-        <Stamp tone="warn">MODEL-IMPLIED</Stamp>
-        <Stamp tone="warn">{results.study.anchorSetCalibrated ? "CALIBRATED CONSTRUCT" : "UNCALIBRATED"}</Stamp>
-        <Stamp tone="ink">COMPARATIVE</Stamp>
         {results.study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
         <Stamp tone={results.run.runMode === "mock" ? "accent" : "ink"}>{results.run.runMode}</Stamp>
         <span className="font-mono text-xs text-ink/65">
-          run {results.run.id.slice(0, 8)} · {results.study.panelCount} profiles × {results.run.repetitions} completions = {results.study.panelCount * results.run.repetitions} model draws per variant/provider
+          run {results.run.id.slice(0, 8)} · {results.study.panelCount * results.run.repetitions} responses per message
         </span>
         <Link
           href={`/projects/${projectId}/report?runId=${results.run.id}`}
@@ -254,14 +249,13 @@ export function StudyResultsPanel({
       </div>
       <BaselineProvenance provenance={results.study.baselineProvenance} />
       <p className="text-sm leading-6 text-ink/70">
-        Mean PI and ΔPI are model-implied Likert-scale survey-construct scores. The n≥30 marker is
-        only a minimum model-signal draw floor, not aggregate-grade evidence. Scores compare stimulus
-        variants within one engine&rsquo;s population; they are never pooled across engines and are
-        not forecasts of buying behavior or business outcomes.
+        The buyer response score uses a simulated 1–5 scale. Response lift is the New score minus
+        the Current score. It is a controlled comparison, not a forecast of buying behavior, sales,
+        or business outcomes.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="label-mono text-xs text-ink/65">Engine</span>
+        <span className="label-mono text-xs text-ink/65">AI model</span>
         {results.providers.map((providerId) => {
           const active = providerId === group.providerId;
           return (

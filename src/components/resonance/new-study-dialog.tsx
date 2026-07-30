@@ -2,19 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { Button, Field, InlineStatus, Input, Stamp } from "@/components/ui";
+import { Button, Field, InlineStatus, Input } from "@/components/ui";
 import { AppDialog } from "@/components/ui/dialog";
-import { RESONANCE_STUDY_TEMPLATES } from "@/core/resonance-templates";
-import {
-  createStudyAction,
-  createStudyFromTemplateAction,
-} from "@/modules/resonance/actions";
+import { createMessageLiftTestAction } from "@/modules/resonance/actions";
 
 /** M32 / D-088: Blank or Template creation; form actions redirect to design. */
 export function NewStudyDialog({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"blank" | "template">("blank");
+  const [testType, setTestType] = useState<"buyer_response" | "ai_recommendation">("buyer_response");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -41,101 +37,63 @@ export function NewStudyDialog({ projectId }: { projectId: string }) {
     const formData = new FormData();
     formData.set("name", name);
     setPendingKey("blank");
-    startTransition(async () => finish(await createStudyAction(projectId, formData)));
-  }
-
-  function createTemplate(templateId: string) {
-    setError(null);
-    const formData = new FormData();
-    formData.set("templateId", templateId);
-    setPendingKey(templateId);
-    startTransition(async () => finish(await createStudyFromTemplateAction(projectId, formData)));
+    formData.set("testType", testType);
+    startTransition(async () => finish(await createMessageLiftTestAction(projectId, formData)));
   }
 
   return (
     <>
       <Button type="button" onClick={() => setOpen(true)}>
-        New study
+        New test
       </Button>
       <AppDialog
         open={open}
         onOpenChange={setOpen}
-        title="New study"
-        description="Start blank or from a template. Creation opens the design workspace."
+        title="New Message Lift test"
+        description="Compare what AI says today with one new message."
         className="w-[min(100%-2rem,36rem)]"
       >
-        <div className="mb-4 flex gap-2" role="group" aria-label="Study creation mode">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2" role="group" aria-label="Message Lift test type">
           <Button
             type="button"
-            variant={mode === "blank" ? "primary" : "secondary"}
-            aria-pressed={mode === "blank"}
-            onClick={() => { setMode("blank"); setError(null); }}
+            variant={testType === "buyer_response" ? "primary" : "secondary"}
+            aria-pressed={testType === "buyer_response"}
+            onClick={() => { setTestType("buyer_response"); setError(null); }}
           >
-            Blank
+            Buyer response
           </Button>
           <Button
             type="button"
-            variant={mode === "template" ? "primary" : "secondary"}
-            aria-pressed={mode === "template"}
-            onClick={() => { setMode("template"); setError(null); }}
+            variant={testType === "ai_recommendation" ? "primary" : "secondary"}
+            aria-pressed={testType === "ai_recommendation"}
+            onClick={() => { setTestType("ai_recommendation"); setError(null); }}
           >
-            Template
+            AI recommendation
           </Button>
         </div>
+        <p className="mb-4 text-sm leading-6 text-ink/65">
+          {testType === "buyer_response"
+            ? "See whether the new message improves simulated buyer response."
+            : "See whether the new message increases the brand's top-five or top-choice inclusion when supplied to an AI model."}
+        </p>
 
         {error && <InlineStatus tone="danger">{error}</InlineStatus>}
 
-        {mode === "blank" ? (
           <form onSubmit={createBlank} className="mt-3 flex flex-col gap-3">
-            <Field label="Study name">
+            <Field label="Test name">
               <Input
                 ref={nameRef}
                 name="name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="AI-framing repair study"
+                placeholder={testType === "buyer_response" ? "Buyer response lift" : "AI shortlist lift"}
                 required
               />
             </Field>
             <Button type="submit" pending={pending && pendingKey === "blank"} pendingLabel="Creating draft">
-              Create draft
+              Create test
             </Button>
           </form>
-        ) : (
-          <div className="mt-3 grid max-h-[24rem] gap-3 overflow-y-auto" aria-label="Study templates">
-            {RESONANCE_STUDY_TEMPLATES.map((template) => (
-              <article
-                key={template.id}
-                className="rounded-lg border border-ink/10 bg-paper-2/40 p-3"
-              >
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <h3 className="label-mono text-xs font-semibold text-ink/75">{template.name}</h3>
-                  {template.default && <Stamp tone="accent">DEFAULT</Stamp>}
-                </div>
-                <p className="text-sm leading-6 text-ink/70">{template.summary}</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {template.stimuli.map((stimulus) => (
-                    <Stamp key={`${template.id}-${stimulus.label}`} tone="ink">
-                      {stimulus.kind}
-                    </Stamp>
-                  ))}
-                </div>
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    variant={template.default ? "primary" : "secondary"}
-                    pending={pending && pendingKey === template.id}
-                    pendingLabel={`Creating ${template.name}`}
-                    disabled={pending && pendingKey !== template.id}
-                    onClick={() => createTemplate(template.id)}
-                  >
-                    Create draft
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
       </AppDialog>
     </>
   );

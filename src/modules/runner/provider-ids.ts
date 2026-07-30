@@ -5,6 +5,7 @@
 // defaults were re-typed as literals inside getProviderSpendToday — a missed
 // site silently reintroduces the D-050/D-037 wrong-budget bug class.
 import { isProviderId, type ProviderId } from "@/core/runner";
+import type { MessageLiftTestType } from "@/core/resonance";
 
 function providerIdFromEnv(envName: string, fallback: ProviderId): ProviderId {
   const raw = process.env[envName] || fallback;
@@ -28,12 +29,20 @@ export function embeddingProviderId(): ProviderId {
  * single source of truth for cost projection, credential preflight, and
  * daily-budget enforcement.
  */
-export function secondaryProviderIdForKind(kind: string | null | undefined): ProviderId {
+export function secondaryProviderIdForKind(
+  kind: string | null | undefined,
+  testType?: MessageLiftTestType | null,
+): ProviderId | null {
+  if (kind === "resonance" && testType === "ai_recommendation") return null;
   return kind === "resonance" ? embeddingProviderId() : extractionProviderId();
 }
 
-export function validateSecondaryProviderConfig(kind: string | null | undefined): string | null {
+export function validateSecondaryProviderConfig(
+  kind: string | null | undefined,
+  testType?: MessageLiftTestType | null,
+): string | null {
   try {
+    if (kind === "resonance" && testType === "ai_recommendation") return null;
     if (kind === "resonance") {
       const embedding = embeddingProviderId();
       return embedding === "openai"

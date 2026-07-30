@@ -37,7 +37,7 @@ describe("resolveProjectStage (OX-2)", () => {
       "dashboard?view=simulation",
     );
     expect(resolveProjectStage({ ...done, hasCompletedResonanceRun: true }).stageLabel).toBe(
-      "Simulation results ready",
+      "Message Lift results ready",
     );
     // A GENERIC study can run before any audit run completes.
     expect(resolveProjectStage({ ...base, hasActiveResonanceRun: true }).nextPath).toBe("resonance");
@@ -59,13 +59,13 @@ describe("resolveProjectStage (M44 / D-114 journey stages)", () => {
     // Baseline attached: Rewrite.
     const picked = resolveProjectStage({ ...done, hasStudy: true, hasStudyBaseline: true });
     expect(picked.journey).toBe("rewrite");
-    expect(picked.nextLabel).toBe("Write challenger framings");
+    expect(picked.nextLabel).toBe("Write the New message");
     // Challengers drafted: approve (Test boundary).
     const drafted = resolveProjectStage({
       ...done, hasStudy: true, hasStudyBaseline: true, hasStudyChallengers: true,
     });
     expect(drafted.journey).toBe("test");
-    expect(drafted.nextLabel).toBe("Approve and run the panel");
+    expect(drafted.nextLabel).toBe("Approve and run the test");
     // Approved: run.
     expect(resolveProjectStage({ ...done, hasApprovedResonanceStudy: true }).journey).toBe("test");
     // Running and complete stay on Test.
@@ -78,7 +78,7 @@ describe("resolveProjectStage (M44 / D-114 journey stages)", () => {
     const s = resolveProjectStage({
       ...done, hasStudy: true, hasStudyBaseline: true, hasApprovedResonanceStudy: true,
     });
-    expect(s.nextLabel).toBe("Run the simulation study");
+    expect(s.nextLabel).toBe("Run the Message Lift test");
   });
 
   it("audit-setup stages carry no journey position", () => {

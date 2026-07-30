@@ -53,20 +53,21 @@ describe("M43 shared UI contracts", () => {
     expect(switcher).toContain("aria-busy={isPending || undefined}");
   });
 
-  it("M46/D-117: Simulation wizard uses Persona copy, full-response dialog, and draw math", async () => {
+  it("M49/D-119: Message Lift wizard uses buyer profiles, full-response selection, and prompt review", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const wizard = await fs.readFile(
       path.join(process.cwd(), "src/components/resonance/study-wizard.tsx"),
       "utf8",
     );
-    expect(wizard).toContain("Persona name (required)");
-    expect(wizard).toContain("+ Add persona");
+    expect(wizard).toContain("Profile name (required)");
+    expect(wizard).toContain("+ Add buyer profile");
     expect(wizard).toContain("View full response");
-    expect(wizard).toContain("Choose as baseline");
+    expect(wizard).toContain("Use as Current message");
     expect(wizard).toContain('className="w-[min(100%-2rem,48rem)]"');
-    expect(wizard).toContain("formatSimulationMath");
-    expect(wizard).toContain("Preview-only at live audit grade");
+    expect(wizard).toContain("PromptDisclosurePanel");
+    expect(wizard).toContain("only the message may change");
+    expect(wizard).toContain("Early read");
     expect(wizard).not.toContain("Buyer type");
     expect(wizard).not.toContain("Label (required)");
     expect(wizard).not.toContain("+ Add buyer type");
@@ -81,5 +82,12 @@ describe("M43 shared UI contracts", () => {
     expect(step3.indexOf("<FramingBatchProgress")).toBeLessThan(step3.indexOf("stimuli.map"));
     expect(cardBody).not.toContain("<FramingBatchProgress");
     expect(wizard.match(/<FramingBatchProgress/g)?.length).toBe(1);
+
+    // The Button primitive reserves width for its pending label. Keep this card's
+    // save state name-independent, so a long editable message name cannot widen
+    // the action row and clip Delete.
+    expect(cardBody).toContain('className="mt-3 flex flex-wrap gap-2"');
+    expect(cardBody).toContain('pendingLabel="Saving message"');
+    expect(cardBody).not.toContain('pendingLabel={`Saving ${label || "message"}`}');
   });
 });

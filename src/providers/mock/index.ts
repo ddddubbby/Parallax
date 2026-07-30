@@ -1,5 +1,8 @@
 import { stableIndex } from "@/core/hash";
-import { RESONANCE_PROMPT_MARKER } from "@/core/resonance";
+import {
+  RECOMMENDATION_PROMPT_MARKER,
+  RESONANCE_PROMPT_MARKER,
+} from "@/core/resonance";
 import type { GenerationRequest, GenerationResult, LLMProvider, ProviderId } from "../types";
 import { loadMockFixtures, loadMockResonanceFixtures } from "./fixtures";
 
@@ -34,6 +37,19 @@ export function createMockProviderFor(fixtureProviderId: ProviderId): LLMProvide
     concurrency: 8,
 
     async generate(req: GenerationRequest): Promise<GenerationResult> {
+      if (req.promptText.includes(RECOMMENDATION_PROMPT_MARKER)) {
+        const text = mockRecommendation(req.promptText, fixtureProviderId, req.repIndex ?? 0);
+        await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
+        return {
+          text,
+          citations: [],
+          modelVersion: MOCK_MODEL_VERSION,
+          tokensIn: Math.ceil(req.promptText.length / 4),
+          tokensOut: Math.ceil(text.length / 4),
+          costUsd: MOCK_COST_PER_CALL_USD,
+          latencyMs: MOCK_LATENCY_MS,
+        };
+      }
       const resonance = req.promptText.includes(RESONANCE_PROMPT_MARKER);
       const auditFixtures = resonance ? null : loadMockFixtures();
       const resonanceFixtures = resonance ? loadMockResonanceFixtures() : null;
@@ -57,6 +73,22 @@ export function createMockProviderFor(fixtureProviderId: ProviderId): LLMProvide
       return MOCK_COST_PER_CALL_USD;
     },
   };
+}
+
+function mockRecommendation(promptText: string, providerId: string, repIndex: number): string {
+  const target = promptText.match(/\bLedgerFox\b/i)?.[0] ?? "ResonanceTarget";
+  const rank = stableIndex(`${promptText}|${providerId}|${repIndex}|recommendation`, 6) + 1;
+  const alternatives = ["SpendPilot", "Clearbooks", "Northstar", "Opal", "Keystone"];
+  const brands = alternatives.slice(0, 5);
+  if (rank <= 5) brands[rank - 1] = target;
+  return JSON.stringify({
+    recommendations: brands.map((brand, index) => ({
+      rank: index + 1,
+      brand,
+      product: null,
+      reason: `Mock recommendation ${index + 1} for this shopping situation.`,
+    })),
+  });
 }
 
 // Provider #0 (D-002): always available, zero-cost, permanently registered.

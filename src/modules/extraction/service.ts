@@ -26,6 +26,10 @@ import { appendRunEvent, getRun, getRunMatrixKind, hasRunEvent, pauseRun } from 
 import { resolveExtractionCredentials } from "@/modules/runner/provider-resolver";
 import { CredentialConfigError } from "@/modules/settings/crypto";
 import { scoreResponse, reScoreResponse } from "@/modules/resonance/scoring";
+import {
+  parseRecommendationResponse,
+  reparseRecommendationResponse,
+} from "@/modules/resonance/recommendation";
 import { callDeepSeekExtraction } from "@/providers/deepseek/extraction";
 import { MOCK_EXTRACTION_MODEL, extractViaMockEngine } from "@/providers/mock/extraction-engine";
 
@@ -305,6 +309,10 @@ async function buildContext(responseId: string): Promise<PipelineContext> {
 export async function extractResponse(responseId: string): Promise<ExtractionRunResult> {
   const ctx = await buildContext(responseId);
   if (ctx.matrixKind === "resonance") {
+    const kind = await getRunMatrixKind(ctx.runId);
+    if (kind?.testType === "ai_recommendation") {
+      return parseRecommendationResponse(responseId);
+    }
     const result = await scoreResponse(responseId);
     const alreadyLogged = await hasRunEvent(ctx.runId, "resonance_ssr_scored");
     if (!alreadyLogged) {
@@ -325,6 +333,10 @@ export async function extractResponse(responseId: string): Promise<ExtractionRun
 export async function reExtractResponse(responseId: string): Promise<ExtractionRunResult> {
   const ctx = await buildContext(responseId);
   if (ctx.matrixKind === "resonance") {
+    const kind = await getRunMatrixKind(ctx.runId);
+    if (kind?.testType === "ai_recommendation") {
+      return reparseRecommendationResponse(responseId);
+    }
     return reScoreResponse(responseId);
   }
   const extractionId = await createRequeuedExtraction(responseId, ["dead_lettered"]);

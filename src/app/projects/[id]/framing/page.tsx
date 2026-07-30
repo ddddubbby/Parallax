@@ -39,20 +39,20 @@ export default async function FramingLibraryPage({
       <p className="mb-7 max-w-3xl text-sm leading-6 text-ink/65">
         The codebook review workflow is retired (D-114). Reviews on file remain readable exactly as
         recorded — evidence is immutable (C-3) — but new reviews can no longer start. To test a
-        framing today, open a Simulation study and pick its baseline directly from stored responses.
+        message today, open Message Lift and pick the Current message directly from stored responses.
       </p>
 
       <section className="mb-8 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
-        <h2 className="label-mono mb-2 text-sm font-semibold">Testing a framing now happens in Simulation</h2>
+        <h2 className="label-mono mb-2 text-sm font-semibold">Message testing now happens in Message Lift</h2>
         <p className="max-w-2xl text-sm leading-6 text-ink/65">
-          Create a Simulation study and pick the stored AI response to test against — themes and
+          Create a Message Lift test and pick the stored AI response to test against — themes and
           recurrence counts are computed automatically from the audit&rsquo;s extractions.
         </p>
         <Link
           href={`/projects/${id}/resonance`}
           className="label-mono mt-3 inline-flex min-h-11 items-center rounded-md border border-accent bg-accent px-4 text-sm text-ink transition-micro hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          Open Simulation studies →
+          Open Message Lift →
         </Link>
       </section>
 

@@ -137,11 +137,16 @@ export async function createRun(
   if (version.state !== "approved") {
     throw new Error("Runs require an approved matrix version");
   }
-  // D-080 (supersedes D-067): >=1 providers allowed for resonance — each is
-  // its own synthetic population (metrics.ts scores them separately, never
-  // pooled) — but exactly one generation mode (no mode dimension in scopes).
-  if (version.kind === "resonance" && input.modes.length !== 1) {
-    throw new Error("A Resonance run must select exactly one generation mode (D-080)");
+  if (version.kind === "resonance" && version.resonanceStudyId) {
+    const footprint = await getResonanceDrawFootprint(version.resonanceStudyId);
+    if (
+      footprint !== null &&
+      (input.providers.length !== 1 || input.modes[0] !== "ungrounded" || input.repetitions !== 5)
+    ) {
+      throw new Error(
+        "Message Lift tests use one AI model, ungrounded mode, and exactly five completions",
+      );
+    }
   }
   // M46/D-117 repo backstop: live_audit Simulation draw floor (scripts cannot bypass).
   if (
@@ -886,9 +891,11 @@ export async function getRunMatrixKind(runId: string) {
       kind: matrixVersions.kind,
       projectId: auditRuns.projectId,
       resonanceStudyId: matrixVersions.resonanceStudyId,
+      testType: resonanceStudies.testType,
     })
     .from(auditRuns)
     .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
+    .leftJoin(resonanceStudies, eq(resonanceStudies.id, matrixVersions.resonanceStudyId))
     .where(eq(auditRuns.id, runId));
   return row ?? null;
 }

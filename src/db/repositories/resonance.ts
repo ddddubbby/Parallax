@@ -1,14 +1,22 @@
 import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
 import {
+  compileBuyerResponsePrompt,
+  compileRecommendationPrompt,
   historicalBaselineProvenance,
+  MESSAGE_LIFT_TEST_TYPES,
+  type MessageLiftTestType,
   type PanelPersona,
   panelPersonasSchema,
-  renderResonancePrompt,
+  recommendationScenariosSchema,
+  type RecommendationScenario,
+  RECOMMENDATION_PROMPT_PROTOCOL_VERSION,
+  RESONANCE_PROMPT_PROTOCOL_VERSION,
   type StimulusKind,
   type ResonanceBaselineProvenance,
   validateResonanceCellCount,
   stampBaselineProvenance,
 } from "@/core/resonance";
+import { findBrandTerms } from "@/core/matrix";
 import { isUuid } from "@/core/id";
 import { clusterFramingObservations } from "@/core/framing-themes";
 import {
@@ -44,6 +52,7 @@ import { verifyFramingEvidenceSnapshotRecord } from "./framing";
 export interface ResonanceStudyPatch {
   name?: string;
   panelPersonas?: PanelPersona[];
+  recommendationScenarios?: RecommendationScenario[];
   genericUnconditioned?: boolean;
 }
 
@@ -151,6 +160,49 @@ export interface ResonanceStudyResultSummary {
   providerGroups: ResonanceProviderSummaryGroup[];
 }
 
+export interface RecommendationConditionSummary {
+  stimulusId: string;
+  label: string;
+  providerId: string;
+  n: number;
+  scenarioCount: number;
+  inclusionRate: number;
+  topPickRate: number;
+  meanReciprocalRank: number;
+  sufficientN: boolean;
+}
+
+export interface RecommendationLiftSummary {
+  stimulusId: string;
+  label: string;
+  providerId: string;
+  n: number;
+  scenarioCount: number;
+  shortlistLiftPp: number;
+  shortlistCiLow: number | null;
+  shortlistCiHigh: number | null;
+  topPickLiftPp: number;
+  reciprocalRankLift: number;
+  directionalOnly: boolean;
+}
+
+export interface RecommendationStudyResultSummary {
+  testType: "ai_recommendation";
+  study: {
+    id: string;
+    name: string;
+    scenarioCount: number;
+    baselineProvenance: ResonanceBaselineProvenance;
+  };
+  run: ResonanceStudyResults["run"];
+  providers: string[];
+  providerGroups: Array<{
+    providerId: string;
+    conditions: RecommendationConditionSummary[];
+    lifts: RecommendationLiftSummary[];
+  }>;
+}
+
 export interface ResonanceEvidencePageItem {
   responseId: string;
   cellId: string;
@@ -174,6 +226,15 @@ export interface ResonanceEvidencePage {
 
 function excerptText(text: string, max = 180) {
   return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function groupBy<T, K>(items: T[], key: (item: T) => K): Map<K, T[]> {
+  const grouped = new Map<K, T[]>();
+  for (const item of items) {
+    const value = key(item);
+    grouped.set(value, [...(grouped.get(value) ?? []), item]);
+  }
+  return grouped;
 }
 
 function stripResponsesFromResults(results: ResonanceStudyResults): ResonanceStudyResultSummary {
@@ -618,6 +679,151 @@ export async function getResonanceStudy(projectId: string, studyId: string) {
   return { study, stimuli, matrixVersion, latestRun, studyRuns, baselineProvenance };
 }
 
+export interface MessageLiftPromptDisclosure {
+  testType: MessageLiftTestType;
+  state: "preview" | "frozen";
+  protocolVersion: string | null;
+  matrixVersion: number | null;
+  parityVerified: boolean;
+  currentMessage: { id: string; label: string; body: string } | null;
+  newMessage: { id: string; label: string; body: string } | null;
+  pairs: Array<{
+    contextKey: string;
+    contextLabel: string;
+    currentPrompt: string;
+    newPrompt: string;
+    currentCellId?: string;
+    newCellId?: string;
+    currentResponseIds?: string[];
+    newResponseIds?: string[];
+  }>;
+}
+
+function frozenPromptParityText(resolvedText: string, messageText: string): string {
+  const escapedMessage = JSON.stringify(messageText)
+    .replaceAll("<", "\\u003c")
+    .replaceAll(">", "\\u003e")
+    .replaceAll("\u2028", "\\u2028")
+    .replaceAll("\u2029", "\\u2029");
+  return resolvedText.replace(escapedMessage, JSON.stringify("__MESSAGE_UNDER_TEST__"));
+}
+
+export async function getMessageLiftPromptDisclosure(
+  projectId: string,
+  studyId: string,
+): Promise<MessageLiftPromptDisclosure | null> {
+  const detail = await getResonanceStudy(projectId, studyId);
+  if (!detail) return null;
+  const testType: MessageLiftTestType =
+    detail.study.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response";
+  const current = detail.stimuli.find((stimulus) => stimulus.kind === "measured_ai") ?? null;
+  const next = detail.stimuli.find((stimulus) => stimulus.id !== current?.id) ?? null;
+  const contexts: Array<{ key: string; label: string } & (PanelPersona | RecommendationScenario)> =
+    testType === "ai_recommendation"
+      ? recommendationScenariosSchema.parse(detail.study.recommendationScenariosJson)
+      : panelPersonasSchema.parse(detail.study.panelPersonasJson);
+  const base = {
+    testType,
+    state: detail.matrixVersion ? ("frozen" as const) : ("preview" as const),
+    protocolVersion: detail.study.promptProtocolVersion,
+    matrixVersion: detail.matrixVersion?.version ?? null,
+    currentMessage: current
+      ? { id: current.id, label: current.label, body: current.body }
+      : null,
+    newMessage: next ? { id: next.id, label: next.label, body: next.body } : null,
+  };
+  if (!current || !next) return { ...base, parityVerified: false, pairs: [] };
+
+  if (detail.matrixVersion) {
+    const cells = await db
+      .select({
+        id: promptCells.id,
+        contextKey: promptCells.panelPersonaKey,
+        stimulusId: promptCells.stimulusId,
+        resolvedText: promptCells.resolvedText,
+      })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, detail.matrixVersion.id));
+    const responseRows = cells.length > 0
+      ? await db
+          .select({ id: responses.id, cellId: responses.cellId })
+          .from(responses)
+          .where(inArray(responses.cellId, cells.map((cell) => cell.id)))
+      : [];
+    const responseIdsByCell = groupBy(responseRows, (response) => response.cellId);
+    const pairs = contexts.flatMap((context) => {
+      const currentCell = cells.find(
+        (cell) => cell.contextKey === context.key && cell.stimulusId === current.id,
+      );
+      const nextCell = cells.find(
+        (cell) => cell.contextKey === context.key && cell.stimulusId === next.id,
+      );
+      return currentCell && nextCell
+        ? [
+            {
+              contextKey: context.key,
+              contextLabel: context.label,
+              currentPrompt: currentCell.resolvedText,
+              newPrompt: nextCell.resolvedText,
+              currentCellId: currentCell.id,
+              newCellId: nextCell.id,
+              currentResponseIds: (responseIdsByCell.get(currentCell.id) ?? []).map((row) => row.id),
+              newResponseIds: (responseIdsByCell.get(nextCell.id) ?? []).map((row) => row.id),
+            },
+          ]
+        : [];
+    });
+    const parityVerified =
+      pairs.length === contexts.length &&
+      pairs.every(
+        (pair) =>
+          frozenPromptParityText(pair.currentPrompt, current.body) ===
+          frozenPromptParityText(pair.newPrompt, next.body),
+      );
+    return {
+      ...base,
+      parityVerified,
+      pairs,
+    };
+  }
+
+  const pairs = contexts.map((context) => {
+    const compile = (stimulus: typeof current) =>
+      testType === "ai_recommendation"
+        ? compileRecommendationPrompt({
+            scenario: context as RecommendationScenario,
+            stimulus: {
+              ...stimulus,
+              kind: stimulus.kind as StimulusKind,
+            },
+          })
+        : compileBuyerResponsePrompt({
+            persona: context as PanelPersona,
+            stimulus: {
+              ...stimulus,
+              kind: stimulus.kind as StimulusKind,
+            },
+            genericUnconditioned: detail.study.genericUnconditioned,
+          });
+    const currentCompiled = compile(current);
+    const nextCompiled = compile(next);
+    return {
+      contextKey: context.key,
+      contextLabel: context.label,
+      currentPrompt: currentCompiled.resolvedText,
+      newPrompt: nextCompiled.resolvedText,
+      parityVerified: currentCompiled.parityText === nextCompiled.parityText,
+      protocolVersion: currentCompiled.protocolVersion,
+    };
+  });
+  return {
+    ...base,
+    protocolVersion: pairs[0]?.protocolVersion ?? base.protocolVersion,
+    parityVerified: pairs.length === contexts.length && pairs.every((pair) => pair.parityVerified),
+    pairs: pairs.map(({ parityVerified: _parity, protocolVersion: _protocol, ...pair }) => pair),
+  };
+}
+
 export async function getResonanceStudyResults(
   projectId: string,
   studyId: string,
@@ -857,6 +1063,151 @@ export async function getResonanceStudyResultSummary(
   return stripResponsesFromResults(results);
 }
 
+export async function getRecommendationStudyResultSummary(
+  projectId: string,
+  studyId: string,
+  runId?: string,
+  options: { refreshMetrics?: boolean } = {},
+): Promise<RecommendationStudyResultSummary | null> {
+  const [study] = await db
+    .select({ study: resonanceStudies, categoryArchetype: projects.categoryArchetype })
+    .from(resonanceStudies)
+    .innerJoin(projects, eq(projects.id, resonanceStudies.projectId))
+    .where(and(eq(resonanceStudies.id, studyId), eq(resonanceStudies.projectId, projectId)));
+  if (!study || study.study.testType !== "ai_recommendation") return null;
+  const [version] = await db
+    .select({ id: matrixVersions.id })
+    .from(matrixVersions)
+    .where(
+      and(
+        eq(matrixVersions.projectId, projectId),
+        eq(matrixVersions.kind, "resonance"),
+        eq(matrixVersions.resonanceStudyId, studyId),
+        eq(matrixVersions.state, "approved"),
+      ),
+    )
+    .orderBy(desc(matrixVersions.version))
+    .limit(1);
+  if (!version) return null;
+  const [run] = await db
+    .select({
+      id: auditRuns.id,
+      runMode: auditRuns.runMode,
+      completedAt: auditRuns.completedAt,
+      repetitions: auditRuns.repetitions,
+    })
+    .from(auditRuns)
+    .where(
+      runId
+        ? and(
+            eq(auditRuns.id, runId),
+            eq(auditRuns.projectId, projectId),
+            eq(auditRuns.matrixVersionId, version.id),
+            eq(auditRuns.state, "completed"),
+          )
+        : and(eq(auditRuns.matrixVersionId, version.id), eq(auditRuns.state, "completed")),
+    )
+    .orderBy(desc(auditRuns.completedAt), desc(auditRuns.createdAt))
+    .limit(1);
+  if (!run) return null;
+  if (options.refreshMetrics && (await resonanceMetricsNeedRefresh(run.id))) {
+    await recomputeMetrics(run.id);
+  }
+  const [metricRows, stimulusRows] = await Promise.all([
+    db.select().from(metrics).where(eq(metrics.runId, run.id)),
+    db
+      .select({
+        id: resonanceStimuli.id,
+        label: resonanceStimuli.label,
+        position: resonanceStimuli.position,
+      })
+      .from(resonanceStimuli)
+      .where(eq(resonanceStimuli.studyId, studyId)),
+  ]);
+  const labelById = new Map(stimulusRows.map((row) => [row.id, row.label]));
+  const conditionsByProvider = new Map<string, RecommendationConditionSummary[]>();
+  const conditionRows = metricRows.filter((row) => row.scopeType === "recommendation_condition");
+  for (const [scopeKey, rows] of groupBy(conditionRows, (row) => row.scopeKey)) {
+    const [stimulusId, providerId] = splitScopeKey(scopeKey, 2);
+    if (!stimulusId || !providerId) continue;
+    const inclusion = rows.find((row) => row.metricKey === "top_k_inclusion_rate");
+    const topPick = rows.find((row) => row.metricKey === "top_pick_rate");
+    const reciprocal = rows.find((row) => row.metricKey === "mean_reciprocal_rank");
+    if (!inclusion || !topPick || !reciprocal) continue;
+    const metadata = inclusion.metadataJson as { scenarioCount?: unknown; sufficientN?: unknown };
+    const item: RecommendationConditionSummary = {
+      stimulusId,
+      label: labelById.get(stimulusId) ?? stimulusId,
+      providerId,
+      n: inclusion.n,
+      scenarioCount: typeof metadata.scenarioCount === "number" ? metadata.scenarioCount : 0,
+      inclusionRate: inclusion.value,
+      topPickRate: topPick.value,
+      meanReciprocalRank: reciprocal.value,
+      sufficientN: metadata.sufficientN === true,
+    };
+    if (!conditionsByProvider.has(providerId)) conditionsByProvider.set(providerId, []);
+    conditionsByProvider.get(providerId)?.push(item);
+  }
+
+  const liftsByProvider = new Map<string, RecommendationLiftSummary[]>();
+  const deltaRows = metricRows.filter((row) => row.scopeType === "recommendation_delta");
+  for (const [scopeKey, rows] of groupBy(deltaRows, (row) => row.scopeKey)) {
+    const [stimulusId, providerId] = splitScopeKey(scopeKey, 2);
+    if (!stimulusId || !providerId) continue;
+    const shortlist = rows.find((row) => row.metricKey === "top_k_lift_pp");
+    const topPick = rows.find((row) => row.metricKey === "top_pick_lift_pp");
+    const reciprocal = rows.find((row) => row.metricKey === "reciprocal_rank_lift");
+    if (!shortlist || !topPick || !reciprocal) continue;
+    const metadata = shortlist.metadataJson as {
+      scenarioCount?: unknown;
+      directionalOnly?: unknown;
+    };
+    const item: RecommendationLiftSummary = {
+      stimulusId,
+      label: labelById.get(stimulusId) ?? stimulusId,
+      providerId,
+      n: shortlist.n,
+      scenarioCount: typeof metadata.scenarioCount === "number" ? metadata.scenarioCount : 0,
+      shortlistLiftPp: shortlist.value,
+      shortlistCiLow: shortlist.ciLow,
+      shortlistCiHigh: shortlist.ciHigh,
+      topPickLiftPp: topPick.value,
+      reciprocalRankLift: reciprocal.value,
+      directionalOnly: metadata.directionalOnly !== false,
+    };
+    if (!liftsByProvider.has(providerId)) liftsByProvider.set(providerId, []);
+    liftsByProvider.get(providerId)?.push(item);
+  }
+  const providers = [...new Set([...conditionsByProvider.keys(), ...liftsByProvider.keys()])].sort();
+  return {
+    testType: "ai_recommendation",
+    study: {
+      id: studyId,
+      name: study.study.name,
+      scenarioCount: recommendationScenariosSchema.parse(study.study.recommendationScenariosJson).length,
+      baselineProvenance: await getResonanceBaselineProvenance({
+        projectId,
+        studyId,
+        studyState: study.study.state,
+        categoryArchetype: study.categoryArchetype,
+        baselineStimulusId: study.study.baselineStimulusId,
+      }),
+    },
+    run,
+    providers,
+    providerGroups: providers.map((providerId) => ({
+      providerId,
+      conditions: (conditionsByProvider.get(providerId) ?? []).sort(
+        (a, b) =>
+          (stimulusRows.find((row) => row.id === a.stimulusId)?.position ?? 0) -
+          (stimulusRows.find((row) => row.id === b.stimulusId)?.position ?? 0),
+      ),
+      lifts: liftsByProvider.get(providerId) ?? [],
+    })),
+  };
+}
+
 /**
  * M32 / D-088: deduplicated evidence page for one study/engine.
  * Each response appears once (not duplicated across variant/persona panels).
@@ -921,25 +1272,110 @@ export async function listResonanceEvidencePage(input: {
   };
 }
 
-export async function createResonanceStudy(projectId: string, name: string) {
-  const [study] = await db
-    .insert(resonanceStudies)
-    .values({
-      projectId,
-      name,
-      panelPersonasJson: [
-        {
-          key: "p1",
-          label: "Primary buyer",
-          ageBand: "35-44",
-          incomeBand: "$100k-$150k",
-          locationContext: "United States",
-          behavioralProfile: "researches carefully before choosing a vendor",
-        },
-      ],
+async function selectRecommendationScenarios(projectId: string): Promise<RecommendationScenario[]> {
+  const [version] = await db
+    .select({ id: matrixVersions.id })
+    .from(matrixVersions)
+    .where(
+      and(
+        eq(matrixVersions.projectId, projectId),
+        eq(matrixVersions.kind, "audit"),
+        eq(matrixVersions.state, "approved"),
+      ),
+    )
+    .orderBy(desc(matrixVersions.version))
+    .limit(1);
+  if (!version) return [];
+
+  const projectBrands = await db
+    .select({ name: brands.name, aliasesJson: brands.aliasesJson })
+    .from(brands)
+    .where(eq(brands.projectId, projectId));
+  const brandTerms = projectBrands.map((brand) => ({
+    name: brand.name,
+    aliases: Array.isArray(brand.aliasesJson) ? (brand.aliasesJson as string[]) : [],
+  }));
+  const cells = await db
+    .select({
+      id: promptCells.id,
+      intent: promptCells.intent,
+      variantKey: promptCells.variantKey,
+      resolvedText: promptCells.resolvedText,
     })
-    .returning({ id: resonanceStudies.id });
-  return study;
+    .from(promptCells)
+    .where(eq(promptCells.matrixVersionId, version.id))
+    .orderBy(asc(promptCells.createdAt));
+
+  const seen = new Set<string>();
+  const eligible = cells.filter((cell) => {
+    if (cell.intent !== "discovery" && cell.intent !== "consideration") return false;
+    if (findBrandTerms(cell.resolvedText, brandTerms).length > 0) return false;
+    const key = cell.resolvedText.trim().toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return eligible.slice(0, 20).map((cell, index) => ({
+    key: `s${index + 1}`,
+    label: `Shopping situation ${index + 1}`,
+    promptText: cell.resolvedText,
+    sourceCellId: cell.id,
+  }));
+}
+
+export async function createResonanceStudy(
+  projectId: string,
+  name: string,
+  testType: MessageLiftTestType = "buyer_response",
+  seedMessagePair = false,
+) {
+  if (!(MESSAGE_LIFT_TEST_TYPES as readonly string[]).includes(testType)) {
+    throw new Error("Unknown Message Lift test type");
+  }
+  const recommendationScenarios =
+    testType === "ai_recommendation" ? await selectRecommendationScenarios(projectId) : [];
+  return db.transaction(async (tx) => {
+    const [study] = await tx
+      .insert(resonanceStudies)
+      .values({
+        projectId,
+        name,
+        testType,
+        recommendationScenariosJson: recommendationScenarios,
+        panelPersonasJson: [
+          {
+            key: "p1",
+            label: "Primary buyer",
+            ageBand: "35-44",
+            incomeBand: "$100k-$150k",
+            locationContext: "United States",
+            behavioralProfile: "researches carefully before choosing a vendor",
+          },
+        ],
+      })
+      .returning({ id: resonanceStudies.id });
+    if (seedMessagePair) {
+      await tx.insert(resonanceStimuli).values([
+        {
+          studyId: study.id,
+          kind: "measured_ai",
+          label: "Current message",
+          body: "Select a verbatim stored response.",
+          evidenceResponseIdsJson: [],
+          position: 1,
+        },
+        {
+          studyId: study.id,
+          kind: "custom",
+          label: "New message",
+          body: "",
+          evidenceResponseIdsJson: [],
+          position: 2,
+        },
+      ]);
+    }
+    return study;
+  });
 }
 
 export async function createResonanceStudyFromTemplate(projectId: string, template: ResonanceStudyTemplate) {
@@ -980,6 +1416,9 @@ export async function updateResonanceStudy(projectId: string, studyId: string, p
   const values: Partial<typeof resonanceStudies.$inferInsert> = { updatedAt: new Date() };
   if (patch.name !== undefined) values.name = patch.name;
   if (patch.panelPersonas !== undefined) values.panelPersonasJson = panelPersonasSchema.parse(patch.panelPersonas);
+  if (patch.recommendationScenarios !== undefined) {
+    values.recommendationScenariosJson = recommendationScenariosSchema.parse(patch.recommendationScenarios);
+  }
   if (patch.genericUnconditioned !== undefined) values.genericUnconditioned = patch.genericUnconditioned;
 
   const updated = await db
@@ -1166,19 +1605,37 @@ export async function getResonanceStudyAnchorSetVersion(studyId: string): Promis
   return study?.anchorSetVersion ?? null;
 }
 
+export async function getMessageLiftTestType(studyId: string): Promise<MessageLiftTestType | null> {
+  const [study] = await db
+    .select({ testType: resonanceStudies.testType })
+    .from(resonanceStudies)
+    .where(eq(resonanceStudies.id, studyId));
+  return study && (MESSAGE_LIFT_TEST_TYPES as readonly string[]).includes(study.testType)
+    ? (study.testType as MessageLiftTestType)
+    : null;
+}
+
 /** M46/D-117: persona × framing footprint for Simulation draw-floor math. */
 export async function getResonanceDrawFootprint(studyId: string): Promise<{
   panelCount: number;
   framingCount: number;
+  testType: MessageLiftTestType;
 } | null> {
   const [study] = await db
-    .select({ panelPersonasJson: resonanceStudies.panelPersonasJson })
+    .select({
+      testType: resonanceStudies.testType,
+      panelPersonasJson: resonanceStudies.panelPersonasJson,
+      recommendationScenariosJson: resonanceStudies.recommendationScenariosJson,
+    })
     .from(resonanceStudies)
     .where(eq(resonanceStudies.id, studyId));
   if (!study) return null;
   let panelCount = 0;
   try {
-    panelCount = panelPersonasSchema.parse(study.panelPersonasJson).length;
+    panelCount =
+      study.testType === "ai_recommendation"
+        ? recommendationScenariosSchema.parse(study.recommendationScenariosJson).length
+        : panelPersonasSchema.parse(study.panelPersonasJson).length;
   } catch {
     panelCount = 0;
   }
@@ -1186,7 +1643,11 @@ export async function getResonanceDrawFootprint(studyId: string): Promise<{
     .select({ n: sql<number>`count(*)::int` })
     .from(resonanceStimuli)
     .where(eq(resonanceStimuli.studyId, studyId));
-  return { panelCount, framingCount: countRow?.n ?? 0 };
+  return {
+    panelCount,
+    framingCount: countRow?.n ?? 0,
+    testType: study.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response",
+  };
 }
 
 export async function listAuditEvidenceResponses(projectId: string, limit = 20) {
@@ -1434,14 +1895,18 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
   return db.transaction(async (tx) => {
     const locked = await tx.execute<{
       state: string;
+      testType: string;
       panelPersonasJson: unknown;
+      recommendationScenariosJson: unknown;
       anchorSetVersion: string;
       genericUnconditioned: boolean;
       categoryArchetype: string;
     }>(sql`
       select
         state,
+        test_type as "testType",
         panel_personas_json as "panelPersonasJson",
+        recommendation_scenarios_json as "recommendationScenariosJson",
         anchor_set_version as "anchorSetVersion",
         generic_unconditioned as "genericUnconditioned",
         p.category_archetype as "categoryArchetype"
@@ -1455,23 +1920,36 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
     if (!study) throw new Error("Study not found");
     if (study.state !== "draft") throw new Error("Only draft Resonance studies can be approved");
 
-    const personas = panelPersonasSchema.parse(study.panelPersonasJson);
-    if (personas.length === 0) throw new Error("Add at least one panel persona before approval");
-    getSsrAnchorSet(study.anchorSetVersion);
+    const testType: MessageLiftTestType =
+      study.testType === "ai_recommendation" ? "ai_recommendation" : "buyer_response";
+    const personas =
+      testType === "buyer_response" ? panelPersonasSchema.parse(study.panelPersonasJson) : [];
+    const scenarios =
+      testType === "ai_recommendation"
+        ? recommendationScenariosSchema.parse(study.recommendationScenariosJson)
+        : [];
+    if (testType === "buyer_response" && personas.length === 0) {
+      throw new Error("Add at least one buyer profile before approval");
+    }
+    if (testType === "ai_recommendation" && scenarios.length < 6) {
+      throw new Error("AI recommendation tests need at least six eligible shopping situations");
+    }
+    if (testType === "buyer_response") getSsrAnchorSet(study.anchorSetVersion);
 
     const stimuli = await tx
       .select()
       .from(resonanceStimuli)
       .where(eq(resonanceStimuli.studyId, studyId))
       .orderBy(asc(resonanceStimuli.position));
-    if (stimuli.length < 2) throw new Error("Add at least two stimulus variants before approval");
+    if (stimuli.length !== 2) throw new Error("Message Lift tests compare exactly two messages");
     const unresolved = stimuli.flatMap((stimulus) =>
       unresolvedStimulusPlaceholders({ label: stimulus.label, body: stimulus.body }),
     );
     if (unresolved.length > 0) {
       throw new Error(`Resolve template placeholders before approval: ${[...new Set(unresolved)].join(", ")}`);
     }
-    validateResonanceCellCount(personas.length, stimuli.length);
+    const contexts = testType === "ai_recommendation" ? scenarios : personas;
+    validateResonanceCellCount(contexts.length, stimuli.length);
 
     // M22 (D-078): C-13 is now a hard rule — every study needs a measured_ai
     // stimulus citing real evidence, with no genericUnconditioned escape.
@@ -1483,6 +1961,9 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
     const measured = stimuli.filter((s) => s.kind === "measured_ai");
     if (measured.length === 0) {
       throw new Error("Evidence-conditioned studies need a measured_ai stimulus citing stored audit evidence (C-13)");
+    }
+    if (measured.length !== 1) {
+      throw new Error("Message Lift tests need exactly one stored Current message and one New message");
     }
     for (const stimulus of stimuli) {
       if (stimulus.kind !== "measured_ai" && stimulus.framingEvidenceSnapshotId) {
@@ -1532,7 +2013,7 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
       .select({ latest: max(matrixVersions.version) })
       .from(matrixVersions)
       .where(eq(matrixVersions.projectId, projectId));
-    const cellCount = personas.length * stimuli.length;
+    const cellCount = contexts.length * stimuli.length;
     const baseline = measured[0] ?? stimuli[0];
     const [version] = await tx
       .insert(matrixVersions)
@@ -1547,27 +2028,46 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
       })
       .returning({ id: matrixVersions.id, version: matrixVersions.version });
 
-    for (const persona of personas) {
+    const parityByContext = new Map<string, string>();
+    for (const context of contexts) {
       for (const stimulus of stimuli) {
+        const compiled =
+          testType === "ai_recommendation"
+            ? compileRecommendationPrompt({
+                scenario: context as RecommendationScenario,
+                stimulus: {
+                  id: stimulus.id,
+                  kind: stimulus.kind as StimulusKind,
+                  label: stimulus.label,
+                  body: stimulus.body,
+                  position: stimulus.position,
+                },
+              })
+            : compileBuyerResponsePrompt({
+                persona: context as PanelPersona,
+                stimulus: {
+                  id: stimulus.id,
+                  kind: stimulus.kind as StimulusKind,
+                  label: stimulus.label,
+                  body: stimulus.body,
+                  position: stimulus.position,
+                },
+                genericUnconditioned: study.genericUnconditioned,
+              });
+        const seenParity = parityByContext.get(context.key);
+        if (seenParity !== undefined && seenParity !== compiled.parityText) {
+          throw new Error(`A/B prompt parity failed for ${context.label}`);
+        }
+        parityByContext.set(context.key, compiled.parityText);
         await tx.insert(promptCells).values({
           matrixVersionId: version.id,
           intent: "simulation",
           personaId: null,
           marketId: null,
           stimulusId: stimulus.id,
-          panelPersonaKey: persona.key,
+          panelPersonaKey: context.key,
           variantKey: `${stimulus.position}-${stimulus.kind}`,
-          resolvedText: renderResonancePrompt({
-            persona,
-            stimulus: {
-              id: stimulus.id,
-              kind: stimulus.kind as StimulusKind,
-              label: stimulus.label,
-              body: stimulus.body,
-              position: stimulus.position,
-            },
-            genericUnconditioned: study.genericUnconditioned,
-          }),
+          resolvedText: compiled.resolvedText,
           competitorOrderJson: [],
           brandOrderJson: [],
         });
@@ -1579,6 +2079,10 @@ export async function approveAndCompileResonanceStudy(projectId: string, studyId
       .set({
         state: "approved",
         baselineStimulusId: baseline.id,
+        promptProtocolVersion:
+          testType === "ai_recommendation"
+            ? RECOMMENDATION_PROMPT_PROTOCOL_VERSION
+            : RESONANCE_PROMPT_PROTOCOL_VERSION,
         approvedAt: new Date(),
         updatedAt: new Date(),
       })

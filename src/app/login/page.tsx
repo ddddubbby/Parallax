@@ -37,7 +37,7 @@ export default function LoginPage() {
         <p className="label-mono mb-4 text-[11px] text-paper/45">Operator dossier / secure access</p>
         <h1 className="label-mono mb-1 text-lg font-semibold text-paper">Resonance</h1>
         <p className="mb-6 text-sm text-paper/55">
-          Parallax measurement engine · Operator access only
+          Operator access only
         </p>
         <label className="label-mono mb-1.5 block text-xs text-paper/70" htmlFor="password">
           Password
