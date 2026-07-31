@@ -6,12 +6,13 @@ import { RunModeStamp } from "@/components/run-mode-stamp";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
-import type { RunDetailView } from "@/core/views";
 import { resolvePauseReason } from "@/core/runner";
 import { formatRunForecastRange, type RunForecast } from "@/core/run-forecast";
 import { type RunStageProgress } from "@/core/run-progress";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
+
+const RECENT_ACTIVITY_LIMIT = 5;
 
 const POLL_MS = 1500;
 const JOB_STATES = [
@@ -90,13 +91,10 @@ export function RunProgress({
   projectId,
   runId,
   initial,
-  view = "overview",
 }: {
   projectId: string;
   runId: string;
   initial: RunDetail;
-  /** M32 / D-088: overview = state/cost/controls; events = log only. */
-  view?: Extract<RunDetailView, "overview" | "events">;
 }) {
   const [detail, setDetail] = useState<RunDetail>(initial);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -203,38 +201,8 @@ export function RunProgress({
       : `/projects/${projectId}/resonance`
     : `/projects/${projectId}/dashboard`;
   const configureHref = `/projects/${projectId}/runs/new`;
-  const eventsHref = `/projects/${projectId}/runs/${runId}?view=events`;
-  const extractionHref = `/projects/${projectId}/runs/${runId}?view=extraction`;
-
-  if (view === "events") {
-    return (
-      <div>
-        <h2 className="label-mono mb-3 text-xs font-medium text-ink/60">Event log</h2>
-        <div className="flex flex-col gap-1 font-mono text-xs">
-          {detail.events.length === 0 && <p className="text-ink/45">No events yet</p>}
-          {detail.events.map((e) => (
-            <div key={e.id} className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)] gap-2 border-b border-ink/10 py-2">
-              <span className="text-ink/40">
-                {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour12: false })}
-              </span>
-              <span
-                className={
-                  e.level === "error"
-                    ? "text-danger"
-                    : e.level === "warn"
-                      ? "text-warn"
-                      : "text-ink/50"
-                }
-              >
-                {e.level}
-              </span>
-              <span className="whitespace-pre-wrap break-words text-ink/80">{e.message}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const diagnosticsHref = `/projects/${projectId}/runs/${runId}?view=diagnostics`;
+  const recentEvents = detail.events.slice(0, RECENT_ACTIVITY_LIMIT);
 
   return (
     <div>
@@ -276,14 +244,14 @@ export function RunProgress({
               Configure another run →
             </Link>
             <Link
-              href={eventsHref}
+              href={diagnosticsHref}
               className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full border border-ink/20 px-4 py-2 text-xs text-ink/80 transition-micro hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              View events →
+              Open Diagnostics →
             </Link>
             {detail.failureCounts.deadLettered > 0 && (
               <Link
-                href={extractionHref}
+                href={diagnosticsHref}
                 className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full border border-ink/20 px-4 py-2 text-xs text-ink/80 transition-micro hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Review dead letters →
@@ -437,6 +405,43 @@ export function RunProgress({
           {actionError}
         </InlineStatus>
       )}
+
+      <section className="mb-6" data-testid="run-recent-activity">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="label-mono text-xs font-medium text-ink/60">Recent activity</h2>
+          <Link
+            href={diagnosticsHref}
+            className="label-mono text-xs text-accent-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Open Diagnostics →
+          </Link>
+        </div>
+        <div className="flex flex-col gap-1 font-mono text-xs">
+          {recentEvents.length === 0 && <p className="text-ink/45">No events yet</p>}
+          {recentEvents.map((e) => (
+            <div
+              key={e.id}
+              className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)] gap-2 border-b border-ink/10 py-2"
+            >
+              <span className="text-ink/40">
+                {new Date(e.createdAt).toLocaleTimeString("en-GB", { hour12: false })}
+              </span>
+              <span
+                className={
+                  e.level === "error"
+                    ? "text-danger"
+                    : e.level === "warn"
+                      ? "text-warn"
+                      : "text-ink/50"
+                }
+              >
+                {e.level}
+              </span>
+              <span className="whitespace-pre-wrap break-words text-ink/80">{e.message}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <AppConfirmDialog
         open={cancelOpen}

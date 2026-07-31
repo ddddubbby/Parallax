@@ -7,8 +7,14 @@ export type SetupView = (typeof SETUP_VIEWS)[number];
 export const MATRIX_VIEWS = ["overview", "presence", "position", "perception"] as const;
 export type MatrixView = (typeof MATRIX_VIEWS)[number];
 
-export const RUN_DETAIL_VIEWS = ["overview", "events", "extraction", "metrics"] as const;
+// M52 / D-122: Diagnostics consolidates Events + Extraction. Legacy
+// `events` / `extraction` query tokens alias to `diagnostics` in the parser.
+export const RUN_DETAIL_VIEWS = ["overview", "diagnostics", "metrics"] as const;
 export type RunDetailView = (typeof RUN_DETAIL_VIEWS)[number];
+const RUN_DETAIL_VIEW_ALIASES: Record<string, RunDetailView> = {
+  events: "diagnostics",
+  extraction: "diagnostics",
+};
 
 export const DASHBOARD_VIEWS = [
   "overview",
@@ -68,6 +74,7 @@ export function parseMatrixView(raw: string | null | undefined): MatrixView {
 }
 
 export function parseRunDetailView(raw: string | null | undefined): RunDetailView {
+  if (raw && raw in RUN_DETAIL_VIEW_ALIASES) return RUN_DETAIL_VIEW_ALIASES[raw]!;
   return parseOne(raw, RUN_DETAIL_VIEWS, "overview");
 }
 
