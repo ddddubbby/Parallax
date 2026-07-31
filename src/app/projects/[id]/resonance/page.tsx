@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmptyState } from "@/components/empty-state";
 import { NewStudyDialog } from "@/components/resonance/new-study-dialog";
 import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import { SimulatedBadge } from "@/components/simulated-badge";
@@ -60,21 +61,13 @@ export default async function ResonanceLibraryPage({
       </p>
 
       {studies.length === 0 ? (
-        <section className="rounded-xl border border-ink/15 bg-paper-2/30 p-6 sm:p-8">
-          <p className="label-mono text-center text-sm text-ink/60">No Message Lift tests yet</p>
-          {pipeline.hasCompletedRun ? (
-            <p className="mx-auto mt-2 max-w-xl text-center text-sm leading-6 text-ink/65">
-              Create a test to compare a current message with one new message. Use “New test” above to start.
-            </p>
-          ) : (
-            <div className="mx-auto mt-4 max-w-2xl">
-              <p className="mb-4 text-center text-sm leading-6 text-ink/65">
-                Tests use a verbatim response and brand-neutral contexts from an approved Evidence audit,
-                so the audit comes first.
-              </p>
-              <NextStepCard stage={stage} projectId={id} />
-            </div>
-          )}
+        <section className="space-y-4">
+          <EmptyState kind="first-use" title="No Message Lift tests yet" className="bg-paper-2/30">
+            {pipeline.hasCompletedRun
+              ? "Create a test to compare a current message with one new message. Use “New test” above to start."
+              : "Tests use a verbatim response and brand-neutral contexts from an approved Evidence audit, so the audit comes first."}
+          </EmptyState>
+          {!pipeline.hasCompletedRun && <NextStepCard stage={stage} projectId={id} />}
         </section>
       ) : (
         <div className="flex flex-col gap-3">

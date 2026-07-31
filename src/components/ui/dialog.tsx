@@ -59,6 +59,7 @@ export function AppConfirmDialog({
   onOpenChange,
   title,
   description,
+  details,
   confirmLabel,
   cancelLabel = "Cancel",
   tone = "danger",
@@ -69,6 +70,8 @@ export function AppConfirmDialog({
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
+  /** Optional scrollable body between description and actions (e.g. prompt samples). */
+  details?: ReactNode;
   confirmLabel: string;
   cancelLabel?: string;
   tone?: "primary" | "danger";
@@ -83,7 +86,13 @@ export function AppConfirmDialog({
       }}
       title={title}
       description={description}
+      className={details ? "w-[min(100%-2rem,36rem)]" : undefined}
     >
+      {details ? (
+        <div className="mb-4 max-h-48 overflow-y-auto rounded-lg border border-ink/10 bg-paper-2/40 p-3 text-sm text-ink/75">
+          {details}
+        </div>
+      ) : null}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button
           type="button"

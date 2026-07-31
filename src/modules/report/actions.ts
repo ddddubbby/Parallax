@@ -4,17 +4,25 @@ import { revalidatePath } from "next/cache";
 import { isUuid } from "@/core/id";
 import { REPORT_SECTIONS, RESONANCE_REPORT_SECTIONS } from "@/core/report-templates";
 import { isReportableRunState } from "@/core/runner";
+import { getMisinformationRegister } from "@/db/repositories/dashboard";
+import { listFindings } from "@/db/repositories/findings";
 import { recomputeMetrics } from "@/db/repositories/metrics";
-import { getReportSections } from "@/db/repositories/report";
+import { getReportFreshness, getReportSections } from "@/db/repositories/report";
 import { getRun, getRunMatrixKind } from "@/db/repositories/runner";
+import { computeFindings } from "@/modules/analysis/findings";
 import {
   isKnownReportSectionKey,
-  computeFindings,
   editSection,
   generateReport,
   generateResonanceReport,
   regenerateOneSection,
 } from "./service";
+
+export type ReportAdvisoryChecklist = {
+  findingsCount: number;
+  unreviewedMisinfoCount: number;
+  reportStale: boolean;
+};
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type RegenerateResult = { ok: true; generatedMd: string } | { ok: false; error: string };
@@ -97,4 +105,35 @@ export async function fetchReportSections(projectId: string, runId: string) {
   if (!run) return [];
   if (!isReportableRunState(run.state)) return [];
   return getReportSections(runId);
+}
+
+/**
+ * D-121: advisory pre-export checklist. Never disables Export — operators
+ * may still download; the banner only names residual review debt.
+ */
+export async function fetchReportAdvisoryChecklist(
+  projectId: string,
+  runId: string,
+): Promise<ReportAdvisoryChecklist | null> {
+  const run = await assertRunForProject(projectId, runId);
+  if (!run || !isReportableRunState(run.state)) return null;
+  const kind = await getRunMatrixKind(runId);
+  const freshness = await getReportFreshness(runId);
+  if (kind?.kind === "resonance") {
+    return {
+      findingsCount: 0,
+      unreviewedMisinfoCount: 0,
+      reportStale: freshness.stale,
+    };
+  }
+  await computeFindings(runId);
+  const [findings, misinfo] = await Promise.all([
+    listFindings(runId),
+    getMisinformationRegister(runId),
+  ]);
+  return {
+    findingsCount: findings.length,
+    unreviewedMisinfoCount: misinfo.filter((row) => row.reviewState === "unreviewed").length,
+    reportStale: freshness.stale,
+  };
 }

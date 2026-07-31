@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmptyState } from "@/components/empty-state";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
 import {
@@ -59,9 +60,9 @@ export default async function FramingLibraryPage({
       <section>
         <h2 className="label-mono mb-3 text-sm font-semibold">Review library</h2>
         {studies.length === 0 ? (
-          <div className="rounded-xl border border-ink/15 p-8 text-center">
-            <p className="label-mono text-sm text-ink/60">No framing reviews on file</p>
-          </div>
+          <EmptyState kind="completed-success" title="No framing reviews on file">
+            Historical codebook reviews remain readable on file. New message testing lives in Message Lift.
+          </EmptyState>
         ) : (
           <div className="grid gap-3">
             {studies.map((study) => (

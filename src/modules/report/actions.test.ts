@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   getRunMatrixKind: vi.fn(),
   recomputeMetrics: vi.fn(),
   getReportSections: vi.fn(),
+  getReportFreshness: vi.fn(),
+  listFindings: vi.fn(),
+  getMisinformationRegister: vi.fn(),
   computeFindings: vi.fn(),
   editSection: vi.fn(),
   generateReport: vi.fn(),
@@ -23,9 +26,18 @@ vi.mock("@/db/repositories/metrics", () => ({
 }));
 vi.mock("@/db/repositories/report", () => ({
   getReportSections: mocks.getReportSections,
+  getReportFreshness: mocks.getReportFreshness,
+}));
+vi.mock("@/db/repositories/findings", () => ({
+  listFindings: mocks.listFindings,
+}));
+vi.mock("@/db/repositories/dashboard", () => ({
+  getMisinformationRegister: mocks.getMisinformationRegister,
+}));
+vi.mock("@/modules/analysis/findings", () => ({
+  computeFindings: mocks.computeFindings,
 }));
 vi.mock("./service", () => ({
-  computeFindings: mocks.computeFindings,
   editSection: mocks.editSection,
   generateReport: mocks.generateReport,
   generateResonanceReport: mocks.generateResonanceReport,
@@ -33,12 +45,21 @@ vi.mock("./service", () => ({
   regenerateOneSection: mocks.regenerateOneSection,
 }));
 
-import { fetchReportSections, generateReportForRun, regenerateSectionAction, saveSectionEdit } from "./actions";
+import {
+  fetchReportAdvisoryChecklist,
+  fetchReportSections,
+  generateReportForRun,
+  regenerateSectionAction,
+  saveSectionEdit,
+} from "./actions";
 
 describe("report action id guards", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isKnownReportSectionKey.mockReturnValue(true);
+    mocks.getReportFreshness.mockResolvedValue({ stale: false });
+    mocks.listFindings.mockResolvedValue([]);
+    mocks.getMisinformationRegister.mockResolvedValue([]);
   });
 
   it("rejects malformed project/run/section ids before DB-backed repositories", async () => {
@@ -194,5 +215,43 @@ describe("report action id guards", () => {
     expect(mocks.recomputeMetrics).not.toHaveBeenCalled();
     expect(mocks.computeFindings).not.toHaveBeenCalled();
     expect(mocks.regenerateOneSection).not.toHaveBeenCalled();
+  });
+
+  it("refreshes audit findings before reading the advisory checklist", async () => {
+    const projectId = "00000000-0000-4000-8000-000000000001";
+    const runId = "00000000-0000-4000-8000-000000000002";
+    mocks.getRun.mockResolvedValue({ id: runId, projectId, state: "completed" });
+    mocks.getRunMatrixKind.mockResolvedValue({ kind: "audit" });
+    mocks.listFindings.mockResolvedValue([{ id: "finding-1" }]);
+    mocks.getMisinformationRegister.mockResolvedValue([
+      { reviewState: "unreviewed" },
+      { reviewState: "confirmed" },
+    ]);
+
+    await expect(fetchReportAdvisoryChecklist(projectId, runId)).resolves.toEqual({
+      findingsCount: 1,
+      unreviewedMisinfoCount: 1,
+      reportStale: false,
+    });
+
+    expect(mocks.computeFindings).toHaveBeenCalledWith(runId);
+    expect(mocks.computeFindings.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.listFindings.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("keeps resonance advisory fetches outside audit findings", async () => {
+    const projectId = "00000000-0000-4000-8000-000000000001";
+    const runId = "00000000-0000-4000-8000-000000000002";
+    mocks.getRun.mockResolvedValue({ id: runId, projectId, state: "completed" });
+    mocks.getRunMatrixKind.mockResolvedValue({ kind: "resonance" });
+
+    await expect(fetchReportAdvisoryChecklist(projectId, runId)).resolves.toEqual({
+      findingsCount: 0,
+      unreviewedMisinfoCount: 0,
+      reportStale: false,
+    });
+    expect(mocks.computeFindings).not.toHaveBeenCalled();
+    expect(mocks.listFindings).not.toHaveBeenCalled();
   });
 });

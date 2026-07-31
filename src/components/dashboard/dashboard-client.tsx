@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AttributeSection } from "@/components/dashboard/attribute-section";
+import { EmptyState } from "@/components/empty-state";
 import { CitedSourcesSection } from "@/components/dashboard/cited-sources-section";
 import { DrilldownPanel, type DrilldownRequest } from "@/components/dashboard/drilldown-panel";
+import { FindingsPanel } from "@/components/dashboard/findings-panel";
 import { FunnelSection } from "@/components/dashboard/funnel-section";
 import { CompetitiveSpectrumSection } from "@/components/dashboard/competitive-spectrum-section";
 import { MisinformationRegister } from "@/components/dashboard/misinformation-register";
 import { MetricCards } from "@/components/dashboard/scorecard";
 import { SentimentSection } from "@/components/dashboard/sentiment-section";
+import { RunModeStamp } from "@/components/run-mode-stamp";
 import { PillarSection } from "@/components/semantic/pillar";
 import { Button, InlineStatus, Select, Stamp } from "@/components/ui";
 import { fetchDashboardData } from "@/modules/dashboard/actions";
@@ -183,8 +186,7 @@ export function DashboardClient({
           </Select>
         </label>
         <div className="flex flex-wrap gap-2 sm:pb-2">
-          {data.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
-          {data.run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
+          <RunModeStamp runMode={data.run.runMode} />
           {isUngroundedOnly && <Stamp tone="ink">UNGROUNDED</Stamp>}
           {isPartial && <Stamp tone="warn">PARTIAL</Stamp>}
           {isLowStability && <Stamp tone="warn">LOW-STABILITY</Stamp>}
@@ -215,18 +217,16 @@ export function DashboardClient({
       )}
 
       {metrics.length === 0 ? (
-        <div className="rounded-xl border border-warn p-6">
-          <p className="text-sm text-ink/70">
-            No metrics have been computed for this run. Review extraction state, then recompute the
-            evidence metrics from the run detail.
-          </p>
-          <Link
-            href={`/projects/${projectId}/runs/${data.run.id}?view=metrics`}
-            className="label-mono mt-3 inline-flex min-h-11 items-center rounded-full border border-ink/25 px-4 py-2 text-xs text-ink transition-micro hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            Review metrics →
-          </Link>
-        </div>
+        <EmptyState
+          kind="unavailable"
+          title="No metrics computed"
+          action={{
+            href: `/projects/${projectId}/runs/${data.run.id}?view=metrics`,
+            label: "Review metrics →",
+          }}
+        >
+          Review extraction state, then recompute the evidence metrics from the run detail.
+        </EmptyState>
       ) : (
         <div className="flex flex-col gap-10">
           {/* D-055 / M32: one numbered dossier section per pillar. focusPillar
@@ -361,6 +361,8 @@ export function DashboardClient({
             </div>
           </div>
           )}
+
+          {focusPillar === null && <FindingsPanel findings={data.findings ?? []} />}
         </div>
       )}
 

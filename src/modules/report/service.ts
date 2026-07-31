@@ -1,13 +1,4 @@
 import {
-  findGroundedUngroundedSplit,
-  findLostShortlistCells,
-  findLowStabilityClusters,
-  findMisinformationFlag,
-  findPositioningGaps,
-  findSourceConcentration,
-  type Finding,
-} from "@/core/findings";
-import {
   generateResonanceSection,
   generateSection,
   REPORT_SECTIONS,
@@ -17,10 +8,9 @@ import {
   type ResonanceReportContext,
   type ResonanceSectionKey,
 } from "@/core/report-templates";
-import { isSufficientN } from "@/core/metrics";
 import { getCitedSources, getMisinformationRegister, getProjectBrandNames } from "@/db/repositories/dashboard";
 import { getExportExtractions } from "@/db/repositories/export";
-import { getCellBrandPresence, listFindings, saveFindings } from "@/db/repositories/findings";
+import { listFindings } from "@/db/repositories/findings";
 import { listMetrics } from "@/db/repositories/metrics";
 import {
   getMessageLiftPromptDisclosure,
@@ -35,52 +25,6 @@ import {
   saveEdit,
 } from "@/db/repositories/report";
 import { getRun, getRunFailureCounts, getRunMatrixKind } from "@/db/repositories/runner";
-
-/** RB-1: compute every finding type and persist (disposable, C-5 — same pattern as metrics recompute). */
-export async function computeFindings(runId: string): Promise<number> {
-  const kind = await getRunMatrixKind(runId);
-  if (kind?.kind === "resonance") {
-    throw new Error("Audit findings cannot be computed for a resonance run (C-12)");
-  }
-  const [metrics, cellPresence] = await Promise.all([listMetrics(runId), getCellBrandPresence(runId)]);
-
-  const attributeRows = metrics.filter((m) => m.scopeType === "overall" && m.metricKey.startsWith("attribute_"));
-  const stabilityByCell = metrics.filter((m) => m.scopeType === "cell" && m.metricKey === "stability_index");
-  const groundedRow = metrics.find((m) => m.scopeType === "mode" && m.scopeKey === "grounded" && m.metricKey === "mention_rate");
-  const ungroundedRow = metrics.find((m) => m.scopeType === "mode" && m.scopeKey === "ungrounded" && m.metricKey === "mention_rate");
-
-  const run = await getRun(runId);
-  const misinformation = run ? await getMisinformationRegister(runId) : [];
-  const citedSources = run ? await getCitedSources(runId) : [];
-
-  const computed: Finding[] = [
-    ...findLostShortlistCells(cellPresence),
-    ...(attributeRows.length > 0 && isSufficientN(attributeRows[0].n)
-      ? findPositioningGaps(attributeRows.map((r) => ({ attribute: r.metricKey.replace("attribute_", ""), rate: r.value, n: r.n })))
-      : []),
-    ...findMisinformationFlag({
-      highSeverityCount: misinformation.filter((m) => (m.operatorSeverity ?? m.extractedSeverity) === "high").length,
-      mediumSeverityCount: misinformation.filter((m) => (m.operatorSeverity ?? m.extractedSeverity) === "medium").length,
-      totalCount: misinformation.length,
-    }),
-    ...(groundedRow && ungroundedRow && isSufficientN(groundedRow.n) && isSufficientN(ungroundedRow.n)
-      ? findGroundedUngroundedSplit([
-          { mode: "grounded", rate: groundedRow.value, n: groundedRow.n },
-          { mode: "ungrounded", rate: ungroundedRow.value, n: ungroundedRow.n },
-        ])
-      : []),
-    ...findSourceConcentration(citedSources.map((s) => ({ domain: s.domain, citationCount: s.total }))),
-    ...findLowStabilityClusters(
-      stabilityByCell.map((r) => {
-        const [cellId] = r.scopeKey.split("|");
-        const cell = cellPresence.find((c) => c.cellId === cellId);
-        return { cellId, intent: cell?.intent ?? "unknown", stabilityIndex: r.value, n: r.n };
-      }),
-    ),
-  ];
-
-  return saveFindings(runId, computed);
-}
 
 async function buildReportContext(runId: string): Promise<ReportContext | null> {
   const run = await getRun(runId);

@@ -18,7 +18,8 @@ import {
 } from "../src/db/repositories/resonance";
 import { createRun, getRun } from "../src/db/repositories/runner";
 import { auditRuns, matrixVersions, projects, responses } from "../src/db/schema";
-import { computeFindings, generateReport, generateResonanceReport } from "../src/modules/report/service";
+import { computeFindings } from "../src/modules/analysis/findings";
+import { generateReport, generateResonanceReport } from "../src/modules/report/service";
 
 const SLUG = "ledgerfox-demo";
 const STUDY_NAME = "Demo Resonance lower-funnel study";

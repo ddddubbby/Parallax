@@ -223,6 +223,72 @@ export async function listDeadLetteredExtractions(limit = 50) {
   return rows.rows;
 }
 
+/** Run-scoped dead letters — latest extraction version per response, this run only. */
+export async function listDeadLettersForRun(runId: string) {
+  const rows = await db.execute<{
+    id: string;
+    responseId: string;
+    extractionVersion: number;
+    validationError: string | null;
+    updatedAt: Date;
+    providerId: string;
+  }>(
+    sql`
+      select e.id,
+        e.response_id as "responseId",
+        e.extraction_version as "extractionVersion",
+        e.validation_error as "validationError",
+        e.updated_at as "updatedAt",
+        r.provider_id as "providerId"
+      from ${extractions} e
+      inner join ${responses} r on r.id = e.response_id
+      where r.run_id = ${runId}
+        and e.state = 'dead_lettered'
+        and e.extraction_version = (
+          select max(e2.extraction_version) from ${extractions} e2 where e2.response_id = e.response_id
+        )
+      order by e.updated_at desc
+    `,
+  );
+  return rows.rows;
+}
+
+/** Ownership + latest-state check before run-page re-extract. */
+export async function assertDeadLetterOwnedByRun(
+  projectId: string,
+  runId: string,
+  responseId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const rows = await db.execute<{
+    projectId: string;
+    runId: string;
+    state: string;
+  }>(
+    sql`
+      select ar.project_id as "projectId",
+        r.run_id as "runId",
+        e.state as state
+      from ${responses} r
+      inner join ${auditRuns} ar on ar.id = r.run_id
+      inner join ${extractions} e on e.response_id = r.id
+      where r.id = ${responseId}
+        and e.extraction_version = (
+          select max(e2.extraction_version) from ${extractions} e2 where e2.response_id = r.id
+        )
+      limit 1
+    `,
+  );
+  const row = rows.rows[0];
+  if (!row) return { ok: false, error: "Response not found" };
+  if (row.projectId !== projectId || row.runId !== runId) {
+    return { ok: false, error: "Response is not part of this project run" };
+  }
+  if (row.state !== "dead_lettered") {
+    return { ok: false, error: "Latest extraction is not dead-lettered" };
+  }
+  return { ok: true };
+}
+
 export async function getExtractionProgress(runId: string) {
   const rows = await db.execute<{ state: string; n: number }>(
     sql`

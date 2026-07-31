@@ -30,7 +30,8 @@ import {
 } from "@/db/schema";
 import { extractResponse } from "@/modules/extraction/service";
 import { deleteStimulusAction } from "@/modules/resonance/actions";
-import { computeFindings, generateReport } from "@/modules/report/service";
+import { computeFindings } from "@/modules/analysis/findings";
+import { generateReport } from "@/modules/report/service";
 import { createRun, projectRunCost } from "@/modules/runner/actions";
 import { completeRun, getRun, isRunFinished, listRunEvents, recordSuccess } from "@/db/repositories/runner";
 import { listMetrics, recomputeMetrics } from "@/db/repositories/metrics";

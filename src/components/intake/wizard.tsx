@@ -162,7 +162,7 @@ export function IntakeWizard(props: {
     startTransition(async () => {
       const result = await finishIntake(projectId);
       if (result.ok) {
-        router.push("/projects");
+        router.push(`/projects/${projectId}`);
         return;
       }
       setStepErrors(result.stepErrors);

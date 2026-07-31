@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmptyState } from "@/components/empty-state";
+import { RunModeStamp } from "@/components/run-mode-stamp";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
 import { isUuid } from "@/core/id";
@@ -40,9 +42,8 @@ function RunRow({
       <span className="flex min-w-0 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm text-ink/90">{primaryLabel}</span>
-          {run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+          <RunModeStamp runMode={run.runMode} />
           {run.matrixKind === "resonance" && <SimulatedBadge />}
-          {run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
           <Stamp tone={stateTone(run.state)}>{run.state}</Stamp>
         </span>
         <span className="font-mono text-xs text-ink/45">
@@ -100,18 +101,13 @@ export default async function RunsIndexPage({
       </div>
 
       {runs.length === 0 ? (
-        <div className="rounded-xl border border-ink/15 px-5 py-10 text-center">
-          <p className="label-mono text-sm text-ink/70">No runs yet</p>
-          <p className="mx-auto mt-2 mb-4 max-w-md text-sm text-ink/60">
-            Start an audit or Simulation run from an approved matrix.
-          </p>
-          <Link
-            href={`/projects/${id}/runs/new`}
-            className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-5 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            Configure run →
-          </Link>
-        </div>
+        <EmptyState
+          kind="first-use"
+          title="No runs yet"
+          action={{ href: `/projects/${id}/runs/new`, label: "Configure run →" }}
+        >
+          Start an audit or Simulation run from an approved matrix.
+        </EmptyState>
       ) : (
         <div className="flex flex-col gap-8">
           <section aria-label="Audit runs">

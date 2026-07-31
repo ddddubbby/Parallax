@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Button, Input, Stamp } from "@/components/ui";
 import { AppMenu, AppMenuItem } from "@/components/ui/menu";
 import { projectListHint } from "@/core/pipeline";
@@ -81,15 +82,13 @@ export function ProjectsTable({ projects }: { projects: ProjectRow[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-ink/15 px-5 py-10 text-center">
-          <p className="label-mono text-sm text-ink/70">No projects match these filters</p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink/60">
-            Try a different project name or restore the complete project library.
-          </p>
-          <Button type="button" variant="secondary" className="mt-4" onClick={clearFilters}>
-            Show all projects
-          </Button>
-        </div>
+        <EmptyState
+          kind="filtered-zero"
+          title="No projects match these filters"
+          action={{ onClick: clearFilters, label: "Show all projects" }}
+        >
+          Try a different project name or restore the complete project library.
+        </EmptyState>
       ) : (
         <div
           className="overflow-x-auto rounded-xl border border-ink/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"

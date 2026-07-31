@@ -66,6 +66,15 @@ export function workspaceHubSections(
     return "No completed runs yet";
   })();
 
+  const messageLiftStatus = (() => {
+    if (counts.studies === 0) return "No Message Lift tests";
+    if (counts.approvedStudies === 0) return "Draft test in progress";
+    if (counts.resonanceRuns === 0) {
+      return `${counts.approvedStudies} approved · no simulation runs yet`;
+    }
+    return `${counts.approvedStudies} approved · ${counts.resonanceRuns} simulation run${counts.resonanceRuns === 1 ? "" : "s"}`;
+  })();
+
   const reportStatus = state.hasCompletedRun || state.hasCompletedResonanceRun
     ? "Reportable runs on file"
     : "Needs a completed run";
@@ -74,7 +83,8 @@ export function workspaceHubSections(
     { number: "01", label: "Setup", href: "setup", status: setupStatus },
     { number: "02", label: "Runs", href: "runs", status: runsStatus },
     { number: "03", label: "Dashboard", href: "dashboard", status: dashboardStatus },
-    { number: "04", label: "Report", href: "report", status: reportStatus },
+    { number: "04", label: "Message Lift", href: "resonance", status: messageLiftStatus },
+    { number: "05", label: "Report", href: "report", status: reportStatus },
   ];
 }
 

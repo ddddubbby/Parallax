@@ -1728,16 +1728,45 @@ async function loadVerbatimBaselineSource(projectId: string, responseId: string)
   return row;
 }
 
-/**
- * M44 / D-114: picker data — stored responses with their client-brand
- * attributes (latest valid extraction per response) plus the derived framing
- * themes. Themes are presentation metadata for browsing; they never gate.
- */
-export async function listBaselinePickerData(projectId: string, limit = 60) {
-  const responseRows = await db
+type BaselinePickerCursor = { createdAt: string; id: string };
+
+function encodeBaselinePickerCursor(row: { createdAt: Date; id: string }): string {
+  return Buffer.from(
+    JSON.stringify({ createdAt: row.createdAt.toISOString(), id: row.id }),
+    "utf8",
+  ).toString("base64url");
+}
+
+/** Invalid or forged cursors decode to null — callers restart from the first page. */
+function decodeBaselinePickerCursor(cursor: string | null | undefined): BaselinePickerCursor | null {
+  if (!cursor || typeof cursor !== "string") return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as {
+      createdAt?: unknown;
+      id?: unknown;
+    };
+    if (typeof parsed.createdAt !== "string" || typeof parsed.id !== "string") return null;
+    if (!isUuid(parsed.id)) return null;
+    if (Number.isNaN(Date.parse(parsed.createdAt))) return null;
+    return { createdAt: parsed.createdAt, id: parsed.id };
+  } catch {
+    return null;
+  }
+}
+
+type BaselinePickerMetaRow = {
+  id: string;
+  providerId: string;
+  generationMode: string;
+  modelVersion: string;
+  createdAt: Date;
+  promptText: string;
+};
+
+async function loadBaselinePickerMeta(projectId: string): Promise<BaselinePickerMetaRow[]> {
+  return db
     .select({
       id: responses.id,
-      rawText: responses.rawText,
       providerId: responses.providerId,
       generationMode: responses.generationMode,
       modelVersion: responses.modelVersion,
@@ -1755,12 +1784,18 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
         eq(auditRuns.state, "completed"),
       ),
     )
-    .orderBy(desc(responses.createdAt))
-    .limit(limit);
-  if (responseRows.length === 0) {
-    return { responses: [], themes: [] as FramingTheme[], themesSource: "attributes" as const };
+    .orderBy(desc(responses.createdAt), desc(responses.id));
+}
+
+async function loadBaselinePickerEnrichment(ids: string[]) {
+  if (ids.length === 0) {
+    return {
+      attributesByResponse: new Map<string, string[]>(),
+      quoteByResponse: new Map<string, string>(),
+      themes: [] as FramingTheme[],
+      themesSource: "attributes" as const,
+    };
   }
-  const ids = responseRows.map((r) => r.id);
   const attributeRows = await db
     .select({
       responseId: extractions.responseId,
@@ -1822,12 +1857,6 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
       .find((q) => q.length > 0);
     if (quote) quoteByResponse.set(row.responseId, quote);
   }
-  const mapResponses = () =>
-    responseRows.map((r) => ({
-      ...r,
-      attributes: attributesByResponse.get(r.id) ?? [],
-      observationQuote: quoteByResponse.get(r.id) ?? null,
-    }));
   if (validObservations.length > 0) {
     const clusterInput = validObservations
       .map((row) => {
@@ -1843,23 +1872,175 @@ export async function listBaselinePickerData(projectId: string, limit = 60) {
       })
       .filter((row) => row.phrases.length > 0 && row.phrases.length === row.vectors.length)
       .sort((a, b) => a.responseId.localeCompare(b.responseId));
-    const themes = clusterFramingObservations(clusterInput, responseRows.length);
+    const themes = clusterFramingObservations(clusterInput, ids.length);
     if (themes.length > 0) {
       return {
-        responses: mapResponses(),
+        attributesByResponse,
+        quoteByResponse,
         themes,
         themesSource: "framing_observations" as const,
       };
     }
   }
-  const themeSource = responseRows.map((r) => ({
-    responseId: r.id,
-    attributes: attributesByResponse.get(r.id) ?? [],
+  const themeSource = ids.map((id) => ({
+    responseId: id,
+    attributes: attributesByResponse.get(id) ?? [],
   }));
   return {
-    responses: mapResponses(),
+    attributesByResponse,
+    quoteByResponse,
     themes: groupResponsesByAttributeThemes(themeSource),
     themesSource: "attributes" as const,
+  };
+}
+
+export type BaselinePickerItem = {
+  id: string;
+  rawText: string;
+  providerId: string;
+  generationMode: string;
+  modelVersion: string;
+  createdAt: Date;
+  promptText: string;
+  attributes: string[];
+  observationQuote: string | null;
+};
+
+export type BaselinePickerPage = {
+  items: BaselinePickerItem[];
+  nextCursor: string | null;
+  themes: FramingTheme[];
+  themesSource: "framing_observations" | "attributes";
+  totalCount: number;
+};
+
+/** Restore a saved baseline even when it is outside the first cursor page. */
+export async function getBaselinePickerItem(
+  projectId: string,
+  responseId: string,
+): Promise<BaselinePickerItem | null> {
+  if (!isUuid(projectId) || !isUuid(responseId)) return null;
+  try {
+    const source = await loadVerbatimBaselineSource(projectId, responseId);
+    const enrichment = await loadBaselinePickerEnrichment([responseId]);
+    return {
+      id: source.responseId,
+      rawText: source.rawText,
+      providerId: source.providerId,
+      generationMode: source.generationMode,
+      modelVersion: source.modelVersion,
+      createdAt: source.createdAt,
+      promptText: source.promptText,
+      attributes: enrichment.attributesByResponse.get(responseId) ?? [],
+      observationQuote: enrichment.quoteByResponse.get(responseId) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * M51 / D-121: server-cursor baseline picker. Themes always carry full-corpus
+ * counts; items are a page of size 20 (default) ordered by (createdAt desc, id desc).
+ */
+export async function listBaselinePickerPage(
+  projectId: string,
+  opts: { cursor?: string | null; themeKey?: string | null; pageSize?: number } = {},
+): Promise<BaselinePickerPage> {
+  const pageSize = Math.min(Math.max(opts.pageSize ?? 20, 1), 50);
+  const allMeta = await loadBaselinePickerMeta(projectId);
+  if (allMeta.length === 0) {
+    return {
+      items: [],
+      nextCursor: null,
+      themes: [],
+      themesSource: "attributes",
+      totalCount: 0,
+    };
+  }
+  const enrichment = await loadBaselinePickerEnrichment(allMeta.map((r) => r.id));
+  let filtered = allMeta;
+  if (opts.themeKey) {
+    const theme = enrichment.themes.find((t) => t.key === opts.themeKey);
+    if (!theme) {
+      return {
+        items: [],
+        nextCursor: null,
+        themes: enrichment.themes,
+        themesSource: enrichment.themesSource,
+        totalCount: allMeta.length,
+      };
+    }
+    const allowed = new Set(theme.responseIds);
+    filtered = allMeta.filter((r) => allowed.has(r.id));
+  }
+  const cursor = decodeBaselinePickerCursor(opts.cursor);
+  let start = 0;
+  if (cursor) {
+    const cursorMs = Date.parse(cursor.createdAt);
+    const idx = filtered.findIndex(
+      (r) =>
+        r.createdAt.getTime() < cursorMs ||
+        (r.createdAt.getTime() === cursorMs && r.id < cursor.id),
+    );
+    start = idx < 0 ? filtered.length : idx;
+  }
+  const pageMeta = filtered.slice(start, start + pageSize);
+  const hasMore = start + pageSize < filtered.length;
+  const nextCursor = hasMore
+    ? encodeBaselinePickerCursor(pageMeta[pageMeta.length - 1]!)
+    : null;
+  if (pageMeta.length === 0) {
+    return {
+      items: [],
+      nextCursor: null,
+      themes: enrichment.themes,
+      themesSource: enrichment.themesSource,
+      totalCount: allMeta.length,
+    };
+  }
+  const pageIds = pageMeta.map((r) => r.id);
+  const textRows = await db
+    .select({ id: responses.id, rawText: responses.rawText })
+    .from(responses)
+    .where(inArray(responses.id, pageIds));
+  const textById = new Map(textRows.map((r) => [r.id, r.rawText]));
+  return {
+    items: pageMeta.map((r) => ({
+      ...r,
+      rawText: textById.get(r.id) ?? "",
+      attributes: enrichment.attributesByResponse.get(r.id) ?? [],
+      observationQuote: enrichment.quoteByResponse.get(r.id) ?? null,
+    })),
+    nextCursor,
+    themes: enrichment.themes,
+    themesSource: enrichment.themesSource,
+    totalCount: allMeta.length,
+  };
+}
+
+/**
+ * Legacy helper for tests / stamp building — first page of up to `limit`
+ * responses with full-corpus themes (via listBaselinePickerPage).
+ */
+export async function listBaselinePickerData(projectId: string, limit = 60) {
+  const pageSize = Math.min(Math.max(limit, 1), 50);
+  const first = await listBaselinePickerPage(projectId, { pageSize });
+  const responses = [...first.items];
+  let cursor = first.nextCursor;
+  while (cursor && responses.length < limit) {
+    const next = await listBaselinePickerPage(projectId, {
+      cursor,
+      pageSize: Math.min(50, limit - responses.length),
+    });
+    responses.push(...next.items);
+    cursor = next.nextCursor;
+    if (next.items.length === 0) break;
+  }
+  return {
+    responses: responses.slice(0, limit),
+    themes: first.themes,
+    themesSource: first.themesSource,
   };
 }
 
@@ -1872,7 +2053,7 @@ async function buildBaselineStamp(
   let themeLabel: string | null = null;
   let recurrence: BaselineStamp["recurrence"] = null;
   if (themeKey) {
-    const { themes } = await listBaselinePickerData(projectId);
+    const { themes } = await listBaselinePickerPage(projectId, { pageSize: 1 });
     const theme = themes.find((t) => t.key === themeKey);
     if (theme) {
       themeLabel = theme.label;

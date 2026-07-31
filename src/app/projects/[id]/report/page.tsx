@@ -10,6 +10,7 @@ import { listCompletedResonanceRuns, listCompletedRuns } from "@/db/repositories
 import { getReportFreshness, getReportSections } from "@/db/repositories/report";
 import { getResonanceStudyExportLabel } from "@/db/repositories/resonance";
 import { getProjectSummary, getRunMatrixKind } from "@/db/repositories/runner";
+import { fetchReportAdvisoryChecklist } from "@/modules/report/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,11 @@ export default async function ReportPage({
     ? (runs.find((r) => r.id === requestedRunId) ?? defaultRun)
     : defaultRun;
   const runId = selectedRun.id;
-  const [sections, freshness, runKind] = await Promise.all([
+  const [sections, freshness, runKind, advisory] = await Promise.all([
     getReportSections(runId),
     getReportFreshness(runId),
     getRunMatrixKind(runId),
+    fetchReportAdvisoryChecklist(id, runId),
   ]);
   const resonanceStudy = runKind?.kind === "resonance" && runKind.resonanceStudyId
     ? await getResonanceStudyExportLabel(id, runKind.resonanceStudyId)
@@ -85,6 +87,7 @@ export default async function ReportPage({
         initialIsStale={freshness.stale}
         activeSectionKey={sectionKey}
         baselineProvenance={resonanceStudy?.baselineProvenance ?? null}
+        initialAdvisory={advisory}
       />
     </main>
   );

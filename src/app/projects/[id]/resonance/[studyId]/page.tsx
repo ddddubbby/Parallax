@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmptyState } from "@/components/empty-state";
 import { LocalViewTabs } from "@/components/local-view-tabs";
+import { RunModeStamp } from "@/components/run-mode-stamp";
 import { EvidenceFilters } from "@/components/resonance/evidence-filters";
 import { StudyResultsPanel } from "@/components/resonance/study-results-panel";
 import { RecommendationResultsPanel } from "@/components/resonance/recommendation-results-panel";
@@ -27,7 +29,8 @@ import {
   getResonanceStudyResultSummary,
   getRecommendationStudyResultSummary,
   getMessageLiftPromptDisclosure,
-  listBaselinePickerData,
+  getBaselinePickerItem,
+  listBaselinePickerPage,
   listResonanceEvidencePage,
 } from "@/db/repositories/resonance";
 import { getProjectSummary } from "@/db/repositories/runner";
@@ -88,6 +91,7 @@ function LockedDefinition({
   stimuli,
   genericUnconditioned,
   baselineProvenance,
+  nextAction,
 }: {
   studyName: string;
   testType: "buyer_response" | "ai_recommendation";
@@ -96,6 +100,7 @@ function LockedDefinition({
   stimuli: Array<{ id: string; kind: string; label: string; body: string }>;
   genericUnconditioned: boolean;
   baselineProvenance: import("@/core/resonance").ResonanceBaselineProvenance;
+  nextAction: { label: string; href: string };
 }) {
   return (
     <div className="space-y-5 rounded-xl border border-ink/15 bg-paper-2/25 p-4">
@@ -108,6 +113,12 @@ function LockedDefinition({
       <p className="text-sm leading-6 text-ink/65">
         Approved tests are locked. Create a new test to change either message or the test context.
       </p>
+      <Link
+        href={nextAction.href}
+        className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {nextAction.label} →
+      </Link>
       <BaselineProvenance provenance={baselineProvenance} />
       <div>
         <h3 className="label-mono mb-2 text-xs text-ink/65">Test</h3>
@@ -196,17 +207,35 @@ export default async function ResonanceStudyPage({
     : [];
   const isDraft = study.state === "draft";
   const base = `/projects/${id}/resonance/${studyId}`;
+  const savedBaselineIds = [
+    ...new Set(
+      stimuli.flatMap((stimulus) =>
+        Array.isArray(stimulus.evidenceResponseIdsJson)
+          ? (stimulus.evidenceResponseIdsJson as string[])
+          : [],
+      ),
+    ),
+  ];
 
   const needsResults = view === "results" || view === "overview" || view === "evidence";
-  const [results, pickerData, evidencePageData, activeFramingBatch, promptDisclosure] = await Promise.all([
+  const [results, pickerData, savedBaselineItems, evidencePageData, activeFramingBatch, promptDisclosure] = await Promise.all([
     needsResults
       ? testType === "ai_recommendation"
         ? getRecommendationStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
         : getResonanceStudyResultSummary(id, studyId, undefined, { refreshMetrics: view === "results" })
       : Promise.resolve(null),
     view === "design" && isDraft
-      ? listBaselinePickerData(id)
-      : Promise.resolve({ responses: [], themes: [], themesSource: "attributes" as const }),
+      ? listBaselinePickerPage(id, { pageSize: 20 })
+      : Promise.resolve({
+          items: [],
+          nextCursor: null,
+          themes: [],
+          themesSource: "attributes" as const,
+          totalCount: 0,
+        }),
+    view === "design" && isDraft
+      ? Promise.all(savedBaselineIds.map((responseId) => getBaselinePickerItem(id, responseId)))
+      : Promise.resolve([]),
     view === "evidence" && testType === "buyer_response"
       ? listResonanceEvidencePage({
           projectId: id,
@@ -228,6 +257,8 @@ export default async function ResonanceStudyPage({
     sp.engine && results?.providers.includes(sp.engine)
       ? sp.engine
       : (results?.providers[0] ?? sp.engine ?? "");
+
+  const hasEvidenceFilters = Boolean(sp.stimulus || sp.persona);
 
   const action = nextAction({
     projectId: id,
@@ -306,9 +337,7 @@ export default async function ResonanceStudyPage({
             <h2 className="label-mono text-sm font-semibold">Status</h2>
             <Stamp tone={study.state === "approved" ? "ok" : "ink"}>{study.state}</Stamp>
             {latestRun && <Stamp tone="ink">{latestRun.state}</Stamp>}
-            {latestRun && (
-              <Stamp tone={latestRun.runMode === "mock" ? "accent" : "ink"}>{latestRun.runMode}</Stamp>
-            )}
+            {latestRun && <RunModeStamp runMode={latestRun.runMode} />}
           </div>
           <p className="text-sm leading-6 text-ink/65">
             {testType === "buyer_response"
@@ -359,7 +388,7 @@ export default async function ResonanceStudyPage({
             }))}
             themesSource={pickerData.themesSource}
             initialFramingBatch={activeFramingBatch}
-            responseOptions={pickerData.responses.map((row) => ({
+            responseOptions={pickerData.items.map((row) => ({
               id: row.id,
               excerpt: excerpt(row.rawText),
               verbatim: row.rawText,
@@ -373,6 +402,23 @@ export default async function ResonanceStudyPage({
                   : String(row.createdAt),
               observationQuote: row.observationQuote ?? null,
             }))}
+            selectedResponseOptions={savedBaselineItems.flatMap((row) =>
+              row
+                ? [{
+                    id: row.id,
+                    excerpt: excerpt(row.rawText),
+                    verbatim: row.rawText,
+                    providerId: row.providerId,
+                    promptText: row.promptText,
+                    generationMode: row.generationMode,
+                    modelVersion: row.modelVersion,
+                    createdAt: row.createdAt.toISOString(),
+                    observationQuote: row.observationQuote ?? null,
+                  }]
+                : [],
+            )}
+            baselineNextCursor={pickerData.nextCursor}
+            baselineTotalCount={pickerData.totalCount}
           />
         ) : (
           <LockedDefinition
@@ -388,6 +434,7 @@ export default async function ResonanceStudyPage({
             }))}
             genericUnconditioned={study.genericUnconditioned}
             baselineProvenance={baselineProvenance}
+            nextAction={action}
           />
         ))}
 
@@ -414,14 +461,29 @@ export default async function ResonanceStudyPage({
             </p>
           )}
           {studyRuns.length === 0 ? (
-            <p className="text-sm text-ink/65">No runs for this study yet.</p>
+            <EmptyState
+              kind="first-use"
+              title="No runs for this study yet"
+              action={
+                matrixVersion
+                  ? {
+                      href: `/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`,
+                      label: "Configure test run →",
+                    }
+                  : undefined
+              }
+            >
+              {matrixVersion
+                ? "Configure a run to collect simulated buyer responses."
+                : "Approve the test before configuring a run."}
+            </EmptyState>
           ) : (
             <ul className="grid gap-2">
               {studyRuns.map((run) => (
                 <li key={run.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-ink/10 px-3 py-2">
                   <SimulatedBadge />
                   <Stamp tone="ink">{run.state}</Stamp>
-                  <Stamp tone={run.runMode === "mock" ? "accent" : "ink"}>{run.runMode}</Stamp>
+                  <RunModeStamp runMode={run.runMode} />
                   <span className="font-mono text-xs text-ink/65">{run.id.slice(0, 8)}</span>
                   <Link
                     href={`/projects/${id}/runs/${run.id}`}
@@ -453,19 +515,20 @@ export default async function ResonanceStudyPage({
             />
           )
         ) : (
-          <p className="text-sm text-ink/65">
-            No completed test results yet.{" "}
-            {matrixVersion ? (
-              <Link
-                href={`/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`}
-                className="text-accent-ink hover:text-accent"
-              >
-                Configure a run →
-              </Link>
-            ) : (
-              "Approve the study first."
-            )}
-          </p>
+          <EmptyState
+            kind="first-use"
+            title="No completed test results yet"
+            action={
+              matrixVersion
+                ? {
+                    href: `/projects/${id}/runs/new?matrixVersionId=${matrixVersion.id}`,
+                    label: "Configure a run →",
+                  }
+                : undefined
+            }
+          >
+            {matrixVersion ? "Run the approved test to populate results." : "Approve the study first."}
+          </EmptyState>
         ))}
 
       {view === "evidence" && (
@@ -515,7 +578,22 @@ export default async function ResonanceStudyPage({
               in the Evidence JSON export. Use the Prompts view for the frozen A/B manifest.
             </p>
           ) : !evidencePageData || evidencePageData.total === 0 ? (
-            <p className="text-sm text-ink/65">No evidence responses for this filter yet.</p>
+            hasEvidenceFilters ? (
+              <EmptyState
+                kind="filtered-zero"
+                title="No evidence responses for this filter"
+                action={{
+                  href: withViewParam(base, "evidence", engine ? { engine } : undefined),
+                  label: "Clear filters",
+                }}
+              >
+                Try a different message or buyer profile, or restore the full evidence set.
+              </EmptyState>
+            ) : (
+              <EmptyState kind="first-use" title="No evidence responses yet">
+                Complete a test run to populate verbatim buyer responses here.
+              </EmptyState>
+            )
           ) : (
             <>
               <p className="font-mono text-xs text-ink/65">
