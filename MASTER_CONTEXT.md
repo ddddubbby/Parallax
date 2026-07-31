@@ -124,6 +124,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
 | `M43_BUILD_PLAN.md` | ACTIVE | M43 authenticated Resonance web UI refinement, route/state inventory, live-demo protocol, and acceptance |
 | `M49_BUILD_PLAN.md` | ACTIVE | M49 Resonance Message Lift tests (D-119): two test types, exact A/B parity and disclosure, plain-language workflow |
+| `M50_BUILD_PLAN.md` | ACTIVE | M50 live-run remaining-time forecast (D-120): live-run-only p10–p90 range, 10-completion calibration, stale-pace recalibration |
 | `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
@@ -135,7 +136,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `BUILD_NOTES.md` | ACTIVE | Disposable per-session working memory; pruned at milestone merge (D-025) |
 | `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice / site guide (the active brand, D-106) |
 | `README.md` | ACTIVE | Quick orientation and local setup pointer |
-| `PRD.md` | ACTIVE | Resonance Evidence and Message Lift contract through M49/D-119 |
+| `PRD.md` | ACTIVE | Resonance Evidence and Message Lift contract through M50/D-120 |
 | `CALIBRATION_PROTOCOL.md` | PARKED | SSR calibration design for the parked Simulation Layer (M26, D-082) |
 | `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
 | `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |

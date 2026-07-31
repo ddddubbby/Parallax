@@ -494,7 +494,7 @@ Operator-trust surfaces only — measurement semantics unchanged:
 
 1. **Balanced brand order** — comparison prompts list the client and every active competitor exactly once in a frozen, balanced order (`brand_order_json`); position counts differ by at most one across the matrix. Unbranded discovery/consideration ranking prompts stay brand-free (PM-9). Approved matrices remain byte-frozen (C-4).
 2. **Persistent framing extraction** — theme refinement enqueues a worker batch with persisted progress (processed/total, valid/failed, approximate remaining, pause/resume on C-2). Progress survives navigation, refresh, and worker restart.
-3. **Stage-aware run ETA** — one approximate remaining-time line plus separate generation and extraction/scoring lanes; EWMA-based estimate with paused/offline suppression.
+3. **Stage-aware run ETA** — one approximate remaining-time line plus separate generation and extraction/scoring lanes; EWMA-based estimate with paused/offline suppression. *(ETA portion superseded by D-120 — see §8.38; stage lanes unchanged.)*
 4. **Baseline selection clarity** — exact framing-observation quotes when available; full-response dialog for evidence reading; Choose-as-baseline still requires Save and C-13/C-15 stamp.
 5. **Persona terminology** — Simulation UI says “Persona” / “Persona name”; stored `PanelPersona` / protocol versions unchanged.
 6. **Live draw floor** — show `personas × repetitions` and total-call math before approval/run creation. Mock and `live_validation` may run below 30 draws per framing/provider with a directional warning. `live_audit` Simulation creation is blocked when draws per framing/provider are below 30 (with `k=5`, ≥6 personas). Sub-six-persona study approval warns preview-only; personas are never invented; providers never pool toward the floor.
@@ -524,6 +524,18 @@ The `/resonance` workspace is Message Lift: compare one verbatim Current message
 7. **Compatibility** — historical studies, prompts, results, routes, and IDs remain readable. Resonance is the sole product name; lowercase legacy internal identifiers remain implementation details.
 
 Execution playbook: `M49_BUILD_PLAN.md`. Schema: migration `0023_m49_message_lift_tests.sql`.
+
+### 8.38 Live-run remaining-time forecast (M50, D-120)
+
+M46's point ETA jumped because it switched from historical-run seed data to as few as two live completion intervals. M50 replaces it with a forecast that only ever measures the run on screen.
+
+1. **Live-run-only** — throughput derives solely from the current run's persisted terminal pipeline completion timestamps (generation success plus terminal extraction/scoring). Historical-run seeding is removed.
+2. **Calibration floor** — no forecast until 10 terminal pipeline completions; the run shows exact completed/total progress with no estimate while calibrating.
+3. **Range, not a point** — rolling five-completion windows across the latest 20 completions; a conservative p10–p90 remaining-time range rendered exactly as `Estimated 8–14 min remaining` (minute granularity; no basis, sample-count, or explanatory copy on that line).
+4. **Stale-pace recalibration** — no terminal completion for more than 3× the observed slow-end cadence suppresses the range until pace resumes; a stale forecast never stays on screen.
+5. **Retained surfaces** — exact completed/total progress, generation/extraction lanes, worker-offline banner, pause reason, and cost display are unchanged; paused, offline, and terminal runs never render a range.
+
+Execution playbook: `M50_BUILD_PLAN.md`. No migration.
 
 ## 9. Data model summary
 
@@ -592,9 +604,11 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M47 | Transition feedback + refresh cleanup (D-118) | Reachable `projects`/`[id]` loading; LocalViewTabs + ReportRunSwitcher pending; remove duplicate `router.refresh` after `revalidatePath` | Done — pending merge |
 | M48 | UI cleanup | Existing UI-cleanup milestone merged to `main` at `7ff4a7c` via merge commit `4380e78` | Done |
 | M49 | Resonance Message Lift tests (D-119) | Two test types; exact A/B parity/disclosure; deterministic recommendation extraction and scenario-weighted lift; plain-language Resonance-only surfaces; migration 0023; full gates | Done on `m49`; ready for review/commit |
+| M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | In progress on `m50` |
 
 Progress notes:
 
+- 2026-07-31 M50 P0 governance (D-120): branch `m50` cut from `m49@7b0dc1a`; D-120 supersedes D-117 ruling (3)'s ETA portion (live-run-only p10–p90 forecast range, 10-completion calibration floor, stale-pace recalibration; EWMA/outlier/historical seed removed); `M50_BUILD_PLAN.md` created (D-090: multi-phase with per-phase acceptance); STATUS/PRD §8.38/index retargeted. No migration.
 - 2026-07-20 M47 P4 (D-118): full gates — lint 0-warn, docs:check, typecheck, Vitest 853/0, Playwright 18/18 (incl. delayed-RSC transition feedback), build green. Ready for `m47` → `main`.
 - 2026-07-20 M47 P0 (D-118): post-M46 trunk — archived `M46_BUILD_PLAN.md`, pruned M46 BUILD_NOTES, opened `M47_BUILD_PLAN.md` + STATUS/PRD §8.36.
 - 2026-07-19 M46 merged to `main` via PR #7 (D-117). Archive/prune completed on `m47` P0 (merge commit itself left archival owed).
