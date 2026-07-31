@@ -112,7 +112,7 @@ export function ExtractionPanel({
       {showExtraction && (
         <>
           <div className="mb-3 flex items-center gap-3">
-            <h2 className="label-mono text-xs font-medium text-ink/60">Extraction</h2>
+            <h2 className="label-mono text-xs font-medium text-ink/60">Extraction & scoring</h2>
             {deadLettered > 0 && <Stamp tone="danger">{deadLettered} dead-lettered</Stamp>}
           </div>
           <div className="mb-4 grid grid-cols-2 gap-2 font-mono text-xs text-ink/60 sm:grid-cols-3 lg:grid-cols-5">

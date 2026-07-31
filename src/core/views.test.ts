@@ -28,7 +28,12 @@ describe("URL view parsers (M32 / D-088)", () => {
   it("accepts each allowed view token", () => {
     expect(parseSetupView("facts")).toBe("facts");
     expect(parseMatrixView("perception")).toBe("perception");
-    expect(parseRunDetailView("extraction")).toBe("extraction");
+    expect(parseRunDetailView("diagnostics")).toBe("diagnostics");
+    expect(parseRunDetailView("metrics")).toBe("metrics");
+    // M52 / D-122: legacy Events and Extraction URLs land on Diagnostics.
+    expect(parseRunDetailView("events")).toBe("diagnostics");
+    expect(parseRunDetailView("extraction")).toBe("diagnostics");
+    expect(parseRunDetailView("nope")).toBe("overview");
     expect(parseDashboardView("simulation")).toBe("simulation");
     expect(parseStudyView("evidence")).toBe("evidence");
     expect(parseStudyResultSection("deltas")).toBe("deltas");

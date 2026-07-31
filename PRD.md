@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M51 operator UI honesty/remediation · TRACKER: M51_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M52 Run Diagnostics consolidation · TRACKER: M52_BUILD_PLAN.md
 
 # PRD.md - Resonance MVP
 
-> **STATUS: M51 (D-121) DONE ON `m51-ui-ux-roadmap` (2026-07-31), READY FOR PR AFTER M50.** Operator UI honesty/remediation passed all closeout gates (§8.39); implementation commit `ecec3e7`. M51 is stacked on M50; integrate M50 first. Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M52 (D-122) DONE ON `m52` (2026-07-31), STACKED ON M51.** Run detail Diagnostics consolidation passed closeout gates (§8.40). Integrate M50, then M51, then retarget/merge M52. Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44–M46 plans are in `docs/history/`.
 
@@ -551,6 +551,18 @@ M51 closes reviewed operator-journey gaps without changing methodology, schema, 
 
 Execution playbook: `M51_BUILD_PLAN.md`. No migration.
 
+### 8.40 Run detail Diagnostics consolidation (M52, D-122)
+
+M52 is navigation consolidation only — no migration, no deletion of events/extractions/versions (C-3).
+
+1. **Overview** is the operator activity narrative (progress, forecast, controls, pause/offline, cost) with a lightweight recent-activity summary that links into Diagnostics.
+2. **Diagnostics** (`?view=diagnostics`) is the single drill-down for lifecycle events, extraction/scoring status, dead-letter remediation, and re-extraction history. The separate Events tab is removed; Extraction is no longer a peer top-level section.
+3. **URL aliases** — `?view=events` and `?view=extraction` resolve to Diagnostics.
+4. **Simulation runs** expose Diagnostics for lifecycle events only — never an audit ExtractionPanel.
+5. **Metrics** remains an audit-only peer tab.
+
+Execution playbook: `M52_BUILD_PLAN.md`. No migration.
+
 ## 9. Data model summary
 
 `projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`; from M17: `resonance_studies`, `resonance_stimuli` (migration 0008, which also adds the `simulation` value to the `intent` enum, `matrix_versions.kind`, `matrix_versions.resonance_study_id`, `prompt_cells.stimulus_id`, and `prompt_cells.panel_persona_key`; `prompt_cells.persona_id`/`market_id` are already nullable — D-066). From M34A (D-099/D-102): `framing_studies`, `framing_response_reviews`, `framing_annotations`, `framing_gap_classifications`, `framing_evidence_snapshots`, plus `resonance_stimuli.framing_evidence_snapshot_id` and the `representation` value on the `intent` enum (migration 0013 enum-only, then 0014 structure, then 0015 assurance — the last adding the append-only snapshot trigger and the approved-study stimulus-freeze trigger; digests use canonical sorted-key JSON with dual-verification backward compat per D-104).
@@ -620,9 +632,12 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M49 | Resonance Message Lift tests (D-119) | Two test types; exact A/B parity/disclosure; deterministic recommendation extraction and scenario-weighted lift; plain-language Resonance-only surfaces; migration 0023; full gates | Done on `m49`; ready for review/commit |
 | M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | Done on `m50` (pending merge) |
 | M51 | Operator UI honesty and remediation (D-121) | Evidence gates; informed confirms; guided empty/success states; fresh findings and advisory delivery; scoped dead-letter recovery; shared mode stamps; full baseline access; truthful calibration copy; no migration | Done on `m51-ui-ux-roadmap` — ready for PR after M50 |
+| M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `m52` — ready for PR after M50/M51 |
 
 Progress notes:
 
+- 2026-07-31 M52 Done (D-122, no migration): Overview + Diagnostics (+ audit Metrics); `events`/`extraction` URL aliases; Overview recent-activity strip; simulation Diagnostics events-only. Gates: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, e2e 18/18 + forecast 4/4. Evidence: BUILD_NOTES S-123.
+- 2026-07-31 M52 P0 governance (D-122): branch `m52` cut from `m51-ui-ux-roadmap@b34b164`; D-122 supersedes D-088 Run overview/events/extraction/metrics tab wording; `M52_BUILD_PLAN.md` created; STATUS/PRD §8.40/index retargeted. No migration.
 - 2026-07-31 M51 Done (D-121, no migration; implementation `ecec3e7`): completed the six-phase UI roadmap, then fixed representative prompt coverage, neutral findings-module ownership and direct-report freshness, per-source dirty preservation, off-page saved baseline restoration, failure-safe synchronous re-extraction, projection-unavailable confirmation detail, active RunModeStamp adoption, behavioral calibration coverage, and an axe-discovered advisory contrast defect. Gates: lint, typecheck, docs, Vitest 900/12, build, e2e 18/18, forecast e2e 4/4. Evidence: BUILD_NOTES S-122.
 - 2026-07-31 M50 P0 governance (D-120): branch `m50` cut from `m49@7b0dc1a`; D-120 supersedes D-117 ruling (3)'s ETA portion (live-run-only p10–p90 forecast range, 10-completion calibration floor, stale-pace recalibration; EWMA/outlier/historical seed removed); `M50_BUILD_PLAN.md` created (D-090: multi-phase with per-phase acceptance); STATUS/PRD §8.38/index retargeted. No migration.
 - 2026-07-31 M50 Done (D-120, no migration): live-run forecast core + repository wiring + run-page ready-only range copy; historical ETA seeding/EWMA removed; main e2e keeps offline; dedicated `pnpm test:e2e:forecast` covers ready/recalibrating/calibrating/paused. Gates: lint `--max-warnings 0`, typecheck, docs:check, Vitest 884/12, build, e2e 18/18 + forecast 4/4. Evidence: BUILD_NOTES S-121.

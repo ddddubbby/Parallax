@@ -87,6 +87,17 @@ test.describe("operator journey smoke", () => {
     const studyHref = await studyCard.getByRole("link", { name: "Open →" }).getAttribute("href");
     expect(studyHref).toBeTruthy();
 
+    // M52/D-122: simulation Diagnostics is events-only (no audit extraction panel).
+    await page.goto(`${studyHref}?view=runs`);
+    await page.getByRole("link", { name: "Open →" }).first().click();
+    await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}/);
+    const simNav = page.getByRole("navigation", { name: "Run detail sections" });
+    await expect(simNav.getByRole("link", { name: "Diagnostics" })).toBeVisible();
+    await expect(simNav.getByRole("link", { name: "Metrics" })).toHaveCount(0);
+    await simNav.getByRole("link", { name: "Diagnostics" }).click();
+    await expect(page.getByTestId("run-diagnostics")).toBeVisible();
+    await expect(page.getByText("Extraction & scoring")).toHaveCount(0);
+
     await page.goto(`${studyHref}?view=results`);
     await expect(page.getByText("MODEL-IMPLIED", { exact: true })).toHaveCount(0);
     await expect(page.getByText("UNCALIBRATED", { exact: true })).toHaveCount(0);
@@ -417,6 +428,20 @@ test.describe("operator journey smoke", () => {
     await expect(page.locator("[data-forecast-state='offline']")).toBeVisible();
     await expect(page.getByTestId("run-forecast")).not.toBeVisible();
     await expect(page.getByTestId("run-forecast-calibrating")).not.toBeVisible();
+
+    // M52/D-122: Overview keeps recent activity; Diagnostics replaces Events/Extraction.
+    const runNav = page.getByRole("navigation", { name: "Run detail sections" });
+    await expect(runNav.getByRole("link", { name: "Diagnostics" })).toBeVisible();
+    await expect(runNav.getByRole("link", { name: "Events" })).toHaveCount(0);
+    await expect(runNav.getByRole("link", { name: "Extraction" })).toHaveCount(0);
+    await expect(page.getByTestId("run-recent-activity")).toBeVisible();
+    const runPath = page.url().split("?")[0]!;
+    // Legacy ?view=events aliases to Diagnostics (parse, not hard redirect).
+    await page.goto(`${runPath}?view=events`);
+    await expect(page.getByTestId("run-diagnostics")).toBeVisible();
+    await expect(page.getByTestId("run-diagnostics-events")).toBeVisible();
+    await expect(page.getByText("Extraction & scoring")).toBeVisible();
+    await page.goto(runPath);
 
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     const cancelDialog = page.getByRole("dialog", { name: "Cancel active run?" });

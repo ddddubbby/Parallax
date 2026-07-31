@@ -169,6 +169,40 @@ describe("M43 shared UI contracts", () => {
     expect(wizard).not.toContain(".slice(0, 12)");
   });
 
+  it("M52/D-122: Run detail uses Diagnostics; Events/Extraction tabs are gone", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const page = await fs.readFile(
+      path.join(process.cwd(), "src/app/projects/[id]/runs/[runId]/page.tsx"),
+      "utf8",
+    );
+    const progress = await fs.readFile(
+      path.join(process.cwd(), "src/components/runner/run-progress.tsx"),
+      "utf8",
+    );
+    const views = await fs.readFile(path.join(process.cwd(), "src/core/views.ts"), "utf8");
+
+    expect(page).toContain('label: "Diagnostics"');
+    expect(page).toContain('data-testid="run-diagnostics"');
+    expect(page).toContain('id: "diagnostics"');
+    expect(page).not.toContain('label: "Events"');
+    expect(page).not.toContain('label: "Extraction"');
+    // Simulation: ExtractionPanel only when !isResonance on diagnostics.
+    expect(page).toContain("!isResonance && (");
+    expect(page).toContain('panel="extraction"');
+
+    expect(progress).toContain('data-testid="run-recent-activity"');
+    expect(progress).toContain("Open Diagnostics →");
+    expect(progress).toContain('view=diagnostics');
+    expect(progress).not.toContain('view=events');
+    expect(progress).not.toContain('view === "events"');
+
+    expect(views).toContain('"diagnostics"');
+    expect(views).toContain('events: "diagnostics"');
+    expect(views).toContain('extraction: "diagnostics"');
+    expect(views).not.toContain('"events", "extraction"');
+  });
+
   it("M51 Phase 3: EmptyState exports kinds and projects page uses it", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
