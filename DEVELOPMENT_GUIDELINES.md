@@ -310,7 +310,7 @@ Extraction prompt requirements:
 | Integration | Project -> matrix -> run -> extract -> metrics -> report | Before milestone merge |
 | Failure injection | Mock timeout, 429, 500, malformed output, restart | From M4 onward |
 | Live validation | 5 cells x k=2 against DeepSeek under $2 | M8 |
-| Playwright smoke + axe | Critical operator journey floor (`pnpm test:e2e`, D-092) | CI required check; before UI milestone Done |
+| Playwright smoke + axe | Critical operator journey floor (`pnpm test:e2e`, D-092); M50 forecast states via `pnpm test:e2e:forecast` (D-120) | CI required check; before UI milestone Done |
 | Manual checklist | Wizard, matrix, run, dashboard, report | Milestone merge (UI milestones: evidenced walk in `BUILD_NOTES.md` before Done, D-092) |
 
 Milestone acceptance commands:

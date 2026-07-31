@@ -47,4 +47,4 @@ The main e2e database never runs a worker and already asserts `WORKER OFFLINE`; 
 
 ## Acceptance
 
-Filled in at close: gates and evidence land in `STATUS.md` + `BUILD_NOTES.md` per D-092.
+Met. Evidence in `STATUS.md` + `BUILD_NOTES.md` S-121: lint `--max-warnings 0`, typecheck, docs:check, Vitest 884/12, build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.

@@ -604,11 +604,12 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M47 | Transition feedback + refresh cleanup (D-118) | Reachable `projects`/`[id]` loading; LocalViewTabs + ReportRunSwitcher pending; remove duplicate `router.refresh` after `revalidatePath` | Done — pending merge |
 | M48 | UI cleanup | Existing UI-cleanup milestone merged to `main` at `7ff4a7c` via merge commit `4380e78` | Done |
 | M49 | Resonance Message Lift tests (D-119) | Two test types; exact A/B parity/disclosure; deterministic recommendation extraction and scenario-weighted lift; plain-language Resonance-only surfaces; migration 0023; full gates | Done on `m49`; ready for review/commit |
-| M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | In progress on `m50` |
+| M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | Done on `m50` (pending merge) |
 
 Progress notes:
 
 - 2026-07-31 M50 P0 governance (D-120): branch `m50` cut from `m49@7b0dc1a`; D-120 supersedes D-117 ruling (3)'s ETA portion (live-run-only p10–p90 forecast range, 10-completion calibration floor, stale-pace recalibration; EWMA/outlier/historical seed removed); `M50_BUILD_PLAN.md` created (D-090: multi-phase with per-phase acceptance); STATUS/PRD §8.38/index retargeted. No migration.
+- 2026-07-31 M50 Done (D-120, no migration): live-run forecast core + repository wiring + run-page ready-only range copy; historical ETA seeding/EWMA removed; main e2e keeps offline; dedicated `pnpm test:e2e:forecast` covers ready/recalibrating/calibrating/paused. Gates: lint `--max-warnings 0`, typecheck, docs:check, Vitest 884/12, build, e2e 18/18 + forecast 4/4. Evidence: BUILD_NOTES S-121.
 - 2026-07-20 M47 P4 (D-118): full gates — lint 0-warn, docs:check, typecheck, Vitest 853/0, Playwright 18/18 (incl. delayed-RSC transition feedback), build green. Ready for `m47` → `main`.
 - 2026-07-20 M47 P0 (D-118): post-M46 trunk — archived `M46_BUILD_PLAN.md`, pruned M46 BUILD_NOTES, opened `M47_BUILD_PLAN.md` + STATUS/PRD §8.36.
 - 2026-07-19 M46 merged to `main` via PR #7 (D-117). Archive/prune completed on `m47` P0 (merge commit itself left archival owed).
