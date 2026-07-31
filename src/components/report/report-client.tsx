@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { AppMenu, AppMenuItem, AppMenuSeparator } from "@/components/ui/menu";
+import { EmptyState } from "@/components/empty-state";
 import { Button, InlineStatus, Stamp, Textarea } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import { UnsavedChangesSignal, useUnsavedEdit } from "@/components/unsaved-edit";
@@ -11,7 +12,14 @@ import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import type { ResonanceBaselineProvenance } from "@/core/resonance";
 import { LocalViewTabs } from "@/components/local-view-tabs";
 import { withViewParam } from "@/core/views";
-import { generateReportForRun, regenerateSectionAction, saveSectionEdit } from "@/modules/report/actions";
+import {
+  generateReportForRun,
+  fetchReportSections,
+  fetchReportAdvisoryChecklist,
+  regenerateSectionAction,
+  saveSectionEdit,
+  type ReportAdvisoryChecklist,
+} from "@/modules/report/actions";
 
 interface SectionRow {
   id: string;
@@ -34,6 +42,7 @@ export function ReportClient({
   initialIsStale = false,
   activeSectionKey,
   baselineProvenance = null,
+  initialAdvisory = null,
 }: {
   projectId: string;
   runId: string;
@@ -43,6 +52,7 @@ export function ReportClient({
   /** M32 / D-088: one outline section at a time. */
   activeSectionKey: string;
   baselineProvenance?: ResonanceBaselineProvenance | null;
+  initialAdvisory?: ReportAdvisoryChecklist | null;
 }) {
   const [sections, setSections] = useState(initialSections);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -50,10 +60,14 @@ export function ReportClient({
   const [error, setError] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<"generate" | "save" | "regenerate" | null>(null);
   const [regenerateTarget, setRegenerateTarget] = useState<SectionRow | null>(null);
+  const [advisory, setAdvisory] = useState<ReportAdvisoryChecklist | null>(initialAdvisory);
   const [pending, startTransition] = useTransition();
   const { setDirtySource } = useUnsavedEdit();
 
   useEffect(() => () => setDirtySource("report-section", false), [setDirtySource]);
+  useEffect(() => {
+    setAdvisory(initialAdvisory);
+  }, [initialAdvisory, runId]);
 
   function startEdit(s: SectionRow) {
     setError(null);
@@ -124,22 +138,41 @@ export function ReportClient({
         setActionKey(null);
         return;
       }
-      window.location.reload();
+      const [rows, nextAdvisory] = await Promise.all([
+        fetchReportSections(projectId, runId),
+        fetchReportAdvisoryChecklist(projectId, runId),
+      ]);
+      setSections(
+        rows.map((row) => ({
+          id: row.id,
+          sectionKey: row.sectionKey,
+          position: row.position,
+          generatedMd: row.generatedMd,
+          editedMd: row.editedMd,
+          state: row.state,
+        })),
+      );
+      setAdvisory(nextAdvisory);
+      setActionKey(null);
     });
   }
 
   if (sections.length === 0) {
     return (
-      <div className="rounded-xl border border-ink/15 p-10 text-center">
-        <p className="label-mono mb-4 text-sm text-ink/60">No report generated yet</p>
-        <Button
-          pending={actionKey === "generate"}
-          pendingLabel="Generating…"
-          disabled={pending && actionKey !== "generate"}
-          onClick={generate}
+      <div>
+        <EmptyState
+          kind="first-use"
+          title="No report generated yet"
+          action={{
+            onClick: generate,
+            label: "Generate report",
+            pending: actionKey === "generate",
+            pendingLabel: "Generating…",
+            disabled: pending && actionKey !== "generate",
+          }}
         >
-          Generate report
-        </Button>
+          Generate sections from the completed run&apos;s metrics and evidence.
+        </EmptyState>
         {error && <InlineStatus tone="danger" className="mt-3">{error}</InlineStatus>}
       </div>
     );
@@ -177,10 +210,34 @@ export function ReportClient({
           {baselineProvenance && <BaselineProvenance provenance={baselineProvenance} />}
         </div>
       )}
-      {initialIsStale && (
-        <InlineStatus tone="danger" className="mb-4">
-          Report sections predate the latest computed metrics. Regenerate affected sections before
-          exporting final client deliverables.
+      {(initialIsStale || (advisory && (advisory.reportStale || advisory.findingsCount > 0 || advisory.unreviewedMisinfoCount > 0))) && (
+        <InlineStatus
+          tone={initialIsStale || advisory?.reportStale ? "danger" : "warning"}
+          className="mb-4 text-ink/80"
+        >
+          <span className="label-mono text-xs font-medium text-ink/80">
+            Before export (advisory)
+          </span>
+          {(initialIsStale || advisory?.reportStale) && (
+            <span className="mt-1 block text-sm text-ink/80">
+              Report sections may predate the latest metrics — regenerate before final deliverables.
+            </span>
+          )}
+          {kind === "audit" && advisory && advisory.unreviewedMisinfoCount > 0 && (
+            <span className="mt-1 block text-sm text-ink/80">
+              {advisory.unreviewedMisinfoCount} misinformation claim
+              {advisory.unreviewedMisinfoCount === 1 ? "" : "s"} still unreviewed.
+            </span>
+          )}
+          {kind === "audit" && advisory && advisory.findingsCount > 0 && (
+            <span className="mt-1 block text-sm text-ink/80">
+              {advisory.findingsCount} finding{advisory.findingsCount === 1 ? "" : "s"} on the Evidence
+              dashboard — review before client delivery.
+            </span>
+          )}
+          <span className="mt-1 block text-xs text-ink/70">
+            Export stays available; this checklist is not a gate.
+          </span>
         </InlineStatus>
       )}
 

@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { db, pool } from "@/db/client";
 import { getReportSections, saveEdit } from "@/db/repositories/report";
 import { auditRuns, projects } from "@/db/schema";
-import { computeFindings, editSection, generateReport, regenerateOneSection } from "./service";
+import { computeFindings } from "@/modules/analysis/findings";
+import { editSection, generateReport, regenerateOneSection } from "./service";
 
 // M7 acceptance (DEVELOPMENT_GUIDELINES.md F manual checklist row):
 // "Report: edit section A, regenerate section B, A intact." Automated

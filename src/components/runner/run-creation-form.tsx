@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, InlineStatus, Input, Select, Stamp } from "@/components/ui";
+import { AppConfirmDialog } from "@/components/ui/dialog";
 import {
   drawFloorMet,
   drawsPerVariant,
@@ -20,6 +21,17 @@ import {
   type SecondaryRequirement,
 } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
+
+type LiveConfirmSnapshot = {
+  runMode: RunMode;
+  providers: ProviderId[];
+  modes: GenerationMode[];
+  repetitions: number;
+  costCapUsd: number;
+  plannedCalls: number | null;
+  projectedCostUsd: number | null;
+  projectionUnavailable: boolean;
+};
 
 interface ProviderOption {
   id: ProviderId;
@@ -89,6 +101,7 @@ export function RunCreationForm({
   const [extractionInvalidRate, setExtractionInvalidRate] = useState(0.15);
   const [projectionFailed, setProjectionFailed] = useState(false);
   const [projecting, setProjecting] = useState(false);
+  const [liveConfirm, setLiveConfirm] = useState<LiveConfirmSnapshot | null>(null);
   const [projection, setProjection] = useState<{
     plannedCalls: number;
     projectedCostUsd: number;
@@ -200,22 +213,6 @@ export function RunCreationForm({
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
-  function onSubmit() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        const result = await createRun(projectId, input);
-        if (!result.ok) {
-          setError(result.error);
-          return;
-        }
-        router.push(`/projects/${projectId}/runs/${result.runId}`);
-      } catch {
-        setError("The run could not be started. Your configuration is still here; try again.");
-      }
-    });
-  }
-
   const overCap = projection ? projection.projectedCostUsd > costCapUsd : false;
   // Prefer live projection; fall back to server-passed study footprint so
   // draw-floor copy stays visible when live providers aren't selected yet.
@@ -265,6 +262,67 @@ export function RunCreationForm({
           : projection
             ? "READY"
             : "UNAVAILABLE";
+
+  function submitRun() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await createRun(projectId, input);
+        if (!result.ok) {
+          setError(result.error);
+          setLiveConfirm(null);
+          return;
+        }
+        setLiveConfirm(null);
+        router.push(`/projects/${projectId}/runs/${result.runId}`);
+      } catch {
+        setError("The run could not be started. Your configuration is still here; try again.");
+        setLiveConfirm(null);
+      }
+    });
+  }
+
+  function onSubmit() {
+    if (!canSubmit) return;
+    if (runMode === "mock") {
+      submitRun();
+      return;
+    }
+    // Live confirm only when projection is READY, or UNAVAILABLE with disclosure.
+    // OVER CAP / BELOW FLOOR / LOADING keep Start disabled via canSubmit.
+    if (projectionState === "LOADING" || projectionState === "OVER CAP" || projectionState === "BELOW FLOOR" || projectionState === "MORE CONTEXT NEEDED") {
+      return;
+    }
+    setLiveConfirm({
+      runMode,
+      providers: [...selectedProviders],
+      modes: [...selectedModes],
+      repetitions: effectiveRepetitions,
+      costCapUsd,
+      plannedCalls: projection?.plannedCalls ?? null,
+      projectedCostUsd: projection?.projectedCostUsd ?? null,
+      projectionUnavailable: projectionFailed || !projection,
+    });
+  }
+
+  // Any configuration change while the live confirm is open invalidates the snapshot.
+  useEffect(() => {
+    if (!liveConfirm) return;
+    const changed =
+      liveConfirm.runMode !== runMode ||
+      liveConfirm.repetitions !== effectiveRepetitions ||
+      liveConfirm.costCapUsd !== costCapUsd ||
+      liveConfirm.providers.join(",") !== selectedProviders.join(",") ||
+      liveConfirm.modes.join(",") !== selectedModes.join(",");
+    if (changed) setLiveConfirm(null);
+  }, [
+    liveConfirm,
+    runMode,
+    effectiveRepetitions,
+    costCapUsd,
+    selectedProviders,
+    selectedModes,
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -707,7 +765,7 @@ export function RunCreationForm({
       )}
 
       <Button
-        disabled={!canSubmit}
+        disabled={!canSubmit || (isLive && projectionState === "LOADING")}
         pending={pending}
         pendingLabel="Starting…"
         onClick={onSubmit}
@@ -720,6 +778,64 @@ export function RunCreationForm({
               : "Start full run"
           : startRunLabel(runMode)}
       </Button>
+
+      <AppConfirmDialog
+        open={liveConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !pending) setLiveConfirm(null);
+        }}
+        title={
+          liveConfirm?.runMode === "live_audit"
+            ? "Start live audit?"
+            : "Start live validation?"
+        }
+        description={
+          liveConfirm?.projectionUnavailable
+            ? "Cost projection is unavailable right now. The server will still enforce the run cost cap and daily provider budgets before any live calls are made — no dollar figure is invented here."
+            : "This starts real provider spend. Confirm the projected footprint before continuing."
+        }
+        details={
+          liveConfirm ? (
+            <dl className="grid gap-1 font-mono text-xs text-ink/70">
+              <div className="flex justify-between gap-4">
+                <dt>Mode</dt>
+                <dd>{liveConfirm.runMode === "live_audit" ? "Live audit" : "Live validation"}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Providers</dt>
+                <dd>{liveConfirm.providers.join(", ")}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Modes</dt>
+                <dd>{liveConfirm.modes.join(", ")}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>k</dt>
+                <dd>{liveConfirm.repetitions}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Planned calls</dt>
+                <dd>{liveConfirm.plannedCalls ?? "Unavailable"}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Projected cost</dt>
+                <dd>
+                  {liveConfirm.projectedCostUsd != null
+                    ? `$${liveConfirm.projectedCostUsd.toFixed(2)}`
+                    : "Unavailable"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Cost cap</dt>
+                <dd>${liveConfirm.costCapUsd.toFixed(2)}</dd>
+              </div>
+            </dl>
+          ) : null
+        }
+        confirmLabel="Start live run"
+        pending={pending}
+        onConfirm={submitRun}
+      />
     </div>
   );
 }

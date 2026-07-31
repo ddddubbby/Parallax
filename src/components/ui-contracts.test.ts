@@ -29,6 +29,8 @@ describe("M43 shared UI contracts", () => {
     );
     expect(dialog).toContain("export function AppConfirmDialog");
     expect(dialog).toContain("<AppDialog");
+    expect(dialog).toContain("details?: ReactNode");
+    expect(dialog).toContain("max-h-48 overflow-y-auto");
     expect(loading).toContain("label = \"Preparing this view\"");
     expect(loading).not.toContain("loading-pulse");
     expect(loading).not.toContain("animate-pulse");
@@ -138,5 +140,53 @@ describe("M43 shared UI contracts", () => {
     expect(repo).not.toContain("estimateRunEta");
     expect(repo).not.toContain("seedIntervals");
     expect(repo).toContain("computeRunForecast");
+  });
+
+  it("M51: RunModeStamp maps modes; calibrating copy is exact; baseline picker loads pages", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const stamp = await fs.readFile(
+      path.join(process.cwd(), "src/components/run-mode-stamp.tsx"),
+      "utf8",
+    );
+    const progress = await fs.readFile(
+      path.join(process.cwd(), "src/components/runner/run-progress.tsx"),
+      "utf8",
+    );
+    const wizard = await fs.readFile(
+      path.join(process.cwd(), "src/components/resonance/study-wizard.tsx"),
+      "utf8",
+    );
+    expect(stamp).toContain('runMode === "mock"');
+    expect(stamp).toContain("MOCK");
+    expect(stamp).toContain("VALIDATION-ONLY");
+    expect(stamp).toContain("Completeness stamps (PARTIAL) stay separate");
+    expect(stamp).not.toContain("<Stamp tone=\"warn\">PARTIAL</Stamp>");
+    expect(progress).toContain("Learning this run&rsquo;s pace…");
+    expect(progress).toContain('data-testid="run-forecast-calibrating"');
+    expect(wizard).toContain("fetchBaselinePickerPageAction");
+    expect(wizard).toContain("Load more responses");
+    expect(wizard).not.toContain(".slice(0, 12)");
+  });
+
+  it("M51 Phase 3: EmptyState exports kinds and projects page uses it", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const emptyState = await fs.readFile(
+      path.join(process.cwd(), "src/components/empty-state.tsx"),
+      "utf8",
+    );
+    const projectsPage = await fs.readFile(
+      path.join(process.cwd(), "src/app/(global)/projects/page.tsx"),
+      "utf8",
+    );
+    expect(emptyState).toContain('"first-use"');
+    expect(emptyState).toContain('"filtered-zero"');
+    expect(emptyState).toContain('"unavailable"');
+    expect(emptyState).toContain('"completed-success"');
+    expect(emptyState).toContain("export type EmptyStateKind");
+    expect(projectsPage).toContain('from "@/components/empty-state"');
+    expect(projectsPage).toContain("<EmptyState");
+    expect(projectsPage).toContain('kind="first-use"');
   });
 });

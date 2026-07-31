@@ -33,6 +33,7 @@ test.describe("audit run forecast (M50/D-120)", () => {
 
     await expect(page.locator("[data-forecast-state='ready']")).toBeVisible();
     await expect(page.getByTestId("run-forecast")).toHaveText("Estimated 40–60 min remaining");
+    await expect(page.getByTestId("run-forecast-calibrating")).not.toBeVisible();
     await expect(page.getByText("15 / 25 calls")).toBeVisible();
     await expect(page.getByText(/WORKER OFFLINE/)).not.toBeVisible();
   });
@@ -42,6 +43,7 @@ test.describe("audit run forecast (M50/D-120)", () => {
 
     await expect(page.locator("[data-forecast-state='recalibrating']")).toBeVisible();
     await expect(page.getByTestId("run-forecast")).not.toBeVisible();
+    await expect(page.getByTestId("run-forecast-calibrating")).not.toBeVisible();
     await expect(page.getByText("12 / 26 calls")).toBeVisible();
   });
 
@@ -53,6 +55,9 @@ test.describe("audit run forecast (M50/D-120)", () => {
 
     await expect(page.locator("[data-forecast-state='calibrating']")).toBeVisible();
     await expect(page.getByTestId("run-forecast")).not.toBeVisible();
+    await expect(page.getByTestId("run-forecast-calibrating")).toHaveText(
+      "Learning this run’s pace…",
+    );
     await expect(page.getByText(/WORKER OFFLINE/)).not.toBeVisible();
     await expect(page.getByRole("progressbar", { name: "Run progress" })).toHaveAttribute(
       "aria-valuetext",
@@ -68,6 +73,7 @@ test.describe("audit run forecast (M50/D-120)", () => {
     await page.getByRole("button", { name: "Pause", exact: true }).click();
     await expect(page.locator("[data-forecast-state='paused']")).toBeVisible();
     await expect(page.getByTestId("run-forecast")).not.toBeVisible();
+    await expect(page.getByTestId("run-forecast-calibrating")).not.toBeVisible();
     await expect(page.getByText("Paused by operator. Click Resume to continue.")).toBeVisible();
     await expect(page.getByText("15 / 27 calls")).toBeVisible();
   });

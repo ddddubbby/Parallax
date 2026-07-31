@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { RunModeStamp } from "@/components/run-mode-stamp";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
@@ -178,12 +179,17 @@ export function RunProgress({
   const overallTotal =
     detail.stageProgress?.overall.total ?? detail.run.plannedCalls;
   const pct = stagePct(overallCompleted, overallTotal);
-  // M50/D-120: the ready state is the ONLY state that renders an estimate —
-  // calibrating/recalibrating/paused/offline/terminal render nothing here.
+  // M50/D-120: ready is the ONLY state that renders an estimate range.
+  // Active online calibrating shows a non-estimate status line (D-121).
   const forecastLabel =
     detail.forecast?.state === "ready"
       ? formatRunForecastRange(detail.forecast.range)
       : null;
+  const showCalibratingPace =
+    detail.forecast?.state === "calibrating" &&
+    !TERMINAL_STATES.has(detail.run.state) &&
+    detail.run.state !== "paused" &&
+    !detail.workerOffline;
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
   const isResonance = detail.run.matrixKind === "resonance";
   // A bare "paused" stamp with no reason is an anxiety generator; the
@@ -196,6 +202,9 @@ export function RunProgress({
       ? `/projects/${projectId}/resonance/${detail.run.resonanceStudyId}?view=results`
       : `/projects/${projectId}/resonance`
     : `/projects/${projectId}/dashboard`;
+  const configureHref = `/projects/${projectId}/runs/new`;
+  const eventsHref = `/projects/${projectId}/runs/${runId}?view=events`;
+  const extractionHref = `/projects/${projectId}/runs/${runId}?view=extraction`;
 
   if (view === "events") {
     return (
@@ -234,9 +243,8 @@ export function RunProgress({
       </p>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="label-mono text-lg font-semibold">Run</h1>
-        {detail.run.runMode === "mock" && <Stamp tone="accent">MOCK</Stamp>}
+        <RunModeStamp runMode={detail.run.runMode} />
         {isResonance && <SimulatedBadge />}
-        {detail.run.runMode === "live_validation" && <Stamp tone="warn">VALIDATION-ONLY</Stamp>}
         <Stamp
           tone={
             detail.run.state === "completed"
@@ -258,6 +266,30 @@ export function RunProgress({
           >
             {isResonance ? "Study results →" : "Evidence dashboard →"}
           </Link>
+        )}
+        {(detail.run.state === "failed" || detail.run.state === "cancelled") && (
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Link
+              href={configureHref}
+              className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full bg-accent px-4 py-2 text-xs text-ink transition-micro hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Configure another run →
+            </Link>
+            <Link
+              href={eventsHref}
+              className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full border border-ink/20 px-4 py-2 text-xs text-ink/80 transition-micro hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              View events →
+            </Link>
+            {detail.failureCounts.deadLettered > 0 && (
+              <Link
+                href={extractionHref}
+                className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full border border-ink/20 px-4 py-2 text-xs text-ink/80 transition-micro hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Review dead letters →
+              </Link>
+            )}
+          </div>
         )}
       </div>
 
@@ -322,6 +354,11 @@ export function RunProgress({
         {forecastLabel && (
           <p className="mt-2 font-mono text-xs text-ink/60" data-testid="run-forecast">
             {forecastLabel}
+          </p>
+        )}
+        {showCalibratingPace && (
+          <p className="mt-2 font-mono text-xs text-ink/60" data-testid="run-forecast-calibrating">
+            Learning this run&rsquo;s pace…
           </p>
         )}
         {detail.stageProgress && (

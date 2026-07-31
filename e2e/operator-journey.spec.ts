@@ -411,12 +411,14 @@ test.describe("operator journey smoke", () => {
     // estimate line (the ready-range copy is covered by the forecast harness).
     await expect(page.locator("[data-forecast-state='offline']")).toBeVisible();
     await expect(page.getByTestId("run-forecast")).not.toBeVisible();
+    await expect(page.getByTestId("run-forecast-calibrating")).not.toBeVisible();
 
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     const cancelDialog = page.getByRole("dialog", { name: "Cancel active run?" });
     await expect(cancelDialog).toContainText("Completed responses and incurred cost remain");
     await cancelDialog.getByRole("button", { name: "Cancel run", exact: true }).click();
     await expect(page.getByText("cancelled", { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId("run-forecast-calibrating")).not.toBeVisible();
     await expect(page.getByRole("status")).toContainText("Run cancelled.");
   });
 

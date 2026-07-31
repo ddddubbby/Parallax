@@ -18,8 +18,10 @@ import {
 import { revalidatePath } from "next/cache";
 import { addBrandAlias } from "@/db/repositories/setup";
 import { reResolveRunBrands } from "@/modules/extraction/re-resolve";
+import { listFindings } from "@/db/repositories/findings";
 import { areMetricsStale, listMetrics, recomputeMetrics } from "@/db/repositories/metrics";
-import { getRunFailureCounts } from "@/db/repositories/runner";
+import { getRunFailureCounts, getRunMatrixKind } from "@/db/repositories/runner";
+import { computeFindings } from "@/modules/analysis/findings";
 
 const CLAIM_VERDICTS = ["supported", "contradicted", "outdated", "unsupported", "ambiguous", "not_checked"] as const;
 const CLAIM_SEVERITIES = ["none", "low", "medium", "high"] as const;
@@ -72,16 +74,35 @@ export async function fetchDashboardData(projectId: string, runId: string) {
     await recomputeMetrics(runId);
   }
 
-  const [brandRows, metricRows, misinformation, citedSources, failureCounts, personasMarkets] = await Promise.all([
-    getProjectBrandNames(run.projectId),
-    listMetrics(runId),
-    getMisinformationRegister(runId),
-    getCitedSources(runId),
-    getRunFailureCounts(runId),
-    getProjectPersonasAndMarkets(run.projectId),
-  ]);
+  // D-121: refresh audit findings through the same canonical function the
+  // report uses — after metric self-heal — so claim-review changes surface
+  // on the next dashboard fetch. Never for resonance runs (C-12).
+  const kind = await getRunMatrixKind(runId);
+  if (kind?.kind !== "resonance") {
+    await computeFindings(runId);
+  }
 
-  return { run, brands: brandRows, metrics: metricRows, misinformation, citedSources, failureCounts, personasMarkets };
+  const [brandRows, metricRows, misinformation, citedSources, failureCounts, personasMarkets, findings] =
+    await Promise.all([
+      getProjectBrandNames(run.projectId),
+      listMetrics(runId),
+      getMisinformationRegister(runId),
+      getCitedSources(runId),
+      getRunFailureCounts(runId),
+      getProjectPersonasAndMarkets(run.projectId),
+      kind?.kind === "resonance" ? Promise.resolve([]) : listFindings(runId),
+    ]);
+
+  return {
+    run,
+    brands: brandRows,
+    metrics: metricRows,
+    misinformation,
+    citedSources,
+    failureCounts,
+    personasMarkets,
+    findings,
+  };
 }
 
 export async function fetchRunOptions(projectId: string) {

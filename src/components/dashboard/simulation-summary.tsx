@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RunModeStamp } from "@/components/run-mode-stamp";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
 import type { SimulationStudySummary } from "@/core/workspace";
@@ -58,9 +59,7 @@ export function SimulationSummarySection({
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <h3 className="label-mono text-sm font-semibold text-ink/85">{summary.studyName}</h3>
                 <SimulatedBadge />
-                {summary.runMode && (
-                  <Stamp tone={summary.runMode === "mock" ? "accent" : "ink"}>{summary.runMode}</Stamp>
-                )}
+                <RunModeStamp runMode={summary.runMode} />
                 {summary.runId && (
                   <span className="font-mono text-[11px] text-ink/65">
                     run {summary.runId.slice(0, 8)}
@@ -92,8 +91,8 @@ export function SimulationSummarySection({
                           <p className="mt-1 font-mono text-base tabular-nums text-ink">
                             Response lift {formatDelta(engine.topDeltaPiMean)}
                             {engine.directionalOnly && (
-                              <span className="ml-2 label-mono text-[10px] text-ink/65">
-                                Early read
+                              <span className="ml-2 inline-block align-middle">
+                                <Stamp tone="warn">Early read</Stamp>
                               </span>
                             )}
                           </p>

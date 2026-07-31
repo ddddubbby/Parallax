@@ -12,7 +12,8 @@ import { recomputeMetrics } from "../src/db/repositories/metrics";
 import { approveVersion, createDraftVersion, getMatrixInputs } from "../src/db/repositories/matrix";
 import { createRun, getRun } from "../src/db/repositories/runner";
 import { auditRuns, matrixVersions, projects } from "../src/db/schema";
-import { computeFindings, generateReport } from "../src/modules/report/service";
+import { computeFindings } from "../src/modules/analysis/findings";
+import { generateReport } from "../src/modules/report/service";
 
 const SLUG = "ledgerfox-demo";
 

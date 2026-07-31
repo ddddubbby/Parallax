@@ -1,7 +1,8 @@
+import { isSufficientN } from "@/core/metrics";
 import { resolveGlossary } from "@/core/semantic";
 
-// UI-only formatting for the dashboard. Not domain logic (that's
-// src/core/metrics.ts) — just how a MetricResult renders as text.
+// UI-only formatting for metric surfaces (dashboard + run metrics preview).
+// Domain math lives in src/core/metrics.ts — this file only shapes text.
 
 export interface MetricRow {
   id: string;
@@ -40,6 +41,21 @@ export function formatMetricValue(m: MetricRow): string {
 export function formatCI(m: MetricRow): string | null {
   if (m.ciLow === null || m.ciHigh === null) return null;
   return `[${(m.ciLow * 100).toFixed(0)}–${(m.ciHigh * 100).toFixed(0)}%]`;
+}
+
+/** DB-3/SM-6: overall aggregate claims share one epistemic gate across surfaces. */
+export type GatedMetricDisplay =
+  | { kind: "insufficient"; n: number }
+  | { kind: "value"; n: number; value: string; ci: string | null };
+
+export function formatGatedMetricDisplay(m: Pick<MetricRow, "n" | "metricKey" | "value" | "ciLow" | "ciHigh">): GatedMetricDisplay {
+  if (!isSufficientN(m.n)) return { kind: "insufficient", n: m.n };
+  return {
+    kind: "value",
+    n: m.n,
+    value: formatMetricValue(m as MetricRow),
+    ci: formatCI(m as MetricRow),
+  };
 }
 
 export function metricLabel(metricKey: string): string {

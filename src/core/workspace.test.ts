@@ -11,15 +11,22 @@ const base: PipelineState = {
 };
 
 describe("workspaceHubSections (M31 / D-087)", () => {
-  it("returns four numbered dossier sections", () => {
+  it("returns five numbered dossier sections including Message Lift", () => {
     const sections = workspaceHubSections(base, {
       auditRuns: 2,
       resonanceRuns: 1,
       studies: 1,
       approvedStudies: 1,
     });
-    expect(sections.map((s) => s.number)).toEqual(["01", "02", "03", "04"]);
-    expect(sections.map((s) => s.href)).toEqual(["setup", "runs", "dashboard", "report"]);
+    expect(sections.map((s) => s.number)).toEqual(["01", "02", "03", "04", "05"]);
+    expect(sections.map((s) => s.href)).toEqual([
+      "setup",
+      "runs",
+      "dashboard",
+      "resonance",
+      "report",
+    ]);
+    expect(sections[3]?.label).toBe("Message Lift");
   });
 
   it("reflects resonance pipeline state in Setup and Dashboard status", () => {

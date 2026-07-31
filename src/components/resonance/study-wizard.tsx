@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { FramingBatchProgress } from "@/components/resonance/framing-batch-progress";
 import {
   PromptDisclosurePanel,
@@ -22,6 +23,7 @@ import {
   approveStudyAction,
   deleteStimulusAction,
   excludeRecommendationScenarioAction,
+  fetchBaselinePickerPageAction,
   fetchFramingBatchProgressAction,
   updateStimulusAction,
   updateStudyAction,
@@ -94,11 +96,14 @@ export function StudyWizard({
   stimuli,
   themes,
   responseOptions,
+  selectedResponseOptions = [],
   themesSource,
   initialFramingBatch,
   testType,
   recommendationScenarios,
   promptDisclosure,
+  baselineNextCursor = null,
+  baselineTotalCount = 0,
 }: {
   projectId: string;
   study: { id: string; name: string };
@@ -106,11 +111,14 @@ export function StudyWizard({
   stimuli: StimulusRow[];
   themes: BaselineTheme[];
   responseOptions: ResponseOption[];
+  selectedResponseOptions?: ResponseOption[];
   themesSource: "framing_observations" | "attributes";
   initialFramingBatch?: FramingObservationBatchProgress | null;
   testType: "buyer_response" | "ai_recommendation";
   recommendationScenarios: Array<{ key: string; label: string; promptText: string }>;
   promptDisclosure: PromptDisclosureData;
+  baselineNextCursor?: string | null;
+  baselineTotalCount?: number;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -124,7 +132,7 @@ export function StudyWizard({
   const [confirmation, setConfirmation] = useState<
     { kind: "approve" } | { kind: "delete"; stimulus: StimulusRow } | null
   >(null);
-  const { setDirtySource, clearDirty } = useUnsavedEdit();
+  const { dirty, setDirtySource, clearDirty } = useUnsavedEdit();
   const wizardRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -145,7 +153,7 @@ export function StudyWizard({
       setError(res.error);
       return false;
     }
-    clearDirty();
+    setDirtySource("study", false);
     return true;
   }
 
@@ -301,6 +309,9 @@ export function StudyWizard({
   }
   if (!promptDisclosure.parityVerified) {
     readiness.push("Prompt parity must pass: only the message may change (step 4).");
+  }
+  if (dirty) {
+    readiness.push("Save the Current or New message before approval (step 3 — Save message).");
   }
 
   return (
@@ -493,10 +504,16 @@ export function StudyWizard({
             {stimuli.map((s, index) => (
               <FramingCard
                 key={s.id}
+                projectId={projectId}
                 stimulus={s}
                 themes={themes}
                 responseOptions={responseOptions}
+                selectedResponseOption={selectedResponseOptions.find(
+                  (option) => option.id === s.evidenceResponseIdsJson?.[0],
+                ) ?? null}
                 themesSource={themesSource}
+                initialNextCursor={baselineNextCursor}
+                totalCount={baselineTotalCount > 0 ? baselineTotalCount : responseOptions.length}
                 onRefineThemes={refineThemes}
                 refining={pendingKey === "refine-themes"}
                 framingBatchActive={Boolean(framingBatch)}
@@ -626,10 +643,14 @@ export function StudyWizard({
 }
 
 function FramingCard({
+  projectId,
   stimulus,
-  themes,
-  responseOptions,
-  themesSource,
+  themes: initialThemes,
+  responseOptions: initialResponses,
+  selectedResponseOption: initialSelectedResponse,
+  themesSource: initialThemesSource,
+  initialNextCursor,
+  totalCount: initialTotalCount,
   onRefineThemes,
   refining,
   framingBatchActive,
@@ -640,10 +661,14 @@ function FramingCard({
   onDelete,
   messageRole,
 }: {
+  projectId: string;
   stimulus: StimulusRow;
   themes: BaselineTheme[];
   responseOptions: ResponseOption[];
+  selectedResponseOption: ResponseOption | null;
   themesSource: "framing_observations" | "attributes";
+  initialNextCursor: string | null;
+  totalCount: number;
   onRefineThemes: () => void;
   refining: boolean;
   /** True while a study-level framing batch is active (hides per-card refine CTA). */
@@ -661,20 +686,79 @@ function FramingCard({
   const [selectedResponseId, setSelectedResponseId] = useState(
     stimulus.evidenceResponseIdsJson?.[0] ?? "",
   );
+  const [selectedOption, setSelectedOption] = useState<ResponseOption | null>(
+    () =>
+      initialResponses.find((r) => r.id === stimulus.evidenceResponseIdsJson?.[0]) ??
+      initialSelectedResponse,
+  );
   const [themeKey, setThemeKey] = useState("");
+  const [themes, setThemes] = useState(initialThemes);
+  const [themesSource, setThemesSource] = useState(initialThemesSource);
+  const [visibleResponses, setVisibleResponses] = useState(() =>
+    initialSelectedResponse &&
+    !initialResponses.some((response) => response.id === initialSelectedResponse.id)
+      ? [initialSelectedResponse, ...initialResponses]
+      : initialResponses,
+  );
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [pageLoading, setPageLoading] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [fullResponseId, setFullResponseId] = useState<string | null>(null);
 
   const needsEvidence = kind === "measured_ai" && selectedResponseId === "";
   const activeTheme = themes.find((t) => t.key === themeKey) ?? null;
-  const visibleResponses = activeTheme
-    ? responseOptions.filter((r) => activeTheme.responseIds.includes(r.id))
-    : responseOptions;
-  const fullResponse = fullResponseId
-    ? responseOptions.find((r) => r.id === fullResponseId) ?? null
-    : null;
+  const fullResponse =
+    (fullResponseId
+      ? visibleResponses.find((r) => r.id === fullResponseId) ??
+        (selectedOption?.id === fullResponseId ? selectedOption : null)
+      : null);
+
+  async function loadPickerPage(opts: {
+    cursor?: string | null;
+    themeKey?: string;
+    append?: boolean;
+  }) {
+    setPageLoading(true);
+    setPageError(null);
+    try {
+      const result = await fetchBaselinePickerPageAction(projectId, {
+        cursor: opts.cursor ?? null,
+        themeKey: opts.themeKey || null,
+      });
+      if (!result.ok) {
+        setPageError(result.error);
+        return;
+      }
+      setThemes(result.themes);
+      setThemesSource(result.themesSource);
+      setTotalCount(result.totalCount);
+      setNextCursor(result.nextCursor);
+      setVisibleResponses((prev) => {
+        if (!opts.append) {
+          return initialSelectedResponse &&
+            !result.items.some((response) => response.id === initialSelectedResponse.id)
+            ? [initialSelectedResponse, ...result.items]
+            : result.items;
+        }
+        const seen = new Set(prev.map((response) => response.id));
+        return [...prev, ...result.items.filter((response) => !seen.has(response.id))];
+      });
+    } catch {
+      setPageError("Could not load more responses.");
+    } finally {
+      setPageLoading(false);
+    }
+  }
+
+  function chooseTheme(nextKey: string) {
+    setThemeKey(nextKey);
+    void loadPickerPage({ themeKey: nextKey, append: false });
+  }
 
   function chooseAsBaseline(row: ResponseOption) {
     setSelectedResponseId(row.id);
+    setSelectedOption(row);
     setBody(row.verbatim);
     onDirty(true);
     setFullResponseId(null);
@@ -697,7 +781,7 @@ function FramingCard({
           <span className="label-mono text-xs text-ink/60">
             Pick one verbatim stored response
           </span>
-          {responseOptions.length === 0 ? (
+          {totalCount === 0 && initialResponses.length === 0 ? (
             <p className="mt-2 rounded-md border border-warn px-3 py-2 font-mono text-xs text-warn">
               No stored responses yet. Complete an Evidence audit first, then return here.
             </p>
@@ -707,18 +791,20 @@ function FramingCard({
                 <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Message themes">
                   <button
                     type="button"
-                    onClick={() => setThemeKey("")}
+                    onClick={() => chooseTheme("")}
                     aria-pressed={themeKey === ""}
+                    disabled={pageLoading}
                     className={`label-mono rounded-md border px-2 py-1.5 text-xs transition-micro ${themeKey === "" ? "border-accent bg-accent text-ink" : "border-ink/20 text-ink/65 hover:border-ink/40"}`}
                   >
-                    All responses · {responseOptions.length}
+                    All responses · {totalCount}
                   </button>
                   {themes.map((t) => (
                     <button
                       key={t.key}
                       type="button"
-                      onClick={() => setThemeKey(t.key)}
+                      onClick={() => chooseTheme(t.key)}
                       aria-pressed={themeKey === t.key}
+                      disabled={pageLoading}
                       className={`label-mono rounded-md border px-2 py-1.5 text-xs transition-micro ${themeKey === t.key ? "border-accent bg-accent text-ink" : "border-ink/20 text-ink/65 hover:border-ink/40"}`}
                     >
                       {t.label} · {t.matching}/{t.total}
@@ -726,45 +812,86 @@ function FramingCard({
                   ))}
                 </div>
               )}
-              <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto pr-1" role="radiogroup" aria-label="Stored responses">
-                {visibleResponses.slice(0, 12).map((row) => {
-                  const preview = row.observationQuote?.trim() || row.excerpt;
-                  return (
-                    <div
-                      key={row.id}
-                      className={`rounded-md border p-2 font-mono text-xs transition-micro ${selectedResponseId === row.id ? "border-accent bg-paper-2/50 text-ink/85" : "border-ink/10 text-ink/65"}`}
-                    >
-                      <label className="flex cursor-pointer gap-2">
-                        <input
-                          type="radio"
-                          name={`baseline-${stimulus.id}`}
-                          checked={selectedResponseId === row.id}
-                          onChange={() => chooseAsBaseline(row)}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-ink/45">
-                            {row.providerId}
-                            {row.generationMode ? ` · ${row.generationMode}` : ""}
-                            {" · “"}
-                            {row.promptText.slice(0, 64)}
-                            {row.promptText.length > 64 ? "…" : ""}”
+              {selectedOption && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-accent/40 bg-paper-2/40 px-3 py-2">
+                  <Stamp tone="accent">Selected</Stamp>
+                  <span className="min-w-0 flex-1 font-mono text-xs text-ink/75">
+                    {selectedOption.providerId}
+                    {" · "}
+                    {(selectedOption.observationQuote?.trim() || selectedOption.excerpt).slice(0, 120)}
+                  </span>
+                </div>
+              )}
+              {themeKey && visibleResponses.length === 0 && !pageLoading ? (
+                <EmptyState
+                  kind="filtered-zero"
+                  title="No responses in this theme"
+                  action={{ onClick: () => chooseTheme(""), label: "Clear theme" }}
+                  className="mt-2 py-6"
+                >
+                  Try another theme or show all stored responses.
+                </EmptyState>
+              ) : (
+                <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto pr-1" role="radiogroup" aria-label="Stored responses">
+                  {visibleResponses.map((row) => {
+                    const preview = row.observationQuote?.trim() || row.excerpt;
+                    return (
+                      <div
+                        key={row.id}
+                        className={`rounded-md border p-2 font-mono text-xs transition-micro ${selectedResponseId === row.id ? "border-accent bg-paper-2/50 text-ink/85" : "border-ink/10 text-ink/65"}`}
+                      >
+                        <label className="flex cursor-pointer gap-2">
+                          <input
+                            type="radio"
+                            name={`baseline-${stimulus.id}`}
+                            checked={selectedResponseId === row.id}
+                            onChange={() => chooseAsBaseline(row)}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-ink/45">
+                              {row.providerId}
+                              {row.generationMode ? ` · ${row.generationMode}` : ""}
+                              {" · “"}
+                              {row.promptText.slice(0, 64)}
+                              {row.promptText.length > 64 ? "…" : ""}”
+                            </span>
+                            {preview}
                           </span>
-                          {preview}
-                        </span>
-                      </label>
-                      <div className="mt-2 pl-6">
-                        <button
-                          type="button"
-                          className="label-mono rounded-sm text-[11px] text-ink/55 underline underline-offset-4 transition-micro hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                          onClick={() => setFullResponseId(row.id)}
-                        >
-                          View full response
-                        </button>
+                        </label>
+                        <div className="mt-2 pl-6">
+                          <button
+                            type="button"
+                            className="label-mono rounded-sm text-[11px] text-ink/55 underline underline-offset-4 transition-micro hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            onClick={() => setFullResponseId(row.id)}
+                          >
+                            View full response
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
+              {nextCursor && (
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    pending={pageLoading}
+                    pendingLabel="Loading…"
+                    onClick={() =>
+                      void loadPickerPage({ cursor: nextCursor, themeKey, append: true })
+                    }
+                  >
+                    Load more responses
+                  </Button>
+                </div>
+              )}
+              {pageError && (
+                <InlineStatus tone="danger" className="mt-2">
+                  {pageError}
+                </InlineStatus>
+              )}
               <AppDialog
                 open={fullResponse !== null}
                 onOpenChange={(open) => {

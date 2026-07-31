@@ -31,6 +31,7 @@ import {
   updateResonanceStudy,
   getMessageLiftPromptDisclosure,
   getResonanceStudy,
+  listBaselinePickerPage,
 } from "@/db/repositories/resonance";
 
 function revalidateStudyPaths(projectId: string, studyId?: string) {
@@ -48,6 +49,35 @@ type ActionResult =
  * active batch already exists. Explicit action — a page load never triggers
  * paid work.
  */
+/** M51: cursor page for the Message Lift baseline picker (F13). */
+export async function fetchBaselinePickerPageAction(
+  projectId: string,
+  opts: { cursor?: string | null; themeKey?: string | null; pageSize?: number } = {},
+) {
+  if (!isUuid(projectId)) {
+    return { ok: false as const, error: "Invalid project id" };
+  }
+  const page = await listBaselinePickerPage(projectId, opts);
+  return {
+    ok: true as const,
+    items: page.items.map((row) => ({
+      id: row.id,
+      excerpt: row.rawText.length > 220 ? `${row.rawText.slice(0, 220)}…` : row.rawText,
+      verbatim: row.rawText,
+      providerId: row.providerId,
+      promptText: row.promptText,
+      generationMode: row.generationMode,
+      modelVersion: row.modelVersion,
+      createdAt: row.createdAt.toISOString(),
+      observationQuote: row.observationQuote,
+    })),
+    nextCursor: page.nextCursor,
+    themes: page.themes,
+    themesSource: page.themesSource,
+    totalCount: page.totalCount,
+  };
+}
+
 export async function buildFramingThemesAction(
   projectId: string,
   studyId?: string,

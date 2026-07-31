@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button, InlineStatus, Select, Stamp, Textarea } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import { useUnsavedEdit } from "@/components/unsaved-edit";
@@ -22,6 +23,7 @@ import {
   removeCell,
   saveCellText,
 } from "@/modules/matrix/actions";
+import { representativePromptSamples } from "@/components/matrix/prompt-samples";
 
 // EL-2: audit-grade repetitions (C-1). The sample-budget projection assumes
 // k=5 and one engine-mode — the floor an audit run uses — so the operator can
@@ -112,6 +114,10 @@ export function MatrixBoard({
     focus?.cells.filter((c) => c.brandTermViolations.length > 0).length ?? 0;
   const editingCell = focus?.cells.find((cell) => cell.id === editingId) ?? null;
   const editDirty = Boolean(editingCell && editText !== editingCell.resolvedText);
+  const approveSamples = useMemo(
+    () => (focus ? representativePromptSamples(focus.cells) : []),
+    [focus],
+  );
 
   useEffect(() => {
     setDirty(editDirty);
@@ -131,7 +137,11 @@ export function MatrixBoard({
         if (!result.ok) {
           setActionState({ key, status: "danger", message: result.error ?? "Action failed" });
         } else {
-          setActionState({ key, status: "success", message: "Saved." });
+          setActionState({
+            key,
+            status: "success",
+            message: key === "approve" ? "Approved — configure a run." : "Saved.",
+          });
           onOk?.();
         }
       } catch {
@@ -595,10 +605,40 @@ export function MatrixBoard({
         }
         description={
           confirmation?.kind === "approve"
-            ? "Approval freezes this version as immutable evidence (C-4). Confirm the warnings, capacity, and prompt wording before continuing."
+            ? `Approval freezes all ${focus?.cells.length ?? 0} cells as immutable evidence (C-4). This sample is a last-chance summary — review the full prompt set before continuing.`
             : confirmation?.kind === "remove"
               ? `Remove “${confirmation.cell.variantKey} · ${confirmation.cell.personaLabel} · ${confirmation.cell.marketLabel}” from this draft?`
               : "The edited prompt text has not been saved. Switching versions will discard it."
+        }
+        details={
+          confirmation?.kind === "approve" && focus ? (
+            <div className="flex flex-col gap-3">
+              <p className="label-mono text-[11px] text-ink/55">
+                {focus.cells.length} cells · showing {approveSamples.length} representative prompts
+              </p>
+              <ul className="flex flex-col gap-2">
+                {approveSamples.map((cell) => (
+                  <li key={cell.id} className="border-b border-ink/10 pb-2 last:border-0 last:pb-0">
+                    <p className="label-mono text-[10px] uppercase tracking-wide text-ink/45">
+                      {cell.intent} · {cell.personaLabel} · {cell.marketLabel}
+                    </p>
+                    <p className="mt-1 font-sans text-xs leading-relaxed text-ink/75">
+                      {cell.resolvedText.length > 120
+                        ? `${cell.resolvedText.slice(0, 120)}…`
+                        : cell.resolvedText}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={`/projects/${projectId}/matrix?v=${focus.id}&view=presence`}
+                className="label-mono text-xs text-accent-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                onClick={() => setConfirmation(null)}
+              >
+                Review prompt sections →
+              </Link>
+            </div>
+          ) : undefined
         }
         confirmLabel={
           confirmation?.kind === "approve"

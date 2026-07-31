@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SimulatedBadge } from "@/components/simulated-badge";
+import { RunModeStamp } from "@/components/run-mode-stamp";
 import { BaselineProvenance } from "@/components/resonance/baseline-provenance";
 import { Stamp } from "@/components/ui";
 import type { StudyResultSection } from "@/core/views";
@@ -236,7 +237,7 @@ export function StudyResultsPanel({
         <h3 className="label-mono text-xs font-semibold text-ink/70">Buyer response results</h3>
         <SimulatedBadge />
         {results.study.genericUnconditioned && <Stamp tone="warn">GENERIC</Stamp>}
-        <Stamp tone={results.run.runMode === "mock" ? "accent" : "ink"}>{results.run.runMode}</Stamp>
+        <RunModeStamp runMode={results.run.runMode} />
         <span className="font-mono text-xs text-ink/65">
           run {results.run.id.slice(0, 8)} · {results.study.panelCount * results.run.repetitions} responses per message
         </span>

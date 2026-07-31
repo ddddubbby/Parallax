@@ -28,6 +28,13 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-122 / 2026-07-31 / M51 operator UI honesty and remediation
+
+GOAL: Complete and harden the reviewed M51 UI/UX roadmap on top of M50.
+DONE: Six roadmap phases implemented with no migration in `ecec3e7`. Review hardening now uses pillar-first deterministic prompt samples; canonical findings orchestration in `src/modules/analysis/findings.ts` with executed dashboard/report freshness tests and C-12 checks; source-specific study dirty clearing; saved off-page baseline restoration backed by a project-scoped repository lookup; dead-letter ownership failures returned as `ActionResult` and client remediation guarded by independent pending state plus `finally`; live confirmation always shows known configuration; active run-mode call sites use `RunModeStamp`; forecast E2E assertions cover calibrating presence and ready/recalibrating/paused/offline/terminal absence. The main Playwright gate found the advisory checklist’s warn text below AA (4.34:1/4.02:1); explicit existing ink tokens fixed it and the focused axe test passed. Final gates: lint zero-warning; typecheck; docs:check (24 governed root docs); Vitest 900 passed / 12 skipped / 0 failed; production build; `test:e2e` 18/18; `test:e2e:forecast` 4/4.
+NEXT: Open the M51 PR after M50 merges, or retarget the branch after M50 lands.
+GOTCHAS: GitHub Desktop auto-stashed the M51 tree when switching to M50; restored `refs/stash` onto `m51-ui-ux-roadmap`. Unrelated fact-sheet/debug/site files and the separate Apple-skill deletion remain outside M51 scope.
+
 ## S-121 / 2026-07-31 / M50 live-run remaining-time forecast (D-120)
 
 DONE: Replaced the M46 point ETA (historical-seed + EWMA) with a live-run-only p10–p90 remaining-time forecast. Core module `src/core/run-forecast.ts` (calibration floor 10, rolling five-completion windows over latest 20, stale-pace recalibration at 3× slow cadence); `getRunDetail` returns `forecast` from current-run terminal pipeline timestamps only; run page renders ready copy exactly as `Estimated N–M min remaining` with `data-testid="run-forecast"`; dedicated Playwright forecast harness (`pnpm test:e2e:forecast`, port 3101, fixture heartbeat) covers ready/recalibrating/calibrating/paused while the main harness keeps WORKER OFFLINE. D-120 supersedes D-117 ETA portion; PRD §8.38. Gates: lint `--max-warnings 0`, typecheck, docs:check, Vitest 884 passed / 12 skipped, production build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.
