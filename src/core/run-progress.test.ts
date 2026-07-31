@@ -1,16 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildEtaIntervalSeries,
   completionTimestampsFromJobs,
   computeStageProgress,
-  estimateRunEta,
-  ewmaIntervalMs,
-  filterOutlierIntervals,
-  formatApproxRemaining,
-  intervalsFromTimestamps,
   isOverallPipelineComplete,
   isTerminalExtractionState,
-  medianOf,
   stageLabels,
   type JobPipelineRow,
 } from "./run-progress";
@@ -130,101 +123,10 @@ describe("run-progress stage counting (M46/D-117)", () => {
   });
 });
 
-describe("run-progress EWMA ETA (M46/D-117)", () => {
-  it("formats approximate remaining without second-by-second copy", () => {
-    expect(formatApproxRemaining(null)).toBeNull();
-    expect(formatApproxRemaining(480)).toBe("About 8 min remaining");
-  });
-
-  it("builds intervals from completion timestamps", () => {
-    const stamps = [
-      new Date("2026-07-19T10:00:00.000Z"),
-      new Date("2026-07-19T10:00:10.000Z"),
-      new Date("2026-07-19T10:00:25.000Z"),
-    ];
-    expect(intervalsFromTimestamps(stamps)).toEqual([10_000, 15_000]);
-  });
-
-  it("filters outliers above 3× rolling median", () => {
-    // median of [1000] = 1000 → 5000 > 3000 → drop; then median still 1000
-    expect(filterOutlierIntervals([1000, 5000, 1100])).toEqual([1000, 1100]);
-    expect(medianOf([1, 2, 3])).toBe(2);
-  });
-
-  it("computes EWMA with α=0.35", () => {
-    // v0=1000; v1=0.35*2000+0.65*1000 = 1350
-    expect(ewmaIntervalMs([1000, 2000])).toBe(1350);
-  });
-
-  it("seeds sparse current intervals from historical series", () => {
-    const series = buildEtaIntervalSeries([1000], [2000, 2100, 1900]);
-    expect(series.length).toBeGreaterThanOrEqual(2);
-    expect(series.at(-1)).toBe(1000);
-  });
-
-  it("suppresses ETA when paused, offline, terminal, or insufficient evidence", () => {
-    expect(
-      estimateRunEta({
-        remainingCount: 5,
-        currentIntervalsMs: [1000, 1100],
-        seedIntervalsMs: [],
-        runState: "paused",
-        workerOffline: false,
-      }).state,
-    ).toBe("suppressed_paused");
-    expect(
-      estimateRunEta({
-        remainingCount: 5,
-        currentIntervalsMs: [1000, 1100],
-        seedIntervalsMs: [],
-        runState: "running",
-        workerOffline: true,
-      }).state,
-    ).toBe("suppressed_offline");
-    expect(
-      estimateRunEta({
-        remainingCount: 3,
-        currentIntervalsMs: [10_000, 10_000],
-        seedIntervalsMs: [],
-        runState: "completed",
-        workerOffline: false,
-      }),
-    ).toEqual({ approxRemainingSeconds: null, state: "suppressed_terminal" });
-    expect(
-      estimateRunEta({
-        remainingCount: 5,
-        currentIntervalsMs: [1000],
-        seedIntervalsMs: [],
-        runState: "running",
-        workerOffline: false,
-      }).state,
-    ).toBe("insufficient_evidence");
-  });
-
-  it("estimates remaining from EWMA × remaining count", () => {
-    const eta = estimateRunEta({
-      remainingCount: 4,
-      currentIntervalsMs: [10_000, 10_000],
-      seedIntervalsMs: [],
-      runState: "running",
-      workerOffline: false,
-    });
-    expect(eta.state).toBe("ready");
-    expect(eta.approxRemainingSeconds).toBe(40);
-  });
-
-  it("uses historical seed when the current run is sparse", () => {
-    const eta = estimateRunEta({
-      remainingCount: 2,
-      currentIntervalsMs: [8_000],
-      seedIntervalsMs: [10_000, 10_000],
-      runState: "running",
-      workerOffline: false,
-    });
-    expect(eta.state).toBe("ready");
-    expect(eta.approxRemainingSeconds).toBeGreaterThan(0);
-  });
-
+// The terminal pipeline completion definition is the M50/D-120 forecast basis:
+// generation success alone never counts — the latest extraction/scoring row
+// must be terminal, and its timestamp (not the job's) is the completion time.
+describe("terminal pipeline completion timestamps (M46/D-117, M50/D-120)", () => {
   it("derives completion timestamps from pipeline rows", () => {
     const stamps = completionTimestampsFromJobs(
       [
@@ -241,9 +143,18 @@ describe("run-progress EWMA ETA (M46/D-117)", () => {
           jobState: "cancelled",
           jobUpdatedAt: new Date("2026-07-19T10:03:00.000Z"),
         }),
+        job({
+          jobId: "3",
+          jobState: "succeeded",
+          hasResponse: true,
+          latestExtractionState: "pending",
+          latestExtractionUpdatedAt: new Date("2026-07-19T10:04:00.000Z"),
+          jobUpdatedAt: new Date("2026-07-19T10:03:30.000Z"),
+        }),
       ],
       { skipsExtraction: false },
     );
+    // Job 3 is generation-success without terminal extraction — excluded.
     expect(stamps).toHaveLength(2);
     expect(stamps[0]!.toISOString()).toBe("2026-07-19T10:02:00.000Z");
   });

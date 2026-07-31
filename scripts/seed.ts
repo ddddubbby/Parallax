@@ -735,11 +735,146 @@ async function seedM43UiFixture(): Promise<{ created: boolean; runId: string | n
   return { created: true, runId: run.id, metrics: metricCount };
 }
 
+/**
+ * M50 browser-only fixture (D-120): three running MOCK runs with staged
+ * terminal pipeline completions plus a future-dated worker heartbeat, so the
+ * disposable forecast Playwright harness (M50_FORECAST_FIXTURES=true) can
+ * assert ready / recalibrating / paused deterministically. Never starts a
+ * worker or calls a provider. Runs are identified in e2e by distinctive
+ * "N / M jobs" progress (audit_runs has no name column).
+ *
+ * Ready (15 / 25 jobs): 15 terminal completions, intervals 7×4 then 7×6 min,
+ * last ~30s old, 10 remaining → "Estimated 40–60 min remaining".
+ * Recalibrating (12 / 26 jobs): 12 completions at 2-min cadence, latest 20
+ * min old (> 3× slow-end cadence) → range suppressed.
+ * Pause target (15 / 27 jobs): same pace as ready; the pause e2e mutates
+ * only this run so the ready assertion stays stable under retries.
+ */
+async function seedM50ForecastFixtures(): Promise<{ created: boolean }> {
+  if (process.env.M50_FORECAST_FIXTURES !== "true") return { created: false };
+  const [project] = await db.select().from(projects).where(eq(projects.slug, DEMO_SLUG));
+  if (!project) throw new Error(`${DEMO_SLUG} not found for M50 forecast fixtures`);
+
+  const [marker] = await db
+    .select({ id: runEvents.id })
+    .from(runEvents)
+    .where(eq(runEvents.eventType, "m50_forecast_fixture_ready"))
+    .limit(1);
+  if (marker) return { created: false };
+
+  const approved = await db
+    .select()
+    .from(matrixVersions)
+    .where(and(eq(matrixVersions.projectId, project.id), eq(matrixVersions.state, "approved"), eq(matrixVersions.kind, "audit")));
+  const version = approved.sort((a, b) => b.version - a.version)[0];
+  if (!version) throw new Error("M50 forecast fixtures require an approved audit matrix version");
+  const cells = await db.select().from(promptCells).where(eq(promptCells.matrixVersionId, version.id));
+  if (cells.length < 5) throw new Error("M50 forecast fixtures require at least five prompt cells");
+
+  const now = Date.now();
+  // Match runner.forecast.test.ts READY_INTERVALS_MIN chronological gaps.
+  const READY_INTERVALS_MIN = [4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6];
+
+  await db.transaction(async (tx) => {
+    const insertFixtureRun = async (extractionTimes: Date[], queuedCount: number): Promise<string> => {
+      const [run] = await tx
+        .insert(auditRuns)
+        .values({
+          projectId: project.id,
+          matrixVersionId: version.id,
+          runMode: "mock",
+          state: "running",
+          repetitions: 5,
+          selectedProvidersJson: ["mock"],
+          selectedModesJson: ["grounded"],
+          plannedCalls: extractionTimes.length + queuedCount,
+          costCapUsd: "1",
+          startedAt: extractionTimes[0],
+        })
+        .returning();
+      const totalJobs = extractionTimes.length + queuedCount;
+      for (let i = 0; i < totalJobs; i++) {
+        const isTerminal = i < extractionTimes.length;
+        const [job] = await tx
+          .insert(jobs)
+          .values({
+            runId: run!.id,
+            cellId: cells[i % cells.length].id,
+            providerId: "mock",
+            generationMode: "grounded",
+            repIndex: Math.floor(i / cells.length),
+            state: isTerminal ? "succeeded" : "queued",
+            updatedAt: isTerminal ? new Date(extractionTimes[i]!.getTime() - 60_000) : undefined,
+          })
+          .returning();
+        if (!isTerminal) continue;
+        const [response] = await tx
+          .insert(responses)
+          .values({
+            jobId: job!.id,
+            runId: run!.id,
+            cellId: job!.cellId,
+            providerId: "mock",
+            generationMode: "grounded",
+            modelVersion: "m50-forecast-fixture-v1",
+            rawText: "M50 forecast fixture response",
+          })
+          .returning();
+        await tx.insert(extractions).values({
+          responseId: response!.id,
+          extractionVersion: 1,
+          state: "valid",
+          extractionModel: "m50-forecast-fixture-v1",
+          updatedAt: extractionTimes[i],
+        });
+      }
+      return run!.id;
+    };
+
+    /** Chronological oldest→newest stamps from READY-style interval minutes. */
+    const timesFromIntervals = (intervalsMin: number[], lastAgeMs: number): Date[] => {
+      const times = [new Date(now - lastAgeMs)];
+      let cursor = now - lastAgeMs;
+      for (let i = intervalsMin.length - 1; i >= 0; i--) {
+        cursor -= intervalsMin[i]! * 60_000;
+        times.unshift(new Date(cursor));
+      }
+      return times;
+    };
+
+    const readyTimes = timesFromIntervals(READY_INTERVALS_MIN, 30_000);
+    const readyRunId = await insertFixtureRun(readyTimes, 10); // 15 / 25
+    await insertFixtureRun(timesFromIntervals(Array(11).fill(2), 20 * 60_000), 14); // 12 / 26
+    await insertFixtureRun(readyTimes, 12); // 15 / 27 pause target
+
+    // One future-dated heartbeat covers all runs (getRunDetail reads latest
+    // worker_heartbeat globally).
+    await tx.insert(runEvents).values([
+      {
+        runId: readyRunId,
+        level: "info",
+        eventType: "worker_heartbeat",
+        message: "M50 forecast fixture heartbeat.",
+        createdAt: new Date(now + 60 * 60_000),
+      },
+      {
+        runId: readyRunId,
+        level: "info",
+        eventType: "m50_forecast_fixture_ready",
+        message: "M50 forecast fixtures seeded.",
+      },
+    ]);
+  });
+
+  return { created: true };
+}
+
 async function main() {
   const templatesInserted = await seedTemplates();
   const demoCreated = await seedDemoProject();
   const m34aE2eCreated = await seedM34aE2eFixture();
   const m43Ui = await seedM43UiFixture();
+  const m50Forecast = await seedM50ForecastFixtures();
 
   const counts = {
     prompt_templates: (await db.select({ id: promptTemplates.id }).from(promptTemplates)).length,
@@ -756,6 +891,9 @@ async function main() {
   console.log(`[seed] M34A E2E fixture created this run: ${m34aE2eCreated}`);
   if (m43Ui.runId) {
     console.log(`[seed] M43 UI fixture created this run: ${m43Ui.created}; run ${m43Ui.runId.slice(0, 8)}; metrics ${m43Ui.metrics}`);
+  }
+  if (m50Forecast.created) {
+    console.log("[seed] M50 forecast fixtures created this run: true");
   }
   console.log(`[seed] row counts: ${JSON.stringify(counts)}`);
   await pool.end();

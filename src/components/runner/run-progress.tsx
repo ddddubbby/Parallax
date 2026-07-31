@@ -7,11 +7,8 @@ import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import type { RunDetailView } from "@/core/views";
 import { resolvePauseReason } from "@/core/runner";
-import {
-  formatApproxRemaining,
-  type RunEta,
-  type RunStageProgress,
-} from "@/core/run-progress";
+import { formatRunForecastRange, type RunForecast } from "@/core/run-forecast";
+import { type RunStageProgress } from "@/core/run-progress";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
 
@@ -42,7 +39,7 @@ interface RunDetail {
   failureCounts: { succeeded: number; deadLettered: number; cancelled: number };
   workerOffline?: boolean;
   stageProgress?: RunStageProgress;
-  eta?: RunEta;
+  forecast?: RunForecast;
   events: Array<{
     id: string;
     level: string;
@@ -181,7 +178,12 @@ export function RunProgress({
   const overallTotal =
     detail.stageProgress?.overall.total ?? detail.run.plannedCalls;
   const pct = stagePct(overallCompleted, overallTotal);
-  const etaLabel = formatApproxRemaining(detail.eta?.approxRemainingSeconds ?? null);
+  // M50/D-120: the ready state is the ONLY state that renders an estimate —
+  // calibrating/recalibrating/paused/offline/terminal render nothing here.
+  const forecastLabel =
+    detail.forecast?.state === "ready"
+      ? formatRunForecastRange(detail.forecast.range)
+      : null;
   const isPartial = detail.failureCounts.deadLettered > 0 || detail.failureCounts.cancelled > 0;
   const isResonance = detail.run.matrixKind === "resonance";
   // A bare "paused" stamp with no reason is an anxiety generator; the
@@ -293,7 +295,10 @@ export function RunProgress({
         </InlineStatus>
       )}
 
-      <div className="mb-6 rounded-xl border border-ink/15 p-4">
+      <div
+        className="mb-6 rounded-xl border border-ink/15 p-4"
+        data-forecast-state={detail.forecast?.state}
+      >
         <div className="mb-2 flex items-center justify-between font-mono text-sm">
           <span>
             {overallCompleted} / {overallTotal} calls
@@ -314,9 +319,9 @@ export function RunProgress({
             style={{ width: `${pct}%` }}
           />
         </div>
-        {etaLabel && (
-          <p className="mt-2 font-mono text-xs text-ink/60" data-testid="run-eta">
-            {etaLabel}
+        {forecastLabel && (
+          <p className="mt-2 font-mono text-xs text-ink/60" data-testid="run-forecast">
+            {forecastLabel}
           </p>
         )}
         {detail.stageProgress && (

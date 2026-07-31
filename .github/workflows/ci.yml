@@ -47,3 +47,13 @@ jobs:
           DISABLE_AUTH: "true"
           APP_ENV: development
           E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5544/parallax_e2e
+      # M50/D-120: forecast states need a fresh heartbeat; keep them off the
+      # main harness's WORKER OFFLINE contract with a dedicated DB + port.
+      - name: Create forecast e2e database
+        run: PGPASSWORD=postgres psql -h localhost -p 5544 -U postgres -c "CREATE DATABASE parallax_e2e_forecast;"
+      - run: pnpm test:e2e:forecast
+        env:
+          CI: true
+          DISABLE_AUTH: "true"
+          APP_ENV: development
+          E2E_FORECAST_DATABASE_URL: postgres://postgres:postgres@localhost:5544/parallax_e2e_forecast

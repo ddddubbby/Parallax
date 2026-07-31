@@ -9,6 +9,9 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "e2e",
+  // M50 forecast states need a fresh heartbeat; they run in the dedicated
+  // playwright.forecast.config.ts harness (pnpm test:e2e:forecast).
+  testIgnore: /forecast\.spec\.ts/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

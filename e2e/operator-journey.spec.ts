@@ -407,6 +407,10 @@ test.describe("operator journey smoke", () => {
     await expect(page.getByText("Generating AI responses")).toBeVisible();
     await expect(page.getByText("Extracting evidence")).toBeVisible();
     await expect(page.getByText(/WORKER OFFLINE/)).toBeVisible();
+    // M50/D-120: offline runs report the offline forecast state and render no
+    // estimate line (the ready-range copy is covered by the forecast harness).
+    await expect(page.locator("[data-forecast-state='offline']")).toBeVisible();
+    await expect(page.getByTestId("run-forecast")).not.toBeVisible();
 
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     const cancelDialog = page.getByRole("dialog", { name: "Cancel active run?" });
