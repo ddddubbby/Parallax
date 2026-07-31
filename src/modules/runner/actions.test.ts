@@ -506,14 +506,15 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
       expect(run.runMode).toBe("mock");
       expect(run.state).toBe("queued");
 
-      // M46/D-117 P3: stageProgress + ETA ride on fetchRunDetail.
+      // M46/D-117 stage lanes + M50/D-120 forecast ride on fetchRunDetail.
       const detail = await fetchRunDetail(projectId, created.runId);
       expect(detail?.stageProgress?.generation.label).toBe("Generating AI responses");
       expect(detail?.stageProgress?.secondary.label).toBe("Extracting evidence");
       expect(detail?.stageProgress?.overall.completed).toBe(0);
       expect(detail?.stageProgress?.overall.total).toBe(run.plannedCalls);
-      expect(detail?.eta?.approxRemainingSeconds).toBeNull();
-      expect(["suppressed_offline", "insufficient_evidence"]).toContain(detail?.eta?.state);
+      expect(detail?.forecast?.range).toBeNull();
+      // Workerless seeded DB → offline; a fresh heartbeat would → calibrating.
+      expect(["offline", "calibrating"]).toContain(detail?.forecast?.state);
     }
   });
 
