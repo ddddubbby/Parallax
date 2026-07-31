@@ -1,35 +1,35 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M49 product, milestone state, next action, and integration target · TRACKER: M49_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M50 product, milestone state, next action, and integration target · TRACKER: M50_BUILD_PLAN.md
 
-# STATUS.md — M49 control plane
+# STATUS.md — M50 control plane
 
 | Field | Value |
 |---|---|
-| **Active product** | Resonance operator web product — Message Lift tests (D-119) |
-| **Product contract** | [PRD.md](PRD.md) §8.37 |
-| **Build plan** | [M49_BUILD_PLAN.md](M49_BUILD_PLAN.md) |
-| **Branch** | `m49`, cut from `main@4380e78` after the M48 merge |
-| **Current milestone** | M49 — Buyer response + AI recommendation Message Lift |
-| **Milestone state** | Complete on branch; release gates green and ready for PR review |
-| **Next action** | Review and merge the M49 pull request into `main` |
+| **Active product** | Resonance operator web product — live-run remaining-time forecast (D-120) |
+| **Product contract** | [PRD.md](PRD.md) §8.38 |
+| **Build plan** | [M50_BUILD_PLAN.md](M50_BUILD_PLAN.md) |
+| **Branch** | `m50`, cut from `m49@7b0dc1a` (M49 complete, pending merge) |
+| **Current milestone** | M50 — Live-run remaining-time forecast |
+| **Milestone state** | Done — pending merge |
+| **Next action** | Open PR / merge `m50` when ready |
 | **Blocked on** | Nothing |
 | **Parked product** | Resonance GEO agent remains parked (D-116) |
 
-## M49 phase ledger
+## M50 phase ledger
 
 | Phase | Scope | State |
 |---|---|---|
-| P0 | Branch, D-119, STATUS/PRD/canon, migration 0023 | Complete |
-| P1 | Shared prompt compiler, parity, scenario selection, deterministic extraction | Complete |
-| P2 | Runner cost/credential/worker dispatch and recommendation metrics | Complete |
-| P3 | Message Lift workflow, Prompts view, results, reports/exports | Complete |
-| P4 | Compatibility, source contracts, mock journeys, full gates | Complete |
+| P0 | Branch, D-120, STATUS/PRD/canon, this plan | Done |
+| P1 | Core forecast module + unit tests; EWMA/outlier/seed removal | Done |
+| P2 | Repository forecast wiring; drop prior-run query; DB test | Done |
+| P3 | Run-page rendering, contracts, fixtures, both Playwright harnesses | Done |
+| P4 | Full gates + BUILD_NOTES evidence | Done |
 
 ## Acceptance evidence
 
-- `pnpm lint` — zero warnings
-- `pnpm typecheck` — pass
-- `pnpm docs:check` — 22 governed docs valid
-- `pnpm test` — 869 passed, 12 skipped, 0 failed
-- Buyer response and AI recommendation mock generation → extraction → metrics flows — pass
-- `pnpm build` — production build pass
-- `pnpm test:e2e` — 18/18 Playwright journeys pass
+- `pnpm lint --max-warnings 0` green
+- `pnpm typecheck` green
+- `pnpm docs:check` green (23 governed root docs)
+- `pnpm test` — 884 passed / 12 skipped / 0 failed
+- `pnpm build` green (clean `.next`)
+- `pnpm test:e2e` — 18/18 (includes offline forecast state)
+- `pnpm test:e2e:forecast` — 4/4 (ready exact copy, recalibrating, calibrating, paused)

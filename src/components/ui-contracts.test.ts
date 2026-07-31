@@ -90,4 +90,53 @@ describe("M43 shared UI contracts", () => {
     expect(cardBody).toContain('pendingLabel="Saving message"');
     expect(cardBody).not.toContain('pendingLabel={`Saving ${label || "message"}`}');
   });
+
+  it("M50/D-120: run page renders only the ready forecast range; ETA machinery is gone", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const page = await fs.readFile(
+      path.join(process.cwd(), "src/components/runner/run-progress.tsx"),
+      "utf8",
+    );
+    // Ready-only rendering behind the exact-copy formatter, with a state hook
+    // for tests; paused/offline keep their own banners (no estimate line).
+    expect(page).toContain('data-testid="run-forecast"');
+    expect(page).toContain("data-forecast-state=");
+    expect(page).toContain('detail.forecast?.state === "ready"');
+    expect(page).toContain("formatRunForecastRange");
+    expect(page).toContain("WORKER OFFLINE");
+    expect(page).toContain("resolvePauseReason");
+    expect(page).not.toContain("run-eta");
+    expect(page).not.toContain("approxRemainingSeconds");
+    expect(page).not.toContain("formatApproxRemaining");
+
+    const core = await fs.readFile(
+      path.join(process.cwd(), "src/core/run-progress.ts"),
+      "utf8",
+    );
+    expect(core).not.toContain("estimateRunEta");
+    expect(core).not.toContain("RunEta");
+    expect(core).not.toContain("EWMA");
+    expect(core).not.toContain("ewma");
+
+    const forecast = await fs.readFile(
+      path.join(process.cwd(), "src/core/run-forecast.ts"),
+      "utf8",
+    );
+    expect(forecast).toContain("RUN_FORECAST_MIN_COMPLETIONS = 10");
+    expect(forecast).toContain("RUN_FORECAST_WINDOW_COMPLETIONS = 5");
+    expect(forecast).toContain("RUN_FORECAST_RECENT_LIMIT = 20");
+    expect(forecast).toContain("RUN_FORECAST_STALE_MULTIPLIER = 3");
+    expect(forecast).toContain("Estimated ${lowMin}–${highMin} min remaining");
+
+    // The repository never queries historical runs for the forecast.
+    const repo = await fs.readFile(
+      path.join(process.cwd(), "src/db/repositories/runner.ts"),
+      "utf8",
+    );
+    expect(repo).not.toContain("listCompatiblePriorCompletionTimestamps");
+    expect(repo).not.toContain("estimateRunEta");
+    expect(repo).not.toContain("seedIntervals");
+    expect(repo).toContain("computeRunForecast");
+  });
 });

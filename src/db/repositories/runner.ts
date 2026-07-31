@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
 import {
   findUnsupportedEngineModePairs,
@@ -17,12 +17,10 @@ import {
 import {
   completionTimestampsFromJobs,
   computeStageProgress,
-  estimateRunEta,
-  intervalsFromTimestamps,
   type JobPipelineRow,
-  type RunEta,
   type RunStageProgress,
 } from "@/core/run-progress";
+import { computeRunForecast, type RunForecast } from "@/core/run-forecast";
 import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
 import { isWorkerLikelyOffline } from "@/core/worker-timing";
 import { db } from "../client";
@@ -945,49 +943,6 @@ export async function listJobPipelineRows(runId: string): Promise<JobPipelineRow
   }));
 }
 
-/**
- * Effective overall-completion timestamps from compatible prior runs
- * (same project, matrix kind, run mode, providers, modes) for EWMA seeding.
- */
-export async function listCompatiblePriorCompletionTimestamps(input: {
-  runId: string;
-  projectId: string;
-  matrixKind: "audit" | "resonance";
-  runMode: string;
-  providers: unknown;
-  modes: unknown;
-  skipsExtraction: boolean;
-  limitRuns?: number;
-}): Promise<Date[]> {
-  const limitRuns = input.limitRuns ?? 3;
-  const priorRuns = await db
-    .select({ id: auditRuns.id })
-    .from(auditRuns)
-    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
-    .where(
-      and(
-        eq(auditRuns.projectId, input.projectId),
-        ne(auditRuns.id, input.runId),
-        eq(auditRuns.runMode, input.runMode as (typeof auditRuns.runMode.enumValues)[number]),
-        eq(matrixVersions.kind, input.matrixKind),
-        sql`${auditRuns.selectedProvidersJson} = ${JSON.stringify(input.providers)}::jsonb`,
-        sql`${auditRuns.selectedModesJson} = ${JSON.stringify(input.modes)}::jsonb`,
-        inArray(auditRuns.state, ["completed", "failed", "cancelled"]),
-      ),
-    )
-    .orderBy(desc(auditRuns.completedAt), desc(auditRuns.createdAt))
-    .limit(limitRuns);
-
-  if (priorRuns.length === 0) return [];
-
-  const stamps: Date[] = [];
-  for (const prior of priorRuns) {
-    const jobs = await listJobPipelineRows(prior.id);
-    stamps.push(...completionTimestampsFromJobs(jobs, { skipsExtraction: input.skipsExtraction }));
-  }
-  return stamps;
-}
-
 export async function getRunDetail(runId: string) {
   const run = await getRun(runId);
   if (!run) return null;
@@ -1021,31 +976,16 @@ export async function getRunDetail(runId: string) {
     runState: run.state,
   });
 
-  const currentIntervalsMs = intervalsFromTimestamps(
-    completionTimestampsFromJobs(pipelineJobs, { skipsExtraction }),
-  );
-  // Seed only when the current series is still sparse — avoids an extra query
-  // once the run has enough of its own completion intervals.
-  const needsSeed = currentIntervalsMs.length < 2;
-  const seedTimestamps = needsSeed
-    ? await listCompatiblePriorCompletionTimestamps({
-        runId,
-        projectId: run.projectId,
-        matrixKind,
-        runMode: run.runMode,
-        providers: run.selectedProvidersJson,
-        modes: run.selectedModesJson,
-        skipsExtraction,
-      })
-    : [];
-  const seedIntervalsMs = intervalsFromTimestamps(seedTimestamps);
+  // M50/D-120: the forecast reads ONLY this run's terminal pipeline
+  // completions — no historical-run seeding, no EWMA, no outlier filter.
+  const completionTimestamps = completionTimestampsFromJobs(pipelineJobs, { skipsExtraction });
   const remainingCount = Math.max(0, stageProgress.overall.total - stageProgress.overall.completed);
-  const eta: RunEta = estimateRunEta({
+  const forecast: RunForecast = computeRunForecast({
     remainingCount,
-    currentIntervalsMs,
-    seedIntervalsMs,
+    completionTimestamps,
     runState: run.state,
     workerOffline,
+    now: new Date(),
   });
 
   return {
@@ -1059,7 +999,7 @@ export async function getRunDetail(runId: string) {
     events,
     workerOffline,
     stageProgress,
-    eta,
+    forecast,
   };
 }
 

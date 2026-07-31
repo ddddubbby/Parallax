@@ -28,6 +28,12 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-121 / 2026-07-31 / M50 live-run remaining-time forecast (D-120)
+
+DONE: Replaced the M46 point ETA (historical-seed + EWMA) with a live-run-only p10–p90 remaining-time forecast. Core module `src/core/run-forecast.ts` (calibration floor 10, rolling five-completion windows over latest 20, stale-pace recalibration at 3× slow cadence); `getRunDetail` returns `forecast` from current-run terminal pipeline timestamps only; run page renders ready copy exactly as `Estimated N–M min remaining` with `data-testid="run-forecast"`; dedicated Playwright forecast harness (`pnpm test:e2e:forecast`, port 3101, fixture heartbeat) covers ready/recalibrating/calibrating/paused while the main harness keeps WORKER OFFLINE. D-120 supersedes D-117 ETA portion; PRD §8.38. Gates: lint `--max-warnings 0`, typecheck, docs:check, Vitest 884 passed / 12 skipped, production build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.
+
+NEXT: Merge `m50` when ready.
+
 ## S-120 / 2026-07-29 / M49 implementation
 GOAL: Ship Resonance Message Lift tests with Buyer response and AI recommendation under one transparent A/B workflow.
 DONE: Created `m49` from post-M48 `main`; added migration 0023, prompt-parity compilers, deterministic recommendation parsing, test-type processing/cost/metric dispatch, Message Lift creation/design/Prompts/results surfaces, recommendation-aware reports, and exact-request Evidence JSON. Closed a browser-discovered blank-test gap by seeding the required Current/New message pair at creation. Buyer response and AI recommendation both pass mock generation → extraction → metric/result flows. Final gates: lint zero-warning; typecheck; docs:check; Vitest 866 passed / 12 skipped / 0 failed; production build; Playwright 18/18.
