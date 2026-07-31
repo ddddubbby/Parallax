@@ -28,6 +28,12 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-123 / 2026-07-31 / M52 Run detail Diagnostics consolidation (D-122)
+
+DONE: Consolidated Run detail into Overview + Diagnostics (+ audit Metrics). Canonical `?view=diagnostics`; `events`/`extraction` alias to Diagnostics; Overview recent-activity strip (5 events) links into Diagnostics; ExtractionPanel subsection titled “Extraction & scoring”; simulation Diagnostics is events-only. D-122 supersedes D-088 Run tab split wording. Gates: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.
+
+NEXT: Open PR stacked on M51; retarget onto `main` after M50/M51 land.
+
 ## S-122 / 2026-07-31 / M51 operator UI honesty and remediation
 
 GOAL: Complete and harden the reviewed M51 UI/UX roadmap on top of M50.

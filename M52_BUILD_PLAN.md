@@ -29,4 +29,4 @@ Consolidate the Run detail surface into one operator-facing activity narrative o
 
 ## Acceptance
 
-Filled at close in `STATUS.md` + `BUILD_NOTES.md` per D-092.
+Met. Evidence in `STATUS.md` + `BUILD_NOTES.md` S-123: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.
