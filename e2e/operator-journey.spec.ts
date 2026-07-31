@@ -8,7 +8,12 @@ import { expect, test } from "@playwright/test";
  */
 test.describe("operator journey smoke", () => {
   test("projects → hub → matrix → runs → dashboard → resonance", async ({ page }) => {
-    await page.goto("/projects");
+    // CI: Evidence dashboard SSR (findings freshness + M43 fixture) can exceed
+    // the default 30s when waiting for the full `load` event; assert on DOM.
+    test.setTimeout(60_000);
+    const gotoDom = (url: string) => page.goto(url, { waitUntil: "domcontentloaded" });
+
+    await gotoDom("/projects");
     await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
 
     const ledgerFoxRow = page.getByRole("row").filter({ hasText: "LedgerFox" });
@@ -16,27 +21,27 @@ test.describe("operator journey smoke", () => {
     await expect(open).toBeVisible();
     const href = await open.getAttribute("href");
     expect(href).toMatch(/\/projects\/[0-9a-f-]{36}/);
-    await page.goto(href!);
+    await gotoDom(href!);
     await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}\/?$/);
     const projectBase = page.url().replace(/\/$/, "");
 
     await expect(page.locator("main h1").first()).toBeVisible();
 
-    await page.goto(`${projectBase}/matrix?view=overview`);
+    await gotoDom(`${projectBase}/matrix?view=overview`);
     await expect(page.getByRole("heading", { name: "Prompt matrix", exact: true })).toBeVisible();
 
-    await page.goto(`${projectBase}/runs`);
+    await gotoDom(`${projectBase}/runs`);
     await expect(page.getByRole("heading", { name: "Runs", exact: true })).toBeVisible();
 
-    await page.goto(`${projectBase}/dashboard?view=overview`);
+    await gotoDom(`${projectBase}/dashboard?view=overview`);
     await expect(page.getByRole("heading", { name: "Evidence dashboard", exact: true })).toBeVisible();
     await expect(page.getByText("Message Lift results").first()).toBeVisible();
 
-    await page.goto(`${projectBase}/dashboard?view=simulation`);
+    await gotoDom(`${projectBase}/dashboard?view=simulation`);
     await expect(page.getByRole("heading", { name: "Message Lift results", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "← Evidence dashboard", exact: true })).toBeVisible();
 
-    await page.goto(`${projectBase}/resonance`);
+    await gotoDom(`${projectBase}/resonance`);
     await expect(page.locator("main h1").first()).toBeVisible();
   });
 
