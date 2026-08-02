@@ -162,7 +162,7 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
     stageLabel: "Matrix approved",
     nextLabel: "Start a run",
     nextPath: "runs/new",
-    hint: "Sampling each prompt k=5 times per engine is what makes the numbers honest.",
+      hint: "Five repeats per prompt and engine make the numbers honest.",
     journey: null,
   };
 }

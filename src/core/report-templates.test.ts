@@ -150,7 +150,7 @@ describe("report templates (RB-4)", () => {
     const md = generateSection("executive_summary", BASE_CTX);
     expect(md).toContain("LedgerFox");
     expect(md).toContain("60%");
-    expect(md).toContain("n=100");
+    expect(md).toContain("sample size: 100");
     expect(md).toContain("providers: mock");
     expect(md).toContain("modes: ungrounded");
     expect(md).toContain("run date: 2026-07-04");

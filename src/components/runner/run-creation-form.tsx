@@ -50,7 +50,7 @@ const MODES: GenerationMode[] = ["ungrounded", "grounded"];
 const RUN_MODES: Array<{ id: RunMode; label: string; hint: string }> = [
   { id: "mock", label: "Mock", hint: "fixtures, free" },
   { id: "live_validation", label: "Live validation", hint: "real spend, never client-ready" },
-  { id: "live_audit", label: "Live audit", hint: "real spend, k=5 locked" },
+  { id: "live_audit", label: "Live audit", hint: "real spend, 5 repeats per prompt" },
 ];
 
 export function RunCreationForm({
@@ -401,7 +401,7 @@ export function RunCreationForm({
             ? "Live validation spends real money and is labeled VALIDATION-ONLY — never client-ready evidence."
             : (
                 <>
-                  Live audit spends real money at k=5 per <GlossaryTerm term="cell">cell</GlossaryTerm>{" "}
+                  Live audit spends real money on 5 repeats per prompt for each <GlossaryTerm term="cell">cell</GlossaryTerm>{" "}
                   per <GlossaryTerm term="engine-mode">engine-mode</GlossaryTerm>.
                 </>
               )}
@@ -525,8 +525,8 @@ export function RunCreationForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {!isMessageLift && <Field
-          label="Repetitions"
-          hint={runMode === "live_audit" ? "k=5 is protected for audit-grade runs (C-1)" : undefined}
+          label="Repeats per prompt"
+          hint={runMode === "live_audit" ? "5 repeats are protected for audit-grade runs (C-1)" : undefined}
         >
           <Input
             type="number"
@@ -592,12 +592,12 @@ export function RunCreationForm({
         <div className="rounded-xl border border-ink/15 p-4 font-mono text-xs text-ink/70">
           <p className="label-mono mb-2 text-xs text-ink/60">Simulation math</p>
           <p>
-            {effectivePanelCount ?? "—"} {messageLiftTestType === "ai_recommendation" ? "shopping situations" : "buyer profiles"} × {effectiveRepetitions} repetitions ={" "}
+            {effectivePanelCount ?? "—"} {messageLiftTestType === "ai_recommendation" ? "shopping situations" : "buyer profiles"} × {effectiveRepetitions} repeats per message ={" "}
             {effectiveDraws} responses per message/model
           </p>
           <p className="mt-1">
             {effectiveFramingCount ?? "—"} messages × {effectivePanelCount ?? "—"} contexts ×{" "}
-            {effectiveRepetitions} repetitions × {Math.max(1, selectedProviders.length)} AI model ={" "}
+            {effectiveRepetitions} repeats per message × {Math.max(1, selectedProviders.length)} AI model ={" "}
             {effectiveTotalCalls ?? "—"} total calls
           </p>
           <p className="mt-1 text-ink/55">
@@ -810,7 +810,7 @@ export function RunCreationForm({
                 <dd>{liveConfirm.modes.join(", ")}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt>k</dt>
+                <dt>Repeats per prompt</dt>
                 <dd>{liveConfirm.repetitions}</dd>
               </div>
               <div className="flex justify-between gap-4">

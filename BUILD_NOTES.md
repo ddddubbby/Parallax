@@ -259,3 +259,10 @@ DONE: Audited every tracked and untracked change against D-119 and the M49 plan;
 VERIFIED: `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` (22 governed docs), `pnpm test` (117 files, 869 passed / 12 skipped), `pnpm build`, and `pnpm test:e2e` (18/18) all pass. The Playwright suite covers both M49 result semantics and the exact-prompt/fixed-settings buyer-response path.
 NEXT: Review and merge the M49 pull request into `main`; archive `M49_BUILD_PLAN.md` and prune M49 session notes in the merge ritual, not on this feature branch.
 GOTCHAS: The two Marriott live-audit runs remain intentionally paused. This consolidation does not authorize resuming provider spend or deploying Render production.
+
+## S-126 / 2026-08-01 / M53 sample terminology clarity
+GOAL: Replace audit-facing statistical shorthand with meaningful labels: Sample size for `n`; Repeats per prompt for `k`.
+DONE: Created M53/D-123 and applied named terminology to audit run configuration/confirmation, matrix sample budget, dashboard cards/charts/tables/confidence rail, generated findings, generated report provenance/methodology, pipeline guidance, and glossary copy. Added focused source contracts plus finding/report assertions. No schema, metric, eligibility, threshold, provider, or spend change.
+VERIFIED: `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check` (26 governed root docs), focused Vitest (49 passed), and `pnpm build` all green. `git diff --check` still pending at handoff.
+BLOCKED: `pnpm test` and `pnpm test:e2e` both fail before their database/browser work begins because ephemeral Postgres cannot allocate a shared-memory segment. The full test run reached 769 passed non-DB tests; 8 unrelated DB tests then failed after the unavailable harness tried `127.0.0.1:1`. The unsandboxed retries reproduce the same environment failure.
+NEXT: Restore local ephemeral Postgres shared-memory capacity, rerun `pnpm test` and `pnpm test:e2e`, then update STATUS/PRD to Done and commit only M53 paths. Do not stage the unrelated brand-site WIP in this working tree.

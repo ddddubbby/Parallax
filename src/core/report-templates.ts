@@ -201,7 +201,7 @@ function findingsByType(ctx: ReportContext, type: string): Finding[] {
 }
 
 function runProvenance(ctx: ReportContext, n: number | null | undefined): string {
-  const sample = typeof n === "number" ? `n=${n}` : "n=not available";
+  const sample = typeof n === "number" ? `sample size: ${n}` : "sample size: not available";
   return `${sample}; providers: ${escapedList(ctx.providers)}; modes: ${escapedList(ctx.modes)}; run date: ${escapeModelText(ctx.runDate)}`;
 }
 
@@ -215,7 +215,7 @@ function findingProvenance(ctx: ReportContext, finding: Finding): string {
 }
 
 function countProvenance(ctx: ReportContext, count: number, unit: string): string {
-  return `(n=${count} ${unit}; providers: ${escapedList(ctx.providers)}; modes: ${escapedList(ctx.modes)}; run date: ${escapeModelText(ctx.runDate)})`;
+  return `(sample size: ${count} ${unit}; providers: ${escapedList(ctx.providers)}; modes: ${escapedList(ctx.modes)}; run date: ${escapeModelText(ctx.runDate)})`;
 }
 
 function clientName(ctx: ReportContext): string {
@@ -302,7 +302,7 @@ function generateMethodConfidence(ctx: ReportContext): string {
 | Run date | ${escapeModelText(ctx.runDate)} |
 | Run mode | ${escapeModelText(ctx.runMode)} |
 | Planned calls | ${ctx.plannedCalls} |
-| Repetitions per approved prompt | ${ctx.repetitions} |
+| Repeats per prompt | ${ctx.repetitions} |
 | Providers | ${escapedList(ctx.providers)} |
 | Grounding modes | ${escapedList(ctx.modes)} |
 | Run cost cap | $${ctx.costCapUsd.toFixed(2)} |
@@ -385,7 +385,7 @@ function brandRankingTable(ctx: ReportContext): string {
     .map((r) => `| ${escapeModelText(r.name)}${r.isClient ? " (client)" : ""} | ${pct(r.win)} | ${pct(r.share)} |`)
     .join("\n");
 
-  return `Where ${clientName(ctx)} ranks across the full competitor spectrum — head-to-head win rate (comparison prompts, n=${winN ?? "n/a"}) and organic share of voice (unbranded prompts, n=${shareN ?? "n/a"}), D-054 frames:
+  return `Where ${clientName(ctx)} ranks across the full competitor spectrum — head-to-head win rate (comparison prompts, sample size: ${winN ?? "not available"}) and organic share of voice (unbranded prompts, sample size: ${shareN ?? "not available"}), D-054 frames:
 
 | Brand | Comparative Win Rate | Share of Voice |
 |---|---|---|

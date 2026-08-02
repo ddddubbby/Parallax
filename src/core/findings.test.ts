@@ -16,6 +16,7 @@ describe("findLostShortlistCells (RB-1, D-015 directional-only)", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].directionalOnly).toBe(true);
     expect(findings[0].severity).toBe("high");
+    expect(findings[0].bodyMd).toContain("sample size: 5");
   });
 
   it("does not flag low-intent cells even with the same rates", () => {
@@ -77,6 +78,7 @@ describe("findGroundedUngroundedSplit (RB-1)", () => {
     ]);
     expect(findings).toHaveLength(1);
     expect(findings[0].bodyMd).toContain("grounded");
+    expect(findings[0].bodyMd).toContain("sample size: 50");
   });
 
   it("does not flag a small gap", () => {

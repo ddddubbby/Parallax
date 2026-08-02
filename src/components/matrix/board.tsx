@@ -370,7 +370,7 @@ export function MatrixBoard({
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="label-mono text-xs text-ink/45">Sample budget</span>
                   <span className="text-sm text-ink/55">
-                    projected at k={AUDIT_K}, one engine-mode — aggregate metrics need n ≥ {SMALL_N_GATE}
+                    {AUDIT_K} repeats per prompt, one engine-mode — aggregate metrics need a sample size of {SMALL_N_GATE} or more
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">

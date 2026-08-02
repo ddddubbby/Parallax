@@ -388,7 +388,7 @@ export function resolveGlossary(metricKey: string): MetricGlossaryEntry {
  */
 export const GLOSSARY_TERMS: Record<string, string> = {
   cell: "One resolved prompt — a specific intent × persona × market × phrasing that gets sent to the model.",
-  rep: "One repeated sample of a cell. Audit runs use k=5 reps per cell so metrics carry confidence intervals.",
+  rep: "One response to a prompt. Audit runs use five repeats per prompt so metrics carry confidence intervals.",
   "engine-mode": "A provider paired with a grounding mode (e.g. DeepSeek ungrounded, Perplexity grounded).",
   "funnel stage": "The two epistemic layers the product presents: the Evidence Layer (Presence, Position, Perception, with Proof as its trust rail) measures what AI actually says, and Message Lift compares a Current message with a New message.",
   grounded: "The provider returned web-grounded output with real citations. Ungrounded answers have no citations.",

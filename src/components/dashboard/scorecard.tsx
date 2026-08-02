@@ -6,7 +6,7 @@ import { formatCI, formatMetricValue, metricLabel, type MetricRow } from "./form
 
 /**
  * DB-1 metric cards, DB-3 small-n guard: each figure renders "insufficient
- * data" below n=30. Embeddable — the dashboard renders one grid per pillar
+ * data" below the minimum sample size. Embeddable — the dashboard renders one grid per pillar
  * section (D-055), so the card grid carries no heading and no pillar badge
  * of its own (the section frame already says which P it is).
  */
@@ -34,14 +34,14 @@ export function MetricCards({
               <div className="font-mono text-sm text-ink/60">—</div>
             ) : !sufficient ? (
               <>
-                <div className="font-mono text-lg text-ink/60">n={m.n}</div>
+                <div className="font-mono text-lg text-ink/60">Sample size: {m.n}</div>
                 <Stamp tone="warn">Insufficient data</Stamp>
               </>
             ) : (
               <>
                 <div className="font-mono text-2xl tabular-nums text-ink">{formatMetricValue(m)}</div>
                 <div className="font-mono text-[11px] text-ink/65">
-                  n={m.n}
+                  Sample size: {m.n}
                   {formatCI(m) ? ` ${formatCI(m)}` : ""}
                 </div>
               </>

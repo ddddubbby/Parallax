@@ -142,6 +142,28 @@ describe("M43 shared UI contracts", () => {
     expect(repo).toContain("computeRunForecast");
   });
 
+  it("M53/D-123: audit-facing sampling labels explain their numbers", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const files = await Promise.all(
+      [
+        "src/components/dashboard/scorecard.tsx",
+        "src/components/dashboard/dashboard-client.tsx",
+        "src/components/matrix/board.tsx",
+        "src/components/runner/run-creation-form.tsx",
+        "src/core/report-templates.ts",
+      ].map((file) => fs.readFile(path.join(process.cwd(), file), "utf8")),
+    );
+    const [scorecard, dashboard, matrix, runForm, reportTemplates] = files;
+    expect(scorecard).toContain("Sample size:");
+    expect(dashboard).toContain("Repeats per prompt:");
+    expect(matrix).toContain("repeats per prompt");
+    expect(runForm).toContain('label="Repeats per prompt"');
+    expect(reportTemplates).toContain("sample size:");
+    expect(scorecard).not.toContain("n={m.n}");
+    expect(dashboard).not.toContain("k={data.run.repetitions}");
+  });
+
   it("M51: RunModeStamp maps modes; calibrating copy is exact; baseline picker loads pages", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");

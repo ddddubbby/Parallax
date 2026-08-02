@@ -46,7 +46,7 @@ export function CompetitiveSpectrumSection({
       <span className="mb-2 block label-mono text-xs font-medium text-ink/70">{title}</span>
       <p className="mb-2 text-sm leading-relaxed text-ink/65">{caption}</p>
       {data.length === 0 || !isSufficientN(n) ? (
-        <Stamp tone="warn">Insufficient data{n > 0 ? ` (n=${n})` : ""}</Stamp>
+        <Stamp tone="warn">Insufficient data{n > 0 ? ` (sample size: ${n})` : ""}</Stamp>
       ) : (
         <>
           {/* CS-4: every bar drills to that brand's evidence, not just the client. */}
@@ -61,7 +61,7 @@ export function CompetitiveSpectrumSection({
                 <tr className="border-b border-ink/15 text-left text-ink/65">
                   <th className="py-2 pr-3">Brand</th>
                   <th className="py-2 pr-3">Value</th>
-                  <th className="py-2 pr-3">Sample</th>
+                  <th className="py-2 pr-3">Sample size</th>
                   <th className="py-2 text-right">Evidence</th>
                 </tr>
               </thead>
@@ -70,7 +70,7 @@ export function CompetitiveSpectrumSection({
                   <tr key={row.brandId} className="border-b border-ink/10">
                     <td className="py-2 pr-3">{row.name}{row.isClient ? " · client" : ""}</td>
                     <td className="py-2 pr-3 tabular-nums">{(row.value * 100).toFixed(1)}%</td>
-                    <td className="py-2 pr-3 tabular-nums">n={row.n}</td>
+                    <td className="py-2 pr-3 tabular-nums">{row.n}</td>
                     <td className="py-1 text-right">
                       <button
                         type="button"

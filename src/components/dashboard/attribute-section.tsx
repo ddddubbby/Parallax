@@ -36,7 +36,7 @@ export function AttributeSection({
       ) : (
         <>
           <p className="mb-2 text-sm text-ink/65">
-            n={attrRows[0].n} · Select an attribute below to inspect its evidence.
+            Sample size: {attrRows[0].n} · Select an attribute below to inspect its evidence.
           </p>
           <div role="img" aria-label="Attribute association radar">
             <AttributeRadar data={data} />
@@ -48,7 +48,7 @@ export function AttributeSection({
                 type="button"
                 onClick={(event) => onAttributeEvidence(m.metricKey, event.currentTarget)}
                 className="interactive-press label-mono inline-flex min-h-11 items-center rounded-full border border-ink/20 px-3 py-2 text-xs text-ink/70 transition-micro hover:border-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                aria-label={`View evidence for ${m.metricKey.replace("attribute_", "")} association, ${(m.value * 100).toFixed(0)} percent, n ${m.n}`}
+                aria-label={`View evidence for ${m.metricKey.replace("attribute_", "")} association, ${(m.value * 100).toFixed(0)} percent, sample size ${m.n}`}
               >
                 {m.metricKey.replace("attribute_", "")} {(m.value * 100).toFixed(0)}%
               </button>

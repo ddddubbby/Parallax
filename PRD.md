@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M52 Run Diagnostics consolidation · TRACKER: M52_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M53 sample terminology clarity · TRACKER: M53_BUILD_PLAN.md
 
 # PRD.md - Resonance MVP
 
-> **STATUS: M52 (D-122) DONE ON `m52` (2026-07-31), STACKED ON M51.** Run detail Diagnostics consolidation passed closeout gates (§8.40). Integrate M50, then M51, then retarget/merge M52. Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M53 (D-123) CODE COMPLETE — LOCAL DATABASE/E2E VERIFICATION BLOCKED ON `m53` (2026-08-01).** Operator-facing Sample size and Repeats per prompt labels replace statistical shorthand (§8.41) without changing calculation, methodology, or spend behavior. The remaining gates require the ephemeral Postgres harness to regain shared-memory capacity. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44–M46 plans are in `docs/history/`.
 
@@ -563,6 +563,12 @@ M52 is navigation consolidation only — no migration, no deletion of events/ext
 
 Execution playbook: `M52_BUILD_PLAN.md`. No migration.
 
+### 8.41 Sample terminology clarity (M53, D-123)
+
+Audit-facing UI and generated reports name their statistical quantities in plain language: **Sample size** is the eligible-response count behind a displayed measure, and **Repeats per prompt** is the number of responses planned for each prompt and engine-mode. `n` and `k` remain permissible only in internal code, formulas, and advanced methodology where their meanings are defined. This changes no data, calculations, thresholds, provider behavior, or spend controls.
+
+Execution playbook: `M53_BUILD_PLAN.md`. No migration.
+
 ## 9. Data model summary
 
 `projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`; from M17: `resonance_studies`, `resonance_stimuli` (migration 0008, which also adds the `simulation` value to the `intent` enum, `matrix_versions.kind`, `matrix_versions.resonance_study_id`, `prompt_cells.stimulus_id`, and `prompt_cells.panel_persona_key`; `prompt_cells.persona_id`/`market_id` are already nullable — D-066). From M34A (D-099/D-102): `framing_studies`, `framing_response_reviews`, `framing_annotations`, `framing_gap_classifications`, `framing_evidence_snapshots`, plus `resonance_stimuli.framing_evidence_snapshot_id` and the `representation` value on the `intent` enum (migration 0013 enum-only, then 0014 structure, then 0015 assurance — the last adding the append-only snapshot trigger and the approved-study stimulus-freeze trigger; digests use canonical sorted-key JSON with dual-verification backward compat per D-104).
@@ -633,9 +639,11 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | Done on `m50` (pending merge) |
 | M51 | Operator UI honesty and remediation (D-121) | Evidence gates; informed confirms; guided empty/success states; fresh findings and advisory delivery; scoped dead-letter recovery; shared mode stamps; full baseline access; truthful calibration copy; no migration | Done on `m51-ui-ux-roadmap` — ready for PR after M50 |
 | M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `m52` — ready for PR after M50/M51 |
+| M53 | Sample terminology clarity (D-123) | Operator-facing Sample size and Repeats per prompt labels across audit configuration, dashboard, findings, and reports; no calculation or schema change | Code complete — local database/e2e verification blocked on `m53` |
 
 Progress notes:
 
+- 2026-08-01 M53 code complete (D-123, no migration): audit configuration, matrix budget, dashboard, generated findings, reports, and source contracts now name Sample size and Repeats per prompt. Gates: lint, typecheck, docs:check (26), focused 49 tests, and production build green. `pnpm test` and `pnpm test:e2e` blocked by ephemeral Postgres shared-memory allocation before database/browser coverage could run. Evidence: BUILD_NOTES S-126.
 - 2026-07-31 M52 Done (D-122, no migration): Overview + Diagnostics (+ audit Metrics); `events`/`extraction` URL aliases; Overview recent-activity strip; simulation Diagnostics events-only. Gates: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, e2e 18/18 + forecast 4/4. Evidence: BUILD_NOTES S-123.
 - 2026-07-31 M52 P0 governance (D-122): branch `m52` cut from `m51-ui-ux-roadmap@b34b164`; D-122 supersedes D-088 Run overview/events/extraction/metrics tab wording; `M52_BUILD_PLAN.md` created; STATUS/PRD §8.40/index retargeted. No migration.
 - 2026-07-31 M51 Done (D-121, no migration; implementation `ecec3e7`): completed the six-phase UI roadmap, then fixed representative prompt coverage, neutral findings-module ownership and direct-report freshness, per-source dirty preservation, off-page saved baseline restoration, failure-safe synchronous re-extraction, projection-unavailable confirmation detail, active RunModeStamp adoption, behavioral calibration coverage, and an axe-discovered advisory contrast defect. Gates: lint, typecheck, docs, Vitest 900/12, build, e2e 18/18, forecast e2e 4/4. Evidence: BUILD_NOTES S-122.

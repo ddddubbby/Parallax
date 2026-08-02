@@ -53,7 +53,7 @@ export function findLostShortlistCells(cells: CellBrandPresence[]): Finding[] {
       findingType: "lost_shortlist",
       severity: "high" as const,
       title: `Lost shortlist: ${escapeModelText(c.topCompetitorName)} dominates a ${c.intent} cell`,
-      bodyMd: `In a ${c.intent} cell (n=${c.n} samples), ${escapeModelText(c.topCompetitorName)} appeared in ${Math.round(c.topCompetitorRate * 100)}% of answers while the client brand appeared in only ${Math.round(c.clientRate * 100)}%.`,
+      bodyMd: `In a ${c.intent} cell (sample size: ${c.n}), ${escapeModelText(c.topCompetitorName)} appeared in ${Math.round(c.topCompetitorRate * 100)}% of answers while the client brand appeared in only ${Math.round(c.clientRate * 100)}%.`,
       evidence: { cellId: c.cellId, intent: c.intent, clientRate: c.clientRate, topCompetitorName: c.topCompetitorName, topCompetitorRate: c.topCompetitorRate, n: c.n },
       directionalOnly: true,
     }));
@@ -73,7 +73,7 @@ export function findPositioningGaps(attributes: AttributeRate[]): Finding[] {
       findingType: "positioning_gap",
       severity: a.rate < POSITIONING_GAP_RATE / 2 ? ("medium" as const) : ("low" as const),
       title: `Positioning gap: "${escapeModelText(a.attribute)}"`,
-      bodyMd: `The client brand was associated with "${escapeModelText(a.attribute)}" in only ${Math.round(a.rate * 100)}% of eligible samples (n=${a.n}), despite it being a desired positioning attribute.`,
+      bodyMd: `The client brand was associated with "${escapeModelText(a.attribute)}" in only ${Math.round(a.rate * 100)}% of eligible samples (sample size: ${a.n}), despite it being a desired positioning attribute.`,
       evidence: { attribute: a.attribute, rate: a.rate, n: a.n },
       directionalOnly: false,
     }));
@@ -120,7 +120,7 @@ export function findGroundedUngroundedSplit(rates: ModeRate[]): Finding[] {
       findingType: "grounded_ungrounded_split",
       severity: "medium",
       title: "Grounded vs. ungrounded answers diverge",
-      bodyMd: `Mention Rate is ${Math.round(gap * 100)} percentage points higher in ${higher} answers (grounded: ${Math.round(grounded.rate * 100)}% n=${grounded.n}, ungrounded: ${Math.round(ungrounded.rate * 100)}% n=${ungrounded.n}). Citations may be materially changing what gets said, not just where it comes from.`,
+      bodyMd: `Mention Rate is ${Math.round(gap * 100)} percentage points higher in ${higher} answers (grounded: ${Math.round(grounded.rate * 100)}%, sample size: ${grounded.n}; ungrounded: ${Math.round(ungrounded.rate * 100)}%, sample size: ${ungrounded.n}). Citations may be materially changing what gets said, not just where it comes from.`,
       evidence: { grounded, ungrounded, gapPoints: gap },
       directionalOnly: false,
     },
@@ -169,7 +169,7 @@ export function findLowStabilityClusters(cells: CellStability[]): Finding[] {
       findingType: "low_stability",
       severity: "low" as const,
       title: `Low answer stability in a ${c.intent} cell`,
-      bodyMd: `Repeated samples of this cell agreed on the top brands only ${Math.round(c.stabilityIndex * 100)}% of the time (Jaccard similarity across ${c.n} reps), indicating volatile or inconsistent answers.`,
+      bodyMd: `Repeated samples of this cell agreed on the top brands only ${Math.round(c.stabilityIndex * 100)}% of the time (Jaccard similarity; sample size: ${c.n}), indicating volatile or inconsistent answers.`,
       evidence: { cellId: c.cellId, intent: c.intent, stabilityIndex: c.stabilityIndex, n: c.n },
       directionalOnly: true,
     }));

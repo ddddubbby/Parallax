@@ -49,7 +49,7 @@ export function liveAuditDrawFloorError(draws: number): string {
   return (
     `Live audit Simulation runs require at least ${SMALL_N_THRESHOLD} draws per framing and provider ` +
     `(personas × repetitions). This configuration yields ${draws}. ` +
-    `With k=${AUDIT_REPETITIONS}, add personas until you have at least ` +
+    `With ${AUDIT_REPETITIONS} repeats per prompt, add personas until you have at least ` +
     `${MIN_PERSONAS_FOR_LIVE_AUDIT_DRAW_FLOOR} (never invent personas). ` +
     `Use mock or live validation for preview-only configs (D-117).`
   );

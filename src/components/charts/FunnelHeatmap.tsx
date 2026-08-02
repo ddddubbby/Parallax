@@ -70,7 +70,7 @@ export function FunnelHeatmap({
                     {cell && cell.value !== null ? (
                       <>
                         <div className="font-medium text-ink">{Math.round(cell.value * 100)}%</div>
-                        <div className="text-[10px] text-ink/65">n={cell.n}</div>
+                        <div className="text-[10px] text-ink/65">Sample size: {cell.n}</div>
                       </>
                     ) : (
                       <span className="text-ink/60">—</span>

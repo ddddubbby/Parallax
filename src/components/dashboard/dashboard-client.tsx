@@ -347,10 +347,10 @@ export function DashboardClient({
                 <span className="text-ink tabular-nums">
                   {stabilityRow ? stabilityRow.value.toFixed(2) : "—"}
                 </span>
-                {stabilityRow ? ` (n=${stabilityRow.n} cells)` : ""}
+                {stabilityRow ? ` (sample size: ${stabilityRow.n} prompt cells)` : ""}
               </span>
-              <span>k={data.run.repetitions} repetitions per cell</span>
-              <span>aggregate claims gated at n≥30 (directional below)</span>
+              <span>Repeats per prompt: {data.run.repetitions}</span>
+              <span>aggregate claims need a sample size of 30 or more (directional below)</span>
               <button
                 type="button"
                 onClick={(event) => onMetricEvidence("stability_index", event.currentTarget)}
