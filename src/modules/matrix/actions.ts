@@ -11,10 +11,12 @@ import {
   competitorOrderFromBrandOrder,
   type Intent,
   isAuditIntent,
+  marketContextViolationMessage,
   type MatrixContext,
   nextBalancedBrandOrder,
   renderRepresentationTemplate,
   renderTemplate,
+  scanMarketContextCells,
   scanUnbrandedCells,
   trackedBrandRoster,
 } from "@/core/matrix";
@@ -364,6 +366,12 @@ export async function approveMatrix(
     return { ok: false, error: "Cannot approve an empty matrix" };
   if (existing.cells.length > MAX_CELLS_PER_RUN)
     return { ok: false, error: `Cap exceeded: ${existing.cells.length} > ${MAX_CELLS_PER_RUN} (PM-6)` };
+
+  const marketLabels = await getMarketLabelsForProject(projectId);
+  const marketViolations = scanMarketContextCells(existing.cells, marketLabels);
+  if (marketViolations.length > 0) {
+    return { ok: false, error: marketContextViolationMessage(marketViolations) };
+  }
 
   const allBrands: BrandTerms[] = [loaded.ctx.clientBrand, ...loaded.ctx.competitors];
   const overlapError = aliasOverlapError(allBrands);

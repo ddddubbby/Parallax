@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { hasMarketContextPrompt, renderMarketContextPrompt } from "@/core/matrix";
 
 const mocks = vi.hoisted(() => ({
   approveVersion: vi.fn(),
@@ -29,7 +30,7 @@ vi.mock("@/db/repositories/matrix", () => ({
   updateCellText: mocks.updateCellText,
 }));
 
-import { addCell, generateMatrix, regenerateCell } from "./actions";
+import { addCell, approveMatrix, generateMatrix, regenerateCell, saveCellText } from "./actions";
 
 const PROJECT_ID = "00000000-0000-4000-8000-000000000001";
 const VERSION_ID = "00000000-0000-4000-8000-000000000002";
@@ -108,6 +109,9 @@ describe("matrix action validation", () => {
       ok: false,
       error: "Another matrix version was created at the same time",
     });
+    const generatedCells = mocks.createDraftVersion.mock.calls[0]?.[1] as Array<{ resolvedText: string }>;
+    expect(generatedCells.length).toBeGreaterThan(0);
+    expect(generatedCells.every((cell) => hasMarketContextPrompt(cell.resolvedText, "United States"))).toBe(true);
   });
 
   it("returns a controlled error when adding a cell fails at persistence", async () => {
@@ -119,6 +123,8 @@ describe("matrix action validation", () => {
       ok: false,
       error: "Matrix version is not a draft; approved versions are frozen (C-4)",
     });
+    const addedCell = mocks.insertCell.mock.calls[0]?.[1] as { resolvedText: string };
+    expect(hasMarketContextPrompt(addedCell.resolvedText, "United States")).toBe(true);
   });
 
   it("reports not found when regenerated cell replacement affects no rows", async () => {
@@ -143,5 +149,52 @@ describe("matrix action validation", () => {
       ok: false,
       error: "Cell not found in this version",
     });
+    const regeneratedCell = mocks.replaceCell.mock.calls[0]?.[2] as { resolvedText: string };
+    expect(hasMarketContextPrompt(regeneratedCell.resolvedText, "United States")).toBe(true);
+  });
+
+  it("allows unrestricted draft text edits but rejects missing market context at approval", async () => {
+    mocks.getMatrixInputs.mockResolvedValue(matrixInputs());
+    mocks.getVersionWithCells.mockResolvedValue({
+      version: { id: VERSION_ID, state: "draft" },
+      cells: [{
+        id: CELL_ID,
+        intent: "validation",
+        personaId: PERSONA_ID,
+        marketId: MARKET_ID,
+        variantKey: "v1",
+        resolvedText: "Would you recommend LedgerFox?",
+        competitorOrderJson: [],
+      }],
+    });
+    mocks.updateCellText.mockResolvedValue(1);
+
+    await expect(saveCellText(PROJECT_ID, VERSION_ID, CELL_ID, "Would you recommend LedgerFox?"))
+      .resolves.toEqual({ ok: true });
+    await expect(approveMatrix(PROJECT_ID, VERSION_ID)).resolves.toEqual({
+      ok: false,
+      error: "Market context violation — validation · v1 does not begin with the exact market-context.v1 block for United States",
+    });
+    expect(mocks.approveVersion).not.toHaveBeenCalled();
+  });
+
+  it("passes the exact current-market guardrail to the repository approval boundary", async () => {
+    mocks.getMatrixInputs.mockResolvedValue(matrixInputs());
+    mocks.getVersionWithCells.mockResolvedValue({
+      version: { id: VERSION_ID, state: "draft" },
+      cells: [{
+        id: CELL_ID,
+        intent: "validation",
+        personaId: PERSONA_ID,
+        marketId: MARKET_ID,
+        variantKey: "v1",
+        resolvedText: renderMarketContextPrompt("Would you recommend LedgerFox?", "United States"),
+        competitorOrderJson: [],
+      }],
+    });
+    mocks.approveVersion.mockResolvedValue(undefined);
+
+    await expect(approveMatrix(PROJECT_ID, VERSION_ID)).resolves.toEqual({ ok: true });
+    expect(mocks.approveVersion).toHaveBeenCalledWith(PROJECT_ID, VERSION_ID);
   });
 });
