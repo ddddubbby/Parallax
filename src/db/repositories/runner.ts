@@ -21,11 +21,22 @@ import {
   type RunStageProgress,
 } from "@/core/run-progress";
 import { computeRunForecast, type RunForecast } from "@/core/run-forecast";
+import {
+  LIVE_ACTIVITY_ANSWERED_LIMIT,
+  LIVE_ACTIVITY_ASKING_LIMIT,
+  LIVE_ACTIVITY_SECONDARY_LIMIT,
+  engineLabel,
+  secondaryHitLabel,
+  truncatePreview,
+  type LiveActivity,
+} from "@/core/run-live-activity";
 import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
 import { isWorkerLikelyOffline } from "@/core/worker-timing";
 import { db } from "../client";
 import {
   auditRuns,
+  brandMentions,
+  claimsFound,
   extractions,
   jobs,
   matrixVersions,
@@ -943,6 +954,150 @@ export async function listJobPipelineRows(runId: string): Promise<JobPipelineRow
   }));
 }
 
+/**
+ * M54/D-124: bounded substance previews for Overview Collecting responses.
+ * Read-only; truncated text only — never full raw dumps.
+ */
+export async function listLiveActivityForRun(
+  runId: string,
+  matrixKind: "audit" | "resonance",
+  showSecondary: boolean,
+): Promise<LiveActivity> {
+  const askingRows = await db
+    .select({
+      jobId: jobs.id,
+      providerId: jobs.providerId,
+      generationMode: jobs.generationMode,
+      startedAt: jobs.updatedAt,
+      resolvedText: promptCells.resolvedText,
+    })
+    .from(jobs)
+    .innerJoin(promptCells, eq(promptCells.id, jobs.cellId))
+    .where(and(eq(jobs.runId, runId), eq(jobs.state, "running")))
+    .orderBy(desc(jobs.updatedAt))
+    .limit(LIVE_ACTIVITY_ASKING_LIMIT);
+
+  const answeredRows = await db
+    .select({
+      jobId: jobs.id,
+      responseId: responses.id,
+      providerId: responses.providerId,
+      generationMode: responses.generationMode,
+      rawText: responses.rawText,
+      latencyMs: responses.latencyMs,
+      completedAt: responses.createdAt,
+    })
+    .from(responses)
+    .innerJoin(jobs, eq(jobs.id, responses.jobId))
+    .where(eq(responses.runId, runId))
+    .orderBy(desc(responses.createdAt))
+    .limit(LIVE_ACTIVITY_ANSWERED_LIMIT);
+
+  let secondary: LiveActivity["secondary"] = [];
+  if (showSecondary) {
+    const secondaryRows = await db.execute<{
+      job_id: string;
+      extraction_state: string;
+      extracted_json: unknown;
+      updated_at: Date;
+      mention_count: number;
+      mention_names: string[] | null;
+      claim_count: number;
+    }>(
+      sql`
+        select
+          j.id as job_id,
+          latest.state::text as extraction_state,
+          latest.extracted_json,
+          latest.updated_at,
+          coalesce(mentions.mention_count, 0)::int as mention_count,
+          mentions.mention_names,
+          coalesce(claims.claim_count, 0)::int as claim_count
+        from ${jobs} j
+        inner join ${responses} r on r.job_id = j.id
+        inner join lateral (
+          select e.id, e.state, e.extracted_json, e.updated_at
+          from ${extractions} e
+          where e.response_id = r.id
+          order by e.extraction_version desc
+          limit 1
+        ) latest on true
+        left join lateral (
+          select
+            count(*)::int as mention_count,
+            (
+              select array_agg(name order by ord)
+              from (
+                select bm.observed_name as name, row_number() over (
+                  order by bm.position nulls last, bm.created_at
+                ) as ord
+                from ${brandMentions} bm
+                where bm.extraction_id = latest.id
+                order by bm.position nulls last, bm.created_at
+                limit 3
+              ) top
+            ) as mention_names
+          from ${brandMentions} bm2
+          where bm2.extraction_id = latest.id
+        ) mentions on true
+        left join lateral (
+          select count(*)::int as claim_count
+          from ${claimsFound} cf
+          where cf.extraction_id = latest.id
+        ) claims on true
+        where j.run_id = ${runId}
+        order by
+          case when latest.state::text in ('pending', 'retrying') then 0 else 1 end,
+          latest.updated_at desc
+        limit ${LIVE_ACTIVITY_SECONDARY_LIMIT}
+      `,
+    );
+
+    secondary = secondaryRows.rows
+      .map((row) => {
+        const hit = secondaryHitLabel({
+          matrixKind,
+          extractionState: row.extraction_state,
+          extractedJson: row.extracted_json,
+          mentionNames: row.mention_names ?? [],
+          mentionCount: Number(row.mention_count) || 0,
+          claimCount: Number(row.claim_count) || 0,
+        });
+        if (!hit) return null;
+        return {
+          jobId: row.job_id,
+          kind: hit.kind,
+          label: hit.label,
+          state: row.extraction_state,
+          completedAt:
+            row.extraction_state === "pending" || row.extraction_state === "retrying"
+              ? null
+              : new Date(row.updated_at).toISOString(),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+  }
+
+  return {
+    asking: askingRows.map((row) => ({
+      jobId: row.jobId,
+      engineLabel: engineLabel(row.providerId, row.generationMode),
+      promptPreview: truncatePreview(row.resolvedText),
+      startedAt: new Date(row.startedAt).toISOString(),
+    })),
+    answered: answeredRows.map((row) => ({
+      jobId: row.jobId,
+      responseId: row.responseId,
+      engineLabel: engineLabel(row.providerId, row.generationMode),
+      responsePreview: truncatePreview(row.rawText),
+      latencyMs: row.latencyMs,
+      completedAt: new Date(row.completedAt).toISOString(),
+    })),
+    secondary,
+    showSecondary,
+  };
+}
+
 export async function getRunDetail(runId: string) {
   const run = await getRun(runId);
   if (!run) return null;
@@ -967,14 +1122,18 @@ export async function getRunDetail(runId: string) {
   const heartbeatAgeMs = heartbeatRow[0] ? Date.now() - new Date(heartbeatRow[0].at).getTime() : null;
   const workerOffline = isWorkerLikelyOffline(run.state, heartbeatAgeMs);
   const skipsExtraction = archetype === "crypto_token";
+  const showSecondary = !skipsExtraction;
 
-  const stageProgress: RunStageProgress = computeStageProgress({
-    jobs: pipelineJobs,
-    plannedCalls: run.plannedCalls,
-    matrixKind,
-    skipsExtraction,
-    runState: run.state,
-  });
+  const [stageProgress, liveActivity]: [RunStageProgress, LiveActivity] = [
+    computeStageProgress({
+      jobs: pipelineJobs,
+      plannedCalls: run.plannedCalls,
+      matrixKind,
+      skipsExtraction,
+      runState: run.state,
+    }),
+    await listLiveActivityForRun(runId, matrixKind, showSecondary),
+  ];
 
   // M50/D-120: the forecast reads ONLY this run's terminal pipeline
   // completions — no historical-run seeding, no EWMA, no outlier filter.
@@ -1000,6 +1159,7 @@ export async function getRunDetail(runId: string) {
     workerOffline,
     stageProgress,
     forecast,
+    liveActivity,
   };
 }
 

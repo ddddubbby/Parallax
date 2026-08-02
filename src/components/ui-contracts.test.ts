@@ -197,6 +197,23 @@ describe("M43 shared UI contracts", () => {
     expect(progress).not.toContain('view=events');
     expect(progress).not.toContain('view === "events"');
 
+    // M54/D-124: Collecting responses substance section on Overview.
+    expect(progress).toContain("CollectingResponses");
+    expect(progress).toContain("liveActivity");
+    const collecting = await fs.readFile(
+      path.join(process.cwd(), "src/components/runner/collecting-responses.tsx"),
+      "utf8",
+    );
+    expect(collecting).toContain('data-testid="run-collecting-responses"');
+    expect(collecting).toContain("Collecting responses");
+    expect(collecting).toContain("Asking now");
+    expect(collecting).toContain("Just collected");
+    // Operator-facing string literals only (ignore internal field names).
+    const collectingCopy = [...collecting.matchAll(/["'`]([^"'`]{3,})["'`]/g)]
+      .map((m) => m[1]!.toLowerCase())
+      .join("\n");
+    expect(collectingCopy).not.toMatch(/worker offline|api call|heartbeat|dead letter|pipeline/);
+
     expect(views).toContain('"diagnostics"');
     expect(views).toContain('events: "diagnostics"');
     expect(views).toContain('extraction: "diagnostics"');

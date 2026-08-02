@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CollectingResponses } from "@/components/runner/collecting-responses";
 import { RunModeStamp } from "@/components/run-mode-stamp";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, InlineStatus, Stamp } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
 import { resolvePauseReason } from "@/core/runner";
 import { formatRunForecastRange, type RunForecast } from "@/core/run-forecast";
+import type { LiveActivity } from "@/core/run-live-activity";
 import { type RunStageProgress } from "@/core/run-progress";
 import { cancelRun, fetchRunDetail, pauseRun, resumeRun } from "@/modules/runner/actions";
 import { reportError } from "@/observability";
@@ -42,6 +44,7 @@ interface RunDetail {
   workerOffline?: boolean;
   stageProgress?: RunStageProgress;
   forecast?: RunForecast;
+  liveActivity?: LiveActivity | null;
   events: Array<{
     id: string;
     level: string;
@@ -367,6 +370,14 @@ export function RunProgress({
           </span>
         </div>
       </div>
+
+      <CollectingResponses
+        runState={detail.run.state}
+        matrixKind={detail.run.matrixKind === "resonance" ? "resonance" : "audit"}
+        workerOffline={detail.workerOffline}
+        liveActivity={detail.liveActivity}
+        suppressMotion={suppressProgressMotion}
+      />
 
       <div className="mb-6 flex gap-2">
         {(detail.run.state === "queued" || detail.run.state === "running") && (

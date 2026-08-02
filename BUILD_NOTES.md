@@ -28,6 +28,14 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-127 / 2026-08-02 / M54 Collecting responses (D-124)
+
+GOAL: Overview substance trace proving collection — plain-language Asking now / Just collected / Reading answers.
+DONE: Branch `m54` from `main@b49b645`; D-124; plan/STATUS/PRD §8.42; `liveActivity` on `getRunDetail`; `CollectingResponses` mounted in RunProgress; core helpers + contracts + focused DB test. Gates so far: lint 0-warn, docs:check (26), typecheck, focused 14 tests, build.
+UNVERIFIED: Full `pnpm test`, `pnpm test:e2e`, `pnpm test:e2e:forecast`.
+NEXT: Run full test + e2e suites; open PR to `main`.
+GOTCHAS: D-123 lives on `m53` only — this branch jumps D-122 → D-124 by design. Ephemeral Postgres needs non-sandbox/`all` for DB tests (shm).
+
 ## S-123 / 2026-07-31 / M52 Run detail Diagnostics consolidation (D-122)
 
 DONE: Consolidated Run detail into Overview + Diagnostics (+ audit Metrics). Canonical `?view=diagnostics`; `events`/`extraction` alias to Diagnostics; Overview recent-activity strip (5 events) links into Diagnostics; ExtractionPanel subsection titled “Extraction & scoring”; simulation Diagnostics is events-only. D-122 supersedes D-088 Run tab split wording. Gates: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.

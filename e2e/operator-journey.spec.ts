@@ -435,6 +435,11 @@ test.describe("operator journey smoke", () => {
     await expect(runNav.getByRole("link", { name: "Events" })).toHaveCount(0);
     await expect(runNav.getByRole("link", { name: "Extraction" })).toHaveCount(0);
     await expect(page.getByTestId("run-recent-activity")).toBeVisible();
+    // M54/D-124: Collecting responses substance section (plain language).
+    await expect(page.getByTestId("run-collecting-responses")).toBeVisible();
+    await expect(page.getByTestId("run-collecting-status")).toBeVisible();
+    await expect(page.getByText("Asking now")).toBeVisible();
+    await expect(page.getByText("Just collected")).toBeVisible();
     const runPath = page.url().split("?")[0]!;
     // Legacy ?view=events aliases to Diagnostics (parse, not hard redirect).
     await page.goto(`${runPath}?view=events`);
