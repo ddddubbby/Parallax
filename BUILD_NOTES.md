@@ -28,6 +28,14 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-129 / 2026-08-03 / M55 GitHub conflict-resolution handoff
+
+GOAL: Reconcile M55 with the latest GitHub `main` after M54 merged via PR #15, then leave PR #16 conflict-free.
+DONE: Fetched `origin/main@8446333`; merged it into `m55`; retained D-124/M54 and D-125/M55 in canonical order; kept M55 as the active branch status; renumbered the colliding M55 note to S-128. No source conflicts remained. Verified docs:check (27 governed root docs), typecheck, lint zero-warning, Vitest 915 passed / 12 skipped, production build, and Playwright 18/18. Created merge commit `21b8056`.
+UNVERIFIED: GitHub push is blocked by local authentication: the configured osxkeychain has no GitHub credential and SSH has no accepted public key. PR #16 consequently still points at remote head `301bfab` and reports `mergeable=false`, `mergeable_state=dirty`.
+NEXT: Authenticate GitHub, run `git -C /private/tmp/Parallax-m55 push origin m55`, then refresh PR #16 and confirm `mergeable_state=clean`.
+GOTCHAS: The shared `/Users/tapp/Documents/Parallax` worktree remains on unrelated `m54` site WIP; use the isolated M55 worktree for the push.
+
 ## S-127 / 2026-08-02 / M54 Collecting responses (D-124)
 
 GOAL: Overview substance trace proving collection — plain-language Asking now / Just collected / Reading answers.
