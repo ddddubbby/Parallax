@@ -10,7 +10,7 @@
 | **Branch** | `m55`, cut from `main@b49b645` |
 | **Current milestone** | M55 — Market Context Prompt Guardrail |
 | **Milestone state** | Done — ready for review/PR |
-| **Next action** | Review and merge `m55` to `main`, resolving parallel governance additions without renumbering D-125/M55 |
+| **Next action** | Review and merge `m55` to `main`; M54/D-124 is already integrated via GitHub PR #15 |
 | **Blocked on** | — |
 | **Integration order** | Merge to `main`; independent of M53/M54 code, with global D-125/M55 ownership |
 | **Parked product** | Resonance GEO agent remains parked (D-116) |

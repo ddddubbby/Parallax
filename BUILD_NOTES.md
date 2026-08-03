@@ -28,6 +28,14 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-127 / 2026-08-02 / M54 Collecting responses (D-124)
+
+GOAL: Overview substance trace proving collection — plain-language Asking now / Just collected / Reading answers.
+DONE: Branch `m54` from `main@b49b645`; D-124; plan/STATUS/PRD §8.42; `liveActivity` on `getRunDetail`; `CollectingResponses` mounted in RunProgress; core helpers + contracts + focused DB test. Gates so far: lint 0-warn, docs:check (26), typecheck, focused 14 tests, build.
+UNVERIFIED: Full `pnpm test`, `pnpm test:e2e`, `pnpm test:e2e:forecast`.
+NEXT: Run full test + e2e suites; open PR to `main`.
+GOTCHAS: D-123 lives on `m53` only — this branch jumps D-122 → D-124 by design. Ephemeral Postgres needs non-sandbox/`all` for DB tests (shm).
+
 ## S-123 / 2026-07-31 / M52 Run detail Diagnostics consolidation (D-122)
 
 DONE: Consolidated Run detail into Overview + Diagnostics (+ audit Metrics). Canonical `?view=diagnostics`; `events`/`extraction` alias to Diagnostics; Overview recent-activity strip (5 events) links into Diagnostics; ExtractionPanel subsection titled “Extraction & scoring”; simulation Diagnostics is events-only. D-122 supersedes D-088 Run tab split wording. Gates: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, `test:e2e` 18/18, `test:e2e:forecast` 4/4.
@@ -260,7 +268,7 @@ VERIFIED: `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` (22 governed docs), `
 NEXT: Review and merge the M49 pull request into `main`; archive `M49_BUILD_PLAN.md` and prune M49 session notes in the merge ritual, not on this feature branch.
 GOTCHAS: The two Marriott live-audit runs remain intentionally paused. This consolidation does not authorize resuming provider spend or deploying Render production.
 
-## S-127 / 2026-08-02 / M55 Market Context Prompt Guardrail
+## S-128 / 2026-08-02 / M55 Market Context Prompt Guardrail
 GOAL: Make the selected audit market explicit in every newly approved ordinary prompt without changing frozen approvals, provider adapters, or market-neutral protocols.
 DONE: P0–P3 completed on an isolated `m55` worktree: D-125 governance; exact `market-context.v1` pure renderer/scanner; ordinary generation/add/regeneration coverage; archived-inclusive copied-draft upgrade; action and repository approval backstops; unrestricted draft editing; representation and legacy-approved-run compatibility.
 VERIFIED: Focused pure/action 42/42 and DB 29/29; lint `--max-warnings 0`; typecheck; docs:check (26); full Vitest 909 passed / 12 skipped / 0 failed; production build; Playwright 18/18; disposable-DB mock worker e2e 6/6 with 500/500 jobs and 500 distinct responses. The initial build failure was sandbox-only Google Fonts DNS and passed unchanged with network access; the initial mock-e2e failure was sandbox-only local IPC and passed unchanged outside it. No live provider call, migration, schema, provider, worker, extraction, metric, report, or brand-site path changed.
