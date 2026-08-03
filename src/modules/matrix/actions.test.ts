@@ -1,10 +1,10 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
-import { INTENT_ORDER } from "@/core/matrix";
+import { hasMarketContextPrompt, INTENT_ORDER } from "@/core/matrix";
 import { db, pool } from "@/db/client";
-import { approveVersion, createDraftVersion } from "@/db/repositories/matrix";
+import { approveVersion, copyToNewDraft, createDraftVersion, getMatrixInputs } from "@/db/repositories/matrix";
 import { forceDeleteMatrixVersions } from "@/db/repositories/matrix.test-helpers";
-import { promptCells, projects } from "@/db/schema";
+import { markets, matrixVersions, promptCells, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 // M3 acceptance (guidelines F): direct API attempt at 51 cells; approval
@@ -27,12 +27,16 @@ try {
 }
 
 const createdVersionIds: string[] = [];
+const createdMarketIds: string[] = [];
 const VALID_ID = "00000000-0000-4000-8000-000000000000";
 
 afterAll(async () => {
   if (createdVersionIds.length > 0) {
     // Bypasses the C-4 freeze trigger (D-081); see budget.test.ts's comment.
     await forceDeleteMatrixVersions(createdVersionIds);
+  }
+  for (const marketId of createdMarketIds) {
+    await db.delete(markets).where(eq(markets.id, marketId));
   }
   await pool.end().catch(() => {});
 });
@@ -305,6 +309,45 @@ describe.skipIf(!dbUp || !demoProjectId)(
       });
 
       await expect(approveVersion(projectId, draft.id)).rejects.toThrow(/cap exceeded/i);
+    }, 60_000);
+
+    it("rejects direct unguarded approval and upgrades a copied legacy draft with archived-inclusive labels", async () => {
+      const projectId = demoProjectId as string;
+      const inputs = await getMatrixInputs(projectId);
+      if (!inputs || inputs.personas.length === 0) throw new Error("Demo matrix inputs unavailable");
+      const [archivedMarket] = await db.insert(markets).values({
+        projectId,
+        name: "Original M55 Market",
+        priority: 999,
+        archivedAt: new Date(),
+      }).returning({ id: markets.id });
+      createdMarketIds.push(archivedMarket.id);
+      await db.update(markets).set({ name: "Renamed Archived M55 Market" }).where(eq(markets.id, archivedMarket.id));
+
+      const source = await createDraftVersion(projectId, [{
+        intent: "validation",
+        personaId: inputs.personas[0]!.id,
+        marketId: archivedMarket.id,
+        variantKey: "legacy-v1",
+        resolvedText: "Would you recommend LedgerFox?",
+        competitorOrder: [],
+        brandOrder: [],
+      }]);
+      createdVersionIds.push(source.id);
+
+      await expect(approveVersion(projectId, source.id)).rejects.toThrow(
+        /Market context violation.*market-context\.v1.*Renamed Archived M55 Market/i,
+      );
+
+      await db.update(matrixVersions).set({ state: "approved", approvedAt: new Date() }).where(eq(matrixVersions.id, source.id));
+      const copied = await copyToNewDraft(projectId, source.id);
+      createdVersionIds.push(copied.id);
+
+      const [sourceCell] = await db.select({ resolvedText: promptCells.resolvedText }).from(promptCells).where(eq(promptCells.matrixVersionId, source.id));
+      const [copiedCell] = await db.select({ resolvedText: promptCells.resolvedText }).from(promptCells).where(eq(promptCells.matrixVersionId, copied.id));
+      expect(sourceCell.resolvedText).toBe("Would you recommend LedgerFox?");
+      expect(hasMarketContextPrompt(copiedCell.resolvedText, "Renamed Archived M55 Market")).toBe(true);
+      await expect(approveVersion(projectId, copied.id)).resolves.toBeUndefined();
     }, 60_000);
   },
 );

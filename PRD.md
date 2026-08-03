@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M54 Collecting responses · TRACKER: M54_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M55 market-context prompt guardrail · TRACKER: M55_BUILD_PLAN.md
 
 # PRD.md - Resonance MVP
 
-> **STATUS: M54 (D-124) IN PROGRESS ON `m54`.** Collecting responses Overview substance trace (§8.42). Audit measurement semantics, metric formulas, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M55 (D-125) DONE ON `m55` (2026-08-02).** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44–M46 plans are in `docs/history/`.
 
@@ -574,6 +574,18 @@ M54 deepens the Run Overview activity narrative. No migration; poll transport un
 
 Execution playbook: `M54_BUILD_PLAN.md`. No migration.
 
+### 8.43 Market Context Prompt Guardrail (M55, D-125)
+
+M55 makes market scope model-visible and auditable for every newly approved ordinary audit cell.
+
+- `market-context.v1` prefixes the exact resolved prompt with the selected market, market-specific answer dimensions, an instruction not to substitute IP/location-derived context, and an explicit uncertainty fallback.
+- The same full block applies even when the question body already names the market.
+- Generation, add-cell, regeneration, and copied-draft upgrade use one pure renderer. Manual edits remain unrestricted until approval.
+- Action and repository approval boundaries reject an ordinary audit cell with no market id, an unknown market, or a missing/altered current-market block.
+- Representation and Message Lift prompts stay market-neutral. Existing approved matrices remain frozen and runnable (C-4).
+
+Execution playbook: `M55_BUILD_PLAN.md`. No migration or provider-specific change.
+
 ## 9. Data model summary
 
 `projects`, `brands`, `fact_claims`, `attributes`, `personas`, `markets`, `prompt_templates`, `matrix_versions`, `prompt_cells`, `audit_runs`, `jobs`, `responses`, `extractions`, `brand_mentions`, `claims_found`, `provider_credentials`, `metrics`, `findings`, `report_sections`, `run_events`; from M17: `resonance_studies`, `resonance_stimuli` (migration 0008, which also adds the `simulation` value to the `intent` enum, `matrix_versions.kind`, `matrix_versions.resonance_study_id`, `prompt_cells.stimulus_id`, and `prompt_cells.panel_persona_key`; `prompt_cells.persona_id`/`market_id` are already nullable — D-066). From M34A (D-099/D-102): `framing_studies`, `framing_response_reviews`, `framing_annotations`, `framing_gap_classifications`, `framing_evidence_snapshots`, plus `resonance_stimuli.framing_evidence_snapshot_id` and the `representation` value on the `intent` enum (migration 0013 enum-only, then 0014 structure, then 0015 assurance — the last adding the append-only snapshot trigger and the approved-study stimulus-freeze trigger; digests use canonical sorted-key JSON with dual-verification backward compat per D-104).
@@ -644,11 +656,14 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | Done on `m50` (pending merge) |
 | M51 | Operator UI honesty and remediation (D-121) | Evidence gates; informed confirms; guided empty/success states; fresh findings and advisory delivery; scoped dead-letter recovery; shared mode stamps; full baseline access; truthful calibration copy; no migration | Done on `m51-ui-ux-roadmap` — ready for PR after M50 |
 | M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `m52` — ready for PR after M50/M51 |
-| M54 | Collecting responses Overview substance trace (D-124) | Overview Collecting responses lanes (ask / collect / read-or-score); `liveActivity` on run detail; plain-language status; no SSE/migration | In progress on `m54` |
+| M54 | Collecting responses Overview substance trace (D-124) | Overview Collecting responses lanes (ask / collect / read-or-score); `liveActivity` on run detail; plain-language status; no SSE/migration | Done on `main` via GitHub PR #15 |
+| M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `m55` — ready for review/PR |
 
 Progress notes:
 
-- 2026-08-02 M54 P0 governance (D-124): branch `m54` cut from `main@b49b645`; D-124; `M54_BUILD_PLAN.md`; STATUS/PRD §8.42/index retargeted. No migration.
+- 2026-08-02 M54 P0 governance (D-124): branch `m54` cut from `main@b49b645`; D-124; `M54_BUILD_PLAN.md`; STATUS/PRD §8.42/index retargeted. No migration. Implementation merged to `main` via GitHub PR #15.
+- 2026-08-02 M55 Done (D-125, no migration): exact `market-context.v1` ordinary-prompt rendering; missing/unknown/altered approval rejection at action and repository boundaries; archived-inclusive copied-draft upgrade; representation isolation and legacy-approved run compatibility. Gates: focused 42 + DB 29, lint, typecheck, docs:check (26), Vitest 909/12, build, Playwright 18/18, mock worker e2e 6/6. Evidence: BUILD_NOTES S-128.
+- 2026-08-02 M55 P0 governance (D-125, no migration): branch `m55` cut from `main@b49b645`; canonical `market-context.v1` behavior, approval boundaries, copied-draft upgrade, representation exemption, and legacy-approved compatibility frozen in §8.43 and `M55_BUILD_PLAN.md`. D-125 avoids the D-123/M53 and D-124/M54 parallel-branch assignments.
 - 2026-07-31 M52 Done (D-122, no migration): Overview + Diagnostics (+ audit Metrics); `events`/`extraction` URL aliases; Overview recent-activity strip; simulation Diagnostics events-only. Gates: lint `--max-warnings 0`, typecheck, docs:check (25), Vitest 901/12, build, e2e 18/18 + forecast 4/4. Evidence: BUILD_NOTES S-123.
 - 2026-07-31 M52 P0 governance (D-122): branch `m52` cut from `m51-ui-ux-roadmap@b34b164`; D-122 supersedes D-088 Run overview/events/extraction/metrics tab wording; `M52_BUILD_PLAN.md` created; STATUS/PRD §8.40/index retargeted. No migration.
 - 2026-07-31 M51 Done (D-121, no migration; implementation `ecec3e7`): completed the six-phase UI roadmap, then fixed representative prompt coverage, neutral findings-module ownership and direct-report freshness, per-source dirty preservation, off-page saved baseline restoration, failure-safe synchronous re-extraction, projection-unavailable confirmation detail, active RunModeStamp adoption, behavioral calibration coverage, and an axe-discovered advisory contrast defect. Gates: lint, typecheck, docs, Vitest 900/12, build, e2e 18/18, forecast e2e 4/4. Evidence: BUILD_NOTES S-122.

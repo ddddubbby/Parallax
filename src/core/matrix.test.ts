@@ -9,13 +9,18 @@ import {
   competitorOrderFromBrandOrder,
   findBrandTerms,
   findBusinessVoicePhrases,
+  hasMarketContextPrompt,
   intentQuotas,
+  MARKET_CONTEXT_PROTOCOL_VERSION,
+  marketContextPrefix,
   type MatrixContext,
   nextBalancedBrandOrder,
   renderTemplate,
+  renderMarketContextPrompt,
   renderRepresentationTemplate,
   rotateBrandOrder,
   scanUnbrandedCells,
+  scanMarketContextCells,
   shuffle,
   trackedBrandRoster,
   type TemplateInput,
@@ -102,6 +107,11 @@ describe("allocateMatrix", () => {
     expect(byIntent.validation).toHaveLength(8);
     expect(byIntent.objection).toHaveLength(6);
     expect(byIntent.discovery).toHaveLength(4);
+    for (const cell of cells) {
+      const market = markets(2).find((candidate) => candidate.id === cell.marketId);
+      expect(market).toBeDefined();
+      expect(hasMarketContextPrompt(cell.resolvedText, market!.name)).toBe(true);
+    }
   });
 
   it("never duplicates a combo (PM-11)", () => {
@@ -237,6 +247,14 @@ describe("allocateMatrix", () => {
 });
 
 describe("renderTemplate (PM-1)", () => {
+  it("renders the exact market-context.v1 block", () => {
+    expect(MARKET_CONTEXT_PROTOCOL_VERSION).toBe("market-context.v1");
+    expect(marketContextPrefix("Singapore")).toBe(
+      "Market context: Singapore\n\n" +
+        "Answer specifically for this market. Where relevant, use market-specific availability, pricing, regulations, cultural norms, brands, and buyer behavior. Do not infer or substitute a market based on IP address or other location signals. If reliable market-specific information is unavailable, state the uncertainty rather than assuming another market.",
+    );
+  });
+
   it("resolves every placeholder including brand_list", () => {
     const text = renderTemplate(
       "{persona} / {market} / {category} / {job_to_be_done} / {client_brand} / {brand_list} / {competitor_list} / {attribute_list}",
@@ -249,7 +267,8 @@ describe("renderTemplate (PM-1)", () => {
       },
     );
     expect(text).toBe(
-      "VP Finance / US / spend management / reduce manual reconciliation / LedgerFox / B, LedgerFox, A / A, B / easy implementation, mid-market fit",
+      `${marketContextPrefix("US")}\n\n` +
+        "VP Finance / US / spend management / reduce manual reconciliation / LedgerFox / B, LedgerFox, A / A, B / easy implementation, mid-market fit",
     );
   });
 
@@ -261,7 +280,48 @@ describe("renderTemplate (PM-1)", () => {
       competitorOrder: [],
       brandOrder: [],
     });
-    expect(text).toBe("VP wants {unknown_thing}");
+    expect(text).toBe(`${marketContextPrefix("US")}\n\nVP wants {unknown_thing}`);
+  });
+
+  it("distinguishes markets even when the question template has no market placeholder", () => {
+    const input = {
+      persona: { id: "p", title: "VP" },
+      ctx: CTX,
+      competitorOrder: [] as string[],
+      brandOrder: [] as string[],
+    };
+    const singapore = renderTemplate("Would you recommend {client_brand}?", {
+      ...input,
+      market: { id: "sg", name: "Singapore" },
+    });
+    const unitedStates = renderTemplate("Would you recommend {client_brand}?", {
+      ...input,
+      market: { id: "us", name: "United States" },
+    });
+    expect(singapore).not.toBe(unitedStates);
+    expect(hasMarketContextPrompt(singapore, "Singapore")).toBe(true);
+    expect(hasMarketContextPrompt(unitedStates, "United States")).toBe(true);
+  });
+
+  it("replaces a recognized old market block without duplicating it", () => {
+    const old = renderMarketContextPrompt("Would you recommend LedgerFox?", "United States");
+    const updated = renderMarketContextPrompt(old, "Singapore");
+    expect(updated).toBe(`${marketContextPrefix("Singapore")}\n\nWould you recommend LedgerFox?`);
+    expect(updated).not.toContain("Market context: United States");
+  });
+
+  it("scans missing, unknown, and altered market context while exempting representation", () => {
+    const cells = [
+      { id: "a", intent: "discovery", marketId: null, variantKey: "v1", resolvedText: "Question" },
+      { id: "b", intent: "validation", marketId: "outside", variantKey: "v2", resolvedText: "Question" },
+      { id: "c", intent: "objection", marketId: "sg", variantKey: "v3", resolvedText: "Question" },
+      { id: "d", intent: "representation", marketId: null, variantKey: "a1", resolvedText: "What is LedgerFox?" },
+    ];
+    expect(scanMarketContextCells(cells, [{ id: "sg", name: "Singapore" }])).toEqual([
+      expect.objectContaining({ cellId: "a", reason: "missing_market" }),
+      expect.objectContaining({ cellId: "b", reason: "unknown_market" }),
+      expect.objectContaining({ cellId: "c", reason: "invalid_context", marketName: "Singapore" }),
+    ]);
   });
 });
 

@@ -28,6 +28,14 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-129 / 2026-08-03 / M55 GitHub conflict-resolution handoff
+
+GOAL: Reconcile M55 with the latest GitHub `main` after M54 merged via PR #15, then leave PR #16 conflict-free.
+DONE: Fetched `origin/main@8446333`; merged it into `m55`; retained D-124/M54 and D-125/M55 in canonical order; kept M55 as the active branch status; renumbered the colliding M55 note to S-128. No source conflicts remained. Verified docs:check (27 governed root docs), typecheck, lint zero-warning, Vitest 915 passed / 12 skipped, production build, and Playwright 18/18. Created merge commit `21b8056`.
+UNVERIFIED: GitHub push is blocked by local authentication: the configured osxkeychain has no GitHub credential and SSH has no accepted public key. PR #16 consequently still points at remote head `301bfab` and reports `mergeable=false`, `mergeable_state=dirty`.
+NEXT: Authenticate GitHub, run `git -C /private/tmp/Parallax-m55 push origin m55`, then refresh PR #16 and confirm `mergeable_state=clean`.
+GOTCHAS: The shared `/Users/tapp/Documents/Parallax` worktree remains on unrelated `m54` site WIP; use the isolated M55 worktree for the push.
+
 ## S-127 / 2026-08-02 / M54 Collecting responses (D-124)
 
 GOAL: Overview substance trace proving collection — plain-language Asking now / Just collected / Reading answers.
@@ -267,3 +275,10 @@ DONE: Audited every tracked and untracked change against D-119 and the M49 plan;
 VERIFIED: `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` (22 governed docs), `pnpm test` (117 files, 869 passed / 12 skipped), `pnpm build`, and `pnpm test:e2e` (18/18) all pass. The Playwright suite covers both M49 result semantics and the exact-prompt/fixed-settings buyer-response path.
 NEXT: Review and merge the M49 pull request into `main`; archive `M49_BUILD_PLAN.md` and prune M49 session notes in the merge ritual, not on this feature branch.
 GOTCHAS: The two Marriott live-audit runs remain intentionally paused. This consolidation does not authorize resuming provider spend or deploying Render production.
+
+## S-128 / 2026-08-02 / M55 Market Context Prompt Guardrail
+GOAL: Make the selected audit market explicit in every newly approved ordinary prompt without changing frozen approvals, provider adapters, or market-neutral protocols.
+DONE: P0–P3 completed on an isolated `m55` worktree: D-125 governance; exact `market-context.v1` pure renderer/scanner; ordinary generation/add/regeneration coverage; archived-inclusive copied-draft upgrade; action and repository approval backstops; unrestricted draft editing; representation and legacy-approved-run compatibility.
+VERIFIED: Focused pure/action 42/42 and DB 29/29; lint `--max-warnings 0`; typecheck; docs:check (26); full Vitest 909 passed / 12 skipped / 0 failed; production build; Playwright 18/18; disposable-DB mock worker e2e 6/6 with 500/500 jobs and 500 distinct responses. The initial build failure was sandbox-only Google Fonts DNS and passed unchanged with network access; the initial mock-e2e failure was sandbox-only local IPC and passed unchanged outside it. No live provider call, migration, schema, provider, worker, extraction, metric, report, or brand-site path changed.
+NEXT: Review and merge `m55` to `main`; resolve parallel M53/M54 governance additions without renumbering D-125/M55.
+GOTCHAS: A concurrent M54 task switched the shared worktree during implementation, so M55 continues in `/private/tmp/Parallax-m55`. D-125 is deliberate because parallel M53/M54 already own D-123/D-124.
