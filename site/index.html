@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260830f">
+<link rel="stylesheet" href="styles.css?v=20260830g">
 <script>document.documentElement.className = "js";</script>
 </head>
 <body>
@@ -103,7 +103,7 @@
 
           <p class="report-panel-section">01 &middot; Presence</p>
           <p class="panel-stat"><span>Mention rate</span><strong>94.9%</strong><small>Wilson 95% CI 89.3&ndash;97.7</small></p>
-          <ul class="bar-chart panel-bars">
+          <ul class="bar-chart">
             <li style="--d:0"><span>DJI</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:100%"></span></span><strong>33.2%</strong></li>
             <li style="--d:1"><span>Go Pro</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:98%"></span></span><strong>32.7%</strong></li>
             <li style="--d:2"><span>Insta 360</span><span class="bar-track"><span class="bar-fill client" style="--value:95%"></span></span><strong>31.5%</strong></li>
@@ -117,10 +117,18 @@
             <span class="negative" style="--value:0.8%"></span>
           </div>
 
-          <p class="report-panel-section">Message Lift <span class="stamp sim">Simulated</span><span class="stamp">Directional</span></p>
-          <p class="panel-message">&ldquo;New product with Leica certified lens and Leica designed filters&rdquo;</p>
-          <p class="panel-lift"><span>Current <strong>3.65</strong></span><span aria-hidden="true">&rarr;</span><span>New <strong>3.35</strong></span><em>&minus;0.31</em></p>
-          <p class="panel-lift-note">n=5 per message, directional. On this evidence the candidate does not earn a launch.</p>
+          <p class="report-panel-section">Message Lift <span>two framings, one partnership</span><span class="stamp sim">Simulated</span><span class="stamp">Directional</span></p>
+          <ul class="panel-lift-list">
+            <li>
+              <p class="panel-lift-msg">&ldquo;&hellip;collaborating with Leica to enhance image and video quality&rdquo;</p>
+              <p class="panel-lift-row"><span class="panel-lift-meta">9 Jul &middot; OpenAI + DeepSeek &middot; n=5</span><em class="is-up">+0.15 to +0.57</em></p>
+            </li>
+            <li>
+              <p class="panel-lift-msg">&ldquo;New product with Leica certified lens and Leica designed filters&rdquo;</p>
+              <p class="panel-lift-row"><span class="panel-lift-meta">19 Jul &middot; OpenAI &middot; n=5</span><em class="is-down">&minus;0.31</em></p>
+            </li>
+          </ul>
+          <p class="panel-lift-note">Two separate studies against different baselines, not a head-to-head test. One framing of the partnership moved expressed intent. The other did not.</p>
 
           <p class="report-panel-foot">Self-initiated study, not client work. Every figure traces to a stored answer. <a class="tlink" href="/studies">See the full study &rarr;</a></p>
         </figure>
@@ -516,6 +524,6 @@
   </section>
 </main>
 
-<script src="motion.js?v=20260830f"></script>
+<script src="motion.js?v=20260830g"></script>
 </body>
 </html>
