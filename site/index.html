@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260830b">
+<link rel="stylesheet" href="styles.css?v=20260830d">
 <script>document.documentElement.className = "js";</script>
 </head>
 <body>
@@ -74,8 +74,8 @@
         </div>
       </div>
 
-      <div class="hero-visual" data-reveal style="--i:1" aria-hidden="true">
-        <div class="hero-motif">
+      <div class="hero-visual" data-reveal style="--i:1">
+        <div class="hero-motif" aria-hidden="true">
           <svg class="hero-cone" viewBox="0 0 512 512">
             <circle cx="256" cy="252" r="150" fill="none" stroke="rgba(240,238,228,.22)" stroke-width="3"/>
             <g transform="rotate(-14 256 256)">
@@ -92,6 +92,23 @@
             <path d="M40 84h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
           </svg>
         </div>
+
+        <figure class="report-panel">
+          <figcaption class="report-panel-head">
+            <span class="mono">Resonance &middot; Brand audit</span>
+            <span class="stamp">Real study excerpt</span>
+          </figcaption>
+          <p class="report-panel-title">Insta360</p>
+          <p class="report-panel-meta">11 Jul 2026 &middot; n=25 &middot; DeepSeek &middot; ungrounded</p>
+          <p class="report-panel-section">03 &middot; Perception</p>
+          <ul class="bar-chart">
+            <li style="--d:0"><span>Capture everything, frame later</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:80%"></span></span><strong>20/25</strong></li>
+            <li style="--d:1"><span>Creator and adventure identity</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:76%"></span></span><strong>19/25</strong></li>
+            <li style="--d:2"><span>Category leader, unsupported</span><span class="bar-track"><span class="bar-fill client" style="--value:52%"></span></span><strong>13/25</strong></li>
+            <li style="--d:3"><span>Direct-to-share, missing</span><span class="bar-track"><span class="bar-fill client" style="--value:0%"></span></span><strong>0/25</strong></li>
+          </ul>
+          <p class="report-panel-foot">Every figure traces to a stored answer. <a class="tlink" href="/studies">See the full study &rarr;</a></p>
+        </figure>
       </div>
 
       <aside class="hero-stats" data-reveal style="--i:4" aria-label="Why the AI channel matters now">
@@ -117,8 +134,8 @@
   <section id="workflow" aria-labelledby="workflow-h">
     <div class="wrap">
       <span class="label" data-reveal>01 / How it works</span>
-      <h2 id="workflow-h" data-reveal style="--i:1">Four questions. One instrument.</h2>
-      <p class="lead" data-reveal style="--i:2">Every engagement answers them in order, and every answer arrives labeled, with sample sizes shown.</p>
+      <h2 id="workflow-h" data-reveal style="--i:1">As our client, you will always know where you stand.</h2>
+      <p class="lead" data-reveal style="--i:2">Every engagement answers the same four questions, in order. You get each answer labeled, with the sample size shown, so you can see how much weight it carries.</p>
       <ol class="workflow-timeline" data-reveal style="--i:3" aria-label="Resonance engagement sequence">
         <li class="workflow-step" style="--step:0">
           <span class="timeline-node" aria-hidden="true">01</span>
@@ -160,7 +177,7 @@
   <section id="metrics" class="metrics-section" aria-labelledby="metrics-h">
     <div class="wrap">
       <span class="label" data-reveal>02 / What we measure</span>
-      <h2 id="metrics-h" data-reveal style="--i:1">Four questions every audit answers.</h2>
+      <h2 id="metrics-h" data-reveal style="--i:1">What we measure, and what each number means.</h2>
       <p class="lead" data-reveal style="--i:2">The metric names matter less than the decisions behind them. Each pillar answers one question a brand team can act on.</p>
       <div class="pillar-grid" data-reveal style="--i:3">
         <article class="pillar-card">
@@ -169,9 +186,15 @@
           <h3>Am I in AI&rsquo;s consideration set?</h3>
           <p>We ask open, unbranded category questions and measure whether AI volunteers your brand.</p>
           <div class="pillar-example">
-            <p>Of 180 unbranded answers collected, your brand appears in 43. Mention Rate 24%.</p>
-            <span class="mini-meter" aria-hidden="true"><b style="--value:24%"></b></span>
-            <div class="stamps"><span class="stamp sample">Illustrative example</span></div>
+            <p>Share of voice across 180 unbranded answers: of every brand AI named, yours took 24%.</p>
+            <ul class="bar-chart">
+              <li style="--d:0"><span>Your brand</span><span class="bar-track"><span class="bar-fill client" style="--value:24%"></span></span><strong>24%</strong></li>
+              <li style="--d:1"><span>Rival A</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:31%"></span></span><strong>31%</strong></li>
+              <li style="--d:2"><span>Rival B</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:22%"></span></span><strong>22%</strong></li>
+              <li style="--d:3"><span>Rival C</span><span class="bar-track"><span class="bar-fill ink-4" style="--value:15%"></span></span><strong>15%</strong></li>
+              <li style="--d:4"><span>Others</span><span class="bar-track"><span class="bar-fill ink-5" style="--value:8%"></span></span><strong>8%</strong></li>
+            </ul>
+            <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=180</span></div>
           </div>
           <ul class="pillar-metrics" aria-label="Presence metrics">
             <li>Mention Rate</li>
@@ -185,9 +208,13 @@
           <h3>When compared, do I win?</h3>
           <p>We compare you with named competitors and measure which brand AI recommends.</p>
           <div class="pillar-example">
-            <p>Asked to choose among you and two named rivals 60 times, AI recommends you 21 times. Comparative Win Rate 35%.</p>
-            <span class="mini-meter" aria-hidden="true"><b style="--value:35%"></b></span>
-            <div class="stamps"><span class="stamp sample">Illustrative example</span></div>
+            <p>Asked to choose between you and each rival 60 times, this is how often AI picks you.</p>
+            <ul class="bar-chart">
+              <li style="--d:0"><span>vs Rival A</span><span class="bar-track"><span class="bar-fill client" style="--value:35%"></span></span><strong>35%</strong></li>
+              <li style="--d:1"><span>vs Rival B</span><span class="bar-track"><span class="bar-fill client" style="--value:48%"></span></span><strong>48%</strong></li>
+              <li style="--d:2"><span>vs Rival C</span><span class="bar-track"><span class="bar-fill client" style="--value:27%"></span></span><strong>27%</strong></li>
+            </ul>
+            <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=60 each</span></div>
           </div>
           <ul class="pillar-metrics" aria-label="Position metrics">
             <li>Organic Recommendation Rate</li>
@@ -200,8 +227,13 @@
           <h3>How does AI describe my brand?</h3>
           <p>We examine the qualities, sentiment, and objections AI attaches to your brand.</p>
           <div class="pillar-example">
-            <p>In our Insta360 study, the brand&rsquo;s newest story appeared in 0 of 25 stored answers. A descriptive count, not an estimate.</p>
-            <span class="dot-matrix" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <p>Nine associations were coded from 25 stored answers. These four carry the decisions.</p>
+            <ul class="bar-chart">
+              <li style="--d:0"><span>Capture everything</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:80%"></span></span><strong>20/25</strong></li>
+              <li style="--d:1"><span>Third-person shots</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:72%"></span></span><strong>18/25</strong></li>
+              <li style="--d:2"><span>Leader, unsupported</span><span class="bar-track"><span class="bar-fill client" style="--value:52%"></span></span><strong>13/25</strong></li>
+              <li style="--d:3"><span>Newest story, missing</span><span class="bar-track"><span class="bar-fill client" style="--value:0%"></span></span><strong>0/25</strong></li>
+            </ul>
             <div class="stamps"><span class="stamp">Measured</span><span class="stamp">Insta360 &middot; n=25</span></div>
           </div>
           <ul class="pillar-metrics" aria-label="Perception metrics">
@@ -215,9 +247,18 @@
           <h3>Is the story true and sourced?</h3>
           <p>We check factual claims against the brand fact sheet and trace citations to their sources.</p>
           <div class="pillar-example">
-            <p>In the same study, 13 of 25 answers carried a leadership claim the brand&rsquo;s public materials do not substantiate.</p>
-            <span class="dot-matrix is-proof" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
-            <div class="stamps"><span class="stamp">Measured</span><span class="stamp">Insta360 &middot; n=25</span></div>
+            <p>Every checkable claim AI makes about you is matched against your fact sheet.</p>
+            <div class="sentiment-bar claims-bar" role="img" aria-label="Claim check: 76% supported, 16% unsupported, 8% contradicted">
+              <span class="positive" style="--value:76%">76%</span>
+              <span class="neutral" style="--value:16%">16%</span>
+              <span class="negative" style="--value:8%">8%</span>
+            </div>
+            <dl class="sentiment-key">
+              <div><dt>Supported</dt><dd>76%</dd></div>
+              <div><dt>Unsupported</dt><dd>16%</dd></div>
+              <div><dt>Contradicted</dt><dd>8%</dd></div>
+            </dl>
+            <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=145 claims</span></div>
           </div>
           <ul class="pillar-metrics" aria-label="Proof metrics">
             <li>Accuracy Rate</li>
@@ -460,6 +501,6 @@
   </section>
 </main>
 
-<script src="motion.js?v=20260830b"></script>
+<script src="motion.js?v=20260830d"></script>
 </body>
 </html>

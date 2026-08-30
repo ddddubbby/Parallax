@@ -210,10 +210,32 @@ p { max-width: 68ch; text-wrap: pretty; }
 .hero-copy h1 { max-width: 20ch; font-size: clamp(2.6rem, 5vw, 5rem); }
 .hero-benefit { margin-top: 26px; max-width: 47ch; color: var(--fog-bright); font-size: clamp(1.12rem, 2vw, 1.45rem); line-height: 1.45; }
 .hero-visual { position: relative; min-height: 460px; display: grid; place-items: center; }
-.hero-motif { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.hero-motif { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: .2; }
 .hero-cone { width: clamp(220px, 26vw, 330px); filter: drop-shadow(0 26px 54px rgba(241,90,36,.20)); }
 .hero-wave { opacity: .5; }
 .hero-wave { position: absolute; bottom: 4%; width: 100%; color: var(--fog); }
+
+/* hero report panel: the client deliverable, cream on stage (DESIGN_GUIDELINES §6 -
+   the workbench is always paper; ink is app chrome only). Real Insta360 figures only. */
+.report-panel {
+  position: relative; z-index: 1; width: 100%; max-width: 460px; margin: 0;
+  padding: 20px 22px 18px; border: 1px solid var(--ink-20); border-radius: 12px;
+  background: var(--paper); color: var(--ink);
+  box-shadow: 0 26px 60px rgba(0,0,0,.45);
+}
+.report-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.report-panel-head .mono { color: var(--ink-60); font-size: .66rem; }
+.report-panel-head .stamp { color: var(--accent-ink); font-size: .6rem; padding: 4px 6px; }
+.report-panel-title { margin-top: 16px; font: 700 1.5rem/1 var(--font-display); letter-spacing: -.02em; }
+.report-panel-meta { margin-top: 7px; color: var(--ink-60); font: 400 .66rem/1.4 var(--font-mono); }
+.report-panel-section {
+  margin-top: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--hairline);
+  color: var(--ink-60); font: 500 .66rem/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+}
+.report-panel .bar-chart { margin-top: 16px; gap: 10px; }
+.report-panel .bar-chart li { grid-template-columns: minmax(0,1.15fr) minmax(56px,.85fr) 46px; gap: 10px; font-size: .72rem; }
+.report-panel-foot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hairline); max-width: none; color: var(--ink-60); font: 400 .68rem/1.5 var(--font-mono); }
+.report-panel-foot .tlink { font-size: .68rem; }
 
 /* hero stat strip (named third-party sources; claims law 5.1) */
 .hero-stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: clamp(20px, 4vh, 44px); background: rgba(240,238,228,.16); border: 1px solid rgba(240,238,228,.16); }
@@ -373,11 +395,13 @@ p { max-width: 68ch; text-wrap: pretty; }
 .pillar-example > p { max-width: none; color: var(--ink-80); font: 400 .78rem/1.55 var(--font-mono); overflow-wrap: break-word; }
 .pillar-example .stamps { margin-top: 10px; }
 .pillar-example .stamp { font-size: .6rem; padding: 4px 6px; }
-.mini-meter { display: block; height: 8px; margin-top: 12px; background: var(--ink-20); }
-.mini-meter b { display: block; height: 100%; width: var(--value); background: var(--accent); transform-origin: left center; }
-.dot-matrix { display: grid; grid-template-columns: repeat(5, 10px); gap: 4px; margin-top: 12px; width: max-content; }
-.dot-matrix i { width: 10px; height: 10px; border: 1px solid var(--ink-40); }
-.dot-matrix i.on { background: var(--accent); border-color: var(--accent); }
+.pillar-example .bar-chart { margin-top: 14px; gap: 9px; }
+.pillar-example .bar-chart li { grid-template-columns: minmax(0,.95fr) minmax(52px,1fr) 40px; gap: 9px; font-size: .7rem; }
+.pillar-example .sentiment-bar { min-height: 34px; margin-top: 14px; font-size: .62rem; line-height: 34px; }
+.claims-bar .neutral { background: var(--warn); }
+.pillar-example .sentiment-key { margin-top: 14px; gap: 8px; }
+.pillar-example .sentiment-key dt { font-size: .62rem; }
+.pillar-example .sentiment-key dd { font-size: .74rem; }
 .pillar-meta { display: flex; align-items: center; gap: 12px; font: 500 .75rem/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .pillar-meta span { color: var(--accent-ink); }
 .pillar-meta strong { color: var(--ink-60); font-weight: 500; }
@@ -389,9 +413,13 @@ p { max-width: 68ch; text-wrap: pretty; }
 .confidence-rail span { color: var(--fog); font: 500 .75rem/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .confidence-rail strong { max-width: 48ch; font: 500 1.18rem/1.4 var(--font-display); letter-spacing: -.015em; }
 
+.js .hero-visual .bar-fill { transform: scaleX(0); }
+.js .hero-visual.in .bar-fill { transform: scaleX(1); transition: transform 420ms var(--ease-silk); transition-delay: calc(var(--d,0) * 45ms); }
+
+.js .pillar-grid .bar-fill { transform: scaleX(0); }
+.js .pillar-grid.in .bar-fill { transform: scaleX(1); transition: transform 420ms var(--ease-silk); transition-delay: calc(var(--d,0) * 45ms); }
+
 /* pillar example meters animate on reveal */
-.js .pillar-grid .mini-meter b { transform: scaleX(0); }
-.js .pillar-grid.in .mini-meter b { transform: scaleX(1); transition: transform 420ms var(--ease-silk) 160ms; }
 
 /* independent studies */
 .case-stage { border-top: 1px solid rgba(240,238,228,.12); }
@@ -544,7 +572,7 @@ p { max-width: 68ch; text-wrap: pretty; }
   .hero { padding-top: 112px; padding-bottom: 76px; }
   .hero-grid { grid-template-columns: 1fr; }
   .hero-copy h1 { max-width: 11ch; }
-  .hero-visual { min-height: 300px; }
+  .hero-visual { min-height: 0; }
   .blind-spot-rail { grid-template-columns: 1fr 1fr; }
   .blind-spot-rail li:nth-child(3) { border-left: 0; }
   .blind-spot-rail li:nth-child(n+3) { border-top: 1px solid var(--ink); }
@@ -565,7 +593,7 @@ p { max-width: 68ch; text-wrap: pretty; }
   h2 { font-size: clamp(2.3rem, 10vw, 3.5rem); }
   .nav .brand span { display: none; }
   .hero { padding-top: 104px; }
-  .hero-visual { min-height: 240px; }
+  .hero-visual { min-height: 0; }
   .hero-cone { width: clamp(150px, 46vw, 210px); }
   .attribution-scene { padding-inline: 16px; }
   .scene-head { flex-direction: column; }
@@ -630,7 +658,7 @@ p { max-width: 68ch; text-wrap: pretty; }
   .js .workflow-timeline::after, .js .workflow-timeline .workflow-step { opacity: 1 !important; transform: none !important; }
   .js .chart-panel .bar-fill { transform: none !important; }
   .js .assoc-chart .assoc-fill { transform: none !important; }
-  .js .pillar-grid .mini-meter b { transform: none !important; }
+  .js .hero-visual .bar-fill, .js .pillar-grid .bar-fill { transform: none !important; }
 }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
