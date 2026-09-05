@@ -2,7 +2,7 @@
 
 # BUILD_NOTES.md - Session Working Memory
 
-> Disposable mid-milestone state for agent handoff. This file answers "what was the last session doing?" — nothing else. Durable facts do not live here: decisions go to the `MASTER_CONTEXT.md` Decision Log, status goes to the `PRD.md` tracker, schema/contract facts go to the spec docs.
+> Disposable mid-milestone state for agent handoff. This file answers "what was the last session doing?" — nothing else. Durable facts do not live here: decisions go to `DECISIONS.md` (the Decision Log, D-107), status goes to the `PRD.md` tracker, schema/contract facts go to the spec docs.
 
 ## Rules
 
@@ -22,7 +22,7 @@ NEXT: <the exact first action for the next session — command or file-level>
 GOTCHAS: <environment quirks, surprising behavior, anything that cost >10 minutes>
 ```
 
-Session numbers increment forever and never reset; omit empty fields except NEXT, which is mandatory.
+Session numbers increment forever and never reset; omit empty fields except NEXT, which is mandatory. Parallel branches may collide on S-numbers: on merge keep both entries, never renumber history, and the next entry takes the highest number on either side plus one (D-126).
 
 ---
 

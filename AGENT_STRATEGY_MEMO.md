@@ -1,4 +1,5 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: commercial kill/scale criteria and GTM for the GEO agent; non-binding on engineering
+> LIFECYCLE: PARKED · ROLE: RECORD · OWNS: commercial kill/scale criteria and GTM for the GEO agent; non-binding on engineering
+> PARKED (D-116, 2026-07-19): the Resonance GEO agent build is parked without further notice. This document is kept untouched and immediately recoverable; it is not historical. Nothing in it is active work, and no agent surface may be removed while parked. Header set to PARKED in M56 (D-126).
 
 # AGENT_STRATEGY_MEMO.md — Resonance GEO Agent, commercial layer
 

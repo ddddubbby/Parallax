@@ -2,7 +2,7 @@
 
 # RENDER_DEPLOYMENT.md - First Deploy Contract
 
-Parallax deploys to Render from the repository-root `render.yaml`.
+Resonance deploys to Render from the repository-root `render.yaml`. Service and env-group identifiers keep the historical `parallax-*` names (compatibility-sensitive, D-063/D-119); product prose says Resonance.
 
 The Blueprint defines:
 
@@ -54,6 +54,10 @@ The Blueprint cannot successfully deploy until M0 adds:
 - **Standalone start:** with `output: "standalone"`, `pnpm start` must run `node .next/standalone/server.js`, not `next start`.
 - **Production DB inspection:** `ipAllowList: []` blocks external connections, so `pnpm db:studio` is local-dev only; inspect production through Render's psql shell, read-only per C-6.
 - **Backups are not the evidence archive.** Verify the database plan's backup retention at deploy time, and rely on the post-audit evidence archive rule in `DEVELOPMENT_GUIDELINES.md` section F for durable evidence (D-024). Upgrade the database plan when storage passes roughly 60%.
+
+## Marketing site (separate, not in the Blueprint)
+
+The public brand site in `site/` is a standalone static site and is **not** part of `render.yaml`. It deploys to Vercel at `https://resonance.observer` with Root Directory `site`; `site/vercel.json` is the effective host config (clean URLs, CSP/HSTS headers, cache tiers) and `site/_headers` is kept inert for portability. After any domain change run `./scripts/set-site-domain.sh <url>` and redeploy so OG images and the sitemap carry absolute URLs. `site/.vercel/` is the operator's project link and is gitignored. Full contract: `BRAND_SITE_GUIDE.md` §1 and §10 (D-127). Vercel's Hobby tier is licensed for non-commercial use; a commercial brand site belongs on a paid plan (operator ops note).
 
 ## Render assumptions verified
 

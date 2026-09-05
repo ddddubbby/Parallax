@@ -91,11 +91,12 @@ Env rules:
 type ProviderId =
   | "mock"
   | "deepseek"
-  | "minimax"
   | "openai"
   | "anthropic"
   | "google"
-  | "perplexity";
+  | "perplexity"
+  | "xai"; // metadata-only: registered for the parked GEO agent (D-106/D-116); generate() throws
+// MiniMax (PV-3) was a candidate second validation provider and was never built.
 
 type GenerationMode = "grounded" | "ungrounded";
 
@@ -193,6 +194,7 @@ Intent:
 - `comparison`
 - `validation`
 - `objection`
+- `representation` (sixth audit intent, D-102: brand-named, non-evaluative, null persona/market, appended after allocation; metric walls in PROTECTED_REGISTER)
 
 Provider error type:
 
@@ -229,10 +231,8 @@ Defaults:
 - `MAX_CELLS_PER_RUN = 50`
 - `DEFAULT_MATRIX_CELLS = 40`
 - `AUDIT_REPETITIONS = 5`
-- `VALIDATION_REPETITIONS = 2`
 - `DEFAULT_VALIDATION_RUN_CAP_USD = 2`
 - `DEFAULT_AUDIT_RUN_CAP_USD = 25`
-- `DEFAULT_PROVIDER_CONCURRENCY = 3`
 - `MAX_JOB_ATTEMPTS = 3`
 - `EXTRACTION_ATTEMPTS = 2`
 - `FAILURE_CIRCUIT_BREAKER_RATE = 0.20`
@@ -328,6 +328,8 @@ Milestone acceptance commands:
 - M36 (headless GEO-agent core, mock-first): `pnpm test:agent-mock-e2e` (300/300 samples across the three engines, no duplicate job rows, per-engine D-016 fixture variation, every adversarial resolver fixture rejected pre-budget with no rows written); the resolver/prompt unit suites (`vitest run src/core/crypto-resolver.test.ts src/core/crypto-prompts.test.ts src/core/agent-lexicons.test.ts src/modules/agent`); and the enum migration on fresh AND existing DBs (`vitest run src/db/migrations/upgrade-path.test.ts`).
 - M37 (mechanical extraction + metrics + report, $0): the golden suite `vitest run src/core/agent-golden.test.ts` (per-sample extraction matches hand labels, aggregate metrics + representation_state exact, recompute idempotent — C-5); the extraction/identity/metrics/report unit suites (`vitest run src/core/agent-extraction.test.ts src/core/agent-identity.test.ts src/core/agent-metrics.test.ts src/core/agent-report.test.ts`) — must show M6b descriptor_repeatability returning not_estimable (never 1) on empty/empty pairs and the C-16 forbidden-phrase suite green over authored prose (quoted evidence exempt); and `pnpm test:agent-mock-e2e`'s M37 block, which builds the deterministic report from the 300 stored responses (3 engines, digest stable, C-16 clean).
 - M38 (grounded engines live — **OpenAI-only slice**, the full 3-engine/900-sample spike is deferred until Gemini/Grok keys exist): offline — `vitest run src/modules/agent/resolver.test.ts src/modules/agent/build-run.test.ts` (viem `decodeErc20String` bytes32 fallback; the OpenAI-only `live_validation` run creation with no spend). Live (operator, real billable OpenAI): enter an OpenAI key in Settings (C-11), then `pnpm agent:live-validate --chain <c> --address 0x… --category <cat> [--name … --symbol … | set BASE_RPC_URL/ETHEREUM_RPC_URL] --k 2 --cap 3.00 --confirm-spend` — it drives the real worker against grounded OpenAI, builds the mechanical report, and reports the C-10 grounding gate (grounded answers must carry citations) + cost. The harness refuses to run without both a stored credential and `--confirm-spend`.
+- M43–M55 (operator web milestones, D-112 branch control plane): `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check`, `pnpm test`, `pnpm build` (never while a dev server holds :3000, D-075), `pnpm test:e2e`; `pnpm test:e2e:forecast` from M50 (D-120); `pnpm test:mock-e2e` whenever runner/worker/extraction code is touched; UI milestones additionally evidence an interactive walk in `BUILD_NOTES.md` before Done (D-092).
+- M56 (whole-repo cleanup pass, D-126): the M43–M55 gates unchanged, plus the grep gates and per-deletion targeted tests listed in `M56_BUILD_PLAN.md`; `pnpm docs:check` must stay green at every commit.
 - M40 (ACP gateway — **offline core + serving path**, live sandbox verification is wallet-gated): `vitest run src/core/agent-transport.test.ts` (eventFingerprint always includes the job id; BoundedDedupeSet 10k/24h LRU; reconnectDelayMs bounded+jittered; ConnectionState machine) and `vitest run src/modules/agent/gateway.test.ts` (ingestEvent dedupe in-memory + DB; advanceOrder drives the full lifecycle created→budget→funded→submit→completed and expiry-refund through M39's ledger, each external effect exactly once, under the per-order advisory lock; admissions gating). Serving-path suites (S-095): `vitest run src/core/agent-input.test.ts src/core/agent-redaction.test.ts src/core/agent-envelope.test.ts src/core/agent-admission.test.ts src/core/agent-manifest.test.ts` — §2 strict requirement schema + JSON-Schema parity, redact_v1's two categories, <2KB envelope + 256-bit capability tokens, §3/§4.6 economics/timing/capacity math, C-16-clean manifest with per-section digests; plus migration 0018 fresh+existing and the agent mock e2e's §11 zero-LLM-extraction check. The live merge gate (complete/reject/refund/expiry/restart observed against hidden $0.01 sandbox jobs, settlement reconciled ±$0.01) needs the real SDK/viem VirtualsGatewayClient wired to operator wallets.
 - M39 (commerce persistence + effectively-once effects, offline $0): the effects matrix `vitest run src/core/agent-effects.test.ts` — every effect type × every crash point (after insert/broadcast/record/confirm) applies the external effect EXACTLY ONCE across restart, plus ambiguous-landed/not-landed, reverted, P0-freeze, blocked, DB-outage, and out-of-order/dropped cases; the state machine `vitest run src/core/agent-order-state.test.ts` (§9 acp/exec/result separation, §4.6 result mapping); the DB integration `vitest run src/db/repositories/agent-commerce.test.ts` (order idempotency, event fingerprint dedup, the agent_effects unique constraint under concurrent upsert, advisory-lock dual-instance serialization, DB-backed ledger applies once); and migration 0017 on fresh AND existing DBs (`vitest run src/db/migrations/upgrade-path.test.ts`).
 
@@ -340,6 +342,8 @@ Standing rules:
 - Production destructive migrations require `pg_dump` first.
 - After each delivered audit, export the EX-3 evidence pack and take a redacted database snapshot stored off-Render before closing the engagement (D-024). The evidence archive excludes server-only provider credentials; managed-Postgres backup retention is not the evidence archive.
 - CI lint must pass with zero warnings (`pnpm lint --max-warnings 0`, D-092).
+- `pnpm docs:check` is a required CI check (D-107) and part of every handoff.
+- Undocumented-but-real scripts: `dev:all` (app + worker, D-073), `db:dev`, `db:seed`, `db:studio`, `archive:evidence`, `demo:walkthrough`, `demo:resonance`, `recompute:resonance`, `test:golden`, `test:mock-e2e`, `test:agent-mock-e2e` / `agent:live-validate` (parked agent track, D-116), and the `research:retired:m34:*` family behind `retired-guard.ts`.
 
 Manual checklist seeds:
 
@@ -355,7 +359,7 @@ Manual checklist seeds:
 - Name the integration target and path ownership in the active plan. Put changes to shared surfaces (layout, global tokens, shared UI, Settings, test configuration) in isolated commits so parallel branches can reconcile them without importing unrelated work.
 - Commit at every green-test / phase-green state (D-092), not only at milestone close.
 - Any schema plan must say migration.
-- Interface, table, dependency, provider capability, or invariant changed? Log it in `MASTER_CONTEXT.md` section 9.
+- Interface, table, dependency, provider capability, or invariant changed? Log it in `DECISIONS.md` (D-107).
 - Handoff ritual (also in `MASTER_CONTEXT.md` §8): `BUILD_NOTES.md` session entry; Decision Log row when durable; `PROTECTED_REGISTER.md` append when a new decision protects a surface from delete/rename/merge (D-086); PRD tracker + progress note; update `README.md` / this file's command tables when scripts or acceptance gates change; update `DESIGN_GUIDELINES.md` only when a visual rule changes.
 - Any proposal to delete, merge, rename, or "simplify away" an existing surface must check `PROTECTED_REGISTER.md` first (D-086).
 - A UI-touching milestone cannot be marked Done until its interactive verification ran and is evidenced in `BUILD_NOTES.md` (D-092).

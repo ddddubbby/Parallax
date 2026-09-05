@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M55 market-context prompt guardrail · TRACKER: M55_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M55 market-context prompt guardrail, with M56 drift annotations · TRACKER: STATUS.md
 
 # PRD.md - Resonance MVP
 
-> **STATUS: M55 (D-125) DONE ON `m55` (2026-08-02).** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M55 (D-125) merged to `main` via GitHub PR #16 (2026-08-03). M56 whole-repo cleanup pass in progress on `m56` (D-126/D-127; no product change). M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44–M46 plans are in `docs/history/`.
 
@@ -10,16 +10,16 @@
 
 ## 1. Vision
 
-Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and simulates what that presentation does to buyers. It is organized around two named epistemic layers (D-077): the Evidence Layer (the audit engine — Presence, Position, and Perception as the Four P pillars answering the client's core questions, with Proof as the trust rail underneath all three), and the Simulation Layer (simulated buyer action via the synthetic panel), plus a value-add layer of test-before-you-spend study templates on top of it. The two-layer split is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
+Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and tests whether a new message moves the brand up the AI's shortlist (Message Lift, D-119). It was organized around two named epistemic layers (D-077; the layer names were retired as primary product language by D-119): the Evidence audit (Presence, Position, and Perception as the Four P pillars answering the client's core questions, with Proof as the trust rail underneath all three), and the simulation half, now the two Message Lift test types (Buyer response, AI recommendation), plus the M20 study template packs as historical presets. The split is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
 
 Resonance turns a multi-week manual research task—“how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?”—into a same-day operator pipeline. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations. Legacy lowercase `parallax` identifiers remain internal for compatibility (D-119).
 
-The Simulation Layer has a different epistemic status from the Evidence Layer: measured and simulated data never mix (C-12), simulations are conditioned on measured audit evidence by default (C-13), and simulation claims are comparative only (C-14). Scope through M20 is an internal tool for testing and demos: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
+Message Lift tests have a different epistemic status from the Evidence audit: measured and simulated data never mix (C-12), tests start from a stored measured answer (C-13), and simulation claims are comparative only (C-14). The product is an internal operator tool: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
 
 ## 2. How Resonance works
 
 1. The operator creates a project and enters the client brand, aliases, competitors, fact sheet, desired attributes, personas, and target markets.
-2. The app generates a prompt matrix across five intent types, defaulting to 40 prompt cells and never exceeding 50.
+2. The app generates a prompt matrix across the five allocated audit intent types plus the appended `representation` intent (D-102), every ordinary cell prefixed with the canonical `market-context.v1` instruction (D-125), defaulting to 40 prompt cells and never exceeding 50.
 3. The operator edits prompts and approves a matrix version. Approval freezes the resolved prompt text and competitor ordering.
 4. The worker runs the approved cells against selected engine-modes. Audit-grade runs use k=5 repetitions. Validation mini-runs may use k=2 and are labeled validation-only.
 5. Every raw response is stored immutably with provider, model version, tokens, cost, latency, mode, citations, and errors where applicable.
@@ -31,7 +31,7 @@ The Simulation Layer has a different epistemic status from the Evidence Layer: m
 
 ## 3. Target user
 
-The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month (and, from M16, Simulation Layer studies off the back of those audits) and need evidence that survives client scrutiny.
+The consultant-builder: a solo consultant or small agency operator selling brand, SEO, PR, or positioning work to B2B SaaS and considered-purchase brands. They are technically literate but not expected to be an engineer. They run 2-8 audits/month (and, from M49, Message Lift tests off the back of those audits) and need evidence that survives client scrutiny.
 
 The end client is not an app user.
 
@@ -42,11 +42,11 @@ The end client is not an app user.
 3. Misinformation register: factual-risk deliverable for regulated or trust-sensitive clients.
 4. Competitive displacement diagnosis: lost-shortlist cells plus sources driving competitor wins.
 5. Evidence pack: raw answers, extractions, and metrics backing strategy work.
-6. Simulation Layer study (M16+): after an audit surfaces how AI frames the brand, a resonance study simulates how buyer segments respond to that framing and to candidate fixes — the "so what, and which fix" chapter that closes the loop from measurement to action. Comparative and evidence-conditioned only (C-12/C-13/C-14).
+6. Message Lift test (M49+, D-119; the M16+ study concept in plain language): after an audit surfaces how AI frames the brand, one Current message is compared with one New message through shared contexts, as simulated buyer response or as the AI's own shortlist — the "so what, and which fix" chapter that closes the loop from measurement to action. Comparative and evidence-conditioned only (C-12/C-13/C-14).
 
 ## 5. MVP scope
 
-This section and §6 define the original measurement-engine MVP (M0-M10). The Evidence Layer / Simulation Layer identity work and the Simulation Layer product are specified in sections 8.19-8.22 and tracked as M16-M20 (and further backfilled in sections 8.23-8.30 for M21-M29); nothing below is retracted by them.
+This section and §6 define the original measurement-engine MVP (M0-M10). The two-layer identity work (D-077) and the simulation product (since D-119: Message Lift tests, §8.37) are specified in sections 8.19-8.22 and tracked as M16-M20 (and further backfilled in sections 8.23-8.30 for M21-M29); nothing below is retracted by them.
 
 - Seven-step intake wizard with autosave and review.
 - Budget-aware prompt matrix, operator-edited, versioned, and capped per C-1.
@@ -63,7 +63,7 @@ This section and §6 define the original measurement-engine MVP (M0-M10). The Ev
 
 ## 6. Explicitly out of MVP scope
 
-Scheduled runs, run-over-run trends, AI Overviews via SERP API, `.docx` export, white-label theming, multi-user auth/roles, client portals, Slack/CRM/email integrations, automated content generation, billing, mobile optimization, geo-proxy sophistication, Copilot/Meta/Grok, and consumer-UI scraping.
+Scheduled runs and run-over-run trend views (there is no scheduler; the quarterly re-audit sold externally is a manual operator service that re-runs a frozen matrix, D-127), AI Overviews via SERP API, `.docx` export, white-label theming, multi-user auth/roles, client portals, Slack/CRM/email integrations, automated content generation, billing, mobile optimization, geo-proxy sophistication, Copilot/Meta (Grok exists only as the parked agent's metadata-only `xai` provider id, D-106/D-116), and consumer-UI scraping.
 
 ## 7. User journey
 
@@ -73,14 +73,17 @@ Routes:
 
 - `/projects`
 - `/projects/new`
+- `/projects/[id]` (project hub, M31)
 - `/projects/[id]/setup` (M27, D-084: row-level post-intake editing of competitors/personas/markets/attributes/fact sheet; archive-not-delete)
 - `/projects/[id]/matrix`
-- `/projects/[id]/runs` and `/projects/[id]/runs/[runId]`
+- `/projects/[id]/runs`, `/projects/[id]/runs/new`, and `/projects/[id]/runs/[runId]` (`?view=overview|diagnostics|metrics`; `events`/`extraction` are URL aliases of `diagnostics`, D-122)
 - `/projects/[id]/dashboard`
-- `/projects/[id]/report`
-- `/projects/[id]/resonance` and `/projects/[id]/resonance/[studyId]` (M16+ — Simulation Layer studies and results, always SIMULATED-badged)
+- `/projects/[id]/report`, `/projects/[id]/report/print`, and the export routes `/projects/[id]/report/export/{markdown,json,csv/[dataset]}`
+- `/projects/[id]/resonance` and `/projects/[id]/resonance/[studyId]` (the Message Lift workspace since D-119; the route segment is kept, D-077; always SIMULATED-badged)
+- `/projects/[id]/framing`, `/projects/[id]/framing/[studyId]`, and its report/export routes (historical read-only surfaces, retired by D-114)
 - `/settings`
 - `/debug`
+- `/login`, `/health`, and `/api/agent-report/[token]` (parked agent deliverable route, D-116)
 
 ## 8. Feature requirements
 
@@ -343,33 +346,33 @@ FL-3 (superseded by D-119): Resonance is the only product name. Compatibility-se
 FL-4: A shared `SimulatedBadge` component exists; every simulation surface added in M17+ must render it (C-12).
 FL-5: Project subnav gains a Resonance item from M16 (stub until M17); glossary gains funnel-stage and simulated terms.
 
-### 8.20 Simulation Layer: resonance studies and synthetic panel runs (M17-M18)
+### 8.20 Simulation Layer: resonance studies and synthetic panel runs (M17-M18) (superseded by D-119)
 
-RS-1: A resonance study = named panel personas x 2-3 stimulus variants (`measured_ai | corrected | repositioned | custom`), with one designated baseline. Persona fields: age and income band (the paper-validated conditioning axes) plus location and behavioral profile (prompt context that aids role-play coherence, never presented as validated segmentation — D-066); no gender/ethnicity fields (C-14).
+RS-1 (superseded by D-119: new Message Lift tests contain exactly two messages; historical multi-stimulus studies remain readable): A resonance study = named panel personas x 2-3 stimulus variants (`measured_ai | corrected | repositioned | custom`), with one designated baseline. Persona fields: age and income band (the paper-validated conditioning axes) plus location and behavioral profile (prompt context that aids role-play coherence, never presented as validated segmentation — D-066); no gender/ethnicity fields (C-14).
 RS-2: `measured_ai` stimuli must cite stored raw response ids from the same project (C-13); evidence-conditioning is mandatory at approval — no operator toggle can bypass it (D-078 removed the "unconditioned" toggle entirely). GENERIC now renders only on studies approved before D-078, kept for historical accuracy on every surface and export; no current workflow can produce a new one.
 RS-3: Approval compiles the study into a frozen `matrix_versions` row (`kind='resonance'`) with one cell per persona x stimulus (`intent='simulation'`); C-1 cap applies; PM-2/PM-8/PM-9/archetype logic is bypassed by design (stimuli legitimately contain brand names).
-RS-4: Resonance runs reuse the run/job/worker pipeline unchanged: run modes, k semantics, C-9 mock separation, cost guards, breaker, events. Runs display a SIM badge everywhere runs are listed. EXCEPTION: generation mode stays locked to exactly ONE (resonance metric scopes carry no mode dimension). Provider count was originally capped at one too (D-067 — each model is a distinct synthetic population, the paper reports engines separately) but D-080 (M24) lifted that cap: a resonance run now accepts >=1 providers, with every metric computed strictly within one provider's own samples (`resonance_variant`/`resonance_delta` scope keys become `<stimulusId>|<providerId>`, `resonance_variant_persona` becomes `<stimulusId>|<personaKey>|<providerId>`) so distinct engine populations are never pooled. The results page, report, and CSV export render one block per engine; no cross-engine comparison UI or pooled numbers exist anywhere.
+RS-4 (superseded by D-119 for new tests: exactly one AI model, ungrounded, k=5; historical provider-separated results remain readable): Resonance runs reuse the run/job/worker pipeline unchanged: run modes, k semantics, C-9 mock separation, cost guards, breaker, events. Runs display a SIM badge everywhere runs are listed. EXCEPTION: generation mode stays locked to exactly ONE (resonance metric scopes carry no mode dimension). Provider count was originally capped at one too (D-067 — each model is a distinct synthetic population, the paper reports engines separately) but D-080 (M24) lifted that cap: a resonance run now accepts >=1 providers, with every metric computed strictly within one provider's own samples (`resonance_variant`/`resonance_delta` scope keys become `<stimulusId>|<providerId>`, `resonance_variant_persona` becomes `<stimulusId>|<personaKey>|<providerId>`) so distinct engine populations are never pooled. The results page, report, and CSV export render one block per engine; no cross-engine comparison UI or pooled numbers exist anywhere.
 RS-5: Elicitation prompts request a free-text reaction and never a numeric rating (the validated SSR elicitation; direct Likert elicitation is a known-failed baseline).
 RS-6: SSR scoring converts each response to a 5-point PMF via embedding similarity against versioned anchor statement sets (target 6 sets — the paper's main setup — with >=4 as the floor; averaged; min-subtraction normalization). Scores are stored as versioned `extractions` rows discriminated by `extracted_json.kind='ssr'` (the integer `schema_version` column is unchanged — D-066); re-scoring creates a new version (C-3). Anchor sets are checked-in fixtures carrying a `calibrated` flag — `purchase_intent.v1` ships uncalibrated and the report method section must say so; a study pins its anchor version at approval.
 RS-7: Embeddings are a provider capability (`EmbeddingProvider`, `EMBEDDING_PROVIDER` env, OpenAI `text-embedding-3-small` first) with spend counted in projection, the per-run cap, and daily budgets (C-2, D-022 pattern). Mock runs are fixture-backed and never call a live embedding engine.
-RS-8: Resonance metrics (disposable, C-5) compute per-variant and per-variant-x-persona PMFs, mean purchase-intent point estimates (no invented intervals — D-023), and delta-vs-baseline rows. ΔPI is always framed as a Likert-scale purchase-intent mean shift vs baseline — a survey construct, never a purchase-probability or conversion claim (D-066). Variant aggregates obey the n>=30 gate (default study shape: 6 personas x k=5 = 30 per variant); persona slices are always directional-only.
+RS-8 (D-119: reported externally as Response lift; ΔPI remains internal method vocabulary): Resonance metrics (disposable, C-5) compute per-variant and per-variant-x-persona PMFs, mean purchase-intent point estimates (no invented intervals — D-023), and delta-vs-baseline rows. ΔPI is always framed as a Likert-scale purchase-intent mean shift vs baseline — a survey construct, never a purchase-probability or conversion claim (D-066). Variant aggregates obey the n>=30 gate (default study shape: 6 personas x k=5 = 30 per variant); persona slices are always directional-only.
 RS-9: Audit metrics and resonance metrics never cross-contaminate: recompute dispatches on matrix kind, and wall tests prove an interleaved project keeps audit rows byte-identical (C-12). The wall extends to shared UI plumbing FROM M17 (D-068, the milestone that first produces completed resonance runs): audit dashboard/report run selectors filter `kind='audit'`, audit report generation and all export/print routes reject resonance runs until M19's dispatch, and the OX-2 next-action pipeline state is computed from audit-kind rows only.
 
-### 8.21 Simulation Layer: results, report, exports, demo (M19)
+### 8.21 Simulation Layer: results, report, exports, demo (M19) (superseded by D-119)
 
-RR-1: A Simulation Layer results view shows variant ranking (PMF distributions), the delta table per segment, and deterministic highest/lowest excerpt panels (D-061 pattern, no LLM summarizer); every panel SIMULATED-badged.
+RR-1 (superseded by D-119: the Message Lift results view): A Simulation Layer results view shows variant ranking (PMF distributions), the delta table per segment, and deterministic highest/lowest excerpt panels (D-061 pattern, no LLM summarizer); every panel SIMULATED-badged.
 RR-2: Drill-through from any resonance figure reaches the exact eligible responses (shared eligibility function with recompute) in <=2 clicks (TP-4 pattern).
 RR-3: Resonance runs generate their own report sections (`resonance_method`, `resonance_results`, `resonance_evidence`) via deterministic templates (D-033) with model-origin text escaped (D-040) and C-14 language enforced by an extended forbidden-phrase test (RB-5 pattern). The method section must state: anchor-set version and its calibration status (uncalibrated in v1), that stimuli are text-only (the paper's image-stimulus setting performed mildly better — a known limitation, D-066), and that ΔPI is a Likert-scale survey-construct shift, not predicted buying behavior.
 RR-4: Exports: markdown, print-HTML, JSON evidence, and CSV (formula-injection guarded, D-045); the evidence archive works on resonance runs.
 RR-5: `pnpm demo:resonance` walks a seeded demo study end-to-end at $0 (idempotent, D-059 pattern); the project next-action banner surfaces the resonance step once an audit run completes.
 
-### 8.22 Value-add layer: study template packs (M20)
+### 8.22 Value-add layer: study template packs (M20) (historical presets; superseded by D-119's two test types)
 
 VA-1: Four seeded study templates — AI-framing repair (default, the C-13 flagship), promo framing, price presentation (framing only, never absolute willingness-to-pay), message/claim variants — each a stimulus scaffold plus test-before-you-spend guidance copy.
 VA-2: Template placeholders must be resolved before approval; pack copy is covered by the C-14 forbidden-phrase test.
 VA-3: An adversarial hardening checklist (C-12/C-13/C-14 sweeps, budget chaos, injection, kill/resume) and a fresh-clone internal demo close out the internal build (see `RESONANCE_BUILD_PLAN.md` M20).
 
-### 8.23 Layer identity: Evidence Layer / Simulation Layer (M21)
+### 8.23 Layer identity: Evidence Layer / Simulation Layer (M21) (layer names superseded by D-119 as product language; rows describe the M21 code strings as shipped)
 
 A first-time client met three competing vocabularies at once — pillars, funnel stages, pipeline terms — and saw "Resonance" mean both the whole product umbrella and one sub-tab, even though the C-12 epistemic wall already existed in code. D-077 resolves this by naming two product-facing epistemic layers and retiring the upper/mid/lower funnel framing (superseding 8.19's FL-1/FL-2 framing language); this is presentation-only, following the D-063 precedent — no pillar, metric, or intent rename, no schema change, no migration.
 
@@ -602,7 +605,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 6. First grounded provider mini-audit completes only after a provider path can return normalized citations.
 7. Extraction spot-check is >=90% accurate on 20 responses; dead-letter rate <5%.
 8. Every dashboard figure traces to raw text; report numbers match dashboard.
-9. One pilot audit is delivered after target provider coverage is available; retro is logged in `MASTER_CONTEXT.md`.
+9. One pilot audit is delivered after target provider coverage is available; retro is logged as a PRD §11 progress note plus a `DECISIONS.md` row when durable (D-107).
 10. Manual checklists in `DEVELOPMENT_GUIDELINES.md` are executed on the release commit.
 11. Every delivered audit has an archived evidence pack: the EX-3 export plus a redacted database snapshot stored off-Render, recorded in the release checklist (D-024).
 
@@ -650,17 +653,19 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M44 | Simplified simulation methodology + guided path (D-114) | See → Pick → Rewrite → Test; theme-organized verbatim baselines; framing workflow read-only historical; `deriveNextStep` guidance; blind extractor themes v2 | Done |
 | M45 | Durable brand-name resolution (D-115) | Compact-key equality + unique containment; PM-9 same matcher; collision guard; $0 re-resolve; resolution-health card | Done |
 | M46 | Trustworthy progress + Simulation readiness (D-117) | Balanced frozen brand order; persistent framing batches; stage-aware ETA; Persona copy; full-response baseline dialog; live Simulation draw-floor enforcement; migration 0021 | Done |
-| M47 | Transition feedback + refresh cleanup (D-118) | Reachable `projects`/`[id]` loading; LocalViewTabs + ReportRunSwitcher pending; remove duplicate `router.refresh` after `revalidatePath` | Done — pending merge |
+| M47 | Transition feedback + refresh cleanup (D-118) | Reachable `projects`/`[id]` loading; LocalViewTabs + ReportRunSwitcher pending; remove duplicate `router.refresh` after `revalidatePath` | Done on `main` via GitHub PR #8 |
 | M48 | UI cleanup | Existing UI-cleanup milestone merged to `main` at `7ff4a7c` via merge commit `4380e78` | Done |
-| M49 | Resonance Message Lift tests (D-119) | Two test types; exact A/B parity/disclosure; deterministic recommendation extraction and scenario-weighted lift; plain-language Resonance-only surfaces; migration 0023; full gates | Done on `m49`; ready for review/commit |
-| M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | Done on `m50` (pending merge) |
-| M51 | Operator UI honesty and remediation (D-121) | Evidence gates; informed confirms; guided empty/success states; fresh findings and advisory delivery; scoped dead-letter recovery; shared mode stamps; full baseline access; truthful calibration copy; no migration | Done on `m51-ui-ux-roadmap` — ready for PR after M50 |
-| M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `m52` — ready for PR after M50/M51 |
+| M49 | Resonance Message Lift tests (D-119) | Two test types; exact A/B parity/disclosure; deterministic recommendation extraction and scenario-weighted lift; plain-language Resonance-only surfaces; migration 0023; full gates | Done on `main` via GitHub PR #10 |
+| M50 | Live-run remaining-time forecast (D-120) | Live-run-only p10–p90 range from rolling five-completion windows over terminal pipeline completions; 10-completion calibration floor; stale-pace recalibration; EWMA/outlier/historical-seed ETA removed; no migration | Done on `main` via GitHub PR #11 |
+| M51 | Operator UI honesty and remediation (D-121) | Evidence gates; informed confirms; guided empty/success states; fresh findings and advisory delivery; scoped dead-letter recovery; shared mode stamps; full baseline access; truthful calibration copy; no migration | Done on `main` via GitHub PRs #12/#13 |
+| M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `main` via GitHub PR #14 |
 | M54 | Collecting responses Overview substance trace (D-124) | Overview Collecting responses lanes (ask / collect / read-or-score); `liveActivity` on run detail; plain-language status; no SSE/migration | Done on `main` via GitHub PR #15 |
-| M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `m55` — ready for review/PR |
+| M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `main` via GitHub PR #16 |
+| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | In progress on `m56` |
 
 Progress notes:
 
+- 2026-09-06 M56 cleanup pass (D-126/D-127): docs drift synced to code, `AGENT_*` headers PARKED, brand canon rewritten, eight merged plans archived to `docs/history/`, D-025 truncation, repo noise and zero-reference exports removed. No product change. M53 (D-123) remains on branch `m53` by operator decision; §8.41 is intentionally absent on trunk until it merges.
 - 2026-08-02 M54 P0 governance (D-124): branch `m54` cut from `main@b49b645`; D-124; `M54_BUILD_PLAN.md`; STATUS/PRD §8.42/index retargeted. No migration. Implementation merged to `main` via GitHub PR #15.
 - 2026-08-02 M55 Done (D-125, no migration): exact `market-context.v1` ordinary-prompt rendering; missing/unknown/altered approval rejection at action and repository boundaries; archived-inclusive copied-draft upgrade; representation isolation and legacy-approved run compatibility. Gates: focused 42 + DB 29, lint, typecheck, docs:check (26), Vitest 909/12, build, Playwright 18/18, mock worker e2e 6/6. Evidence: BUILD_NOTES S-128.
 - 2026-08-02 M55 P0 governance (D-125, no migration): branch `m55` cut from `main@b49b645`; canonical `market-context.v1` behavior, approval boundaries, copied-draft upgrade, representation exemption, and legacy-approved compatibility frozen in §8.43 and `M55_BUILD_PLAN.md`. D-125 avoids the D-123/M53 and D-124/M54 parallel-branch assignments.
@@ -805,4 +810,4 @@ Progress notes:
 
 Completed (D-063, D-077): M16 layer identity + Resonance presentation -> M17 resonance data layer + mock panel runs -> M18 SSR scoring + metrics -> M19 Simulation Layer surfaces + demo -> M20 value-add packs + hardening -> M21 Evidence Layer / Simulation Layer copy (D-077) -> M22 test-DB isolation + evidence-only studies (D-078) -> M23 coverage contract + price/promo templates (D-079) -> M24 multi-provider resonance (D-080) -> M25 prompt_cells freeze trigger residue (D-081) -> M26 calibration protocol + comparison harness (D-082) -> M27 post-intake Setup editing (D-084) -> M28 buyer-voice guard + JTBD clarity (D-085) -> M29 pause/cancel observability hotfix. Ordering rationale (M16-M20): identity/presentation first because it is zero-risk and stabilizes navigation; data layer before scoring so the pipeline is provable in mock at $0 before any embedding spend; surfaces after metrics so every chart has real rows behind it; value-add packs last because they are presets over proven machinery. M10 close-out (deploy, remaining live providers, Gemini grounding caveat) remains a parallel ops track gated on operator actions and is still open as of M30.
 
-Post-PoC parking lot (deliberately NOT scheduled — see RESONANCE_BUILD_PLAN parking lot): multi-user/auth changes, payments, client portals, live embedding-fidelity calibration, bootstrap intervals for PMF means and D-023 point estimates, additional simulation constructs (relevance/trust/switch-likelihood), image stimuli, anchor-set tuning, non-English panels, location/footfall studies. Earlier demand-driven items stand: client-deliverable polish (charts in the PDF, branded layout, `.docx` export), AI Overviews through a SERP/API vendor, snapshot preset, run-over-run comparison, extraction-accuracy trends, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.
+Post-PoC parking lot (deliberately NOT scheduled — see RESONANCE_BUILD_PLAN parking lot): multi-user/auth changes, payments, client portals, live embedding-fidelity calibration, bootstrap intervals for PMF means and D-023 point estimates, additional simulation constructs (relevance/trust/switch-likelihood), image stimuli, anchor-set tuning, non-English panels, location/footfall studies. Earlier demand-driven items stand: client-deliverable polish (charts in the PDF, branded layout, `.docx` export), AI Overviews through a SERP/API vendor, snapshot preset, run-over-run comparison (the quarterly re-audit is a manual service today, D-127; a scheduler or trend view stays out), extraction-accuracy trends, Shortlist Radar, SourceLift, and white-label theming only after at least two agencies ask.

@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: detailed schema, lifecycle states, provider matrix, seeds, acceptance commands
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: detailed schema, lifecycle states, provider matrix, seeds
 
 # ENGINEERING_SPEC.md - Resonance Execution Contract
 
-> Detailed implementation contract for schema, lifecycle states, provider capabilities, seeds, and milestone commands. Read after `MASTER_CONTEXT.md`, `PRD.md`, and `DEVELOPMENT_GUIDELINES.md` when starting M0.5, M1, or any worker/provider/schema work.
+> Detailed implementation contract for schema, lifecycle states, provider capabilities, and seeds (milestone acceptance commands live in `DEVELOPMENT_GUIDELINES.md` §F). Read after `MASTER_CONTEXT.md`, `PRD.md`, and `DEVELOPMENT_GUIDELINES.md` when starting M0.5, M1, or any worker/provider/schema work.
 
 ---
 
@@ -51,7 +51,7 @@ Claim review state:
 - `unreviewed` -> `corrected`
 - `confirmed | corrected` -> `corrected`
 
-Framing study state (M34A, D-102):
+Framing study state (M34A, D-102 — workflow RETIRED by D-114; states kept only for reading historical rows, no new studies can start):
 
 - `draft` -> `codebook_locked`
 - `codebook_locked` -> `revealed`
@@ -108,6 +108,8 @@ Migration 0008 also: `ALTER TYPE "public"."intent" ADD VALUE 'simulation'` (the 
 
 Migrations since 0008: migration 0009 (D-072) adds two Postgres CHECK constraints enforcing the audit/resonance cell-shape invariant (`matrix_versions` kind<->`resonance_study_id` consistency; `prompt_cells` simulation-vs-audit column shape). Migrations 0010/0011 (D-081, then a same-week hotfix D-083) add a `prompt_cells_freeze_trigger` — a `BEFORE UPDATE OR DELETE` Postgres trigger rejecting direct mutation of rows whose parent `matrix_versions.state` is `approved` or `superseded`; 0011 fixes its UPDATE return value. Migration 0012 (D-084, M27) adds Setup archive columns. M34A migration 0013 adds only the `representation` enum value; 0014 adds the five framing tables, snapshot FK, and representation cell shape. Because Drizzle batches pending migrations in one transaction on an upgrade, 0014's CHECK compares `intent::text` rather than directly resolving the just-added enum label; fresh and existing-database paths are both acceptance-tested (D-102). Forward-only migration 0015 (D-103) adds discovery/gap state, richer outcomes, gap-linked handoff uniqueness, and database freeze triggers; a permanent 0012→0015 test verifies data preservation and trigger installation.
 
+Migrations 0016–0023 (recorded M56, D-126): `0016_agent_enums` (agent provider `xai` and `crypto_token` archetype enums, D-106), `0017_agent_commerce` (ACP order/effect/ledger tables, D-109), `0018_deliverable_report_json` (agent deliverable report column), `0019_baseline_stamp` (D-114 verbatim-baseline auto-stamp), `0020_framing_observations` (D-114 blind framing extractor batches), `0021_m46_progress_and_brand_order` (persistent framing batches, `brand_order_json`, D-117), `0022_m46_comparison_template_grammar` (neutral `{brand_list}` templates, D-117), `0023_m49_message_lift_tests` (`test_type`, frozen recommendation scenarios, prompt protocol version, D-119). C-6 lesson from M49 (S-121): when a dev DB has drifted through an out-of-band `ALTER`, the repair is the guarded one-shot script `scripts/repair-m46-migration-drift.ts` (kept as the regression fixture for `upgrade-path.test.ts`), never a rewrite of an applied migration.
+
 ## 3. Provider capability matrix
 
 Provider details are implementation inputs, not marketing claims. Verify model IDs, pricing, and feature support against official docs on the implementation date.
@@ -116,7 +118,8 @@ Provider details are implementation inputs, not marketing claims. Verify model I
 |---|---|---|---|---|---|---|---|---|
 | Mock | Permanent provider #0 | Local fixture adapter | `mock-fixture-v1` | Yes, synthetic | Yes, synthetic | Yes | none | none | M4 |
 | DeepSeek | First live validation provider | OpenAI-compatible Chat Completions | `deepseek-v4-flash` | No until verified | No until verified | Yes, per official docs | Settings UI -> encrypted `provider_credentials` row | `DEEPSEEK_BASE_URL`, `DEEPSEEK_DEFAULT_MODEL`, optional `DEEPSEEK_DAILY_BUDGET_USD` | M8 |
-| MiniMax | Candidate second validation provider | OpenAI-compatible or Anthropic-compatible, choose one before coding | `MiniMax-M3` | No until verified | No until verified | Verify before coding | Settings UI -> encrypted `provider_credentials` row | `MINIMAX_BASE_URL`, `MINIMAX_DEFAULT_MODEL`, optional `MINIMAX_DAILY_BUDGET_USD` | M9 candidate |
+| MiniMax | Candidate second validation provider (PV-3, never built; enum member and env names remain) | OpenAI-compatible or Anthropic-compatible, choose one before coding | `MiniMax-M3` | No until verified | No until verified | Verify before coding | Settings UI -> encrypted `provider_credentials` row | `MINIMAX_BASE_URL`, `MINIMAX_DEFAULT_MODEL`, optional `MINIMAX_DAILY_BUDGET_USD` | M9 candidate |
+| xAI (Grok) `xai` | Metadata-only id for the parked GEO agent (D-106/D-116): enum value, registry entry, and capabilities exist; `generate()` throws and it is absent from live factories | — | — | — | — | — | — | — | M36 |
 | OpenAI | Grounded audit provider | Responses API (`POST /v1/responses`, Bearer) | `gpt-5.5` | Yes — `web_search` tool | Yes — `url_citation` annotations (`url`, `title`) | Yes | Settings UI -> encrypted `provider_credentials` row | `OPENAI_BASE_URL`, `OPENAI_DEFAULT_MODEL`, optional `OPENAI_DAILY_BUDGET_USD` | M9 |
 | Anthropic | Grounded audit provider | Messages API (`POST /v1/messages`, `x-api-key` + `anthropic-version: 2023-06-01`, `max_tokens` required) | `claude-sonnet-5` | Yes — `web_search_20250305` server tool | Yes — `web_search_result_location` citations on text blocks (`url`, `title`, `cited_text`) | Yes | Settings UI -> encrypted `provider_credentials` row | `ANTHROPIC_BASE_URL`, `ANTHROPIC_DEFAULT_MODEL`, optional `ANTHROPIC_DAILY_BUDGET_USD` | M9 |
 | Google | Grounded audit provider | `POST /v1beta/models/{model}:generateContent`, `x-goog-api-key` header | `gemini-2.5-flash` | Yes — `google_search` tool | Yes — `groundingMetadata.groundingChunks[].web.{uri,title}` — see caveat below | Yes — `generationConfig.responseMimeType` | Settings UI -> encrypted `provider_credentials` row | `GOOGLE_BASE_URL`, `GOOGLE_DEFAULT_MODEL`, optional `GOOGLE_DAILY_BUDGET_USD` | M9 |
@@ -140,7 +143,7 @@ Seed and fixture files are implementation contracts:
 - `fixtures/mock-responses/README.md`: manifest of required mock response archetypes.
 - `fixtures/golden/README.md`: manifest for expected extractions and metric outputs.
 - Prompt templates are seeded into `prompt_templates`; they are not hard-coded in JSX. Seed at least three variant phrasings per intent (`v1`, `v2`, `v3`); cells are intent x persona x market x variant, so variant depth is what lets the allocator reach its per-intent quotas.
-- Demo sizing: the demo project must yield enough candidate cells for the default allocation and the cap boundary tests. With 2 personas x 2 markets x 3 variants x 5 intents = 60 candidates, the 40-cell default allocation (12 per intent maximum = 2 x 2 x 3) is exactly reachable and 51-cell rejection tests have headroom.
+- Demo sizing: the demo project must yield enough candidate cells for the default allocation and the cap boundary tests. With 2 personas x 2 markets x 3 variants x the 5 allocated audit intents = 60 candidates (the sixth intent, `representation`, appends its pinned cells after allocation, D-102), the 40-cell default allocation (12 per intent maximum = 2 x 2 x 3) is exactly reachable and 51-cell rejection tests have headroom.
 
 Resonance fixtures (M17+, D-064):
 
