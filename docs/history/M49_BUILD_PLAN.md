@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M49 Resonance Message Lift implementation and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M49 Resonance Message Lift implementation and acceptance · DISPOSITION: EXECUTED (merged to main via PR #10; archived in M56 P3, D-126)
 
 # M49 — Resonance Message Lift Tests
 

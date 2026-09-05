@@ -136,13 +136,6 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
 | `AGENT_PRD.md` | PARKED | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
 | `AGENT_BUILD_PLAN.md` | PARKED | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
-| `M43_BUILD_PLAN.md` | ACTIVE | M43 authenticated Resonance web UI refinement, route/state inventory, live-demo protocol, and acceptance |
-| `M49_BUILD_PLAN.md` | ACTIVE | M49 Resonance Message Lift tests (D-119): two test types, exact A/B parity and disclosure, plain-language workflow |
-| `M50_BUILD_PLAN.md` | ACTIVE | M50 live-run remaining-time forecast (D-120): live-run-only p10–p90 range, 10-completion calibration, stale-pace recalibration |
-| `M51_BUILD_PLAN.md` | ACTIVE | M51 operator UI honesty/remediation (D-121): informed confirms, guided states, fresh findings, scoped recovery, baseline access |
-| `M52_BUILD_PLAN.md` | ACTIVE | M52 Run detail Diagnostics consolidation (D-122): Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; URL aliases |
-| `M54_BUILD_PLAN.md` | ACTIVE | M54 Collecting responses Overview substance trace (D-124): ask/collect/read lanes on Run Overview |
-| `M55_BUILD_PLAN.md` | ACTIVE | M55 market-context prompt guardrail (D-125): canonical visible market instruction, approval backstops, legacy approval compatibility |
 | `M56_BUILD_PLAN.md` | ACTIVE | M56 whole-repo cleanup pass (D-126/D-127): docs drift, repo noise, plan archival, zero-reference exports |
 | `AGENT_STRATEGY_MEMO.md` | PARKED | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |

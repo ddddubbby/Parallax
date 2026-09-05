@@ -4,7 +4,7 @@
 
 > **STATUS: M55 (D-125) merged to `main` via GitHub PR #16 (2026-08-03). M56 whole-repo cleanup pass in progress on `m56` (D-126/D-127; no product change). M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
-> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; M43 execution lives in `M43_BUILD_PLAN.md`; M44–M46 plans are in `docs/history/`.
+> What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; Executed milestone plans (M43–M55) are archived in `docs/history/`.
 
 ---
 
@@ -512,7 +512,7 @@ Navigation must acknowledge work immediately. No schema, metric, or measurement 
 2. **Same-segment pending controls** — `LocalViewTabs` and `ReportRunSwitcher` show local pending status (`InlineStatus` + `aria-busy`) via `useTransition` for unmodified in-app `?view=` / `runId=` changes; modified-click and unsaved-edit confirmation unchanged.
 3. **No duplicate refresh** — client `router.refresh()` is not called after server actions that already `revalidatePath`, except login (post-cookie) and async framing-batch terminal handling.
 
-Execution playbook: `M47_BUILD_PLAN.md`. No migration.
+Execution playbook (historical): `docs/history/M47_BUILD_PLAN.md`. No migration.
 
 ### 8.37 Resonance Message Lift tests (M49, D-119)
 
@@ -526,7 +526,7 @@ The `/resonance` workspace is Message Lift: compare one verbatim Current message
 6. **Strict dispatch** — Evidence audits use paid extraction; Buyer response uses response scoring/embeddings; AI recommendation has no secondary provider. Models and test types are never pooled.
 7. **Compatibility** — historical studies, prompts, results, routes, and IDs remain readable. Resonance is the sole product name; lowercase legacy internal identifiers remain implementation details.
 
-Execution playbook: `M49_BUILD_PLAN.md`. Schema: migration `0023_m49_message_lift_tests.sql`.
+Execution playbook (historical): `docs/history/M49_BUILD_PLAN.md`. Schema: migration `0023_m49_message_lift_tests.sql`.
 
 ### 8.38 Live-run remaining-time forecast (M50, D-120)
 
@@ -538,7 +538,7 @@ M46's point ETA jumped because it switched from historical-run seed data to as f
 4. **Stale-pace recalibration** — no terminal completion for more than 3× the observed slow-end cadence suppresses the range until pace resumes; a stale forecast never stays on screen.
 5. **Retained surfaces** — exact completed/total progress, generation/extraction lanes, worker-offline banner, pause reason, and cost display are unchanged; paused, offline, and terminal runs never render a range.
 
-Execution playbook: `M50_BUILD_PLAN.md`. No migration.
+Execution playbook (historical): `docs/history/M50_BUILD_PLAN.md`. No migration.
 
 ### 8.39 Operator UI honesty and remediation (M51, D-121)
 
@@ -552,7 +552,7 @@ M51 closes reviewed operator-journey gaps without changing methodology, schema, 
 6. **Truthful status language** — active/online calibration says `Learning this run’s pace…` without an estimate; reserved MOCK and VALIDATION-ONLY stamps use one mapping while PARTIAL remains separate.
 7. **Complete baseline access** — cursor paging reaches every stored response under theme filters, and a saved off-page baseline is restored visibly after reload.
 
-Execution playbook: `M51_BUILD_PLAN.md`. No migration.
+Execution playbook (historical): `docs/history/M51_BUILD_PLAN.md`. No migration.
 
 ### 8.40 Run detail Diagnostics consolidation (M52, D-122)
 
@@ -564,7 +564,7 @@ M52 is navigation consolidation only — no migration, no deletion of events/ext
 4. **Simulation runs** expose Diagnostics for lifecycle events only — never an audit ExtractionPanel.
 5. **Metrics** remains an audit-only peer tab.
 
-Execution playbook: `M52_BUILD_PLAN.md`. No migration.
+Execution playbook (historical): `docs/history/M52_BUILD_PLAN.md`. No migration.
 
 ### 8.42 Collecting responses Overview substance trace (M54, D-124)
 
@@ -575,7 +575,7 @@ M54 deepens the Run Overview activity narrative. No migration; poll transport un
 3. **Simulation truthfulness** — Message Lift shows scoring/recommendation-shaped lines only; the reading lane is omitted when secondary processing is skipped.
 4. **No streaming** — truncated previews over the existing 1.5s poll; full raw text stays off Overview.
 
-Execution playbook: `M54_BUILD_PLAN.md`. No migration.
+Execution playbook (historical): `docs/history/M54_BUILD_PLAN.md`. No migration.
 
 ### 8.43 Market Context Prompt Guardrail (M55, D-125)
 
@@ -587,7 +587,7 @@ M55 makes market scope model-visible and auditable for every newly approved ordi
 - Action and repository approval boundaries reject an ordinary audit cell with no market id, an unknown market, or a missing/altered current-market block.
 - Representation and Message Lift prompts stay market-neutral. Existing approved matrices remain frozen and runnable (C-4).
 
-Execution playbook: `M55_BUILD_PLAN.md`. No migration or provider-specific change.
+Execution playbook (historical): `docs/history/M55_BUILD_PLAN.md`. No migration or provider-specific change.
 
 ## 9. Data model summary
 
@@ -649,7 +649,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M32 | Operator workflow UI architecture | One responsive left sidebar, explicit read-only/edit states, URL-addressable local views, segmented Setup/Matrix/Run/Dashboard/Report surfaces, and Simulation library/detail/results/evidence hierarchy; no migration or route-segment rename; audit and Simulation remain structurally walled (D-088) | Done |
 | M33 | M32 verification, focus/edit-state fixes, demo-readiness close-out | The interactive browser walk M32's own build plan required but never got (`preview_start` sandbox failure deferred it, BUILD_NOTES S-063/S-064); a real, untested focus-management gap on the mobile sidebar drawer (`aria-modal="true"` with zero focus-trap/restore, unlike every Radix-backed overlay elsewhere); the unsaved-edit context M32 spec'd but never wired, plus an on-page unsaved-changes signal; study-detail evidence filters finished to match the already-built repository contract (stimulus/persona, not engine-only); minimal loading affordance where none exists (sharpest on Dashboard's blocking per-study Simulation recompute); lint-hygiene items plus a pluralization typo fix. Also folds in a reviewed external repo-quality audit's two verified engineering findings (D-092): CI fails hard rather than skip-passing when embedded Postgres can't start under `CI=true`, and one Playwright smoke spec + `axe` pass over the critical operator journey as a floor beneath manual QA. Embeds a decision gate: isolated bugs fixed in place, structural rot escalated for a revert-to-M31 call, never silently patched. No migration, no IA change (D-089, D-091, D-092; execution detail lives in `BUILD_NOTES.md` S-065, not a standalone plan file) | Done |
 | M34 | → M34A Framing Evidence & Actionable Gap (descoped by D-099) + M34B automated eligibility (deferred) | M34A ships human-reviewed framing evidence: bare pinned representation prompts (CAL-2-validated), offset-verified span assist, blind discovery → locked versioned codebook → full-sample human coding with literal-span linkage, descriptive recurrence matrix (complete denominators, no CI claims), reinforced/missing/misframed/unsupported/non-actionable gap classification, and a C-15 (D-099 form) simulation handoff with an immutable evidence snapshot. Production v1 permits only the evidenced single-analyst method; richer consistency/reliability modes require future structured records. Automated certification machinery (clustering, eligibility law, medoid, hard admission) remains removed; M34B stays deferred behind accumulated coded corpora under the D-099 reuse conditions | Done — M34A production integration verified; M34B deferred |
-| M43 | Authenticated Resonance web UI refinement | Every route/state in `M43_BUILD_PLAN.md` is reviewed; accessible/responsive/live-browser and automated gates pass; the diff contains no product, schema, API, metric, methodology, cost, agent, or brand-site change | Done |
+| M43 | Authenticated Resonance web UI refinement | Every route/state in `docs/history/M43_BUILD_PLAN.md` is reviewed; accessible/responsive/live-browser and automated gates pass; the diff contains no product, schema, API, metric, methodology, cost, agent, or brand-site change | Done |
 | M44 | Simplified simulation methodology + guided path (D-114) | See → Pick → Rewrite → Test; theme-organized verbatim baselines; framing workflow read-only historical; `deriveNextStep` guidance; blind extractor themes v2 | Done |
 | M45 | Durable brand-name resolution (D-115) | Compact-key equality + unique containment; PM-9 same matcher; collision guard; $0 re-resolve; resolution-health card | Done |
 | M46 | Trustworthy progress + Simulation readiness (D-117) | Balanced frozen brand order; persistent framing batches; stage-aware ETA; Persona copy; full-response baseline dialog; live Simulation draw-floor enforcement; migration 0021 | Done |

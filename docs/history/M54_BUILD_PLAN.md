@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M54 Collecting responses Overview substance trace implementation and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M54 Collecting responses Overview substance trace implementation and acceptance · DISPOSITION: EXECUTED (merged to main via PR #15; archived in M56 P3, D-126)
 
 # M54 — Collecting responses (Run Overview substance trace)
 

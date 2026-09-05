@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M52 Run detail Diagnostics consolidation implementation and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M52 Run detail Diagnostics consolidation implementation and acceptance · DISPOSITION: EXECUTED (merged to main via PR #14; archived in M56 P3, D-126)
 
 # M52 — Run detail Diagnostics consolidation
 
