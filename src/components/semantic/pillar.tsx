@@ -17,19 +17,6 @@ export function pillarNumber(pillar: Pillar): string {
   return String(PILLAR_ORDER.indexOf(pillar) + 1).padStart(2, "0");
 }
 
-/** Small mono marker tying a card/cell to its pillar at a glance. */
-export function PillarChip({ pillar }: { pillar: Pillar }) {
-  const tint = TINT[pillar];
-  return (
-    <span
-      className={`label-mono inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[11px] uppercase ${tint.text} ${tint.border}`}
-      title={PILLARS[pillar].clientQuestion}
-    >
-      P{PILLAR_ORDER.indexOf(pillar) + 1} · {PILLARS[pillar].label}
-    </span>
-  );
-}
-
 /** Numbered dossier section frame: recessed well, tinted header, client question. */
 export function PillarSection({
   pillar,

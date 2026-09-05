@@ -1,6 +1,6 @@
 import { desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "../client";
-import { auditRuns, jobs, promptCells, runEvents } from "../schema";
+import { auditRuns, jobs, runEvents } from "../schema";
 
 /** RN-9: most recent worker heartbeat, so Debug can flag staleness while a run is active. */
 export async function getLastHeartbeat() {
@@ -61,16 +61,4 @@ export async function listRecentRunEvents(limit = 100) {
     .from(runEvents)
     .orderBy(desc(runEvents.createdAt))
     .limit(limit);
-}
-
-export async function getCellResolvedText(cellId: string) {
-  const [row] = await db
-    .select({ resolvedText: promptCells.resolvedText })
-    .from(promptCells)
-    .where(eq(promptCells.id, cellId));
-  return row?.resolvedText ?? null;
-}
-
-export async function listRecentRuns(limit = 20) {
-  return db.select().from(auditRuns).orderBy(desc(auditRuns.createdAt)).limit(limit);
 }

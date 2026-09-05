@@ -103,11 +103,6 @@ export async function regenerateSection(runId: string, sectionId: string, sectio
   return updated.length;
 }
 
-export async function getSection(sectionId: string) {
-  const [row] = await db.select().from(reportSections).where(eq(reportSections.id, sectionId));
-  return row ?? null;
-}
-
 interface FindingEvidenceRow {
   id: string;
   findingType: string;

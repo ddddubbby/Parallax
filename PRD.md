@@ -315,7 +315,7 @@ OX-3 (M13): Every page has deliberate empty, loading, and error states; no dead 
 OX-4a (M13): The dashboard reorganizes into four numbered pillar sections (01 Presence - 04 Proof), each framed with its client question, a structural spine, and its metric cards and views grouped inside; the confidence rail renders as a distinct footer band, never a fifth pillar (D-051).
 OX-4b (M13): The matrix board groups cells into the same numbered pillar sections with intent sub-headers inside; pillar coverage counts render in the toolbar. Proof has no cells — a note explains every cell feeds it.
 VS-1 (M13): Pillar identity is structural first (numbering, framing, spine) plus four muted structural tints defined as tokens (D-055); the tints never style actions, verdicts, severity, or emphasis — signal orange remains the only accent (V-2 intact).
-VS-2 (M13): Shared PillarSection/PillarChip components in /src/components render pillar identity everywhere; no surface hand-rolls its own pillar styling. Pillar metadata stays in /src/core (C-7).
+VS-2 (M13; `PillarChip` retired in M56/D-126 as a zero-reference export, `PillarSection` is the sole shared renderer): Shared PillarSection/PillarChip components in /src/components render pillar identity everywhere; no surface hand-rolls its own pillar styling. Pillar metadata stays in /src/core (C-7).
 
 ### 8.18a Competitive spectrum (M14)
 

@@ -1650,27 +1650,6 @@ export async function getResonanceDrawFootprint(studyId: string): Promise<{
   };
 }
 
-export async function listAuditEvidenceResponses(projectId: string, limit = 20) {
-  return db
-    .select({
-      id: responses.id,
-      rawText: responses.rawText,
-      createdAt: responses.createdAt,
-    })
-    .from(responses)
-    .innerJoin(auditRuns, eq(auditRuns.id, responses.runId))
-    .innerJoin(matrixVersions, eq(matrixVersions.id, auditRuns.matrixVersionId))
-    .where(
-      and(
-        eq(auditRuns.projectId, projectId),
-        eq(matrixVersions.kind, "audit"),
-        eq(auditRuns.state, "completed"),
-      ),
-    )
-    .orderBy(desc(responses.createdAt))
-    .limit(limit);
-}
-
 async function assertEvidenceIds(projectId: string, ids: string[]) {
   if (ids.length === 0) return;
   const rows = await db

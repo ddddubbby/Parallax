@@ -203,14 +203,6 @@ export function parsePanelPersonaLines(text: string): PanelPersona[] {
   }));
 }
 
-export function formatPanelPersonaLines(personas: PanelPersona[]): string {
-  return personas
-    .map((p) =>
-      [p.label, p.ageBand, p.incomeBand, p.locationContext, p.behavioralProfile].join(" | "),
-    )
-    .join("\n");
-}
-
 export function validateResonanceCellCount(panelCount: number, stimulusCount: number) {
   const cellCount = panelCount * stimulusCount;
   if (cellCount > MAX_CELLS_PER_RUN) {

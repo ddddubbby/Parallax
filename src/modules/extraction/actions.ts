@@ -5,7 +5,6 @@ import { isUuid } from "@/core/id";
 import {
   assertDeadLetterOwnedByRun,
   getExtractionProgress,
-  listDeadLetteredExtractions,
   listDeadLettersForRun,
 } from "@/db/repositories/extraction";
 import { listMetrics } from "@/db/repositories/metrics";
@@ -61,15 +60,4 @@ export async function fetchExtractionAndMetrics(projectId: string, runId: string
     listDeadLettersForRun(runId),
   ]);
   return { progress, metrics, plannedResponses: run.plannedCalls, deadLetters };
-}
-
-export async function fetchDeadLettersForRun(projectId: string, runId: string) {
-  if (!isUuid(projectId) || !isUuid(runId)) return [];
-  const run = await getRun(runId);
-  if (!run || run.projectId !== projectId) return [];
-  return listDeadLettersForRun(runId);
-}
-
-export async function fetchDeadLetteredExtractions() {
-  return listDeadLetteredExtractions();
 }
