@@ -1,6 +1,12 @@
 import { and, asc, desc, eq, isNull, max, sql } from "drizzle-orm";
 import { MAX_CELLS_PER_RUN } from "@/core/constants";
-import { isAuditIntent, type CellPlan } from "@/core/matrix";
+import {
+  isAuditIntent,
+  marketContextViolationMessage,
+  renderMarketContextPrompt,
+  scanMarketContextCells,
+  type CellPlan,
+} from "@/core/matrix";
 import { frameAspectsForTemplate, TEMPLATE_SEED, type FrameAspect } from "@/core/prompt-templates";
 import type { CategoryArchetype } from "@/core/semantic";
 import { db } from "../client";
@@ -382,6 +388,25 @@ export async function approveVersion(projectId: string, versionId: string) {
       throw new Error(`Cap exceeded: ${n} > ${MAX_CELLS_PER_RUN} (C-1)`);
     }
 
+    const approvalCells = await tx
+      .select({
+        id: promptCells.id,
+        intent: promptCells.intent,
+        marketId: promptCells.marketId,
+        variantKey: promptCells.variantKey,
+        resolvedText: promptCells.resolvedText,
+      })
+      .from(promptCells)
+      .where(eq(promptCells.matrixVersionId, versionId));
+    const projectMarkets = await tx
+      .select({ id: markets.id, name: markets.name })
+      .from(markets)
+      .where(eq(markets.projectId, projectId));
+    const marketViolations = scanMarketContextCells(approvalCells, projectMarkets);
+    if (marketViolations.length > 0) {
+      throw new Error(marketContextViolationMessage(marketViolations));
+    }
+
     await tx
       .update(matrixVersions)
       .set({ state: "superseded", supersededAt: new Date(), updatedAt: new Date() })
@@ -414,8 +439,12 @@ export async function approveVersion(projectId: string, versionId: string) {
 export async function copyToNewDraft(projectId: string, sourceVersionId: string) {
   const source = await getVersionWithCells(sourceVersionId, projectId);
   if (!source) throw new Error("Source version not found");
-  const inputs = await getMatrixInputs(projectId);
+  const [inputs, marketLabels] = await Promise.all([
+    getMatrixInputs(projectId),
+    getMarketLabelsForProject(projectId),
+  ]);
   const clientName = inputs?.client?.name ?? "";
+  const marketById = new Map(marketLabels.map((market) => [market.id, market.name]));
   return createDraftVersion(
     projectId,
     source.cells.map((c) => {
@@ -430,12 +459,16 @@ export async function copyToNewDraft(projectId: string, sourceVersionId: string)
           : c.intent === "comparison" && clientName
             ? [clientName, ...competitorOrder]
             : [];
+      const marketName = c.marketId ? marketById.get(c.marketId) : undefined;
       return {
         intent: c.intent,
         personaId: c.personaId,
         marketId: c.marketId,
         variantKey: c.variantKey,
-        resolvedText: c.resolvedText,
+        resolvedText:
+          c.intent !== "representation" && marketName
+            ? renderMarketContextPrompt(c.resolvedText, marketName)
+            : c.resolvedText,
         competitorOrder,
         brandOrder,
       };

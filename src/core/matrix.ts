@@ -58,6 +58,110 @@ export interface MarketInput {
   name: string;
 }
 
+export const MARKET_CONTEXT_PROTOCOL_VERSION = "market-context.v1";
+
+const MARKET_CONTEXT_INSTRUCTION =
+  "Answer specifically for this market. Where relevant, use market-specific availability, pricing, regulations, cultural norms, brands, and buyer behavior. Do not infer or substitute a market based on IP address or other location signals. If reliable market-specific information is unavailable, state the uncertainty rather than assuming another market.";
+
+function normalizedMarketName(name: string): string {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+export function marketContextPrefix(marketName: string): string {
+  return `Market context: ${normalizedMarketName(marketName)}\n\n${MARKET_CONTEXT_INSTRUCTION}`;
+}
+
+/** Remove a recognized market-context.v1 block while preserving the question body. */
+export function stripMarketContext(resolvedText: string): string {
+  const text = resolvedText.trim();
+  const firstBreak = text.indexOf("\n\n");
+  if (firstBreak < 0 || !text.startsWith("Market context: ")) return text;
+  const instructionStart = firstBreak + 2;
+  if (!text.startsWith(MARKET_CONTEXT_INSTRUCTION, instructionStart)) return text;
+  const bodyStart = instructionStart + MARKET_CONTEXT_INSTRUCTION.length;
+  if (text.slice(bodyStart, bodyStart + 2) !== "\n\n") return text;
+  return text.slice(bodyStart + 2).trim();
+}
+
+/** Canonical visible market instruction followed by the operator-visible question. */
+export function renderMarketContextPrompt(promptText: string, marketName: string): string {
+  return `${marketContextPrefix(marketName)}\n\n${stripMarketContext(promptText)}`;
+}
+
+export function hasMarketContextPrompt(resolvedText: string, marketName: string): boolean {
+  const prefix = `${marketContextPrefix(marketName)}\n\n`;
+  return resolvedText.startsWith(prefix) && resolvedText.slice(prefix.length).trim().length > 0;
+}
+
+export interface MarketContextViolation {
+  cellId?: string;
+  intent: Intent;
+  variantKey: string;
+  marketName: string | null;
+  reason: "missing_market" | "unknown_market" | "invalid_context";
+}
+
+export function scanMarketContextCells(
+  cells: Array<{
+    id?: string;
+    intent: CellIntent | string;
+    marketId: string | null;
+    variantKey: string;
+    resolvedText: string;
+  }>,
+  projectMarkets: MarketInput[],
+): MarketContextViolation[] {
+  const marketById = new Map(projectMarkets.map((market) => [market.id, market.name]));
+  const violations: MarketContextViolation[] = [];
+  for (const cell of cells) {
+    if (!isAuditIntent(cell.intent) || cell.intent === "representation") continue;
+    if (!cell.marketId) {
+      violations.push({
+        cellId: cell.id,
+        intent: cell.intent,
+        variantKey: cell.variantKey,
+        marketName: null,
+        reason: "missing_market",
+      });
+      continue;
+    }
+    const marketName = marketById.get(cell.marketId);
+    if (!marketName) {
+      violations.push({
+        cellId: cell.id,
+        intent: cell.intent,
+        variantKey: cell.variantKey,
+        marketName: null,
+        reason: "unknown_market",
+      });
+      continue;
+    }
+    if (!hasMarketContextPrompt(cell.resolvedText, marketName)) {
+      violations.push({
+        cellId: cell.id,
+        intent: cell.intent,
+        variantKey: cell.variantKey,
+        marketName,
+        reason: "invalid_context",
+      });
+    }
+  }
+  return violations;
+}
+
+export function marketContextViolationMessage(violations: MarketContextViolation[]): string {
+  const first = violations[0];
+  if (!first) return "";
+  const cell = `${first.intent} · ${first.variantKey}`;
+  const detail =
+    first.reason === "missing_market"
+      ? "has no market"
+      : first.reason === "unknown_market"
+        ? "references a market outside this project"
+        : `does not begin with the exact ${MARKET_CONTEXT_PROTOCOL_VERSION} block for ${first.marketName}`;
+  return `Market context violation — ${cell} ${detail}${violations.length > 1 ? ` (+${violations.length - 1} more)` : ""}`;
+}
+
 export interface BrandTerms {
   name: string;
   aliases: string[];
@@ -178,9 +282,10 @@ export function renderTemplate(
     brand_list: brandOrder.join(", "),
     attribute_list: input.ctx.attributes.join(", "),
   };
-  return templateText.replace(/\{(\w+)\}/g, (match, key: string) =>
+  const question = templateText.replace(/\{(\w+)\}/g, (match, key: string) =>
     key in replacements ? replacements[key] : match,
   );
+  return renderMarketContextPrompt(question, input.market.name);
 }
 
 /** M34A FE-1: representation prompts interpolate the client brand only. */

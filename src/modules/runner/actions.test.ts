@@ -902,4 +902,35 @@ describe.skipIf(!dbUp)("createRun mode boundary against the dev database (C-9)",
     expect(cancelledEvents[0].message).toContain("cancelled by operator");
     expect(cancelledEvents[0].runId).toBe(created.runId);
   });
+
+  it("keeps a pre-M55 approved matrix runnable without rewriting its prompt", async () => {
+    const projectId = await ensureProject();
+    const inputs = await getMatrixInputs(projectId);
+    if (!inputs || inputs.personas.length === 0 || inputs.markets.length === 0) {
+      throw new Error("matrix inputs unavailable");
+    }
+    const legacy = await createDraftVersion(projectId, [{
+      intent: "validation",
+      personaId: inputs.personas[0]!.id,
+      marketId: inputs.markets[0]!.id,
+      variantKey: "pre-m55-v1",
+      resolvedText: "Legacy approved prompt without the market-context.v1 block.",
+      competitorOrder: [],
+      brandOrder: [],
+    }]);
+    createdVersionIds.push(legacy.id);
+    await db.update(matrixVersions).set({ state: "approved", approvedAt: new Date() }).where(eq(matrixVersions.id, legacy.id));
+
+    const run = await createRunRepo({
+      projectId,
+      matrixVersionId: legacy.id,
+      runMode: "mock",
+      repetitions: 1,
+      providers: ["mock"],
+      modes: ["ungrounded"],
+      costCapUsd: 25,
+    }, [{ id: "mock", supportsGrounded: true, supportsUngrounded: true }], 1);
+    createdRunIds.push(run.id);
+    expect(run.id).toBeTruthy();
+  });
 });
