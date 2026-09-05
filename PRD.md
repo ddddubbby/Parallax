@@ -661,7 +661,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `main` via GitHub PR #14 |
 | M54 | Collecting responses Overview substance trace (D-124) | Overview Collecting responses lanes (ask / collect / read-or-score); `liveActivity` on run detail; plain-language status; no SSE/migration | Done on `main` via GitHub PR #15 |
 | M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `main` via GitHub PR #16 |
-| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | In progress on `m56` |
+| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | Done on `m56` (D-126/D-127); merge to `main` pending push |
 
 Progress notes:
 

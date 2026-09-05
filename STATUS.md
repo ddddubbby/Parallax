@@ -9,8 +9,8 @@
 | **Build plan** | [M56_BUILD_PLAN.md](M56_BUILD_PLAN.md) |
 | **Branch** | `m56`, cut from `main@5ba6e65` (the local merge of `m54`) |
 | **Current milestone** | M56 — docs drift, repo noise, plan archival, zero-reference exports |
-| **Milestone state** | P0 done; P1 in progress |
-| **Next action** | P1 repo noise per `M56_BUILD_PLAN.md`, then P2 brand canon rewrite (D-127) |
+| **Milestone state** | Done — all phases committed on `m56`; ready to merge to `main` (push and PR are operator-gated) |
+| **Next action** | Push `main` (carries the m54 site landing 5ba6e65) and `m56`, open the PR for `m56` → `main`; then M57 P0 archives `M56_BUILD_PLAN.md` to `docs/history/` and prunes S-130 (D-025/D-126) |
 | **Blocked on** | Pushing `main`/`m56` and opening the PR need GitHub credentials on this machine (no `gh`, credential helper points at a deleted temp binary) |
 | **Integration order** | `m54` is already on local `main` (5ba6e65); `m56` merges to `main` after P5 |
 | **Pending merge** | `m53` (D-123 sampling terminology, 343ab62, 8 behind main) stays unmerged by operator decision; trunk `PRD.md` has no §8.41 and `DECISIONS.md` no D-123 until it lands |
@@ -22,11 +22,19 @@
 |---|---|---|
 | P-1 | Merge `m54` (site source) into `main`; cut `m56` | Done (local; push pending) |
 | P0 | D-126/D-127, STATUS, this plan, PROTECTED_REGISTER, audit register, baseline gates | Done |
-| P1 | Repo noise: worktrees, stale branches, upload zip, `.gitkeep`, env var names | In progress |
-| P2 | Brand canon rewrite (D-127); current-state docs synced to code | Pending |
-| P3 | Archive eight merged plans to `docs/history/`; D-025 BUILD_NOTES truncation | Pending |
-| P4 | Delete zero-reference exports DC-01..DC-24 | Pending |
-| P5 | Closeout: gates, audit artifacts removed, handoff | Pending |
+| P1 | Repo noise: worktrees, stale branches, upload zip, `.gitkeep`, env var names | Done |
+| P2 | Brand canon rewrite (D-127); current-state docs synced to code | Done |
+| P3 | Archive eight merged plans to `docs/history/`; D-025 BUILD_NOTES truncation | Done |
+| P4 | Delete zero-reference exports DC-01..DC-24 | Done |
+| P5 | Closeout: gates, audit artifacts removed, handoff | Done |
+
+## Closeout evidence (m56 head)
+
+- `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check` (20 governed root docs, 19 historical) green after P4.
+- Full Vitest after the deletions: 915 passed / 12 skipped / 0 failed (unchanged from baseline). Playwright `test:e2e`: 18/18.
+- Grep gates G1–G12 (`M56_BUILD_PLAN.md`): green; the only residue is the playbook's own "don't say" table and the D-114-kept `createFramingStudyFormAction`.
+- Archived plan bodies proven byte-frozen (`git diff HEAD~1:<old> HEAD:<new>` = 2 header lines each).
+- `pnpm build` and `pnpm test:e2e:forecast` results are recorded in the P5 commit's BUILD_NOTES entry.
 
 ## Baseline evidence (main@5ba6e65)
 
