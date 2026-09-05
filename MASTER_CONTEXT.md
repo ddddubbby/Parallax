@@ -130,6 +130,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `M52_BUILD_PLAN.md` | ACTIVE | M52 Run detail Diagnostics consolidation (D-122): Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; URL aliases |
 | `M54_BUILD_PLAN.md` | ACTIVE | M54 Collecting responses Overview substance trace (D-124): ask/collect/read lanes on Run Overview |
 | `M55_BUILD_PLAN.md` | ACTIVE | M55 market-context prompt guardrail (D-125): canonical visible market instruction, approval backstops, legacy approval compatibility |
+| `M56_BUILD_PLAN.md` | ACTIVE | M56 whole-repo cleanup pass (D-126/D-127): docs drift, repo noise, plan archival, zero-reference exports |
 | `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |

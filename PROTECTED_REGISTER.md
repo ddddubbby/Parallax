@@ -100,3 +100,24 @@ D-114 retires the human-codebook framing workflow and rewrites C-15. The followi
 | M34A interrupted-call accounting (`m34a-budget.ts`, `generation_unavailable`, `span_assist_not_requested`) | **Unchanged for stored/historical data**; no new codebook runs will exercise it. Do not delete — historical denominators must stay interpretable. | D-100 (D-114 noted) |
 
 **New protected surface (D-114):** the verbatim-stimulus rule — a Simulation baseline stimulus is always a stored raw response cited by id (C-13), with the auto-stamp rendered wherever results render; theme labels/synthesized summaries must never become the stimulus, and clustering/central-selection must never become an admission gate. A proposal to "simplify" the picker into free-text baseline entry, or to "harden" themes into eligibility law, is an automatic Keep/Reject respectively — cite D-114.
+
+
+## M56 cleanup pass (D-126/D-127, 2026-09-06)
+
+Surfaces investigated during the M56 whole-repo cleanup and deliberately kept. A future pass that flags any of these is re-litigating a settled ruling — cite the D-number.
+
+| Surface (file + exact name) | D-number | Why it looks dead but isn't | Confidence |
+|---|---|---|---|
+| `site/vercel.json` **and** `site/_headers` coexisting | D-127 | `_headers` is Netlify/Cloudflare syntax and inert on Vercel; kept for host portability. Not a duplicate config. | HIGH |
+| `__SITE_URL__` token + `scripts/set-site-domain.sh`; `site/.gitignore` (`.vercel`) | D-127 | Absolute-URL stamping after any domain change; the script's re-stamp regexes are idempotent. Not a leftover build step. | HIGH |
+| `site/og.svg` and `site/assets/mark.svg` (no HTML references) | D-127 | Sources for `og.jpg` and the rendered mark; unreferenced by design. | REVIEW |
+| `previewMessageLiftPromptsAction` (`src/modules/resonance/actions.ts`) | D-119 | Zero callers today; it is the exact-A/B prompt disclosure surface D-119 requires. | REVIEW |
+| `StartReviewControl`, `createFramingStudyAction`, `createFramingStudyFormAction`, `listFramingSourceRuns` | D-114 | The retired framing workflow's create path — kept as read-only historical rendering; D-114 rejects deleting the framing module. | HIGH |
+| `listBaselinePickerData` (`src/db/repositories/resonance.ts`) | D-126 | Test-only wrapper around `listBaselinePickerPage`; kept for `baseline-picker-page.test.ts`. | REVIEW |
+| `scripts/framing-feasibility/v4-cal.ts` | D-099 | Zero inbound references; D-099 rejects "deleting the v4 artifacts (retired with salvage value)". | HIGH |
+| `scripts/repair-m46-migration-drift.ts` | D-126 | Imported only by `upgrade-path.test.ts`; it is the regression fixture for the C-6 drift repair. | REVIEW |
+| `PROMPT_FRAMES` (`src/core/semantic.ts`) | D-054 | Glossary of the prompt-frame rule; no runtime caller by design. | REVIEW |
+| Four dev-DB-gated test blocks (`spotcheck`, `report/service`, `dashboard/review`, `matrix/actions`) | D-078 | They skip on the ephemeral test DB because they need `pnpm test:mock-e2e` data; behavior-adjacent, not dead. | REVIEW |
+| `console.warn` in `src/modules/runner/budget.ts`, `console.error` in `src/modules/framing/observations.ts` | D-076 | Seam bypasses noted for the Sentry swap; changing them is a behavior change outside a cleanup pass. | REVIEW |
+| `"SIMULATION LAYER"` string in `src/core/funnel.ts` | D-077 | Dormant internal stamp for the unreachable `lower` stage; documented in DESIGN_GUIDELINES §1. | REVIEW |
+| Duplicate helpers: `groupBy` ×4, `validIds` ×3, `formatDelta`/`formatPi`/`pct` ×2, two `cosineSimilarity` contracts | D-126 | Merge candidates recorded as a future proposal; the two cosine implementations have different invariants (throw vs truncate) and must not be silently unified. | HIGH |

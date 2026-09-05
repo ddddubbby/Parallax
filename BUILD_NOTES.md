@@ -28,6 +28,13 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-130 / 2026-09-06 / M56 whole-repo cleanup pass (Fable)
+GOAL: Execute the approved M56 plan: land the m54 site source on main, then docs drift, repo noise, plan archival + D-025 truncation, zero-reference exports. Register-first per AUDIT_METHODOLOGY; every Delete has rg proof in `docs/audits/m56/AUDIT_REGISTER.md`.
+DONE: P-1 — `m54` merged into `main` locally with a merge commit (5ba6e65; only conflict was BUILD_NOTES, resolved additively); m56 cut from main. P0 — D-126/D-127 appended, STATUS/M56 plan/PROTECTED_REGISTER/audit register written. Baseline: lint 0 warnings, typecheck, docs:check 27→28 governed docs, `pnpm test` 915 passed / 12 skipped, `pnpm test:e2e` 18/18.
+REJECTED: opening GitHub PR #17 for the m54 landing — no `gh` on the machine and the git credential helper points at a deleted temp binary, so the merge landed locally; pushing `main`/`m56` and the PR are operator-gated.
+NEXT: P1 repo noise (see `M56_BUILD_PLAN.md`), then P2 brand canon rewrite.
+GOTCHAS: `pnpm push` is impossible from this machine until a credential helper exists; do not assume origin/main reflects local main.
+
 ## S-129 / 2026-08-03 / M55 GitHub conflict-resolution handoff
 
 GOAL: Reconcile M55 with the latest GitHub `main` after M54 merged via PR #15, then leave PR #16 conflict-free.
