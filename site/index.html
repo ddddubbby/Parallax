@@ -3,22 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Resonance. Synthetic consumer research, grounded in evidence.</title>
-<meta name="description" content="Resonance measures how AI assistants frame your brand, then tests that framing, and your candidate fixes, on synthetic buyer panels. Ranked answers in hours, every figure labeled and traceable.">
-<meta property="og:title" content="Resonance">
-<meta property="og:description" content="Test your brand's framings on synthetic buyers. Grounded in evidence.">
+<title>Resonance &middot; Understand how AI recommends your brand</title>
+<meta name="description" content="Brand marketing in the agentic shopping era. We measure how AI ranks and describes your brand, then test which message lifts your shortlist and top-choice rates.">
+<link rel="canonical" href="https://resonance.observer/">
+<meta property="og:title" content="Understand how AI recommends your brand. Test what moves you toward its top choice.">
+<meta property="og:description" content="We measure how AI ranks and describes your brand, then test which message lifts your shortlist and top-choice rates.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://resonance.observer/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Understand how AI recommends your brand. Test what moves you toward its top choice.">
+<meta name="twitter:description" content="We measure how AI ranks and describes your brand, then test which message lifts your shortlist and top-choice rates.">
+<meta name="twitter:image" content="https://resonance.observer/og.jpg">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=20260830g">
 <script>document.documentElement.className = "js";</script>
 </head>
 <body>
 
-<!-- shared SVG gradient defs (referenced by every inline cone) -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<svg width="0" height="0" class="svg-defs" aria-hidden="true">
   <defs>
     <linearGradient id="coneBody" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#FFA26B"/><stop offset=".42" stop-color="#F15A24"/><stop offset="1" stop-color="#D4430D"/>
@@ -29,7 +34,6 @@
   </defs>
 </svg>
 
-<!-- ============ NAV ============ -->
 <header class="nav" id="nav">
   <a class="brand" href="#top" aria-label="Resonance home">
     <svg viewBox="0 0 512 512" aria-hidden="true">
@@ -42,324 +46,485 @@
   </a>
   <nav class="links" aria-label="Primary">
     <div class="nav-menu" id="nav-menu">
-      <a href="#studies">Studies</a>
-      <a href="#evidence">Evidence</a>
-      <a href="#method">Method</a>
-      <a href="#pilot">Pilot</a>
-      <a href="#investors">Investors</a>
+      <a href="#workflow">How it works</a>
+      <a href="#metrics">What we measure</a>
+      <a href="#finding">What we found</a>
+      <a href="#methodology">Method</a>
+      <a href="/studies">Studies</a>
     </div>
     <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
       <span></span><span></span><span></span>
     </button>
-    <a class="btn primary" href="#contact">Run a pilot study</a>
+    <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">Request a brand audit</a>
   </nav>
 </header>
 <div class="nav-scrim" id="nav-scrim"></div>
-
 <span id="nav-sentinel" aria-hidden="true"></span>
 
 <main id="top">
 
-  <!-- ============ S0 HERO ============ -->
   <section class="hero stage" aria-label="Introduction">
-    <div class="stagecast" aria-hidden="true">
-      <div class="prim drift" style="top:18%;left:12%">
-        <svg class="spin-90" width="96" height="96" viewBox="0 0 120 120" style="transform-origin:60px 60px">
-          <rect x="38" y="18" width="44" height="84" rx="22" fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5"/>
-        </svg>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow" data-reveal>Brand marketing in the agentic shopping era</p>
+        <h1 data-reveal style="--i:1">Understand how AI recommends your brand. Test what moves you toward its top choice.</h1>
+        <p class="hero-benefit" data-reveal style="--i:2">We measure where you stand in AI answers today, then test one Current message against one New message and report the lift in shortlist and top-choice rates. Every figure labeled measured or simulated.</p>
+        <div class="btn-row" data-reveal style="--i:3">
+          <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">Request a brand audit</a>
+          <a class="btn ghost" href="#finding">See two real findings</a>
+        </div>
       </div>
-      <div class="prim floaty" style="top:24%;right:14%">
-        <svg class="spin-140" width="120" height="120" viewBox="0 0 120 120" style="transform-origin:60px 60px">
-          <g fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5">
-            <path d="M60 12 L102 36 V84 L60 108 L18 84 V36 Z"/>
-            <path d="M60 12 L60 60 M18 36 L60 60 M102 36 L60 60 M60 108 L60 60 M18 84 L60 60 M102 84 L60 60" fill="none"/>
-          </g>
-        </svg>
-      </div>
-      <div class="prim drift" style="bottom:20%;left:18%">
-        <svg class="spin-120" width="104" height="104" viewBox="0 0 120 120" style="transform-origin:60px 60px">
-          <rect x="24" y="24" width="72" height="72" rx="14" fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5"/>
-          <path d="M24 48 H96 M48 24 V96" stroke="var(--shape-stroke)" stroke-width="1" opacity=".5"/>
-        </svg>
-      </div>
-      <div class="prim floaty" style="bottom:22%;right:16%">
-        <svg class="spin-105" width="90" height="90" viewBox="0 0 120 120" style="transform-origin:60px 60px">
-          <g fill="var(--shape-fill)" stroke="var(--shape-stroke)" stroke-width="1.5">
-            <path d="M30 96 L42 68 H78 L90 96 Z"/><path d="M38 64 L48 44 H72 L82 64 Z"/><path d="M46 40 L52 26 H68 L74 40 Z"/>
-          </g>
-        </svg>
-      </div>
-    </div>
 
-    <div class="wrap">
-      <div class="hero-cone">
-        <div class="floaty">
-          <svg class="sway" viewBox="0 0 512 512" width="100%" aria-label="Resonance" style="transform-origin:256px 256px">
-            <circle class="ring-pulse" cx="256" cy="252" r="150" fill="none" stroke="rgba(240,238,228,.25)" stroke-width="3" style="transform-origin:256px 252px"/>
+      <div class="hero-visual" data-reveal style="--i:1">
+        <div class="hero-motif" aria-hidden="true">
+          <svg class="hero-cone" viewBox="0 0 512 512">
+            <circle cx="256" cy="252" r="150" fill="none" stroke="rgba(240,238,228,.22)" stroke-width="3"/>
             <g transform="rotate(-14 256 256)">
               <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
               <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
               <path d="M256 92 L300 336 A104 36 0 0 0 340 322 Z" fill="#fff" opacity=".18"/>
             </g>
           </svg>
-        </div>
-      </div>
-      <h1 data-reveal><span class="h1-main">Test your brand's framings on synthetic&nbsp;buyers.</span><span class="h1-sub">Grounded in evidence.</span></h1>
-      <p class="lead" data-reveal style="--i:1">Resonance measures how AI assistants frame your brand, then tests that framing, and your candidate fixes, on synthetic buyer panels. Ranked answers in hours, every figure labeled and traceable.</p>
-      <div class="btn-row" data-reveal style="--i:2">
-        <a class="btn primary" href="#contact">Run a pilot study</a>
-        <a class="btn ghost" href="#method">Read the methodology</a>
-      </div>
-      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
-        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".55">
-          <path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/>
-          <path d="M100 84c130 0 170-28 250-28s130 44 250 44 170-24 260-24"/>
-          <path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/>
-          <path d="M140 124c110 0 150 16 230 16s110-36 230-36 150 28 220 28"/>
-        </g>
-        <g stroke="#F15A24" stroke-width="6" stroke-linecap="round">
-          <path d="M40 80h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36"/>
-        </g>
-        <circle cx="40" cy="80" r="12" fill="#F15A24"/><circle cx="920" cy="80" r="12" fill="#F15A24"/>
-      </svg>
-    </div>
-  </section>
-
-  <!-- ============ S1 STAKES ============ -->
-  <section id="stakes" class="stage" aria-labelledby="s1h">
-    <div class="wrap">
-      <span class="label" data-reveal>01 / The stakes</span>
-      <h2 id="s1h" data-reveal style="--i:1">AI assistants are the new front door.</h2>
-      <p class="lead" data-reveal style="--i:2; margin-top:20px">
-        They describe, rank, and recommend your brand before a human ever reaches your site. Sample the same question five times and you may get five different shortlists, five different reasons, five different brands named first. For the first time, the framing your buyers see is measurable.
-      </p>
-    </div>
-  </section>
-
-  <!-- ============ S2 THE BROKEN LOOP ============ -->
-  <section id="broken-loop" aria-labelledby="s2h">
-    <div class="wrap">
-      <span class="label" data-reveal>02 / The broken loop</span>
-      <h2 id="s2h" data-reveal style="--i:1">Every fix stalls somewhere in this loop.</h2>
-      <div class="bento" data-reveal style="--i:2; margin-top:32px">
-        <article class="study">
-          <span class="arche">Diagnosis without treatment</span>
-          <p class="finding">An audit that ends at a dashboard is a diagnosis without a treatment.</p>
-        </article>
-        <article class="study">
-          <span class="arche">The dead research loop</span>
-          <p class="finding">Traditional testing costs $20,000 to $100,000 and takes four to eight weeks. The loop never closes.</p>
-        </article>
-        <article class="study">
-          <span class="arche">Simulation theater</span>
-          <p class="finding">Generic synthetic panels test framings a workshop imagined. Ungrounded in, ungrounded out.</p>
-        </article>
-      </div>
-      <p class="manifesto-line" data-reveal style="--i:3">The loop is broken.</p>
-    </div>
-  </section>
-
-  <!-- ============ S3 RESONANCE STUDIES (hero section) ============ -->
-  <section id="studies" aria-labelledby="s3h">
-    <div class="wrap">
-      <span class="label" data-reveal>03 / The Resonance study</span>
-      <h2 id="s3h" data-reveal style="--i:1">Your framings, tested before you spend.</h2>
-      <p class="lead" data-reveal style="--i:2; margin-top:20px">
-        A Resonance study takes the framing AI already uses to describe you, plus the candidate fixes you want tested, and puts them in front of a synthetic buyer panel. Out the other side: your framings ranked by &Delta;PI, the shift in expressed purchase intent versus baseline.
-      </p>
-
-      <p class="mono" data-reveal style="--i:3; margin-top:32px; color:var(--ink-60)">The loop every study runs:</p>
-      <div class="steps steps-3" data-reveal style="--i:4; margin-top:16px">
-        <div class="step">
-          <span class="snum">STEP 01</span><h3>Measure</h3><p>AI's framing of your brand, and the fixes you are considering, become the stimulus.</p>
-          <p style="margin-top:12px"><a class="tlink" href="#evidence">How it's grounded &rarr;</a></p>
-        </div>
-        <div class="step">
-          <span class="snum">STEP 02</span><h3>Simulate</h3><p>A synthetic panel reacts in free text, scored into expressed purchase intent.</p>
-          <p style="margin-top:12px"><a class="tlink" href="#method">How it's scored &rarr;</a></p>
-        </div>
-        <div class="step"><span class="snum">STEP 03</span><h3>Decide</h3><p>Framings rank by &Delta;PI. Choose the one buyers respond to, before you spend.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ S4 THE EVIDENCE LAYER ============ -->
-  <section id="evidence" class="stage" aria-labelledby="s4h">
-    <div class="wrap">
-      <span class="label" data-reveal>04 / The evidence layer</span>
-      <h2 id="s4h" data-reveal style="--i:1">What grounds every study.</h2>
-      <p class="lead" data-reveal style="--i:2; margin-top:16px">
-        Step 01 of every study, expanded. The panel reacts to what AI actually says about you, not what a workshop imagined. Four measured questions build the stimulus.
-      </p>
-      <div class="rows" data-reveal style="--i:3; margin-top:32px">
-
-        <div class="row">
-          <span class="num">01</span>
-          <div><h3>Presence</h3><p>Are you in the set of brands AI considers at all? We measure how often you appear, across engines and phrasings.</p></div>
-          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><rect x="38" y="18" width="44" height="84" rx="22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <svg class="hero-wave" viewBox="0 0 960 160" fill="none">
+            <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45">
+              <path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/>
+              <path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/>
+            </g>
+            <path d="M40 84h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
+          </svg>
         </div>
 
-        <div class="row">
-          <span class="num">02</span>
-          <div><h3>Position</h3><p>When AI is asked to compare, do you win? We measure head to head recommendation rates against each named competitor.</p></div>
-          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><path d="M30 96 L42 68 H78 L90 96 Z M38 64 L48 44 H72 L82 64 Z M46 40 L52 26 H68 L74 40 Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-        </div>
+        <figure class="report-panel">
+          <figcaption class="report-panel-head">
+            <span class="mono">Resonance &middot; Brand audit</span>
+            <span class="stamp">Real study excerpt</span>
+          </figcaption>
+          <p class="report-panel-title">Insta 360</p>
+          <p class="report-panel-meta">19 Jul 2026 &middot; n=118 &middot; OpenAI + DeepSeek &middot; ungrounded</p>
 
-        <div class="row">
-          <span class="num">03</span>
-          <div><h3>Perception</h3><p>How does AI describe you? We extract the attributes and sentiment attached to your brand, split by whether the prompt planted them.</p></div>
-          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 18 L98 40 V80 L60 102 L22 80 V40 Z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-        </div>
+          <p class="report-panel-section">01 &middot; Presence</p>
+          <p class="panel-stat"><span>Mention rate</span><strong>94.9%</strong><small>Wilson 95% CI 89.3&ndash;97.7</small></p>
+          <ul class="bar-chart">
+            <li style="--d:0"><span>DJI</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:100%"></span></span><strong>33.2%</strong></li>
+            <li style="--d:1"><span>Go Pro</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:98%"></span></span><strong>32.7%</strong></li>
+            <li style="--d:2"><span>Insta 360</span><span class="bar-track"><span class="bar-fill client" style="--value:95%"></span></span><strong>31.5%</strong></li>
+            <li style="--d:3"><span>Akaso</span><span class="bar-track"><span class="bar-fill ink-5" style="--value:8%"></span></span><strong>2.5%</strong></li>
+          </ul>
 
-        <div class="row">
-          <span class="num">04</span>
-          <div><h3>Proof</h3><p>Is the story true, and sourced? We check every claim about you against your fact sheet and log what AI gets wrong.</p></div>
-          <svg class="glyph" viewBox="0 0 120 120" aria-hidden="true"><rect x="24" y="24" width="72" height="72" rx="12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 48 H96 M48 24 V96" stroke="currentColor" stroke-width="1.5" opacity=".6"/></svg>
-        </div>
-
-      </div>
-      <p class="rail-note" data-reveal style="--i:4">This measured evidence is the stimulus every study is conditioned on.</p>
-    </div>
-  </section>
-
-  <!-- ============ S5 THE GLASS BOX (methodology) ============ -->
-  <section id="method" class="stage" aria-labelledby="s5h">
-    <div class="wrap">
-      <div class="method-grid">
-        <div>
-          <span class="label" data-reveal>05 / The Glass Box</span>
-          <h2 id="s5h" data-reveal style="--i:1">We publish our uncertainty.</h2>
-          <div class="statstamps" data-reveal style="--i:2">
-            <div class="statstamp"><b>k = 5</b> samples per prompt</div>
-            <div class="statstamp"><b>Wilson 95%</b> confidence intervals</div>
-            <div class="statstamp"><b>n &#8805; 30</b> or labeled directional</div>
-            <div class="statstamp"><b>Measured and simulated</b> data never mix</div>
+          <p class="report-panel-section">03 &middot; Perception <span>organic sentiment &middot; n=112</span></p>
+          <div class="sentiment-bar panel-sentiment" role="img" aria-label="Organic sentiment: 80% positive, 19% mixed, 1% negative">
+            <span class="positive" style="--value:80.4%">80%</span>
+            <span class="neutral" style="--value:18.8%">19%</span>
+            <span class="negative" style="--value:0.8%"></span>
           </div>
-          <div class="stamps" data-reveal style="--i:3; margin:24px 0 12px">
+
+          <p class="report-panel-section">Message Lift <span>two framings, one partnership</span><span class="stamp sim">Simulated</span><span class="stamp">Directional</span></p>
+          <ul class="panel-lift-list">
+            <li>
+              <p class="panel-lift-msg">&ldquo;&hellip;collaborating with Leica to enhance image and video quality&rdquo;</p>
+              <p class="panel-lift-row"><span class="panel-lift-meta">9 Jul &middot; OpenAI + DeepSeek &middot; n=5</span><em class="is-up">+0.15 to +0.57</em></p>
+            </li>
+            <li>
+              <p class="panel-lift-msg">&ldquo;New product with Leica certified lens and Leica designed filters&rdquo;</p>
+              <p class="panel-lift-row"><span class="panel-lift-meta">19 Jul &middot; OpenAI &middot; n=5</span><em class="is-down">&minus;0.31</em></p>
+            </li>
+          </ul>
+          <p class="panel-lift-note">Two separate studies against different baselines, not a head-to-head test. One framing of the partnership moved expressed intent. The other did not.</p>
+
+          <p class="report-panel-foot">Self-initiated study, not client work. Every figure traces to a stored answer. <a class="tlink" href="/studies">See the full study &rarr;</a></p>
+        </figure>
+      </div>
+
+      <aside class="hero-stats" data-reveal style="--i:4" aria-label="Why the AI channel matters now">
+        <div class="hero-stat">
+          <strong>&minus;25%</strong>
+          <p>Gartner projects traditional search engine volume drops 25% by 2026 as buyers shift to AI chatbots and agents.</p>
+          <span class="stat-source">Gartner &middot; Feb 2024</span>
+        </div>
+        <div class="hero-stat">
+          <strong>56%</strong>
+          <p>of US consumers plan to use AI chatbots to compare prices and find deals, per Deloitte&rsquo;s holiday survey.</p>
+          <span class="stat-source">Deloitte &middot; 2025</span>
+        </div>
+        <div class="hero-stat">
+          <strong>10&ndash;20%</strong>
+          <p>of US e-commerce is projected to be agent-driven by 2030, per Morgan Stanley research.</p>
+          <span class="stat-source">Morgan Stanley</span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="workflow" aria-labelledby="workflow-h">
+    <div class="wrap">
+      <span class="label" data-reveal>01 / How it works</span>
+      <h2 id="workflow-h" data-reveal style="--i:1">As our client, you will always know where you stand.</h2>
+      <p class="lead" data-reveal style="--i:2">Every engagement answers the same four questions, in order. You get each answer labeled, with the sample size shown, so you can see how much weight it carries.</p>
+      <ol class="workflow-timeline" data-reveal style="--i:3" aria-label="Resonance engagement sequence">
+        <li class="workflow-step" style="--step:0">
+          <span class="timeline-node" aria-hidden="true">01</span>
+          <div class="step-card">
+            <span class="step-tag">Prompt discovery</span>
+            <h3>What do your customers ask AI?</h3>
+            <p>We generate the prompt matrix automatically: buying intents crossed with personas and markets, so coverage is designed, not guessed.</p>
+          </div>
+        </li>
+        <li class="workflow-step" style="--step:1">
+          <span class="timeline-node" aria-hidden="true">02</span>
+          <div class="step-card">
+            <span class="step-tag">Baseline audit</span>
+            <h3>Where do you stand in AI answers today?</h3>
+            <p>Repeated sampling measures whether AI names, ranks, describes, and substantiates you.</p>
+          </div>
+        </li>
+        <li class="workflow-step" style="--step:2">
+          <span class="timeline-node" aria-hidden="true">03</span>
+          <div class="step-card">
+            <span class="step-tag">Message Lift test</span>
+            <h3>Would a new message move you up?</h3>
+            <p>One Current and one New message run through shared contexts. Only the message changes.</p>
             <span class="stamp sim">Simulated</span>
           </div>
-          <p class="rail-note" data-reveal style="--i:3">Every study output carries this stamp. Not a caveat. The feature.</p>
-          <p class="lead" data-reveal style="--i:4">
-            Every Resonance figure ships in the Glass Box: labeled measured or simulated, gated by sample size, wrapped in its confidence interval where the math supports one, and traceable to the stored raw response behind it.
-          </p>
-          <p class="lead" data-reveal style="--i:5">
-            Panels are conditioned on age and income, the two axes validated in independent published research. Reactions are elicited in free text, never gameable numeric ratings, and scored against benchmarked anchor statements. SSR was published and validated by independent researchers: 90% of human test-retest reliability across 9,300 human responses and 57 surveys (arXiv:2510.08338). That validation belongs to the method, not to us. Our work is productizing it: we run it on framings measured from the AI channel, and we label everything we cannot yet prove. Benchmarked, not black-boxed. Uncalibrated scales ship labeled as such.
-          </p>
+        </li>
+        <li class="workflow-step" style="--step:3">
+          <span class="timeline-node" aria-hidden="true">04</span>
+          <div class="step-card">
+            <span class="step-tag">Ongoing monitoring</span>
+            <h3>Are you gaining or losing ground?</h3>
+            <p>Quarterly re-audits track your movement, competitor shifts, and new entrants.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="metrics" class="metrics-section" aria-labelledby="metrics-h">
+    <div class="wrap">
+      <span class="label" data-reveal>02 / What we measure</span>
+      <h2 id="metrics-h" data-reveal style="--i:1">What we measure, and what each number means.</h2>
+      <p class="lead" data-reveal style="--i:2">The metric names matter less than the decisions behind them. Each pillar answers one question a brand team can act on.</p>
+      <div class="pillar-grid" data-reveal style="--i:3">
+        <article class="pillar-card">
+          <p class="pillar-report-line">From the audit report &middot; Pillar 01</p>
+          <div class="pillar-meta"><span>01</span><strong>Presence</strong></div>
+          <h3>Am I in AI&rsquo;s consideration set?</h3>
+          <p>We ask open, unbranded category questions and measure whether AI volunteers your brand.</p>
+          <div class="pillar-example">
+            <p>Share of voice across 180 unbranded answers: of every brand AI named, yours took 24%.</p>
+            <ul class="bar-chart">
+              <li style="--d:0"><span>Your brand</span><span class="bar-track"><span class="bar-fill client" style="--value:24%"></span></span><strong>24%</strong></li>
+              <li style="--d:1"><span>Rival A</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:31%"></span></span><strong>31%</strong></li>
+              <li style="--d:2"><span>Rival B</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:22%"></span></span><strong>22%</strong></li>
+              <li style="--d:3"><span>Rival C</span><span class="bar-track"><span class="bar-fill ink-4" style="--value:15%"></span></span><strong>15%</strong></li>
+              <li style="--d:4"><span>Others</span><span class="bar-track"><span class="bar-fill ink-5" style="--value:8%"></span></span><strong>8%</strong></li>
+            </ul>
+            <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=180</span></div>
+          </div>
+          <ul class="pillar-metrics" aria-label="Presence metrics">
+            <li>Mention Rate</li>
+            <li>Share of Voice</li>
+            <li>Avg First Position</li>
+          </ul>
+        </article>
+        <article class="pillar-card">
+          <p class="pillar-report-line">From the audit report &middot; Pillar 02</p>
+          <div class="pillar-meta"><span>02</span><strong>Position</strong></div>
+          <h3>When compared, do I win?</h3>
+          <p>We compare you with named competitors and measure which brand AI recommends.</p>
+          <div class="pillar-example">
+            <p>Asked to choose between you and each rival 60 times, this is how often AI picks you.</p>
+            <ul class="bar-chart">
+              <li style="--d:0"><span>vs Rival A</span><span class="bar-track"><span class="bar-fill client" style="--value:35%"></span></span><strong>35%</strong></li>
+              <li style="--d:1"><span>vs Rival B</span><span class="bar-track"><span class="bar-fill client" style="--value:48%"></span></span><strong>48%</strong></li>
+              <li style="--d:2"><span>vs Rival C</span><span class="bar-track"><span class="bar-fill client" style="--value:27%"></span></span><strong>27%</strong></li>
+            </ul>
+            <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=60 each</span></div>
+          </div>
+          <ul class="pillar-metrics" aria-label="Position metrics">
+            <li>Organic Recommendation Rate</li>
+            <li>Comparative Win Rate</li>
+          </ul>
+        </article>
+        <article class="pillar-card">
+          <p class="pillar-report-line">From the audit report &middot; Pillar 03</p>
+          <div class="pillar-meta"><span>03</span><strong>Perception</strong></div>
+          <h3>How does AI describe my brand?</h3>
+          <p>We examine the qualities, sentiment, and objections AI attaches to your brand.</p>
+          <div class="pillar-example">
+            <p>Nine associations were coded from 25 stored answers. These four carry the decisions.</p>
+            <ul class="bar-chart">
+              <li style="--d:0"><span>Capture everything</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:80%"></span></span><strong>20/25</strong></li>
+              <li style="--d:1"><span>Third-person shots</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:72%"></span></span><strong>18/25</strong></li>
+              <li style="--d:2"><span>Leader, unsupported</span><span class="bar-track"><span class="bar-fill client" style="--value:52%"></span></span><strong>13/25</strong></li>
+              <li style="--d:3"><span>Newest story, missing</span><span class="bar-track"><span class="bar-fill client" style="--value:0%"></span></span><strong>0/25</strong></li>
+            </ul>
+            <div class="stamps"><span class="stamp">Measured</span><span class="stamp">Insta360 &middot; n=25</span></div>
+          </div>
+          <ul class="pillar-metrics" aria-label="Perception metrics">
+            <li>Sentiment</li>
+            <li>Attribute associations</li>
+          </ul>
+        </article>
+        <article class="pillar-card">
+          <p class="pillar-report-line">From the audit report &middot; Pillar 04</p>
+          <div class="pillar-meta"><span>04</span><strong>Proof</strong></div>
+          <h3>Is the story true and sourced?</h3>
+          <p>We check factual claims against the brand fact sheet and trace citations to their sources.</p>
+          <div class="pillar-example">
+            <p>Every checkable claim AI makes about you is matched against your fact sheet.</p>
+            <div class="sentiment-bar claims-bar" role="img" aria-label="Claim check: 76% supported, 16% unsupported, 8% contradicted">
+              <span class="positive" style="--value:76%">76%</span>
+              <span class="neutral" style="--value:16%">16%</span>
+              <span class="negative" style="--value:8%">8%</span>
+            </div>
+            <dl class="sentiment-key">
+              <div><dt>Supported</dt><dd>76%</dd></div>
+              <div><dt>Unsupported</dt><dd>16%</dd></div>
+              <div><dt>Contradicted</dt><dd>8%</dd></div>
+            </dl>
+            <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=145 claims</span></div>
+          </div>
+          <ul class="pillar-metrics" aria-label="Proof metrics">
+            <li>Accuracy Rate</li>
+            <li>Citation Share</li>
+          </ul>
+        </article>
+      </div>
+      <aside class="confidence-rail" data-reveal style="--i:4" aria-label="Confidence rail">
+        <span>Confidence rail</span>
+        <strong>Repeated samples. Sample size shown. Uncertainty stated where the metric supports it.</strong>
+      </aside>
+    </div>
+  </section>
+
+  <section id="finding" class="stage case-stage" aria-labelledby="finding-h">
+    <div class="wrap">
+      <span class="label" data-reveal>03 / What we found</span>
+      <h2 id="finding-h" data-reveal style="--i:1">Two studies. One found a missing story. One said no.</h2>
+      <p class="lead" data-reveal style="--i:2">Both ran on our own initiative to pressure-test the method. Neither brand was a client.</p>
+
+      <details class="study-card" data-reveal style="--i:3">
+        <summary>
+          <div class="stamps"><span class="stamp">Measured</span><span class="stamp">11 Jul 2026</span><span class="stamp">n=25</span><span class="stamp">DeepSeek &middot; ungrounded</span><span class="stamp">Not a client</span></div>
+          <h3 class="study-headline">AI describes a product generation Insta360 has already moved past. The newest story appears in 0 of 25 answers.</h3>
+        </summary>
+        <div class="study-body">
+          <dl class="case-stats">
+            <div>
+              <dt>Signature framing reinforced</dt>
+              <dd>20/25</dd>
+              <small>Capture everything, frame later</small>
+            </div>
+            <div class="is-key">
+              <dt>Leadership claim, unsupported</dt>
+              <dd>13/25</dd>
+              <small>AI repeats a claim the brand never makes</small>
+            </div>
+            <div class="is-key">
+              <dt>Direct-to-share mention</dt>
+              <dd>0/25</dd>
+              <small>The newest story, entirely missing</small>
+            </div>
+          </dl>
+          <p class="evidence-foot">Insta360&rsquo;s official materials now lead on direct-to-share output that preserves the 360 footage, yet across all twenty-five stored answers the coded evidence contained no distinct association for it. Five fixed description prompts, five repetitions each; every association was accepted by a human reviewer against a literal span in a stored answer. Limits: one engine, one mode, single-analyst coding, descriptive counts below the n=30 aggregate gate, no confidence interval claimed.</p>
+          <div class="disclosure" role="note">
+            <p>Insta360 was not a client, did not commission this, and did not endorse it. <a class="tlink" href="/studies">Read the full study</a>.</p>
+          </div>
         </div>
-        <div data-reveal style="--i:2">
-          <svg class="bezel spin-140" viewBox="0 0 400 400" aria-hidden="true" style="transform-origin:200px 200px">
-            <g fill="none" stroke="rgba(240,238,228,.75)" stroke-width="6">
-              <path d="M120 60 H280 L340 120 V280 L280 340 H120 L60 280 V120 Z"/>
-            </g>
-            <g fill="none" stroke="rgba(240,238,228,.25)" stroke-width="1.5">
-              <path d="M140 90 H260 L310 140 V260 L260 310 H140 L90 260 V140 Z"/>
-            </g>
-            <circle cx="72" cy="200" r="14" fill="none" stroke="rgba(240,238,228,.5)" stroke-width="2"/><circle cx="72" cy="200" r="5" fill="#F15A24"/>
-            <circle cx="328" cy="200" r="14" fill="none" stroke="rgba(240,238,228,.5)" stroke-width="2"/><circle cx="328" cy="200" r="5" fill="#F15A24"/>
-            <path d="M86 200 h40 c20 0 24 -70 44 -70 s24 140 44 140 s24 -70 44 -70 h40" fill="none" stroke="#F15A24" stroke-width="5" stroke-linecap="round"/>
+      </details>
+
+      <details class="study-card" data-reveal style="--i:4">
+        <summary>
+          <div class="stamps"><span class="stamp sim">Simulated</span><span class="stamp">31 Jul 2026</span><span class="stamp">n=30 per message</span><span class="stamp">Not a client</span></div>
+          <h3 class="study-headline">The candidate message scored no better than the current one. A weak message dies in the test, not in market.</h3>
+        </summary>
+        <div class="study-body">
+          <dl class="case-stats">
+            <div>
+              <dt>Current message</dt>
+              <dd>3.45</dd>
+              <small>Buyer response, 1 to 5 expressed-intent construct</small>
+            </div>
+            <div>
+              <dt>New message</dt>
+              <dd>3.41</dd>
+              <small>Same contexts, same construct. Only the message changed</small>
+            </div>
+            <div class="is-key">
+              <dt>Shift</dt>
+              <dd>&minus;0.04</dd>
+              <small>No lift. The candidate does not ship</small>
+            </div>
+          </dl>
+          <p class="evidence-foot">A proposed executive-lounge message for a global hotel group, tested against the current framing. Scores come from a synthetic panel&rsquo;s simulated reactions, benchmarked with anchor sets from independent peer-reviewed research (arXiv:2510.08338). Comparative only: never a sales forecast, never a ranking promise. Limits: one model route, a simulated panel rather than human respondents, a snapshot of the tested date.</p>
+          <div class="disclosure" role="note">
+            <p>The brand, a global hotel group, was not a client, did not commission this, and did not endorse it. We tested a plausible candidate message on our own initiative. The value of the run is the no.</p>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="why-now" aria-labelledby="why-now-h">
+    <div class="wrap">
+      <span class="label" data-reveal>04 / Why now</span>
+      <h2 id="why-now-h" data-reveal style="--i:1">The click no longer tells the whole story.</h2>
+      <p class="lead why-lead" data-reveal style="--i:2">AI can compare, describe, and recommend brands before a buyer reaches a site, sometimes without sending a click at all. Your analytics start after that moment.</p>
+
+      <figure class="attribution-scene" data-reveal style="--i:3" aria-labelledby="old-scorecard-title">
+        <div class="scene-head">
+          <div><p class="mono">Traditional attribution</p><h3 id="old-scorecard-title">Where the old scorecard starts too late.</h3></div>
+        </div>
+        <ul class="blind-spot-rail" aria-label="Blind spots in traditional attribution"><li><span>01</span>No click</li><li><span>02</span>No conventional referral</li><li><span>03</span>AI shortlist not visible</li><li><span>04</span>Outdated description before the visit</li></ul>
+        <figcaption>These metrics remain useful. They begin after AI may have already framed, compared, or omitted the brand.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="what-you-get" aria-labelledby="what-you-get-h">
+    <div class="wrap">
+      <span class="label" data-reveal>05 / What you get</span>
+      <h2 id="what-you-get-h" data-reveal style="--i:1">The old A/B test finds a winner. The new one finds the next message.</h2>
+      <p class="lead" data-reveal style="--i:2">Message Lift starts with the measured audit. It takes one stored AI answer as the baseline, then tests one Current message against one New message.</p>
+
+      <div class="layer-card message-lift-card" data-reveal style="--i:3">
+        <div class="layer-head"><h4>Message Lift</h4><span class="stamp sim">Simulated</span></div>
+        <div class="message-comparison">
+          <div class="message-card"><p class="mono">Current message</p><p>What you say today.</p></div>
+          <div class="parity-connector"><span aria-hidden="true">&rarr;</span><strong>Shared contexts.<br>Only the message changes.</strong></div>
+          <div class="message-card is-new"><p class="mono">New message</p><p>The candidate you are considering.</p></div>
+        </div>
+        <p class="module-note">Two tests run against the pair. <strong>Buyer response</strong> scores simulated reactions on a 1 to 5 construct. <strong>AI recommendation</strong> supplies each message as context in brand-neutral situations and reports shortlist rate. Both are comparative simulations, never a prediction of sales or AI ranking.</p>
+      </div>
+
+      <p class="lead sample-cta" data-reveal style="--i:4">Want to see the whole thing? <a class="tlink" href="/studies">Read the full Insta360 study</a>, including every prompt we used and every limit that applies.</p>
+    </div>
+  </section>
+
+  <section id="methodology" class="stage" aria-labelledby="methodology-h">
+    <div class="wrap">
+      <span class="label" data-reveal>06 / How the scoring works</span>
+      <h2 id="methodology-h" data-reveal style="--i:1">From free-text answer to labeled number.</h2>
+      <p class="lead" data-reveal style="--i:2">Nothing in the scoring is a black box. A stored answer becomes a distribution you can inspect and reproduce, and the anchor method comes from independent peer-reviewed research (arXiv:2510.08338), which Resonance productizes.</p>
+
+      <div class="pipeline" data-reveal style="--i:3" aria-label="Scoring pipeline">
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <rect x="6" y="6" width="48" height="42" rx="4" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M13 16h34M13 24h34M13 32h22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M13 40h14" stroke="#F15A24" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <p class="bezel-caption">The orange thread through the noise: the resonant framing found by a study.</p>
+          <p class="mono">Stored answer</p>
+          <p>A free-text response, immutable and timestamped.</p>
         </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <circle cx="16" cy="18" r="2.5" fill="currentColor"/><circle cx="30" cy="10" r="2.5" fill="currentColor"/><circle cx="44" cy="20" r="2.5" fill="currentColor"/>
+            <circle cx="22" cy="36" r="2.5" fill="currentColor"/><circle cx="40" cy="40" r="2.5" fill="#F15A24"/>
+            <path d="M16 18l14-8m0 0l14 10M22 36l18 4" stroke="currentColor" stroke-width="1" opacity=".45"/>
+          </svg>
+          <p class="mono">Embedding</p>
+          <p>The answer becomes a vector: a position in meaning-space.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <path d="M10 44L44 12" stroke="#F15A24" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 44L52 34" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M28 27a14 14 0 0 1 8 12" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          </svg>
+          <p class="mono">Cosine vs anchors</p>
+          <p>Similarity against anchor statements: 5 intent levels &times; 6 wordings = 30 anchors.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <path d="M10 46h40" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="12" y="34" width="6" height="12" fill="currentColor" opacity=".5"/>
+            <rect x="21" y="26" width="6" height="20" fill="currentColor" opacity=".7"/>
+            <rect x="30" y="16" width="6" height="30" fill="#F15A24"/>
+            <rect x="39" y="24" width="6" height="22" fill="currentColor" opacity=".7"/>
+            <rect x="48" y="38" width="2" height="8" fill="currentColor" opacity=".5"/>
+          </svg>
+          <p class="mono">Distribution</p>
+          <p>A probability mass across the 1 to 5 scale, not a single guess.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <rect x="8" y="12" width="44" height="30" rx="3" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M15 22h20M15 30h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="36" y="27" width="12" height="8" rx="1" stroke="#F15A24" stroke-width="1.5"/>
+          </svg>
+          <p class="mono">Labeled result</p>
+          <p>The score ships with n, an interval where the math supports one, and its label.</p>
+          <span class="stamp sim">Simulated</span>
+        </div>
+      </div>
+
+      <div class="disclosure glassbox-note" data-reveal style="--i:4" role="note">
+        <p>Every Resonance figure ships in the Glass Box: labeled measured or simulated, gated by sample size, wrapped in its confidence interval where the math supports one, and traceable to the stored raw response behind it.</p>
       </div>
     </div>
   </section>
 
-  <!-- ============ S6 PILOT ============ -->
-  <section id="pilot" aria-labelledby="s6h">
-    <div class="wrap">
-      <span class="label" data-reveal>06 / The pilot</span>
-      <h2 id="s6h" data-reveal style="--i:1">A self-initiated pilot, and the promo we killed before it launched.</h2>
-      <p class="lead" data-reveal style="--i:2; margin-top:16px">
-        We ran this pilot ourselves, for a leading Asian tea brand, to prove the loop end to end. No commercial relationship, no endorsement, just measured evidence, a synthetic panel, and one decision it changed.
-      </p>
-      <div class="stamps" data-reveal style="--i:3; margin:20px 0 8px">
-        <span class="stamp">Self-initiated pilot study</span>
+  <section id="method" aria-labelledby="method-h">
+    <div class="wrap method-layout">
+      <div>
+        <span class="label" data-reveal>07 / Method and limitations</span>
+        <h2 id="method-h" data-reveal style="--i:1">Evidence you can inspect.</h2>
+        <p class="lead" data-reveal style="--i:2">Every result shows when it was produced, which model route was tested, how many answers were reviewed, and where the conclusion stops.</p>
+        <ul class="method-list" data-reveal style="--i:3">
+          <li><strong>Repeated sampling.</strong> Audit prompts run multiple times because model answers vary. Rates describe that distribution.</li>
+          <li><strong>Measured versus simulated.</strong> Visibility evidence comes from stored model answers. Both Message Lift test types are comparative simulations. The two evidence classes never mix.</li>
+          <li><strong>Current/New prompt parity.</strong> Both messages use the same prompts and settings. Only the message changes.</li>
+          <li><strong>Provider and model disclosure.</strong> Every figure names the API/model route and mode that produced it.</li>
+          <li><strong>Sample size and uncertainty.</strong> Rates show n and confidence intervals where the metric supports one.</li>
+          <li><strong>Results that say no.</strong> A study that only ever confirms the brief is not measuring anything. Where the evidence does not support a claim, the report says so, and that is the finding.</li>
+          <li><strong>Snapshot limitations.</strong> Conclusions apply only to the tested prompts, routes, modes, and date.</li>
+        </ul>
       </div>
-
-      <div class="bento" data-reveal style="--i:4; margin-top:16px">
-        <article class="study big">
-          <div class="stamps"><span class="stamp sim">Simulated</span><span class="stamp">Directional</span></div>
-          <span class="arche">The promo framing</span>
-          <p class="finding">A $1-off lunch-hour promo framing lowered simulated purchase intent by -0.67 on a five-point scale against the measured baseline (directional, n=5). It was killed before a dollar was spent.</p>
-          <svg class="chart" viewBox="0 0 400 100" aria-hidden="true">
-            <g font-family="IBM Plex Mono" font-size="10" fill="#0E0E0C">
-              <text x="0" y="20">Measured baseline</text><rect x="170" y="12" width="180" height="12" fill="#6E6E73" rx="2"/><text x="358" y="22">3.40</text>
-              <text x="0" y="52">Promo framing</text><rect x="170" y="44" width="145" height="12" fill="#6E6E73" rx="2"/><text x="323" y="54">2.73</text>
-            </g>
-          </svg>
-          <p class="quote">"A $1-off promo during the weekday lunch hour feels more like a token gesture. It barely covers the cost of a kopi."</p>
-          <p class="attribution">Synthetic respondent, working adults, CBD</p>
-        </article>
-
-        <article class="study">
-          <div class="stamps"><span class="stamp">n=40, aggregate</span></div>
-          <span class="arche">Share of voice</span>
-          <p class="finding">78% share of voice in open, unbranded AI answers.</p>
-          <svg class="chart" viewBox="0 0 200 60" aria-hidden="true">
-            <rect x="0" y="10" width="156" height="12" fill="#6E6E73" rx="2"/><rect x="0" y="34" width="44" height="12" fill="#6E6E73" rx="2" opacity=".4"/>
-          </svg>
-        </article>
-
-        <article class="study">
-          <div class="stamps"><span class="stamp">Directional</span></div>
-          <span class="arche">Forced head to head</span>
-          <p class="finding">A rival edges the brand 96% to 92% in forced head-to-heads (directional, n=25).</p>
-          <svg class="chart" viewBox="0 0 200 60" aria-hidden="true">
-            <rect x="0" y="10" width="192" height="12" fill="#6E6E73" rx="2"/><rect x="0" y="34" width="184" height="12" fill="#6E6E73" rx="2" opacity=".7"/>
-          </svg>
-        </article>
+      <div class="faq" data-reveal style="--i:4">
+        <h3 class="faq-title">FAQ</h3>
+        <details>
+          <summary>Is Resonance a GEO or AEO tool?</summary>
+          <p>GEO and AEO describe work intended to improve how brands appear in AI answers. Resonance measures AI visibility, citations, competitive ranking, and brand perception, then tests messages. It does not publish content or promise ranking improvements.</p>
+        </details>
+        <details>
+          <summary>How does Message Lift work?</summary>
+          <p>Message Lift begins with a stored AI answer from the same audit. One Current message and one New message then go through shared contexts, so only the message changes. Buyer-response and AI-recommendation results are both labeled simulated.</p>
+        </details>
+        <details>
+          <summary>Why run the same audit prompt more than once?</summary>
+          <p>LLM answers are probabilistic. One answer is an anecdote. Repeated answers support a rate, with a confidence interval where the math supports one.</p>
+        </details>
+        <details>
+          <summary>Do results match a consumer chat interface exactly?</summary>
+          <p>No. Resonance uses disclosed API/model routes and settings. Those can differ from a personalized consumer chat session. The site makes no consumer-interface equivalence claim.</p>
+        </details>
       </div>
     </div>
   </section>
 
-  <!-- ============ S7 INVESTORS ============ -->
-  <section id="investors" aria-labelledby="s7h">
+  <section id="contact" class="stage footer" aria-labelledby="contact-h">
     <div class="wrap">
-      <span class="label" data-reveal>For investors</span>
-      <div class="inv-grid" data-reveal style="--i:1">
-        <div>
-          <h2 id="s7h">Two halves of the market. We own the seam.</h2>
-          <p class="lead" style="margin-top:20px">
-            GEO and AI-visibility tools have evidence, but no simulation. They diagnose, then stop. Generic synthetic-research vendors have simulation, but no evidence. Their panels react to framings a workshop imagined. Resonance owns the intersection, evidence-grounded simulation, and it compounds: audits feed studies, studies feed retainers.
-          </p>
-        </div>
-        <!-- REPLACE the three figures below with real numbers, or remove any stat you cannot substantiate. -->
-        <div class="statstrip">
-          <div class="item"><div class="stat">4</div><div class="k">AI engines covered</div></div>
-          <div class="item"><div class="stat">k=5</div><div class="k">Samples per prompt cell</div></div>
-          <div class="item"><div class="stat">100%</div><div class="k">Figures traceable to raw answers</div></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ S8 CONTACT / FOOTER ============ -->
-  <section id="contact" class="stage footer" aria-labelledby="s8h">
-    <div class="wrap">
-      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true" style="margin-top:0">
-        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".55">
-          <path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/>
-          <path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/>
-        </g>
-        <g stroke="#F15A24" stroke-width="6" stroke-linecap="round"><path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36"/></g>
-        <circle cx="40" cy="88" r="12" fill="#F15A24"/><circle cx="920" cy="88" r="12" fill="#F15A24"/>
+      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45"><path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/><path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/></g>
+        <path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
       </svg>
-      <h2 id="s8h" data-reveal style="margin-top:32px">Test your next framing before you spend on&nbsp;it.</h2>
-      <div class="cta" data-reveal style="--i:1">
-        <a class="btn primary" href="mailto:hello@resonance.audit?subject=Pilot%20study%20request">Run a pilot study</a>
-        <a class="tlink" href="mailto:hello@resonance.audit">hello@resonance.audit</a>
+      <h2 id="contact-h" data-reveal>Find out where your brand stands.</h2>
+      <p class="lead footer-lead" data-reveal style="--i:1">Tell us the category, competitors, or message you need to understand.</p>
+      <div class="cta" data-reveal style="--i:2">
+        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">Email the research team</a>
+        <a class="tlink" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">resonance.research@pm.me</a>
       </div>
-      <p class="fineprint" data-reveal style="--i:2">Simulated results are comparative and labeled. No guarantees of AI rankings are made or implied.</p>
+      <p class="fineprint" data-reveal style="--i:3">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
       <div class="sig">
         <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
         <span>resonance</span>
       </div>
-      <div class="copy">Resonance &#183; Grounded in evidence, simulated with labels &#183; 2026</div>
+      <div class="copy">Resonance · AI visibility · brand perception · message testing · 2026</div>
     </div>
   </section>
-
 </main>
 
-<script src="motion.js"></script>
+<script src="motion.js?v=20260830g"></script>
 </body>
 </html>

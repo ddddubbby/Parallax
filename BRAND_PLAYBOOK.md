@@ -229,6 +229,11 @@ independent; we productize it).
 | "In a self-initiated pilot for a leading Asian tea brand, a $1-off lunch promo framing LOWERED simulated intent vs the measured baseline (directional, n=5) and was killed before a dollar was spent." | Stored pilot run | Pilot, directional |
 | "Simulated and measured data never mix; simulated figures always carry a SIMULATED label." | Product architecture | Product fact |
 
+| "Gartner projects traditional search engine volume drops 25% by 2026 as buyers shift to AI chatbots and agents." | Gartner press release, 19 Feb 2024, attributed | Third-party forecast |
+| "56% of US consumers plan to use AI chatbots to compare prices and find deals." | Deloitte holiday survey, 2025, attributed | Third-party survey |
+| "10 to 20% of US e-commerce is projected to be agent-driven by 2030." | Morgan Stanley research, attributed | Third-party forecast |
+| "A proposed executive-lounge message for a global hotel group scored 3.41 vs 3.45 for the current framing; the candidate was stopped." | Stored Message Lift run (operator-verified); brand ANONYMIZED on all external surfaces | Pilot, simulated, anonymized |
+
 Adding a claim to this table requires: source named, label class assigned,
 banned-vocabulary check passed. Claims not in the table do not ship.
 
@@ -346,6 +351,13 @@ edging head-to-heads (directional) → a promo framing that LOWERED simulated
 intent and died before launch, with the synthetic verbatim ("...barely covers
 the cost of a kopi"). The kill is the star: the product's value is the bad
 idea it stopped.
+
+### 9.1b The anonymized hotel case (canonical framing)
+
+Externally: "a global hotel group". Never the brand name, on any surface,
+including page source and metadata. Same not-a-client/self-initiated
+disclosure as the Insta360 study. The value of the run is the negative
+result: the candidate message did not beat the current one and was stopped.
 
 ### 9.2 Standards
 
