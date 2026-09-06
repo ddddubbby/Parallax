@@ -5,6 +5,8 @@
 ## Studies
 
 - [What AI says about Insta360](https://windtunnel.observer/studies/insta360): five bare description prompts, five repetitions each, twenty-five stored answers, human-reviewed coding. Insta360 was not a client, did not commission the study, and did not endorse it.
+- [Insta360 Message Lift tests](https://windtunnel.observer/studies/insta360-message-lift): two Buyer response tests on partnership messages; separate baselines, not a head-to-head; every engine's result shown; n=5 per test, directional. Insta360 was not a client and did not endorse these tests; Leica was not involved.
+- [Hotel group Message Lift test](https://windtunnel.observer/studies/hotel-group): a self-initiated test for a global hotel group (anonymized, not a client): candidate message 3.41 vs current 3.45, n=30 per message, and the candidate was stopped.
 - [Studies hub](https://windtunnel.observer/studies): all published studies with their limits.
 
 ## Method

@@ -19,6 +19,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://windtunnel.observer/studies/insta360-message-lift</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://windtunnel.observer/studies/hotel-group</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://windtunnel.observer/methodology</loc>
     <lastmod>2026-09-06</lastmod>
     <changefreq>monthly</changefreq>
