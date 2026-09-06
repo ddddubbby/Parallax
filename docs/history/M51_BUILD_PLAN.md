@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M51 operator UI honesty, guidance, remediation, and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M51 operator UI honesty, guidance, remediation, and acceptance · DISPOSITION: EXECUTED (merged to main via PRs #12/#13; archived in M56 P3, D-126)
 
 # M51 — Operator UI honesty and remediation
 

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { isUuid } from "@/core/id";
 import {
   MESSAGE_LIFT_TEST_TYPES,
@@ -16,10 +15,7 @@ import {
   enqueueFramingObservations,
   resumeFramingObservationBatch,
 } from "@/modules/framing/observations";
-import {
-  getActiveFramingBatchProgress,
-  getFramingBatchProgress,
-} from "@/db/repositories/framing-observations";
+import { getFramingBatchProgress } from "@/db/repositories/framing-observations";
 import type { FramingObservationBatchProgress } from "@/core/framing-batch";
 import {
   addResonanceStimulus,
@@ -105,13 +101,6 @@ export async function fetchFramingBatchProgressAction(
   const progress = await getFramingBatchProgress(batchId);
   if (!progress || progress.projectId !== projectId) return null;
   return progress;
-}
-
-export async function fetchActiveFramingBatchProgressAction(
-  projectId: string,
-): Promise<FramingObservationBatchProgress | null> {
-  if (!isUuid(projectId)) return null;
-  return getActiveFramingBatchProgress(projectId);
 }
 
 export async function resumeFramingBatchAction(
@@ -356,47 +345,4 @@ export async function approveStudyAction(projectId: string, studyId: string): Pr
     }
     return { ok: false, error: message };
   }
-}
-
-function unwrap(result: ActionResult) {
-  if (!result.ok) throw new Error(result.error);
-}
-
-export async function createStudyFormAction(projectId: string, formData: FormData) {
-  const result = await createStudyAction(projectId, formData);
-  if (!result.ok) throw new Error(result.error);
-  if (!result.id) throw new Error("Study create failed");
-  redirect(`/projects/${projectId}/resonance/${result.id}?view=design`);
-}
-
-export async function createStudyFromTemplateFormAction(projectId: string, formData: FormData) {
-  const result = await createStudyFromTemplateAction(projectId, formData);
-  if (!result.ok) throw new Error(result.error);
-  if (!result.id) throw new Error("Study template create failed");
-  redirect(`/projects/${projectId}/resonance/${result.id}?view=design`);
-}
-
-export async function updateStudyFormAction(projectId: string, studyId: string, formData: FormData) {
-  unwrap(await updateStudyAction(projectId, studyId, formData));
-}
-
-export async function addStimulusFormAction(projectId: string, studyId: string, formData: FormData) {
-  unwrap(await addStimulusAction(projectId, studyId, formData));
-}
-
-export async function updateStimulusFormAction(
-  projectId: string,
-  studyId: string,
-  stimulusId: string,
-  formData: FormData,
-) {
-  unwrap(await updateStimulusAction(projectId, studyId, stimulusId, formData));
-}
-
-export async function deleteStimulusFormAction(projectId: string, studyId: string, stimulusId: string) {
-  unwrap(await deleteStimulusAction(projectId, studyId, stimulusId));
-}
-
-export async function approveStudyFormAction(projectId: string, studyId: string) {
-  unwrap(await approveStudyAction(projectId, studyId));
 }

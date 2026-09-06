@@ -16,6 +16,8 @@ owner: **[op]** = operator action, **[auto]** = provable by a command.
 
 - [ ] **[op] Render Blueprint deployed** from `render.yaml` per
   `RENDER_DEPLOYMENT.md`'s first-deploy flow; `APP_PASSWORD` set at prompt.
+- [ ] **[auto] `pnpm docs:check` green** on the release commit (required CI
+  check, D-107).
 - [ ] **[op] Wait-for-CI enabled** on the Render services — otherwise a push
   deploys even when GitHub Actions is red (RENDER_DEPLOYMENT.md operational
   notes). Verify in the Render dashboard, not by assumption.
@@ -64,7 +66,7 @@ Copy this block into the log below for each delivered audit.
 - [ ] Aggregate report claims all carry n >= 30; anything below renders as
   insufficient-data or directional-only (D-015).
 - [ ] Report sections reviewed and edited by the operator; RB-5 tone spot-checked.
-- [ ] Resonance demo gate (internal): `pnpm demo:resonance` exits 0, then walk audit evidence -> Resonance study -> mock run -> results -> report -> exports at $0.
+- [ ] Message Lift demo gate (internal): `pnpm demo:resonance` exits 0, then walk audit evidence -> Message Lift test -> mock run -> results -> report -> exports at $0 (the script name is a compatibility-sensitive identifier, D-119).
 - [ ] Exports delivered to client: report (Markdown and/or print-PDF) +
   agreed evidence pack subset.
 - [ ] **Evidence archived (D-024): `pnpm archive:evidence <runId>` exits 0.
@@ -78,8 +80,9 @@ Copy this block into the log below for each delivered audit.
   `ARCHIVE_REQUIRE_PG_DUMP=true` when a native custom dump is mandatory.
   Archive directory moved OFF Render (external drive / cloud storage).**
 - [ ] Archive recorded in the log below.
-- [ ] Retro logged: pilot audits get a full retro in `MASTER_CONTEXT.md`
-  (PRD §11 item 9); later audits get at least a BUILD_NOTES entry.
+- [ ] Retro logged: pilot audits get a full retro as a `PRD.md` §11 progress
+  note plus a `DECISIONS.md` row when anything durable changed (D-107; PRD §11
+  item 9); later audits get at least a BUILD_NOTES entry.
 
 ## Archive log
 

@@ -48,16 +48,6 @@ export async function createPendingExtraction(responseId: string, extractionVers
   return row.id;
 }
 
-export async function getLatestExtractionVersion(responseId: string): Promise<number> {
-  const [row] = await db
-    .select({ extractionVersion: extractions.extractionVersion })
-    .from(extractions)
-    .where(eq(extractions.responseId, responseId))
-    .orderBy(desc(extractions.extractionVersion))
-    .limit(1);
-  return row?.extractionVersion ?? 0;
-}
-
 export async function markExtractionRetrying(extractionId: string, validationError: string) {
   await db
     .update(extractions)

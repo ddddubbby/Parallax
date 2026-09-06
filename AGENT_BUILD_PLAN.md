@@ -1,4 +1,5 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: milestone sequence M35–M42, ACP gateway/persistence architecture, wallet & deployment topology, test plan, stop-lines for `resonance_geo_v1` · TRACKER: STATUS.md
+> LIFECYCLE: PARKED · ROLE: PLAN · OWNS: milestone sequence M35–M42, ACP gateway/persistence architecture, wallet & deployment topology, test plan, stop-lines for `resonance_geo_v1` · TRACKER: STATUS.md
+> PARKED (D-116, 2026-07-19): the Resonance GEO agent build is parked without further notice. This document is kept untouched and immediately recoverable; it is not historical. Nothing in it is active work, and no agent surface may be removed while parked. Header set to PARKED in M56 (D-126).
 
 # AGENT_BUILD_PLAN.md — Resonance GEO Agent, 0→1 Virtuals ACP build (M35–M42)
 

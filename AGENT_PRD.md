@@ -1,4 +1,5 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: product contract for `resonance_geo_v1` — input schema, prompt matrix, extraction rules, metrics, exclusions · TRACKER: STATUS.md
+> LIFECYCLE: PARKED · ROLE: CANON · OWNS: product contract for `resonance_geo_v1` — input schema, prompt matrix, extraction rules, metrics, exclusions · TRACKER: STATUS.md
+> PARKED (D-116, 2026-07-19): the Resonance GEO agent build is parked without further notice. This document is kept untouched and immediately recoverable; it is not historical. Nothing in it is active work, and no agent surface may be removed while parked. Header set to PARKED in M56 (D-126).
 
 # AGENT_PRD.md — Resonance GEO Agent (`resonance_geo_v1`)
 

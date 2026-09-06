@@ -42,14 +42,6 @@ export async function getFramingBatch(batchId: string) {
   return row ?? null;
 }
 
-export async function listActiveFramingBatchIds(): Promise<string[]> {
-  const rows = await db
-    .select({ id: framingObservationBatches.id })
-    .from(framingObservationBatches)
-    .where(inArray(framingObservationBatches.state, ["queued", "running"]));
-  return rows.map((r) => r.id);
-}
-
 async function workerHeartbeatAgeMs(): Promise<number | null> {
   const [serviceBeat] = await db
     .select({ at: serviceHeartbeats.lastBeatAt })

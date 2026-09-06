@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M50 live-run remaining-time forecast implementation and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M50 live-run remaining-time forecast implementation and acceptance · DISPOSITION: EXECUTED (merged to main via PR #11; archived in M56 P3, D-126)
 
 # M50 — Live-run remaining-time forecast
 

@@ -12,8 +12,8 @@ export interface SsrAnchorSet {
   sets: SsrAnchorSentenceSet[];
 }
 
+// PRD RS-6: the paper's main setup uses 6 anchor sets; MIN_ANCHOR_SETS is the enforced floor.
 const MIN_ANCHOR_SETS = 4;
-const TARGET_ANCHOR_SETS = 6;
 
 function assertAnchorSet(raw: unknown): asserts raw is SsrAnchorSet {
   const set = raw as Partial<SsrAnchorSet>;
@@ -85,5 +85,3 @@ export function anchorStatementSets(anchorSet: SsrAnchorSet): string[][] {
   }
   return Array.from({ length: count }, (_, idx) => byScore.map((bucket) => bucket.sentences[idx]));
 }
-
-export const SSR_TARGET_ANCHOR_SET_COUNT = TARGET_ANCHOR_SETS;

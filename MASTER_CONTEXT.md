@@ -18,9 +18,9 @@
 
 Resonance is an internal operator tool with two structurally walled evidence classes. Evidence audits measure how AI systems describe, rank, recommend, cite, and misrepresent brands. Message Lift tests compare one verbatim Current message with one New message through either simulated buyer response or AI recommendation. Both test types disclose the exact A/B prompts and require “only the message changes” parity (D-119).
 
-Measurement and simulation have different epistemic status and never mix (C-12). The measurement engine's ground truth is the AI itself; the simulation layer is a validated-but-bounded proxy for humans and speaks only in comparisons (C-14).
+Measurement and simulation have different epistemic status and never mix (C-12). The measurement engine's ground truth is the AI itself; Message Lift tests are bounded comparative simulations (a validated-but-bounded proxy for humans in the Buyer response type, the model's own shortlist in the AI recommendation type) and speak only in comparisons (C-14).
 
-It is used by one operator, usually a consultant, to produce paid client audits and simulation studies. Through the internal PoC (M20) it is not a SaaS product: the existing shared-password login stays (it guards spendable API credentials, C-11/D-024), and there are no client logins, no multi-user roles, no billing, no marketing pages, and no white-label theming. The end client only receives exported reports and evidence packs.
+It is used by one operator, usually a consultant, to produce paid client brand audits and Message Lift tests. It is not a SaaS product: the existing shared-password login stays (it guards spendable API credentials, C-11/D-024), and there are no client logins, no multi-user roles, no billing, no marketing pages, and no white-label theming. The end client only receives exported reports and evidence packs.
 
 ## 2. Why it exists
 
@@ -32,13 +32,13 @@ AI assistants have become decision intermediaries between brands and buyers. Res
 - Each audit-grade cell runs k=5 repetitions per selected engine-mode. Validation mini-runs may use k=2 and must be labeled validation-only.
 - Metrics are rates or averages over samples and are reported with Wilson confidence intervals where applicable.
 - Mock is provider #0 and remains permanently registered for tests, demos, and failure injection.
-- The first live dry-run provider is DeepSeek, because its official API is OpenAI/Anthropic-compatible and currently offers low-cost text generation. MiniMax is the second candidate provider after account/API-key details are confirmed.
+- The first live dry-run provider is DeepSeek, because its official API is OpenAI/Anthropic-compatible and currently offers low-cost text generation. MiniMax was a candidate second provider and was never built; xAI/Grok (`xai`) is a registered metadata-only provider id for the parked GEO agent (D-106/D-116) and has no live adapter.
 - The long-term target provider set remains OpenAI, Anthropic, Gemini, and Perplexity, added later through the same provider interface.
 - Grounded means the provider/API path supplies web-grounded output with normalized citations. If a provider cannot supply citations, its runs are ungrounded live validation runs and must not be mixed into grounded aggregates.
 - Metrics: Mention Rate, Organic Recommendation Rate, Comparative Win Rate, Share of Voice, Avg First Position, sentiment (organic/solicited, never pooled), attribute-association matrix, citation share, accuracy rate, and Stability Index. The prompt-frame rule (D-054, PRD MT-12) governs all of them: a metric never counts a signal the prompt itself planted — presence rates count only unbranded prompts, comparative wins only head-to-head prompts, and objection cells feed no sentiment.
 - Checkable claims about the client brand are matched against the client fact sheet and reviewed in the misinformation register.
 - Aggregate findings and metric claims render only where n >= 30 eligible samples. Cell-level findings (for example lost-shortlist) are exempt from the threshold but always carry a directional-only label, as do low-stability clusters. Eligible samples are defined in `DEVELOPMENT_GUIDELINES.md` E2.
-- Simulation (Simulation Layer, M16+): a resonance study cell is panel-persona x stimulus variant; free-text reactions are elicited (never numeric ratings), scored into 5-point Likert PMFs by embedding similarity against versioned anchor statement sets (SSR, arXiv:2510.08338), and reported as per-variant distributions, point-estimate means (no invented intervals, D-023), and deltas vs a baseline stimulus. The n >= 30 gate applies to variant aggregates; persona slices are always directional-only. Simulated metrics live under `resonance_*` scopes and never enter audit aggregates (C-12).
+- Message Lift (M49+, D-119): one Current message versus one New message through shared contexts, exact A/B prompts disclosed, only the message changes. Buyer response: free-text reactions are elicited (never numeric ratings), scored into 5-point Likert PMFs by embedding similarity against versioned anchor statement sets (SSR, arXiv:2510.08338), and reported as Response lift over point-estimate means (no invented intervals, D-023). AI recommendation: the message is supplied as untrusted context to brand-neutral shopping situations, exactly five ranked JSON recommendations are parsed deterministically, and results are top-five/top-choice rates and Shortlist lift in percentage points with scenario-cluster bootstrap intervals. The n >= 30 gate applies to aggregates; persona slices are always directional-only. Simulated metrics live under `resonance_*` scopes and never enter audit aggregates (C-12).
 
 ## 4. Hard constraints - never violate
 
@@ -75,6 +75,12 @@ Stack: Next.js 15 + TypeScript + Tailwind + shadcn/ui, Drizzle ORM, Zod, Vitest,
 | `pnpm test` | Run Vitest, including golden dataset tests — DB-backed tests run against an ephemeral, auto-migrated+seeded embedded Postgres (`scripts/vitest-global-setup.ts`), never the dev DB (D-078) |
 | `pnpm test:e2e` | Playwright smoke + axe floor over the critical operator journey (D-092); boots its own ephemeral DB + Next on :3100 |
 | `pnpm test:e2e:forecast` | M50/D-120 forecast harness — ready/recalibrating/calibrating/paused with fixture heartbeat on :3101 (offline stays on `test:e2e`) |
+| `pnpm docs:check` | Documentation-governance validator (D-107): lifecycle headers, history dispositions, STATUS tracker, local links, supersession register; required CI check |
+| `pnpm lint --max-warnings 0` / `pnpm typecheck` | ESLint at zero warnings (D-092) and `tsc --noEmit` |
+| `pnpm dev:all` | App plus worker together (`pnpm dev` stays app-only, D-073) |
+| `pnpm db:seed` | Idempotent seed of templates and the demo project |
+| `pnpm test:golden` | Golden dataset: fixtures -> exact extraction -> exact metrics |
+| `pnpm test:mock-e2e` | Full mock pipeline end to end (500-job run, worker kill/restart, failure injection) |
 | `pnpm test:db` | Boot the same ephemeral test-DB instance standalone in the foreground, for manual poking (mirrors `pnpm db:dev`'s UX; D-078) |
 | `pnpm test:agent-mock-e2e` | M36 GEO-agent acceptance: headless contract→project→matrix→run path, 300/300 mock samples across the three engines, per-engine D-016 variation, adversarial resolver fixtures rejected pre-budget |
 | `pnpm db:migrate` | Apply Drizzle migrations |
@@ -96,23 +102,30 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 /src/modules/runner      Run creation, job planning, cost guards
 /src/modules/extraction  Structured extraction and claim matching
 /src/modules/analysis    Metrics, findings, stability calculations
-/src/modules/resonance   Simulation Layer studies: compile, SSR scoring, resonance metrics (M17+)
+/src/modules/resonance   Message Lift tests (D-119): compile, SSR scoring, recommendation parsing, resonance metrics
 /src/modules/framing     M34A framing evidence: study workflow, blind human coding, recurrence, gap classification, C-15 handoff (D-099/D-102)
 /src/modules/report      Report section generation and export helpers
 /src/modules/auth        Login/session (M8, D-034)
 /src/modules/settings    Provider credentials UI/service (M8, D-017/D-021)
 /src/modules/dashboard   Dashboard data assembly (M6)
 /src/modules/setup       Post-intake Setup editing (M27, D-084)
+/src/modules/agent       GEO agent (parked, D-116; untouched while parked)
+/src/middleware.ts       Auth gate for app routes; agent report tokens pass through
+/src/observability.ts    reportError seam — the single swap-in point for Sentry (D-076)
 /src/providers           LLMProvider interface, mock, live provider adapters
 /src/db                  Drizzle schema, migrations, repositories
 /src/worker              Polling worker entrypoint
 /fixtures                Mock responses and golden expectations
-/scripts                 Local verification and seed scripts
+/scripts                 Local verification, seed, research, and site-domain scripts
+/e2e                     Playwright smoke + axe floor and the forecast harness (D-092/D-120)
+/site                    Standalone static brand site, deployed to Vercel at resonance.observer (D-127)
+/public/brand            Brand source assets and the living brand-kit specimen page
+/docs                    history/ (byte-frozen executed plans) and audits/ (disposable working artifacts)
 ```
 
 ## 7. Documents index
 
-Every governed document carries a first-line metadata header: `LIFECYCLE: ACTIVE | PARKED | HISTORICAL`, `ROLE: CANON | PLAN | PLAYBOOK | RECORD`, `OWNS: <single responsibility>`, plus `TRACKER:`/`DISPOSITION:` where applicable. `pnpm docs:check` (CI) validates this index against reality (D-107/D-112). PARKED is distinct from HISTORICAL: parked canon stays in root, immediately recoverable; historical documents live in `docs/history/`.
+Every governed document carries a first-line metadata header: `LIFECYCLE: ACTIVE | PARKED | HISTORICAL`, `ROLE: CANON | PLAN | PLAYBOOK | RECORD`, `OWNS: <single responsibility>`, plus `TRACKER:`/`DISPOSITION:` where applicable. `pnpm docs:check` (CI) validates the headers, the `docs/history/` dispositions, STATUS's fields and TRACKER, local links, and the supersession register (D-107/D-112); this index table itself is maintained by hand and reviewed at every milestone close (D-126). PARKED is distinct from HISTORICAL: parked canon stays in root, immediately recoverable; historical documents live in `docs/history/`.
 
 Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` remains branch-local and names exactly one active product; its first-line `TRACKER` selects the one plan governing that branch. Never mirror another branch's live status into the current branch.
 
@@ -121,16 +134,10 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `STATUS.md` | ACTIVE | The single "where are we": active product, branch, gate state, next action (read FIRST, §8) |
 | `MASTER_CONTEXT.md` | ACTIVE | Identity, hard constraints, rituals, this index |
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
-| `AGENT_PRD.md` | ACTIVE | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
-| `AGENT_BUILD_PLAN.md` | ACTIVE | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
-| `M43_BUILD_PLAN.md` | ACTIVE | M43 authenticated Resonance web UI refinement, route/state inventory, live-demo protocol, and acceptance |
-| `M49_BUILD_PLAN.md` | ACTIVE | M49 Resonance Message Lift tests (D-119): two test types, exact A/B parity and disclosure, plain-language workflow |
-| `M50_BUILD_PLAN.md` | ACTIVE | M50 live-run remaining-time forecast (D-120): live-run-only p10–p90 range, 10-completion calibration, stale-pace recalibration |
-| `M51_BUILD_PLAN.md` | ACTIVE | M51 operator UI honesty/remediation (D-121): informed confirms, guided states, fresh findings, scoped recovery, baseline access |
-| `M52_BUILD_PLAN.md` | ACTIVE | M52 Run detail Diagnostics consolidation (D-122): Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; URL aliases |
-| `M54_BUILD_PLAN.md` | ACTIVE | M54 Collecting responses Overview substance trace (D-124): ask/collect/read lanes on Run Overview |
-| `M55_BUILD_PLAN.md` | ACTIVE | M55 market-context prompt guardrail (D-125): canonical visible market instruction, approval backstops, legacy approval compatibility |
-| `AGENT_STRATEGY_MEMO.md` | ACTIVE | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
+| `AGENT_PRD.md` | PARKED | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
+| `AGENT_BUILD_PLAN.md` | PARKED | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
+| `M56_BUILD_PLAN.md` | ACTIVE | M56 whole-repo cleanup pass (D-126/D-127): docs drift, repo noise, plan archival, zero-reference exports |
+| `AGENT_STRATEGY_MEMO.md` | PARKED | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
 | `ENGINEERING_SPEC.md` | ACTIVE | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
@@ -139,13 +146,15 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `AUDIT_METHODOLOGY.md` | ACTIVE | Standing whole-repo cleanup-audit playbook (D-086) |
 | `PROTECTED_REGISTER.md` | ACTIVE | Decision-Log-protected surfaces; consulted before any delete/merge/rename (D-086) |
 | `BUILD_NOTES.md` | ACTIVE | Disposable per-session working memory; pruned at milestone merge (D-025) |
-| `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice / site guide (the active brand, D-106) |
+| `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice and claims law / site structure and deployment contract (D-119 language; the live site is the external source of truth, D-127) |
 | `README.md` | ACTIVE | Quick orientation and local setup pointer |
 | `PRD.md` | ACTIVE | Resonance Evidence and Message Lift contract through M55/D-125 |
-| `CALIBRATION_PROTOCOL.md` | PARKED | SSR calibration design for the parked Simulation Layer (M26, D-082) |
+| `CALIBRATION_PROTOCOL.md` | PARKED | SSR human-benchmark calibration design for the Buyer response test (M26, D-082); parked until real paired data exists |
 | `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
 | `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |
 | `fixtures/` | — | Demo project, mock response manifest, golden expectation manifest |
+| `site/` | — | Standalone static brand site (Vercel, `resonance.observer`); governed by `BRAND_SITE_GUIDE.md`, never wired into the app |
+| `public/brand/` | — | Brand source assets (concept PNGs, vector mark, `brand-kit.html`); operator-owned, referenced from `BRAND_SITE_GUIDE.md` |
 
 Split a section into a separate file only when it exceeds roughly 300 lines or changes at a clearly different cadence. Record the split in the Decision Log.
 
@@ -195,4 +204,4 @@ representation (intent): the sixth audit intent (M34, D-094/D-099) — a minimal
 
 Message Lift test: one Current message, one New message, shared contexts, disclosed exact prompts, and a lift result (D-119). Buyer response: simulated free-text response scored internally on a 1–5 scale; the primary result is Response lift. AI recommendation: the message is supplied as untrusted context to brand-neutral shopping situations; the primary result is Shortlist lift in absolute percentage points. Historical `resonance` study, stimulus, persona, SSR, PMF, and ΔPI terms remain internal/read-compatibility vocabulary and belong in “How this was tested,” not the primary workflow.
 
-"Validation" is overloaded; always qualify it: validation (intent) is one of the five prompt intents; validation run (`live_validation`, "validation-only") is a cheap k=2 pipeline dry-run that is never client-ready evidence; schema validation is Zod input/output checking. The provider id `google` is the Gemini provider — prose says Gemini, code says `google`.
+"Validation" is overloaded; always qualify it: validation (intent) is one of the six prompt intents (five allocated audit intents plus the appended `representation` intent, D-102); validation run (`live_validation`, "validation-only") is a cheap k=2 pipeline dry-run that is never client-ready evidence; schema validation is Zod input/output checking. The provider id `google` is the Gemini provider — prose says Gemini, code says `google`.

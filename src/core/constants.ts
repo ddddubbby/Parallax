@@ -4,10 +4,8 @@
 export const MAX_CELLS_PER_RUN = 50;
 export const DEFAULT_MATRIX_CELLS = 40;
 export const AUDIT_REPETITIONS = 5;
-export const VALIDATION_REPETITIONS = 2;
 export const DEFAULT_VALIDATION_RUN_CAP_USD = 2;
 export const DEFAULT_AUDIT_RUN_CAP_USD = 25;
-export const DEFAULT_PROVIDER_CONCURRENCY = 3;
 export const MAX_JOB_ATTEMPTS = 3;
 export const EXTRACTION_ATTEMPTS = 2;
 export const FAILURE_CIRCUIT_BREAKER_RATE = 0.2;

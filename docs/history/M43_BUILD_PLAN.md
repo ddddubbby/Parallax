@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M43 Resonance web UI refinement execution, route/state inventory, live-demo protocol, and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M43 Resonance web UI refinement execution, route/state inventory, live-demo protocol, and acceptance · DISPOSITION: EXECUTED (merged to main via PR #4; archived in M56 P3, D-126)
 
 # M43 — Resonance Web UI Refinement
 

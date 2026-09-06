@@ -1,12 +1,15 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Resonance external brand voice and identity (active brand under D-106)
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Resonance external brand voice and identity (D-119 language; live site as external source of truth, D-127)
 
 # BRAND_PLAYBOOK.md — Resonance
 
 > The canonical brand document. Positioning, narrative, messaging, claims law,
 > and voice for every external surface: deck, website, one-pagers, sales
-> conversations, and reports that leave the building. Where this playbook and
-> any older asset disagree (including the current website and pitch deck),
-> this playbook wins until the asset is updated.
+> conversations, and reports that leave the building. Division of authority
+> (D-127): the live site (`https://resonance.observer`, source in `site/`) is
+> the external source of truth for page structure and copy; this playbook is
+> the law for category, claims, lexicon, and voice. Where an asset and this
+> playbook disagree on a claim, the playbook wins; where they disagree on
+> page structure, the site wins and `BRAND_SITE_GUIDE.md` is updated.
 >
 > Internal note: the repo, package, and code identifiers retain the historical
 > engine codename per D-063. That name is now INTERNAL ONLY. It never appears
@@ -19,40 +22,43 @@
 
 ### 1.1 Category
 
-**Synthetic consumer research, grounded in evidence.**
+**AI visibility measurement and message testing.**
 
-We are not a GEO tool. We are not an AI-visibility dashboard. We are not a
-survey company. We sell research: simulated buyer panels that react to brand
-framings, where the framings are not invented in a workshop but **measured
-from the AI channel your buyers actually see**, and every result ships with
-its uncertainty attached.
+Resonance is the measurement and testing layer for GEO and AEO work. We
+measure how AI assistants rank, describe, and substantiate a brand, then run a
+controlled Message Lift test to find out whether a new message moves the brand
+up the AI's shortlist. We do not publish content, build links, or promise
+rankings. "AI visibility" is the category anchor we borrow so buyers, search
+engines, and language models can place us; "measure, then test" is what
+separates us from every monitoring dashboard on that shelf.
 
 ### 1.2 Positioning statement (canonical, adapt length not meaning)
 
-> Resonance is synthetic consumer research grounded in evidence. We measure
-> how AI assistants actually frame your brand, then run persona-conditioned
-> synthetic panels, scored with a method from independent, peer-reviewed research, to
-> test which framings move expressed purchase intent. Hours instead of weeks,
-> about one percent of traditional study cost, and every figure labeled,
-> intervaled, and traceable to stored raw responses.
+> Resonance is AI visibility measurement and message testing for brand teams.
+> We sample the OpenAI, Gemini, Claude and Perplexity models repeatedly to
+> measure whether AI names, ranks, describes and substantiates a brand, then
+> run one Current message against one New message in identical contexts and
+> report the lift in shortlist and top-choice rates. Every figure is labeled
+> measured or simulated, carries its sample size, and traces to a stored
+> answer.
 
 ### 1.3 The three enemies (what we position against)
 
 | Enemy | Who | Their failure | Our line |
 |---|---|---|---|
-| Diagnosis without treatment | GEO / AI-visibility audit tools | They tell you how AI frames you, then stop. No answer to "so what do we change?" | "An audit that ends at a dashboard is a diagnosis without a treatment." |
-| The dead research loop | Traditional surveys, focus groups, concept tests | $20k to $100k and 4 to 8 weeks per question. One shot, no iteration. The loop never closes. | "By the time the panel reports, the campaign shipped." |
-| Simulation theater | Generic synthetic-panel vendors | Fast and cheap, but the panel reacts to framings someone imagined. Ungrounded in, ungrounded out. And accuracy claims with no labels or intervals. | "A synthetic panel is only as good as the stimulus you feed it and the honesty of its error bars." |
+| Monitoring without a test | AI-visibility dashboards (Profound, Peec, Scrunch, Semrush/Adobe, and the wave behind them) | They show a score, then stop. Single-run scores with no sample size, and "recommendations" nobody has tested. | "After the dashboard tells you the framing is wrong, what do you do? We test the fix. They watch the problem." |
+| Before/after GEO testing | Live-site split testers (SearchPilot, LLM Pulse GEO Testing) | They change a page and watch traffic weeks later; the model's answer is never held constant. | "Change one sentence, hold everything else fixed, ask the model again. That is a controlled test; a traffic chart is a hope." |
+| Simulation theater | Generic synthetic-panel vendors | Panels react to messages a workshop imagined, sold on an accuracy percentage with no labels or intervals. | "Ask them where their stimulus comes from and to see their error bars. Ours ship with every figure." |
 
 ### 1.4 The wedge (one sentence, never dilute it)
 
-**The only platform that conditions synthetic buyers on measured AI-channel
-evidence.**
+**The only offering that measures how AI recommends a brand and then runs a
+controlled message test against that measurement.**
 
-The audit exists BECAUSE of this sentence. Visibility, position, perception,
-and citation metrics are the **evidence layer**: professionally built, table
-stakes done properly, and never the headline. The headline is what the
-evidence makes possible: grounded simulation.
+The audit exists because of this sentence: it is the baseline every Message
+Lift test starts from (C-13/C-15), sold standalone as the land motion, and
+always the first thing a client sees. The headline is the pair: measure, then
+test.
 
 ### 1.5 The second moat: honesty
 
@@ -60,42 +66,43 @@ Synthetic evidence is the easiest evidence in the world to fake. That is
 precisely why radical statistical honesty is not compliance overhead but a
 **competitive weapon**. We are the vendor whose numbers come with their own
 audit trail. The branded asset for this apparatus is **the Glass Box**
-(section 6.4). When a prospect compares us to a competitor whose deck says
-"95% accurate synthetic consumers" with no labels, our Glass Box is the
+(section 6.4). When a prospect compares us to a competitor whose page says
+"99.5% accurate" or "real-time" with no sample size, our Glass Box is the
 closing argument.
 
 ---
 
 ## 2. Audiences and what each must believe
 
-### 2.1 Client buyer (CMO, brand lead, growth lead, agency strategist)
+### 2.1 Client buyer (brand lead, marketing head, founder, agency strategist)
 
 Must believe within 30 seconds:
-1. AI assistants are already framing my brand to buyers, and I have never
-   measured that framing.
-2. I can test fixes on a synthetic panel in hours for a fraction of a survey,
-   before spending real budget.
-3. These people will not con me: every number is labeled and traceable.
+1. AI assistants are already recommending, describing, and sometimes
+   misrepresenting my brand to buyers, and I have never measured that.
+2. I can find out which message moves me up the AI's shortlist in hours,
+   before I rewrite a page or brief an agency.
+3. These people will not con me: every number is labeled, has its sample
+   size, and traces to a stored answer.
 
-Buying trigger: a campaign, promo, repositioning, or crisis where the cost of
-guessing wrong is much larger than the cost of a study pack.
+Buying trigger: a rewrite, a launch, a repositioning, a lost deal that "went
+to whoever ChatGPT suggested," or an agency that needs to prove its GEO work
+changed anything.
 
-### 2.2 Investor
+### 2.2 Agency and PR partner
 
 Must believe within 30 seconds:
-1. The research market is being rebuilt around synthetic panels (validated by
-   independent, published research, not vendor claims).
-2. Everyone else picked one half: audit tools have evidence but no simulation;
-   synthetic vendors have simulation but no evidence. Resonance owns the
-   intersection, and the intersection compounds (audits feed studies feed
-   retainers).
-3. The honesty discipline is a durable trust asset in a category that will be
-   flooded with snake oil.
+1. Clients are asking "what about ChatGPT?" and a single-run screenshot will
+   not survive a QBR.
+2. Resonance supplies the baseline and the controlled test with the prompts
+   disclosed, so the client can rerun it; the agency keeps the relationship
+   and the content work.
+3. Nothing here competes with them: we measure and test, we never publish.
 
 ### 2.3 What neither audience should ever be told
 
 Revenue predictions from simulation. Guaranteed AI rankings. The paper's
-accuracy as our accuracy. Absolute purchase probabilities. See section 5.
+accuracy as our accuracy. Absolute purchase probabilities. Consumer-app
+equivalence ("this is exactly what ChatGPT shows"). See section 5.
 
 ---
 
@@ -104,63 +111,69 @@ accuracy as our accuracy. Absolute purchase probabilities. See section 5.
 | Layer | Name | Role |
 |---|---|---|
 | Company / platform | **Resonance** | The brand. One name, everywhere. |
-| Hero act | **Resonance Study** | The unit of sale and the verb: "run a Resonance study." Persona panel x framing variants, ΔPI-ranked. |
-| Grounding act | **the evidence layer** (generic descriptor, lowercase) | The AI-channel audit: presence, position, perception, proof. Sold standalone as the land motion; framed as what grounds the studies. |
+| Land act | **the brand audit** (AI visibility audit) | Presence, position, perception, proof: how AI ranks, describes, and substantiates the brand today. Sold standalone; it is also the baseline every test starts from. |
+| Hero act | **Message Lift** (always introduced as "our A/B test for AI recommendations") | One Current message, one New message, shared contexts, disclosed prompts. Two test types: the **AI shortlist test** (leads externally; Shortlist lift in percentage points, top-five and top-choice rates) and the **Buyer response test** (secondary; Response lift on a 1 to 5 construct). |
 | Honesty apparatus | **the Glass Box** | Labels, intervals, sample gates, raw-text traceability. The trust asset. |
 
-Offer ladder (matches the deck's page 9): **Audit** (land) → **Study Pack**
-(expand) → **Retainer** (monitor + retest) → **Platform** (self-serve, later).
-Narrative for the ladder: "Land with evidence. Expand with decisions."
+Offer ladder: **Brand audit** (land) → **Message Lift test** (expand) →
+**Quarterly re-audit** (same prompts, same method, a quarter later; a manual
+service, never "monitoring": the product has no scheduler, PRD §6) →
+**Self-serve** (later). Narrative for the ladder: "Measure first. Then test.
+Then decide."
 
 Retired names: the engine codename (internal only, see header). "Tensor",
 "Perceptual Manifold", "Latent Preference Triangulation", "Signal Fidelity
-Index" are **dead** — never used again on any surface (section 5.3).
+Index", "Resonance Study" as a unit of sale, and "synthetic consumer research"
+as a category are **dead** on external surfaces (section 5.3).
 
 ---
 
 ## 4. The narrative
 
-### 4.1 The spine: "The loop is broken. We close it."
+### 4.1 The spine: "Measure how AI recommends you. Test what moves you."
 
 1. **AI is the new front door.** Assistants describe, rank, and recommend
-   your brand before a human reaches your site. For the first time, the
-   stimulus your buyers see is measurable.
-2. **Audits stop at diagnosis.** A dashboard of mentions tells you the
-   framing is wrong. It does not tell you what fixes it.
-3. **Testing fixes the old way is broken.** Twenty humans in six weeks, five
-   figures per question, one shot. The measure-fix-validate loop never closes.
-4. **Synthetic panels changed the physics.** Hours, about one percent of the
-   cost, rerun on demand, and an independently published method validated against
-   thousands of human responses.
-5. **But a panel without evidence is theater.** Generic synthetic vendors
-   test imagined stimuli. We condition the panel on the framing AI actually
-   uses, measured and stored.
-6. **Measure. Simulate. Decide.** One closed loop, with every figure in a
-   Glass Box.
+   your brand before a buyer reaches your site, sometimes without sending a
+   click. Your analytics start after that moment.
+2. **One answer is an anecdote.** Model answers are probabilistic. Ask the
+   same question five times and the shortlist changes. Resonance samples
+   repeatedly and reports rates with their sample size.
+3. **Four questions, in order.** Am I in AI's consideration set (Presence)?
+   When compared, do I win (Position)? How does AI describe me (Perception)?
+   Is the story true and sourced (Proof)?
+4. **A dashboard ends at diagnosis.** Knowing the framing is wrong does not
+   tell you what fixes it.
+5. **The old A/B test finds a winner. The new one finds the next message.**
+   Message Lift holds every prompt fixed, changes only the message, and
+   reports the lift in shortlist and top-choice rates.
+6. **Every figure ships in the Glass Box.** Labeled measured or simulated,
+   gated by sample size, intervaled where the math supports it, traceable to
+   a stored answer. Results that say no are published as findings.
 
 ### 4.2 The tellings
 
-**7 words:** Synthetic consumer research, grounded in evidence.
+**7 words:** Measure how AI recommends you. Test what moves you.
 
-**~30 words:** Resonance measures how AI assistants frame your brand, then
-tests that framing, and your candidate fixes, on synthetic buyer panels.
-Ranked answers in hours, every figure labeled and traceable.
+**~30 words:** Resonance measures how AI recommends your brand, then tests
+which message moves you up its shortlist. Repeated samples, sample sizes
+shown, every figure labeled measured or simulated.
 
 **~100 words:** AI assistants already shape your buyers' shortlists, and most
-brands have never measured the framing those assistants use. Resonance does,
-across engines, with repeated sampling. Then it does what no audit tool can:
-it puts that measured framing, alongside the fixes you are considering, in
-front of a persona-conditioned synthetic panel scored with an independently
-published, human-validated method. You get a ranked answer to "which framing moves
-buyers?" in hours, at about one percent of traditional research cost. And
-because synthetic evidence is easy to fake, everything ships in the Glass
-Box: labeled, intervaled, traceable to raw responses.
+brands have never measured what those assistants say. Resonance samples the
+OpenAI, Gemini, Claude and Perplexity models repeatedly to measure whether AI
+names, ranks, describes and substantiates your brand, and logs what it gets
+wrong. Then it does what no dashboard can: it runs one Current message against
+one New message in identical contexts and reports the lift in shortlist and
+top-choice rates, with the exact prompts disclosed so you can rerun it. And
+because this evidence is easy to fake, everything ships in the Glass Box:
+labeled, intervaled, traceable to stored answers.
 
 ### 4.3 Sequence rule
 
-Every surface tells the story in this order: **stakes → gap → simulation →
-grounding → honesty**. The audit is introduced only after simulation, as the
-thing that makes it credible. Never open with visibility metrics again.
+Every surface tells the story in this order: **stakes → measure → test →
+decide → honesty**. Measurement comes first because it is the baseline the
+test needs (C-13); the test is the reason to pay us rather than a dashboard;
+honesty closes. Never open with a macro statistic or a category definition.
 
 ---
 
@@ -184,12 +197,15 @@ external sentence with a number in it must pass all five rules.
    misread) are banned. Approved formulations: "independent, peer-reviewed
    research (arXiv:2510.08338)"; "SSR, a method published by independent
    researchers, which Resonance productizes".
-2. **Comparative, never absolute.** Simulation outputs rank framings and
-   report shifts (ΔPI) against a baseline. Never sales forecasts, never ROI,
+2. **Comparative, never absolute.** Simulation outputs compare one Current
+   message with one New message and report lifts (Response lift, Shortlist
+   lift) against the Current message. Never sales forecasts, never ROI,
    never "X% of customers will buy."
-3. **ΔPI is an expressed-intent shift.** A movement on a five-point survey
-   construct. The words "purchase probability" and "conversion" are banned in
-   connection with it.
+3. **Response lift is an expressed-intent shift.** A movement on a five-point
+   survey construct (ΔPI in internal method vocabulary). Shortlist lift is a
+   change in simulated shortlist inclusion, in percentage points, never a
+   ranking prediction. The words "purchase probability" and "conversion" are
+   banned in connection with either.
 4. **Labels travel with numbers.** Directional stays directional in the deck,
    not just the report. Sub-threshold samples (n<30) are always marked.
    Simulated figures always carry the SIMULATED stamp. Uncalibrated scales
@@ -223,11 +239,19 @@ independent; we productize it).
 | Claim | Receipt | Label class |
 |---|---|---|
 | "The SSR method, published and validated by independent researchers, achieves ~90% of human test-retest reliability, validated on 9,300 human responses across 57 surveys." | arXiv:2510.08338, attributed | Method claim |
-| "Studies run in hours, at roughly 1% of traditional panel cost." | Cost/time comparison vs published industry ranges for concept tests | Comparative economics |
+| "Message Lift tests run in hours, at roughly 1% of traditional panel cost." | Cost/time comparison vs published industry ranges for concept tests | Comparative economics |
 | "Every reported figure traces to stored raw responses." | Product architecture (immutable raw responses, versioned scoring) | Product fact |
 | "Aggregate claims render only at n>=30; below that, figures are labeled directional." | Product behavior | Product fact |
-| "In a self-initiated pilot for a leading Asian tea brand, a $1-off lunch promo framing LOWERED simulated intent vs the measured baseline (directional, n=5) and was killed before a dollar was spent." | Stored pilot run | Pilot, directional |
 | "Simulated and measured data never mix; simulated figures always carry a SIMULATED label." | Product architecture | Product fact |
+| "Both Message Lift test types hold every prompt fixed and change only the message; the exact prompts are disclosed." | D-119 parity hashes + frozen disclosure | Product fact |
+| "Insta360 was named in 94.9% of unbranded camera answers (Wilson 95% CI 89.3–97.7, n=118); share of voice 31.5% vs DJI 33.2%, GoPro 32.7%, Akaso 2.5%; average first position 2.94." | Stored audit run `a45cbc1e`, 19 Jul 2026, OpenAI + DeepSeek, ungrounded, k=5; self-initiated, not a client | Measured, named study |
+| "Across 25 stored DeepSeek answers, AI reinforced Insta360's 'capture everything' framing (20/25), repeated an unsupported category-leader claim (13/25), and never mentioned its newest direct-to-share story (0/25)." | M34A framing study, 11 Jul 2026, human-reviewed single-analyst coding, descriptive counts below the n=30 gate, no CI claimed | Measured, directional, named study |
+| "One Leica-partnership message moved simulated buyer response by +0.15 (OpenAI) to +0.57 (DeepSeek); a second, later one moved it −0.31 (OpenAI). Separate studies against different baselines, not a head-to-head; n=5 per test, directional." | Stored Message Lift runs, 9 and 19 Jul 2026 | Simulated, directional, named study |
+| "A proposed executive-lounge message for a global hotel group scored 3.41 vs 3.45 for the current message (n=30 per message); the candidate was stopped." | Stored Message Lift run (operator-verified); brand ANONYMIZED on all external surfaces | Simulated, anonymized |
+| "In a self-initiated pilot for a leading Asian tea brand, a $1-off lunch promo framing LOWERED simulated intent vs the measured baseline (directional, n=5) and was killed before a dollar was spent." | Stored pilot run | Pilot, directional, anonymized |
+| "Gartner projects traditional search engine volume drops 25% by 2026 as buyers shift to AI chatbots and agents." | Gartner press release, 19 Feb 2024, attributed | Third-party forecast |
+| "56% of US consumers plan to use AI chatbots to compare prices and find deals." | Deloitte holiday survey, 2025, attributed | Third-party survey |
+| "10 to 20% of US e-commerce is projected to be agent-driven by 2030." | Morgan Stanley research, attributed | Third-party forecast |
 
 Adding a claim to this table requires: source named, label class assigned,
 banned-vocabulary check passed. Claims not in the table do not ship.
@@ -240,23 +264,35 @@ banned-vocabulary check passed. Claims not in the table do not ship.
 
 | Don't say | Say | Why |
 |---|---|---|
+| synthetic consumer research (as the category) | AI visibility measurement and message testing | Category law (D-127) |
+| "We are not a GEO tool" | the measurement and testing layer for GEO and AEO work | A negation cannot be classified by a buyer, a search engine, or a model; adjacency can |
+| GEO audit, AI visibility tool (as our self-description) | brand audit (AI visibility audit) plus Message Lift test | The category word is an anchor, not a name; we are a service with an instrument |
+| Message Lift (bare) | Message Lift, our A/B test for AI recommendations | The name has no recognition on its own; the explainer carries it |
+| simulation, the old two-layer names, resonance study, framings (as the product) | Message Lift test; AI shortlist test; Buyer response test; message | D-119 plain-language rule |
+| ΔPI, purchase intent shift (external) | Response lift (1 to 5 construct); Shortlist lift (percentage points) | Rule 5.3; ΔPI stays internal method vocabulary |
 | accuracy (ours) | reliability of the independently published method (attributed) | Rule 5.1 |
-| predicts purchases | ranks framings by expressed intent | Rule 5.2/5.3 |
-| digital twins of your customers | persona-conditioned synthetic panel | Twins overclaims individual fidelity |
-| AI visibility tool / GEO | synthetic consumer research grounded in evidence | Category law |
+| predicts purchases, predicts rankings | measures the lift in shortlist and top-choice rates in a bounded, controlled simulation | Rule 5.2 |
+| "ChatGPT says…" as an equivalence claim | the OpenAI model behind ChatGPT, via a disclosed API route | D-119 forbids consumer-product behavior claims; consumer names appear only with the route disclosure |
+| monitoring, tracking, "track your movement" | re-audit: the same prompts, the same method, a quarter later | The product has no scheduler or trend view (PRD §6); a re-audit is a service |
+| agentic shopping era, agentic commerce | AI recommendations, AI answers | Nobody searches it and every dashboard vendor uses it |
 | calibrated | benchmarked; calibration on the roadmap | 5.2 |
-| proprietary black box | independently published method, transparent scoring | Honesty moat |
+| proprietary black box | independently published method, transparent scoring, disclosed prompts | Honesty moat |
 | respondents said | the panel's simulated reactions read | Never imply humans |
-| our engine [codename] | the evidence layer / the audit | Architecture law |
+| our engine [codename] | the audit / the evidence | Architecture law |
 | "the published SSR method" (unqualified) | "SSR, from independent peer-reviewed research" | Authorship must be unmistakable |
 
 ### 6.2 Terms we own and define on every surface (first use)
 
-**Framing** (how a brand is described: the angle plus the wording) ·
-**Synthetic panel** (simulated buyer personas reacting in free text) ·
-**Grounded / evidence-conditioned** (stimuli quote measured AI answers, not
-guesses) · **ΔPI** (shift in expressed purchase intent, five-point scale,
-versus baseline) · **the Glass Box** (labels, intervals, traceability).
+**Brand audit** (how AI ranks, describes, and substantiates a brand today:
+Presence, Position, Perception, Proof) · **Message Lift** (our A/B test for AI
+recommendations: one Current message, one New message, shared contexts, the
+exact prompts disclosed) · **AI shortlist test** (the message is supplied as
+context to brand-neutral shopping situations; result: Shortlist lift in
+percentage points plus top-five and top-choice rates) · **Buyer response
+test** (a simulated panel reacts in free text; result: Response lift on a 1 to
+5 construct) · **Misinformation register** (every checkable claim AI makes
+about the brand, matched against the fact sheet) · **the Glass Box** (labels,
+intervals, traceability).
 
 ### 6.3 Persona language
 
@@ -294,109 +330,153 @@ Humor: dry, sparing, never about the client's brand. Exclamation marks: no.
 
 ## 8. Competitive positioning
 
-### 8.1 The map (deck page 6, keep)
+### 8.1 The map
 
-Two axes: **AI-channel evidence** and **buyer simulation**. GEO tools have
-the first, synthetic-research vendors the second, traditional research
-neither at speed, Resonance both, plus honesty as the tiebreak column.
+Two axes: **AI-channel measurement** and **controlled message testing**.
+Dashboards have the first without sampling discipline; before/after GEO
+testers have a test without a held-constant model; synthetic-research vendors
+have a panel without measured stimulus; Resonance has both axes, plus honesty
+as the tiebreak column. The full 82-vendor map lives with the operator's GTM
+material; this section carries only the lines we say out loud.
 
 ### 8.2 Battlecards
 
-**vs GEO / AI-visibility tools** (Profound, Peec, Otterly, and the wave
-behind them): concede tracking breadth, keep the kill shot: "After the
-dashboard tells you the framing is wrong, what do you do? We test the fix.
-They watch the problem." Secondary: repeated sampling with intervals vs
-single-shot scores.
+**vs AI-visibility dashboards** (Profound, Peec, Scrunch, Athena, Semrush and
+Adobe Brand Visibility, and the wave behind them): concede tracking breadth
+and real-time refresh, keep the kill shot: "After the dashboard tells you the
+framing is wrong, what do you do? We test the fix. They watch the problem."
+Secondary: repeated sampling with sample sizes and intervals vs single-run
+scores; every prompt disclosed vs a proprietary prompt set.
 
-**vs generic synthetic research** (Aaru, Synthetic Users, Evidenza and kin):
-concede speed parity. Kill shot: "Ask them where their stimulus comes from.
-Ours is measured from the AI channel and stored as evidence; theirs is
-whatever the workshop wrote. And ask to see their error bars; here are ours,
-they ship with every figure." Never claim their tech is fake; claim their
-inputs are ungrounded and their claims unlabeled.
+**vs before/after GEO testers** (SearchPilot, LLM Pulse GEO Testing): concede
+that live-traffic split tests are the right tool for site-structure changes.
+Kill shot: "They change a page and wait for traffic. We change one sentence,
+hold every prompt fixed, and ask the model again the same day. One is a
+controlled test; the other is a hope with a chart."
 
-**vs traditional research**: maximum respect, reframe as complement.
-"Human panels remain the gold standard for the few decisions that justify
-six weeks and six figures. Resonance closes the loop on the dozens of
-framing decisions a quarter that never got tested at all." (This also
-disarms the "synthetic will never equal humans" objection: we are expanding
-tested decisions, not replacing gold standards.)
+**vs generic synthetic research** (Aaru, Evidenza, Artificial Societies,
+Synthetic Users and kin): concede speed parity. Kill shot: "Ask them where
+their stimulus comes from. Ours is a stored AI answer with a response id;
+theirs is whatever the workshop wrote. And ask to see their error bars; here
+are ours, they ship with every figure." Never claim their tech is fake; claim
+their inputs are ungrounded and their claims unlabeled.
+
+**vs GEO agencies** (including the Singapore agencies): not a competitor. "You
+do the content and the relationship. We do the baseline and the controlled
+test, with the prompts disclosed, so your client can rerun it."
 
 ### 8.3 Objection handling
 
 | Objection | Response |
 |---|---|
-| "Synthetic respondents aren't real people." | Correct, and we never pretend otherwise: every figure is stamped SIMULATED. The independently published method tracks human panels at ~90% test-retest reliability. Use us where the alternative is not a human panel but an untested guess. |
-| "Isn't this just GPT with extra steps?" | The model is a component. The product is the loop: measured stimulus, persona conditioning, free-text elicitation (numbers are gameable, prose is scored), independently published scoring method, and a Glass Box around every output. Ask any wrapper to show you its raw-response audit trail. |
-| "n=5? Really?" | Really, and that is why the slide says directional. Pilots surface hypotheses cheaply; study packs run at aggregate-grade samples (n>=30 per variant). A vendor that hides its n is telling you something. |
-| "The paper validated the method, not you." | Exactly what our own materials say. The method is published and independently validated; our contribution is grounding it in measured evidence and enforcing the labeling. Diligence us on that. |
-| "GEO tools cost less." | For the dashboard, yes. The dashboard is our entry tier too. The question is the cost of the decision you make after the dashboard, untested. |
+| "Isn't this just a free 'what does ChatGPT say about my brand' checker?" | A checker asks once. One answer is an anecdote. We ask each prompt five times per model, report a rate with its sample size and interval, and then test whether a new message changes it. Ask any checker for its n. |
+| "It's not real users." | Correct, and every simulated figure is stamped SIMULATED. A wind tunnel has no sky in it either; nobody skips it before building the plane. We measure, under controlled conditions, which message changes the model's shortlist, and we only ever compare. |
+| "Isn't this just GPT with extra steps?" | The model is a component. The product is the discipline: measured baseline, one-message-changes parity, disclosed prompts, deterministic parsing, and a Glass Box around every output. Ask any wrapper to show its raw-response audit trail. |
+| "n=5? Really?" | Really, and that is why the figure says directional. Small runs surface hypotheses cheaply; audit-grade claims render only at n>=30. A vendor that hides its n is telling you something. |
+| "The paper validated the method, not you." | Exactly what our own materials say. SSR is published and independently validated; our contribution is grounding it in measured evidence and enforcing the labeling. Diligence us on that. |
+| "Dashboards cost less." | For the dashboard, yes. The question is the cost of the decision you make after the dashboard, untested. |
+| "Do results match what I see in ChatGPT?" | No, and we never claim they do. We query disclosed API routes with fixed settings; a personal chat session is personalized. The route and date are on every figure. |
 
 ---
 
 ## 9. Proof library
 
-### 9.1 The pilot (canonical framing)
+### 9.1 The Insta360 studies (named, self-initiated, not a client)
+
+Externally: "**a self-initiated study; Insta360 was not a client, did not
+commission this, and did not endorse it**" on every surface where the name
+appears, including page metadata. Three published beats, each traceable:
+the M34A framing study (25 stored DeepSeek answers, 11 Jul 2026: 20/25
+reinforced the "capture everything" framing, 13/25 repeated an unsupported
+category-leader claim, 0/25 mentioned the newest direct-to-share story); the
+audit run `a45cbc1e` (19 Jul 2026, OpenAI + DeepSeek, ungrounded: 94.9%
+mention rate, Wilson 89.3–97.7, n=118; share of voice 31.5% in a three-way
+race with DJI and GoPro); and the two Leica Message Lift tests (9 and 19 Jul
+2026, n=5 each, directional). The Leica pair is never presented as a
+head-to-head: separate studies, different baselines, and every engine's
+result shown (+0.15 OpenAI / +0.57 DeepSeek for one message, −0.31 OpenAI for
+the other). Never cherry-pick the better engine.
+
+### 9.1b The anonymized hotel case (canonical framing)
+
+Externally: "a global hotel group". Never the brand name, on any surface,
+including page source and metadata. Same not-a-client/self-initiated
+disclosure as the Insta360 study. The value of the run is the negative
+result: the candidate message did not beat the current one and was stopped.
+
+### 9.1c The tea-brand pilot (canonical framing, anonymized)
 
 Externally: "**a self-initiated pilot study for a leading Asian tea brand**."
 Never the brand name, never "client," never "engagement," never any phrasing
-implying a commercial relationship or endorsement. The pilot's three beats
-(keep exactly this arc): measured share of voice in open answers → a rival
-edging head-to-heads (directional) → a promo framing that LOWERED simulated
-intent and died before launch, with the synthetic verbatim ("...barely covers
-the cost of a kopi"). The kill is the star: the product's value is the bad
-idea it stopped.
+implying a commercial relationship or endorsement. The three beats: measured
+share of voice in open answers → a rival edging head-to-heads (directional) →
+a promo framing that LOWERED simulated intent and died before launch, with
+the synthetic verbatim ("...barely covers the cost of a kopi"). The kill is
+the star: the product's value is the bad idea it stopped.
 
 ### 9.2 Standards
 
-Demo/pilot figures always carry their stamps (PILOT STUDY, DIRECTIONAL,
-SIMULATED) at deck resolution, not just in reports. Synthetic verbatims are
-always attributed as synthetic. The paper is always cited by identifier
-(arXiv:2510.08338) and always described as independent. The methodology page
-is public and linked from every proof surface: it states repeated sampling,
-Wilson intervals where valid, the n>=30 gate, uncalibrated-scale labeling,
-text-only stimuli, and the measured/simulated wall.
+Every figure carries its stamps (MEASURED, SIMULATED, DIRECTIONAL,
+ILLUSTRATIVE) at deck resolution, not just in reports. Synthetic verbatims
+are always attributed as synthetic. The paper is always cited by identifier
+(arXiv:2510.08338) and always described as independent. The method section
+is public and linked from every proof surface: repeated sampling, Wilson
+intervals where valid, the n>=30 gate, uncalibrated-scale labeling,
+current/new prompt parity, provider and route disclosure, the
+measured/simulated wall, and snapshot limits (prompts, routes, modes, date).
+
+Provenance rules added in D-127: (1) any run figure is verified against the
+dev DB (`pnpm db:dev`, read-only) before it is published; a number that
+cannot be traced to a run is cut, not rounded. (2) When two runs appear
+together, state whether they share a baseline; if they do not, say "not a
+head-to-head." (3) When a message was tested on more than one model, show
+every model's result or the range, never the best one alone. (4) A result
+that says no is published as a finding, with the same stamps.
 
 ---
 
-## 10. Surface cascade (what changes now)
+## 10. Surface cascade
 
-### 10.1 Pitch deck errata (against the current 9-page deck)
+### 10.1 Pitch deck (against the current 9-page deck)
 
-1. Page 7, rewrite entirely: kill Tensor/Manifold/Triangulation/Fidelity
-   jargon (5.3). Replace with the honest engine walk: "Free-text reactions,
-   never gameable ratings → scored against benchmarked anchor statements
-   using SSR, from independent peer-reviewed research → every score labeled and traceable to
-   stored raw text." Brand the panel as the Glass Box.
-2. Pages 1/3/4: rewrite headline stats to attribute in the same breath (5.1).
-   Page 1 subhead: "the independently published SSR method reaches 90% of human panel
-   reliability, at ~1% of study cost."
-3. Page 7: "calibrated" → benchmarked language (5.2).
-4. Page 8: "HEYTEA" → "a leading Asian tea brand"; retitle "LIVE PILOT" →
-   "SELF-INITIATED PILOT STUDY"; keep the directional labels.
-5. Page 6: keep; it is the strategy. Add the Glass Box name to the Honesty
-   column note.
+1. Page 1: category line becomes "AI visibility measurement and message
+   testing"; subhead: "Measure how AI recommends you. Test what moves you."
+2. Page 6 (the map): axes become measurement × controlled testing (8.1);
+   keep the honesty column.
+3. Page 7: the engine walk stays honest and attributed (5.1); lead with the
+   AI shortlist test mechanics (five ranked recommendations with and without
+   the message, deterministic parsing, Shortlist lift in percentage points),
+   then the Buyer response scoring.
+4. Page 8: proof pages use the 9.1 studies with their stamps and the
+   not-a-client disclosure; the hotel case stays anonymized.
+5. Every page: the 5.3 grep before it leaves the building.
 
-### 10.2 Website (BRAND_SITE_GUIDE.md remains the visual law; narrative inverts)
+### 10.2 Website (`BRAND_SITE_GUIDE.md` is the visual and structural law)
 
-1. Hero: simulation-first. New H1 direction: "Test your brand's framings on
-   synthetic buyers. Grounded in evidence." The current audit-first H1 moves
-   into the evidence-layer section.
-2. Section order becomes the 4.3 sequence: stakes → the broken loop →
-   Resonance studies (hero, with SIMULATED stamps shown proudly) → the
-   evidence layer (audit as grounding) → the Glass Box (methodology) →
-   pilot case study → investors → contact.
-3. CTA intents change to: "Run a pilot study" (primary) and "Read the
-   methodology" (secondary).
-4. The cone stays the mark; the wave gains meaning: the orange thread through
-   the noise IS the resonant framing found by a study. Use that line in the
-   methodology section.
+The live site is the external source of truth (D-127). Current canonical
+elements, which the site guide's blueprint mirrors:
+
+1. H1: "Understand how AI recommends your brand. Test what moves you toward
+   its top choice." Subhead names the measure-then-test workflow and the
+   shortlist / top-choice lift. Recommended tightening when next edited:
+   "Measure how AI recommends your brand. Test which message moves you up its
+   shortlist."
+2. Section order (the 4.3 sequence): hero with a real study excerpt → How it
+   works (four client questions: prompt discovery, baseline audit, Message
+   Lift test, re-audit) → What we measure (four pillars) → What we found (two
+   real studies, one negative) → Why now → What you get (Message Lift) → How
+   the scoring works → Method and limitations with FAQ → contact.
+3. CTA intents: "Request a brand audit" (primary), "See two real findings"
+   (secondary), "Email the research team" (footer). Studies link: "Read the
+   full study."
+4. The cone stays the mark; the Signal Wave means the one message that
+   carries through the noise.
 
 ### 10.3 Everything else
 
 One-pager, email signatures, LinkedIn descriptors, report cover pages: the
-7-word category line under the wordmark. Reports keep their existing stamp
-discipline (it is now a brand feature, not a compliance feature).
+7-word line under the wordmark. Reports keep their existing stamp discipline
+(it is a brand feature, not a compliance feature).
 
 ---
 
@@ -418,3 +498,14 @@ the honesty asset.
 **v1.1 — 2026-07-07.** Attribution hardening: the SSR research is always
 described as independent/third-party; unqualified "published" formulations
 banned.
+
+**v2 — 2026-09-06 (D-127).** Category rewritten to "AI visibility
+measurement and message testing"; the live site (`resonance.observer`) becomes
+the external source of truth for structure and copy; wedge = measure, then
+run a controlled Message Lift test; the AI shortlist test leads externally and
+the Buyer response test is secondary; "we are not a GEO tool" and the ban on
+"AI visibility" lifted; claims law §5.1–5.3, the Glass Box, and voice kept
+verbatim, with rules 2/3 naming Response lift / Shortlist lift instead of ΔPI;
+proof library rebuilt on the named Insta360 studies, the anonymized hotel
+case, and the anonymized tea pilot, with four provenance rules; offer ladder
+names a quarterly manual re-audit, never "monitoring."

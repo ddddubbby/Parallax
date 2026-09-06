@@ -28,7 +28,6 @@ import {
   getProviderSpendToday,
   getRun,
   getRunDetail,
-  getRunFailureCounts,
   getRunMatrixKind,
   pauseRun as pauseRunRepo,
   requeueJob as requeueJobRepo,
@@ -615,11 +614,6 @@ export async function requeueJob(runId: string, jobId: string): Promise<ActionRe
   const run = await getRunDetail(runId);
   if (run) revalidatePath(`/projects/${run.run.projectId}/runs/${runId}`);
   return { ok: true };
-}
-
-export async function getRunSummary(runId: string) {
-  if (!isUuid(runId)) return { succeeded: 0, deadLettered: 0, cancelled: 0 };
-  return getRunFailureCounts(runId);
 }
 
 export async function fetchRunDetail(projectId: string, runId: string) {

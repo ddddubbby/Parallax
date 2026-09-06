@@ -2,15 +2,18 @@
 
 # BRAND_SITE_GUIDE.md — The Resonance Brand Website
 
-> An execution guide for building the public Resonance brand/marketing website.
+> The execution guide for the public Resonance brand/marketing website.
 > Written to be executed by a coding agent with no prior context. Read top to bottom
-> once, then follow section 10 (build order) step by step. Every ambiguous decision
-> has already been made for you; do not improvise where this guide is specific.
+> once, then follow section 10 (maintenance order) step by step. Every ambiguous
+> decision has already been made for you; do not improvise where this guide is
+> specific.
 >
-> STATUS: proposal — adopted for build, but not yet a MASTER_CONTEXT decision.
-> The website is a STANDALONE artifact. It must not import from, link into, or be
-> served by the operator app in `/src`. It never touches the database, providers,
-> or any app code. Everything you build lives in a new top-level `site/` folder.
+> STATUS: adopted and live (D-127). The site is deployed on Vercel at
+> `https://resonance.observer` from the `site/` folder; the live site is the
+> external source of truth for structure and copy, and this guide is kept in
+> step with it. The website is a STANDALONE artifact. It must not import from,
+> link into, or be served by the operator app in `/src`. It never touches the
+> database, providers, or any app code.
 
 ---
 
@@ -21,19 +24,21 @@ noise" story: dark instrument-stage sections where grayscale geometry drifts in
 slow motion, alternating with cream evidence-dossier sections where the numbers
 live; one orange signal — the cone — is the only colored object in the world.
 
-**Audience:** potential clients (brand/marketing leaders buying AI-visibility
-audits) and venture investors doing diligence. Both want: what is this, does it
-work, is it rigorous, who is behind it. Neither wants hype.
+**Audience:** potential clients (brand and marketing leads, founders, agency
+and PR strategists buying a brand audit or a Message Lift test). They want:
+what is this, does it work, is it rigorous, who is behind it. Nobody wants
+hype. There is no investor section on the site.
 
-**The concept.** Resonance measures how AI assistants describe brands, and
-simulates how buyers respond to different brand framings. The site dramatizes
-exactly that:
+**The concept.** Resonance measures how AI assistants rank, describe, and
+substantiate brands, then runs Message Lift tests (one Current message, one
+New message, shared contexts) to find which message moves a brand up the AI's
+shortlist. The site dramatizes exactly that:
 
 - The **Stage** (near-black sections): the AI landscape. Anonymous grayscale
   3D primitives float and slowly rotate — these are "all the brands, as AI sees
   them." Undifferentiated. Interchangeable.
 - The **Signal** (the orange cone): the one shape that resonates — the client's
-  brand once it is measured, corrected, and tested. The cone is the ONLY
+  brand once it is measured and its message tested. The cone is the ONLY
   saturated object anywhere on the site. Orange never appears on anything else
   except interactive accents (CTA, links, the wave motif).
 - The **Dossier** (cream sections): where evidence lives. Numbers, method,
@@ -50,12 +55,26 @@ agency hype page. Every design choice below serves that.
 ## 1. Ground rules (read before writing any code)
 
 1. **Standalone static site.** Plain HTML + CSS + vanilla JS. No React, no
-   build step, no npm dependencies, no CDN JS libraries. One `index.html`,
-   one `styles.css`, one `motion.js`, plus assets. Rationale: zero-dependency
-   sites cannot rot, and this guide's motion specs are all achievable with
+   build step, no npm dependencies, no CDN JS libraries (the CSP in
+   `site/vercel.json` blocks them anyway). Three pages (`index.html`,
+   `studies.html`, `404.html`), one `styles.css`, one `motion.js`, plus
+   assets. Charts are CSS meters and inline SVG driven by `--value` custom
+   properties, never a charting library. Rationale: zero-dependency sites
+   cannot rot, and this guide's motion specs are all achievable with
    CSS + IntersectionObserver.
-2. **Location:** everything under `site/` at the repo root. Deploy later as a
-   Render Static Site (or any static host). Never wire it into the Next app.
+2. **Location and hosting:** everything under `site/` at the repo root,
+   deployed to **Vercel** as a static project with Root Directory `site`
+   (`site/vercel.json` is the effective host config: clean URLs, security
+   headers, cache tiers). The public domain is `https://resonance.observer`.
+   Deploy paths: dashboard import of the GitHub repo with Root Directory
+   `site` (continuous deploys on push), or `npx vercel --cwd site --prod`.
+   After any domain change run `./scripts/set-site-domain.sh <url>` (it stamps
+   the `__SITE_URL__` token or re-stamps a previous host in index, studies,
+   robots.txt and sitemap.xml; idempotent) and redeploy. `site/_headers` is
+   Netlify/Cloudflare syntax, inert on Vercel, and kept for host portability;
+   never delete one assuming the other covers it. `site/.vercel/` is the
+   operator's project link and is gitignored. The site is not part of
+   `render.yaml`. Never wire it into the Next app.
 3. **Never animate anything except `transform` and `opacity`.** No animating
    `top/left/width/height`. No `window.addEventListener("scroll", ...)` —
    use IntersectionObserver and (where supported) CSS scroll-driven animations.
@@ -64,15 +83,19 @@ agency hype page. Every design choice below serves that.
 5. **Honest copy is brand law** (see section 5). The forbidden-phrase list is
    as binding as the color tokens.
 6. **Em dashes are banned in site copy.** Use a period or a comma instead.
-7. **Source images** live in `public/brand/` in this repo:
+7. **Cache-busters.** `styles.css?v=` and `motion.js?v=` are set by hand in
+   every HTML page. Bump all three pages together on every CSS/JS edit; a
+   stale one silently serves old styles and has misled reviews before.
+8. **Source images** live in `public/brand/` in this repo:
    - `resonance-logo-concept.png` — cone + hairline ring + lowercase wordmark on cream. The primary lockup reference.
    - `resonance-logo-mark-concept.png` — octagonal instrument bezel with an orange oscilloscope wave on black. The "instrument badge."
    - `resonance-wavelength-logo-concept.png` — fine cream wave stack with one orange thread, endpoint dots, on black. The Signal Wave motif.
    - `resonance-retro-wavelength-logo-concept.png` — bolder retro variant of the wave. Archived alternate; do not use on the site.
-   Copy the first three into `site/assets/` before you start. Also in
-   `public/brand/`: `resonance-mark.svg` (vector cone, built alongside this
-   guide) and `brand-kit.html` (living specimen page — open it in a browser to
-   SEE every token below).
+   These are concept sources, not shipped assets. The site ships only
+   `site/assets/mark.svg` (from `public/brand/resonance-mark.svg`),
+   `site/favicon.svg`, and `site/og.jpg` (rendered from `site/og.svg`, its
+   source). `public/brand/brand-kit.html` is the living specimen page — open it
+   in a browser to SEE every token below.
 
 ---
 
@@ -265,20 +288,26 @@ number exists. The reader should feel "these people count things."
 |---|---|---|
 | "guaranteed rankings", "get #1 in ChatGPT" | LLM outputs are probabilistic; the product's founding law | "measure how often you appear, with confidence intervals" |
 | any revenue/ROI/sales prediction from simulation | simulation is comparative only | "which framing resonates most, tested before you spend" |
-| "purchase probability" for ΔPI | ΔPI is a survey-construct shift | "a shift in expressed purchase intent (1 to 5 scale)" |
+| "purchase probability" for Response lift | Response lift is a survey-construct shift; Shortlist lift is a simulated shortlist-inclusion change | "a shift in expressed purchase intent (1 to 5 scale)"; "shortlist lift in percentage points" |
 | unlabeled simulated numbers | measured/simulated wall | every simulated figure carries a SIMULATED stamp |
-| case-study data presented as a real client without consent | evidence discipline | label demo studies "DEMONSTRATION DATA" in a stamp |
+| worked examples or invented figures presented as measured | evidence discipline | stamp them ILLUSTRATIVE; the site publishes no fictional brand |
+| a named study implying a commercial relationship | proof-library law (playbook §9) | "self-initiated; not a client, did not commission this, did not endorse it" on every named-study surface |
+| "monitoring", "track your movement" | the product has no scheduler (PRD §6) | "re-audit: the same prompts, the same method, a quarter later" |
 
-Additional copy rules: no em dashes; one CTA intent per label, and exactly two
-intents on the whole page: **"Request an audit"** (primary, appears in nav,
-hero, footer with identical wording) and **"Read the methodology"** (secondary,
-hero + case studies, identical wording). No third CTA.
+Additional copy rules: no em dashes; one CTA intent per label, and exactly
+three intents sitewide, each with identical wording wherever it appears:
+**"Request a brand audit"** (primary: nav pill, hero, `mailto:`),
+**"See two real findings"** (secondary, hero ghost button, anchors to
+`#finding`), and **"Email the research team"** (footer). Study links read
+"Read the full study" / "See the full study". No fourth intent.
 
-Approved headline vocabulary: measure, verify, evidence, framing, resonate,
-signal, sample, confidence. Sample hero H1 (use or improve within voice):
-"AI already has an opinion about your brand." with the sub: "Resonance measures
-it, verifies it against the facts, and tests the framings buyers respond to.
-With confidence intervals, not vibes."
+Approved headline vocabulary: measure, test, recommend, shortlist, top
+choice, message, evidence, sample, confidence. Live hero H1 (canonical until
+the playbook's §10.2 tightening is adopted): "Understand how AI recommends
+your brand. Test what moves you toward its top choice." Sub: "We measure where
+you stand in AI answers today, then test one Current message against one New
+message and report the lift in shortlist and top-choice rates. Every figure
+labeled measured or simulated."
 
 ---
 
@@ -286,90 +315,116 @@ With confidence intervals, not vibes."
 
 ```
 site/
-  index.html          single page, 8 sections + footer
+  index.html          landing page, 8 sections + FAQ + contact footer
+  studies.html        the published study page (currently the Insta360 study)
+  404.html            on-brand not-found page (noindex; Vercel serves it automatically)
   styles.css          tokens + layout + motion CSS
-  motion.js           IntersectionObserver reveals + zoom transitions (~120 lines)
-  assets/
-    mark.svg                    from public/brand/resonance-mark.svg
-    logo-concept.png            cropped hero lockup source
-    wave.svg                    inline-able Signal Wave (A.3)
-    bezel.png                   from resonance-logo-mark-concept.png
-    shapes/*.svg or *.webp      the five primitives
+  motion.js           IntersectionObserver reveals, nav state, zoom transitions
+  vercel.json         EFFECTIVE host config: cleanUrls, security headers (CSP, HSTS), cache tiers
+  _headers            Netlify/Cloudflare equivalent; inert on Vercel; kept for portability
+  robots.txt          Allow all; points at the sitemap
+  sitemap.xml         / and /studies (absolute URLs stamped by scripts/set-site-domain.sh)
+  og.jpg              1200x630 OG image (rendered from og.svg)
+  og.svg              OG image source
   favicon.svg         simplified cone, no ring
+  .gitignore          .vercel
+  assets/
+    mark.svg          from public/brand/resonance-mark.svg
+scripts/set-site-domain.sh   stamps __SITE_URL__ / re-stamps the live host into index, studies, robots, sitemap
 ```
 
-One page, anchor navigation. Nav is a fixed top bar: mark + wordmark left;
-links Product, Method, Case studies, Investors; "Request an audit" pill right.
+Two pages plus 404, anchor navigation on the landing page. Nav is a fixed top
+bar: mark + wordmark left; links **How it works** (`#workflow`), **What we
+measure** (`#metrics`), **What we found** (`#finding`), **Method**
+(`#methodology`), **Studies** (`/studies`); "Request a brand audit" pill right.
 Nav background: transparent over the hero, then `--stage` at 92% opacity with a
 hairline bottom border once scrolled past 80 px (toggle a class via
-IntersectionObserver on a sentinel div — not a scroll listener).
+IntersectionObserver on a sentinel div — not a scroll listener). A hamburger
+drawer replaces the link row below 768 px.
+
+Clean URLs: `vercel.json` sets `cleanUrls: true`, so `/studies` resolves in
+production and `/studies.html` redirects; the plain local Python server needs
+`/studies.html`.
 
 ---
 
-## 7. Page blueprint (section by section)
+## 7. Page blueprint (section by section, mirrors the live site)
 
-Layout-family discipline: the 8 sections below use 6 distinct layout families;
-no family repeats more than twice, and no two image+text splits are adjacent.
+Layout-family discipline: the sections below use at least 5 distinct layout
+families; no family repeats more than twice, and no two image+text splits are
+adjacent. Section ids and H2s are the live ones; change the site first, then
+this list.
 
-**S0 — Hero (Stage; family: full-bleed centered).**
-Stage black + grid. Center: the Signal Cone (dark variant, ~360 px) with the
-hairline ring, slow-rotating (8.2). Around it, 3 to 4 grayscale primitives
-drift at different depths (parallax via different animation amplitudes, not
-scroll listeners). H1 + sub + the two CTAs. Below, the Signal Wave as a
-divider. On scroll away, the hero zooms subtly (8.4).
+**Hero (Stage; `aria-label="Introduction"`; family: split with report panel).**
+Stage black + grid. Left: eyebrow, H1, sub, primary CTA "Request a brand
+audit", ghost CTA "See two real findings". Right: a cream `.report-panel`
+showing a REAL study excerpt (currently Insta360, 19 Jul 2026, run
+`a45cbc1e`: mention rate with Wilson CI, share-of-voice bars, organic
+sentiment, and the two Leica Message Lift results with their "not a
+head-to-head" note). Every figure on the panel traces to a stored run. Below
+the panel, three cited macro statistics (Gartner, Deloitte, Morgan Stanley),
+each with its source named (playbook §5.1).
 
-**S1 — The problem (Stage; family: narrative column).**
-One 60ch column of fog text over the drifting-shapes field, dimmed. Copy story:
-buyers now ask AI first; AI's answer is a distribution, not a fact; most brands
-have never measured theirs. End with a mono label: "01 / WHAT AI SAYS TODAY".
+**01 — How it works (`#workflow`; Dossier; family: four-node timeline).**
+H2 "As our client, you will always know where you stand." Four client
+questions in order: Prompt discovery ("What do your customers ask AI?"),
+Baseline audit ("Where do you stand in AI answers today?"), Message Lift test
+("Would a new message move you up?", SIMULATED stamp), Re-audit ("Are you
+gaining or losing ground?" — same prompts, same method, a quarter later).
+Horizontal `ol` timeline with a terminal arrow on desktop, vertical on mobile.
 
-**S2 — What Resonance does (Dossier; family: numbered dossier rows).**
-Cream. Four full-width hairline-separated rows, numbered 01 to 04 in mono:
-Presence ("Are you in AI's consideration set?"), Position ("When compared, do
-you win?"), Perception ("How does AI describe you?"), Proof ("Is the story
-true, and sourced?"). Each row: number, question, one sentence, small
-grayscale glyph of its assigned shape. Confidence rail note under the rows:
-"Every figure ships with sample size and confidence interval."
+**02 — What we measure (`#metrics`; Dossier; family: 2.5D pillar cards).**
+H2 "What we measure, and what each number means." Four cards, one per pillar,
+each with its client question, a worked example well, and its metric names:
+Presence (Mention Rate, Share of Voice, Avg First Position), Position (Organic
+Recommendation Rate, Comparative Win Rate), Perception (Sentiment, Attribute
+associations), Proof (Accuracy Rate, Citation Share). Examples are stamped
+ILLUSTRATIVE unless they are real (the two Insta360 wells are stamped
+MEASURED · INSTA360 · N=25). Confidence rail under the cards.
 
-**S3 — How it works (Dossier; family: horizontal step rail).**
-Four steps on a horizontal rail with hairline connectors: Measure (sampled
-prompts across AI engines), Verify (claims checked against your fact sheet),
-Simulate (synthetic panel tests candidate framings; SIMULATED stamp visible),
-Report (evidence pack, every number traceable). Each step card: mono step
-number, H3, two lines. The rail scrolls horizontally on mobile.
+**03 — What we found (`#finding`; Stage; family: two collapsed study cards).**
+H2 "Two studies. One found a missing story. One said no." Two `<details>`
+cards with the business-value headline visible when closed: the Insta360
+framing study (MEASURED, n=25, DeepSeek, not a client) and the anonymized
+hotel Message Lift test (SIMULATED, n=30 per message, negative result). Each
+card carries its limits and the not-a-client disclosure; the Insta360 card
+links to `/studies`.
 
-**S4 — Case studies (Dossier; family: asymmetric bento).**
-Bento grid of 3 demo studies: one large card (2x2) + two small. Each card:
-client archetype ("Consumer beverage brand"), stamp row (DEMONSTRATION DATA +
-SIMULATED where applicable), one honest headline finding phrased comparatively
-("Corrected framing lifted expressed intent +0.6 on a 5-point scale, n=48"),
-and a real chart thumbnail (bar PMF or funnel heatmap rendered as simple SVG
-bars, not a fake screenshot). Card hover: translate -2 px, hairline brightens.
-No invented client names or logos.
+**04 — Why now (`#why-now`; Dossier; family: narrative + four-point rail).**
+H2 "The click no longer tells the whole story." The attribution blind spots
+(no click, no referral, AI shortlist not visible, outdated description before
+the visit).
 
-**S5 — Methodology and honesty (Stage; family: manifesto + stat stamps).**
-The trust section, and the most "brand" moment. Stage black. Faceted
-polyhedron drifting behind. Large fog-bright statement: "We publish our
-uncertainty." Below, a row of 4 stat stamps in mono: "k=5 samples per prompt",
-"Wilson 95% intervals", "n >= 30 or labeled directional", "measured and
-simulated data never mix". Then the honesty pledge paragraph, including that
-uncalibrated scales are labeled and simulations are comparative only. Bezel
-badge image sits right. Secondary CTA: "Read the methodology" links to a
-static methodology page or the client guide PDF later; for v1, anchor to this
-section (link target may be refined post-launch).
+**05 — What you get (`#what-you-get`; Dossier; family: diagram).**
+H2 "The old A/B test finds a winner. The new one finds the next message."
+Message Lift explained structurally: Current message → shared contexts, only
+the message changes → New message; the two test types and their results;
+comparative-only disclaimer.
 
-**S6 — For investors (Dossier; family: stat strip + column).**
-Restrained. Mono label "FOR INVESTORS". One 65ch column: the category thesis
-(AI assistants are becoming the buying interface; measurement plus simulation
-is the wedge), then a 3-stat strip (Space Grotesk stat numbers): audits
-delivered, prompts sampled, engines covered. Use REAL numbers from the founder
-at build time; if a number is unavailable, cut the stat rather than invent it.
-No revenue claims, no market-size theater.
+**06 — How the scoring works (`#methodology`; Stage; family: five-stage
+pipeline).** H2 "From free-text answer to labeled number." Stored answer →
+embedding → cosine vs anchors → distribution → labeled result, with the SSR
+attribution sentence ("independent peer-reviewed research (arXiv:2510.08338),
+which Resonance productizes") and the Glass Box sentence verbatim.
 
-**S7 — Contact / footer (Stage; family: signature band).**
-Stage. The Signal Wave, full width. "Request an audit" pill + a plain mailto.
-Small print: "Simulated results are comparative and labeled. No guarantees of
-AI rankings are made or implied." Mark + wordmark, mono copyright line.
+**07 — Method and limitations (`#method`; Dossier; family: definition list +
+FAQ).** H2 "Evidence you can inspect." Repeated sampling; measured versus
+simulated; Current/New prompt parity; provider and model disclosure; sample
+size and uncertainty; results that say no; snapshot limitations. FAQ in
+`<details>`: GEO/AEO adjacency, how Message Lift works, why repeat a prompt,
+consumer-interface non-equivalence.
+
+**Contact (`#contact`; Stage; family: signature band).**
+H2 "Find out where your brand stands." "Email the research team" pill + the
+plain `mailto:`. Small print: "Measured and simulated figures are labeled. No
+ranking guarantees. Independent studies are not client endorsements." Mark +
+wordmark, mono line "Resonance · AI visibility · brand perception · message
+testing · 2026".
+
+**/studies (`studies.html`).** One study per page as it grows. Fixed
+structure: the question, the verbatim prompt set, sample size and route, the
+findings table, "What this study does not show", the not-a-client disclosure,
+and the contact band. Title pattern "<Brand> study · Resonance".
 
 ---
 
@@ -464,46 +519,60 @@ autoplaying video, no cursor followers, no magnetic buttons, no text scramble.
   outline, 2 px offset, on every interactive element. All shape images
   `alt=""` (decorative); the mark's alt is "Resonance".
 - Keyboard: nav anchors work without JS (zoom transition is enhancement).
-- Meta: title "Resonance. AI brand audits with confidence intervals";
-  description under 155 chars in the same voice; OG image = instrument bezel
-  on stage with wordmark (1200x630, build from `bezel.png`).
+- Meta: every page has its own `<title>` (landing: "Resonance · Understand
+  how AI recommends your brand"; study pages: "<Brand> study · Resonance"),
+  a description under 155 chars in the same voice, a `<link rel="canonical">`,
+  and absolute `og:image` / `twitter:image` URLs (`site/og.jpg`, 1200x630,
+  rendered from `og.svg`). Absolute URLs come from the `__SITE_URL__` stamp;
+  after a domain change re-run `scripts/set-site-domain.sh` and resubmit
+  `sitemap.xml` in Search Console so the same-host URLs are read. `404.html`
+  carries `<meta name="robots" content="noindex">`.
 - Target Lighthouse >= 90 on all four categories, mobile.
 
 ---
 
-## 10. Build order (follow exactly)
+## 10. Maintenance order (follow exactly)
 
-1. Create `site/`, copy assets per section 6, write `styles.css` tokens block
-   (A.1) and the grid background (A.2).
-2. Build static HTML for all 8 sections with real copy (section 7), no motion.
-   Check it reads well with CSS only.
-3. Add fonts, type scale, buttons, stamps, hairlines. Check contrast (3.3).
-4. Add the inline SVGs: mark (from `mark.svg`), wave (A.3), the five
-   primitives (copy from `public/brand/brand-kit.html` source).
-5. Add ambient CSS animations (8.2).
-6. Add `motion.js`: reveals (A.4), nav state sentinel, zoom-through (A.5).
-7. Add hero scroll zoom behind `@supports` (A.6). Add reduced-motion blocks.
-8. Run the pre-flight checklist (section 11). Fix every failure before calling
-   it done.
+The site is built and live; this is the order for every subsequent edit.
+
+1. Edit copy or structure in `site/*.html`; keep section ids and H2s in step
+   with section 7 (update section 7 in the same change if they move).
+2. Run the playbook's §5.3 banned-vocabulary grep and this guide's section 5
+   table over `site/*.html`. Any hit blocks the change.
+3. Verify every new figure against a stored run or a named third-party source
+   (playbook §9.2). Stamp it MEASURED / SIMULATED / DIRECTIONAL / ILLUSTRATIVE.
+4. If CSS or JS changed, bump the `?v=` cache-buster on all three HTML pages.
+5. Run the pre-flight checklist (section 11).
+6. Commit with explicit paths (never `git add -A`; `site/.vercel/` is ignored).
+7. Deploy (Vercel dashboard on push, or `npx vercel --cwd site --prod`). If
+   the domain changed, run `./scripts/set-site-domain.sh <url>` first.
+8. After deploy: check `/`, `/studies`, `/404` return 200/200/404, then
+   resubmit `sitemap.xml` if URLs changed.
 
 Local test: `python3 -m http.server 8080 --directory site` then open
-`http://localhost:8080`.
+`http://localhost:8080` (use `/studies.html` locally; `/studies` only resolves
+on Vercel).
 
 ## 11. Pre-flight checklist (mechanical, all must pass)
 
 - [ ] Exactly one accent color anywhere on the page (orange).
 - [ ] Orange body-size text never sits on cream (only `--accent-ink` does).
 - [ ] Every CTA fits on one line at 1280 px and at 320 px.
-- [ ] Exactly two CTA intents sitewide, identical wording per intent.
-- [ ] Uppercase mono labels above headlines: count <= 3.
-- [ ] >= 4 distinct section layout families; no 3 consecutive image+text splits.
+- [ ] Exactly three CTA intents sitewide, identical wording per intent (5).
+- [ ] Uppercase mono labels above headlines: count <= 3 per page.
+- [ ] >= 5 distinct section layout families; no 3 consecutive image+text splits.
 - [ ] All animations are `transform`/`opacity` only (grep the CSS).
 - [ ] No `addEventListener("scroll"` anywhere (grep the JS).
 - [ ] Reduced-motion: toggle it in devtools; page is fully readable and static.
-- [ ] 320 px wide: no horizontal scrollbar, hero cone <= 60vw.
-- [ ] Every simulated/demo figure has its stamp (SIMULATED / DEMONSTRATION DATA).
-- [ ] No forbidden phrases (grep: "guarantee", "ROI", "#1", "probability").
-- [ ] No em dash characters in copy (grep for the character).
+- [ ] 320 px and 375 px wide: no horizontal scrollbar; hero cone <= 60vw.
+- [ ] Every simulated, directional, or illustrative figure has its stamp.
+- [ ] Every run figure traces to a stored run; every macro stat names its source.
+- [ ] No forbidden phrases (playbook §5.3 grep; also "guarantee", "ROI", "#1", "probability", "monitoring", "agentic shopping").
+- [ ] No em dash characters in HTML copy (grep for the character).
+- [ ] `grep -c __SITE_URL__ site/*` = 0 and no stale host (`windtunnel`) anywhere.
+- [ ] `site/vercel.json` parses as JSON; `_headers` still present.
+- [ ] `styles.css?v=` and `motion.js?v=` identical across index, studies, 404.
+- [ ] HTML tag balance clean on all three pages; no duplicate ids or `style` attributes.
 - [ ] Page weight <= 1.5 MB; Lighthouse mobile >= 90 x4.
 - [ ] Zero console errors; works with JS disabled (static + anchors).
 

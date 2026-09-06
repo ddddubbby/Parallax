@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M55 market-context prompt guardrail and acceptance · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M55 market-context prompt guardrail and acceptance · DISPOSITION: EXECUTED (merged to main via PR #16; archived in M56 P3, D-126)
 
 # M55 — Market Context Prompt Guardrail
 

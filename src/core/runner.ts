@@ -1,5 +1,4 @@
 import {
-  EXTRACTION_ATTEMPTS,
   FAILURE_CIRCUIT_BREAKER_RATE,
   MAX_JOB_ATTEMPTS,
   PROVIDER_DOWN_DEAD_LETTERS,
@@ -149,11 +148,6 @@ export type RetryDecision =
 /** RN-6: MAX_JOB_ATTEMPTS is the hard ceiling on retries per job. */
 export function decideRetry(attemptNumber: number): RetryDecision {
   if (attemptNumber >= MAX_JOB_ATTEMPTS) return { action: "dead_letter" };
-  return { action: "retry", nextAttemptDelayMs: backoffMs(attemptNumber) };
-}
-
-export function decideExtractionRetry(attemptNumber: number): RetryDecision {
-  if (attemptNumber >= EXTRACTION_ATTEMPTS) return { action: "dead_letter" };
   return { action: "retry", nextAttemptDelayMs: backoffMs(attemptNumber) };
 }
 

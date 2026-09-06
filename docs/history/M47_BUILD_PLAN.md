@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M47 execution — reachable route loading, same-segment tab/run pending feedback, redundant refresh removal · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M47 execution — reachable route loading, same-segment tab/run pending feedback, redundant refresh removal · DISPOSITION: EXECUTED (merged to main via PR #8; archived in M56 P3, D-126)
 
 # M47_BUILD_PLAN.md — Transition Feedback and Refresh Cleanup
 
