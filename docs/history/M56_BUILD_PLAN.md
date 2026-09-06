@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M56 whole-repo cleanup pass — docs drift, repo noise, plan archival, zero-reference exports (D-126/D-127) · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M56 whole-repo cleanup pass — docs drift, repo noise, plan archival, zero-reference exports (D-126/D-127) · DISPOSITION: EXECUTED (merged to main via PR #17, 2026-09-06; archived in M57 P0 per D-126)
 
 # M56 — Whole-Repo Cleanup Pass
 

@@ -1,49 +1,37 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M56 cleanup pass, phase state, next action, and integration target · TRACKER: M56_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M57 pivot milestone, phase state, next action, and integration target · TRACKER: M57_BUILD_PLAN.md
 
-# STATUS.md — M56 control plane
+# STATUS.md — M57 control plane
 
 | Field | Value |
 |---|---|
-| **Active product** | Resonance operator web product — M56 whole-repo cleanup pass (D-126/D-127); no product behavior change |
+| **Active product** | Windtunnel operator web product (external name per D-128; internal identifiers unchanged) — M57 pivot, site compliance (D-127), SEO page architecture; no product behavior change |
 | **Product contract** | [PRD.md](PRD.md) (requirements unchanged; drift annotations only) |
-| **Build plan** | [M56_BUILD_PLAN.md](M56_BUILD_PLAN.md) |
-| **Branch** | `m56`, cut from `main@5ba6e65` (the local merge of `m54`) |
-| **Current milestone** | M56 — docs drift, repo noise, plan archival, zero-reference exports |
-| **Milestone state** | Done — all phases committed on `m56`; ready to merge to `main` (push and PR are operator-gated) |
-| **Next action** | Push `main` (carries the m54 site landing 5ba6e65) and `m56`, open the PR for `m56` → `main`; then M57 P0 archives `M56_BUILD_PLAN.md` to `docs/history/` and prunes S-130 (D-025/D-126) |
-| **Blocked on** | Pushing `main`/`m56` and opening the PR need GitHub credentials on this machine (no `gh`, credential helper points at a deleted temp binary) |
-| **Integration order** | `m54` is already on local `main` (5ba6e65); `m56` merges to `main` after P5 |
+| **Build plan** | [M57_BUILD_PLAN.md](M57_BUILD_PLAN.md) |
+| **Branch** | `m57`, cut from `main@c478231` (PR #17 merge) |
+| **Current milestone** | M57 — pivot to Windtunnel, site compliance, SEO page architecture |
+| **Milestone state** | P0 done on `m57` (governance); P1a next |
+| **Next action** | P1a — Windtunnel on every visible surface: `site/` copy to the D-127 lexicon, og/mark assets, `set-site-domain.sh` stamping to `https://windtunnel.observer`, `vercel.json` www→apex 301, root-docs name sweep; commit `M57 P1a: …` |
+| **Blocked on** | Nothing for P0–P2a. Operator-gated, non-blocking for code: domain purchase + Vercel attach (default `windtunnel.observer` assumed; a different final domain is one idempotent re-stamp), `hello@` mailbox (P1 keeps `resonance.research@pm.me`), profile URLs for `sameAs`, form endpoint (P3), trademark search, Search Console/Bing submission |
+| **Integration order** | `m57` merges to `main` after P3 closeout |
 | **Pending merge** | `m53` (D-123 sampling terminology, 343ab62, 8 behind main) stays unmerged by operator decision; trunk `PRD.md` has no §8.41 and `DECISIONS.md` no D-123 until it lands |
-| **Parked product** | Resonance GEO agent remains parked (D-116); `AGENT_*` headers read PARKED from M56 P2 |
+| **Parked product** | Resonance GEO agent (historical name) remains parked (D-116); `AGENT_*` headers read PARKED from M56 P2 |
 
-## M56 phase ledger
+## M57 phase ledger
 
 | Phase | Scope | State |
 |---|---|---|
-| P-1 | Merge `m54` (site source) into `main`; cut `m56` | Done (local; push pending) |
-| P0 | D-126/D-127, STATUS, this plan, PROTECTED_REGISTER, audit register, baseline gates | Done |
-| P1 | Repo noise: worktrees, stale branches, upload zip, `.gitkeep`, env var names | Done |
-| P2 | Brand canon rewrite (D-127); current-state docs synced to code | Done |
-| P3 | Archive eight merged plans to `docs/history/`; D-025 BUILD_NOTES truncation | Done |
-| P4 | Delete zero-reference exports DC-01..DC-24 | Done |
-| P5 | Closeout: gates, audit artifacts removed, handoff | Done |
+| P0 | Governance: D-128 + register edges, M56 plan archived (byte-frozen), `M57_BUILD_PLAN.md`, STATUS/PRD/MASTER_CONTEXT sync, S-130 truncation + S-131, §G gotcha | Done |
+| P1a | External surfaces: site pages, og/mark assets, brand-kit, domain stamping script, www→apex redirect, root-docs name sweep | Pending |
+| P1b | `src/` user-visible strings via `PRODUCT_NAME`; copy-test updates; `ui-contracts` guard | Pending |
+| P2a | SEO page architecture: studies hub, per-study page, method/methodology pages, JSON-LD, robots AI-bot groups, sitemap, llms.txt | Pending |
+| P2b | Hotel + Leica study pages, dev-DB-verified (D-127) — absorbs the two M56 open follow-ups: run `cffd5856` date confirmation, and the hotel and Leica study pages | Pending |
+| P3 | Contact form via operator endpoint; CSP `form-action`; two CTA intents | Pending |
+| P3 closeout | Gates, STATUS/PRD/BUILD_NOTES handoff, PR `m57` → `main` | Pending |
 
-## Closeout evidence (m56 head)
+## Baseline evidence (main@c478231)
 
-- `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check` (20 governed root docs, 19 historical) green after P4.
-- Full Vitest after the deletions: 915 passed / 12 skipped / 0 failed (unchanged from baseline). Playwright `test:e2e`: 18/18.
-- Grep gates G1–G12 (`M56_BUILD_PLAN.md`): green; the only residue is the playbook's own "don't say" table and the D-114-kept `createFramingStudyFormAction`.
-- Archived plan bodies proven byte-frozen (`git diff HEAD~1:<old> HEAD:<new>` = 2 header lines each).
-- `pnpm build` and `pnpm test:e2e:forecast` results are recorded in the P5 commit's BUILD_NOTES entry.
+- M56 P5 closeout gates (9dd5a23, merged via PR #17): lint 0 warnings, typecheck, docs:check (20 governed root docs, 19 historical), Vitest 915 passed / 12 skipped / 0 failed, `test:e2e` 18/18, `test:e2e:forecast` 4 passed, build green (proxy bypass), `git diff --check` clean.
 
-## Baseline evidence (main@5ba6e65)
+## Open follow-ups (not M57 scope)
 
-- `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check` (27 governed root docs before the M56 plan, 28 after) green.
-- Full Vitest: 915 passed / 12 skipped / 0 failed (125 files passed, 2 skipped).
-- Playwright `test:e2e`: 18/18.
-
-## Open follow-ups (not M56 scope)
-
-- Hotel-case run date on the live site (31 Jul 2026, from S-123) should be confirmed against run `cffd5856` when the dev DB is up.
-- `/studies` carries only the Insta360 study; the hotel and Leica tests are candidates for their own pages.
 - Duplicate-helper merges and UI "Simulation runs/study pack" wording are recorded in D-126 as a future proposal.

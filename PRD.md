@@ -2,7 +2,7 @@
 
 # PRD.md - Resonance MVP
 
-> **STATUS: M55 (D-125) merged to `main` via GitHub PR #16 (2026-08-03). M56 whole-repo cleanup pass in progress on `m56` (D-126/D-127; no product change). M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M56 merged to `main` via GitHub PR #17 (2026-09-06). M57 pivot to Windtunnel, site compliance and SEO architecture in progress on `m57` (D-128; no product change). M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; Executed milestone plans (M43–M55) are archived in `docs/history/`.
 
@@ -661,7 +661,8 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `main` via GitHub PR #14 |
 | M54 | Collecting responses Overview substance trace (D-124) | Overview Collecting responses lanes (ask / collect / read-or-score); `liveActivity` on run detail; plain-language status; no SSE/migration | Done on `main` via GitHub PR #15 |
 | M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `main` via GitHub PR #16 |
-| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | Done on `m56` (D-126/D-127); merge to `main` pending push |
+| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | Done on `m56` (D-126/D-127); merged to `main` via PR #17 |
+| M57 | Pivot to Windtunnel, site compliance, SEO page architecture (D-128) | External name Windtunnel on every visible surface; live site to D-127 lexicon; study/method/methodology pages; JSON-LD, robots AI-bot groups, llms.txt, www→apex 301, contact form | In progress on `m57` |
 
 Progress notes:
 
