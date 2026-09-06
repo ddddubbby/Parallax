@@ -560,7 +560,10 @@ autoplaying video, no cursor followers, no magnetic buttons, no text scramble.
   AI recommends your brand"; study pages: "<Brand> study · Windtunnel"),
   a description under 155 chars in the same voice, a `<link rel="canonical">`,
   and absolute `og:image` / `twitter:image` URLs (`site/og.jpg`, 1200x630,
-  rendered from `og.svg`). Absolute URLs come from the `__SITE_URL__` stamp;
+  rendered from `og.svg`; render with the brand webfonts supplied, e.g.
+  headless Chrome against an HTML wrapper that loads the Google Fonts
+  stylesheet for Instrument Serif, Space Grotesk, IBM Plex Mono, and Inter,
+  so the wordmark and headline do not fall back). Absolute URLs come from the `__SITE_URL__` stamp;
   after a domain change re-run `scripts/set-site-domain.sh` and resubmit
   `sitemap.xml` in Search Console so the same-host URLs are read. `404.html`
   carries `<meta name="robots" content="noindex">`.
