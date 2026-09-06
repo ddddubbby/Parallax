@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Instrument_Serif } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { PRODUCT_NAME } from "@/core/constants";
 
 // The three faces of the design system (DESIGN_GUIDELINES §4, V-9).
 const plexMono = IBM_Plex_Mono({
@@ -17,7 +18,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Resonance",
+  title: PRODUCT_NAME,
   description: "Internal operator tool for AI visibility audits and evidence-conditioned simulation studies.",
 };
 

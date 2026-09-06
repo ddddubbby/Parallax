@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { FramingBatchProgress } from "@/components/resonance/framing-batch-progress";
+import { PRODUCT_NAME } from "@/core/constants";
 import {
   PromptDisclosurePanel,
   type PromptDisclosureData,
@@ -374,7 +375,7 @@ export function StudyWizard({
           {testType === "ai_recommendation" ? (
             <>
               <p className="mb-4 max-w-2xl text-sm leading-6 text-ink/70">
-                Resonance selected brand-neutral shopping situations from the latest approved Evidence
+                {PRODUCT_NAME} selected brand-neutral shopping situations from the latest approved Evidence
                 audit. The same situations are used for both messages.
               </p>
               <div className="mb-4 flex flex-wrap items-center gap-2">

@@ -267,7 +267,7 @@ export async function generateReport(runId: string): Promise<{ ok: true; created
 
 export async function generateResonanceReport(runId: string): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
   const ctx = await buildResonanceReportContext(runId);
-  if (!ctx) return { ok: false, error: "Resonance run not found" };
+  if (!ctx) return { ok: false, error: "Message Lift run not found" };
 
   const existingSections = await getReportSections(runId);
   const existingKeys = new Set(existingSections.map((s) => s.sectionKey));
@@ -294,7 +294,7 @@ export function isKnownReportSectionKey(key: string) {
 export async function regenerateOneSection(runId: string, sectionId: string, sectionKey: string): Promise<string> {
   if (isResonanceSectionKey(sectionKey)) {
     const ctx = await buildResonanceReportContext(runId);
-    if (!ctx) throw new Error("Resonance run not found");
+    if (!ctx) throw new Error("Message Lift run not found");
     const md = generateResonanceSection(sectionKey, ctx);
     const updated = await regenerateSection(runId, sectionId, sectionKey, md);
     if (updated === 0) throw new Error("Report section not found for run");

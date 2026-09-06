@@ -240,4 +240,38 @@ describe("M43 shared UI contracts", () => {
     expect(projectsPage).toContain("<EmptyState");
     expect(projectsPage).toContain('kind="first-use"');
   });
+
+  it("D-128: the external product name appears only via PRODUCT_NAME in app/component sources", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+
+    async function walk(dir: string): Promise<string[]> {
+      const out: string[] = [];
+      for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) out.push(...(await walk(full)));
+        else if (/\.(tsx?|jsx?)$/.test(entry.name) && !entry.name.includes(".test.")) out.push(full);
+      }
+      return out;
+    }
+
+    const sources = [
+      ...(await walk(path.join(process.cwd(), "src/app"))),
+      ...(await walk(path.join(process.cwd(), "src/components"))),
+    ];
+    expect(sources.length).toBeGreaterThan(50);
+
+    const offenders: string[] = [];
+    for (const file of sources) {
+      const source = await fs.readFile(file, "utf8");
+      // Strip block comments and whole-line/inline line comments so historical
+      // prose in comments (e.g. the D-080 note) does not trip the guard; `//`
+      // preceded by a non-space (as in "https://") is left intact.
+      const stripped = source
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .replace(/(^|\s)\/\/.*$/gm, "$1");
+      if (/\bResonance\b(?![A-Za-z])/.test(stripped)) offenders.push(path.relative(process.cwd(), file));
+    }
+    expect(offenders).toEqual([]);
+  });
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { GlossaryTerm } from "@/components/semantic/glossary-term";
+import { PRODUCT_NAME } from "@/core/constants";
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Button, Field, InlineStatus, Input, Select, Stamp } from "@/components/ui";
 import { AppConfirmDialog } from "@/components/ui/dialog";
@@ -396,7 +397,7 @@ export function RunCreationForm({
       {isLive && (
         <InlineStatus tone="warning">
           {isMessageLift
-            ? "This option spends real money. Resonance keeps the A/B settings fixed."
+            ? `This option spends real money. ${PRODUCT_NAME} keeps the A/B settings fixed.`
             : runMode === "live_validation"
             ? "Live validation spends real money and is labeled VALIDATION-ONLY — never client-ready evidence."
             : (
@@ -513,13 +514,13 @@ export function RunCreationForm({
         </div>
         {singleMode && (
           <p className="mt-1.5 text-sm text-ink/55">
-            Resonance runs lock to one mode; there is no mode dimension in resonance scopes (D-080).
+            Message Lift runs lock to one mode; there is no mode dimension in resonance scopes (D-080).
           </p>
         )}
       </fieldset>}
       {isMessageLift && (
         <p className="text-sm text-ink/60">
-          Resonance keeps the sampling and comparison settings fixed so only the message changes.
+          `${PRODUCT_NAME} keeps the sampling and comparison settings fixed so only the message changes.`
         </p>
       )}
 

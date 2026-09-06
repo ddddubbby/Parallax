@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
+import { PRODUCT_NAME } from "@/core/constants";
 import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from "react";
 import { useFormStatus } from "react-dom";
 import {
@@ -107,7 +108,7 @@ function SidebarBody({
           }}
           className="flex flex-col text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <span className="label-mono text-sm font-semibold">Resonance</span>
+          <span className="label-mono text-sm font-semibold">{PRODUCT_NAME}</span>
         </Link>
       </div>
 
@@ -320,7 +321,7 @@ export function OperatorShell(props: OperatorShellProps) {
               </Dialog.Trigger>
             </AppTooltip>
             <span className="label-mono truncate text-xs font-semibold">
-              {props.mode === "project" && props.project ? props.project.name : "Resonance"}
+              {props.mode === "project" && props.project ? props.project.name : PRODUCT_NAME}
             </span>
           </div>
 
