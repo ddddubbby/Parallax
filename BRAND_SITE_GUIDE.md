@@ -1,15 +1,15 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Resonance site structure and copy guide (active brand under D-106)
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Windtunnel site structure and copy guide (active brand under D-106)
 
-# BRAND_SITE_GUIDE.md — The Resonance Brand Website
+# BRAND_SITE_GUIDE.md — The Windtunnel Brand Website
 
-> The execution guide for the public Resonance brand/marketing website.
+> The execution guide for the public Windtunnel brand/marketing website.
 > Written to be executed by a coding agent with no prior context. Read top to bottom
 > once, then follow section 10 (maintenance order) step by step. Every ambiguous
 > decision has already been made for you; do not improvise where this guide is
 > specific.
 >
 > STATUS: adopted and live (D-127). The site is deployed on Vercel at
-> `https://resonance.observer` from the `site/` folder; the live site is the
+> `https://windtunnel.observer` from the `site/` folder; the live site is the
 > external source of truth for structure and copy, and this guide is kept in
 > step with it. The website is a STANDALONE artifact. It must not import from,
 > link into, or be served by the operator app in `/src`. It never touches the
@@ -29,7 +29,7 @@ and PR strategists buying a brand audit or a Message Lift test). They want:
 what is this, does it work, is it rigorous, who is behind it. Nobody wants
 hype. There is no investor section on the site.
 
-**The concept.** Resonance measures how AI assistants rank, describe, and
+**The concept.** Windtunnel measures how AI assistants rank, describe, and
 substantiate brands, then runs Message Lift tests (one Current message, one
 New message, shared contexts) to find which message moves a brand up the AI's
 shortlist. The site dramatizes exactly that:
@@ -43,9 +43,9 @@ shortlist. The site dramatizes exactly that:
   except interactive accents (CTA, links, the wave motif).
 - The **Dossier** (cream sections): where evidence lives. Numbers, method,
   case studies. Calm paper, ink text, mono stamps — the visual language of the
-  Resonance product itself, so the site and the tool feel like one instrument.
+  Windtunnel product itself, so the site and the tool feel like one instrument.
 
-**Why this is honest branding, not decoration:** Resonance's differentiator is
+**Why this is honest branding, not decoration:** Windtunnel's differentiator is
 statistical honesty (confidence intervals, sample gates, a hard wall between
 measured and simulated data). The site must *feel* like an instrument, not an
 agency hype page. Every design choice below serves that.
@@ -56,21 +56,24 @@ agency hype page. Every design choice below serves that.
 
 1. **Standalone static site.** Plain HTML + CSS + vanilla JS. No React, no
    build step, no npm dependencies, no CDN JS libraries (the CSP in
-   `site/vercel.json` blocks them anyway). Three pages (`index.html`,
-   `studies.html`, `404.html`), one `styles.css`, one `motion.js`, plus
-   assets. Charts are CSS meters and inline SVG driven by `--value` custom
+   `site/vercel.json` blocks them anyway). Every HTML page under `site/`
+   (currently `index.html`, `studies.html`, `404.html`), one `styles.css`, one
+   `motion.js`, plus assets. Charts are CSS meters and inline SVG driven by `--value` custom
    properties, never a charting library. Rationale: zero-dependency sites
    cannot rot, and this guide's motion specs are all achievable with
    CSS + IntersectionObserver.
 2. **Location and hosting:** everything under `site/` at the repo root,
    deployed to **Vercel** as a static project with Root Directory `site`
    (`site/vercel.json` is the effective host config: clean URLs, security
-   headers, cache tiers). The public domain is `https://resonance.observer`.
+   headers, cache tiers). The public domain is `https://windtunnel.observer`.
    Deploy paths: dashboard import of the GitHub repo with Root Directory
    `site` (continuous deploys on push), or `npx vercel --cwd site --prod`.
    After any domain change run `./scripts/set-site-domain.sh <url>` (it stamps
-   the `__SITE_URL__` token or re-stamps a previous host in index, studies,
-   robots.txt and sitemap.xml; idempotent) and redeploy. `site/_headers` is
+   the `__SITE_URL__` token or re-stamps a previous host in every HTML page,
+   robots.txt, sitemap.xml and llms.txt; idempotent) and redeploy. On a domain
+   change, the old-host 301 to the new host is a Vercel domain-level redirect
+   configured in the dashboard: a manual operator step no code in `site/` can
+   express. `site/_headers` is
    Netlify/Cloudflare syntax, inert on Vercel, and kept for host portability;
    never delete one assuming the other covers it. `site/.vercel/` is the
    operator's project link and is gitignored. The site is not part of
@@ -84,7 +87,7 @@ agency hype page. Every design choice below serves that.
    as binding as the color tokens.
 6. **Em dashes are banned in site copy.** Use a period or a comma instead.
 7. **Cache-busters.** `styles.css?v=` and `motion.js?v=` are set by hand in
-   every HTML page. Bump all three pages together on every CSS/JS edit; a
+   every HTML page. Bump every HTML page together on every CSS/JS edit; a
    stale one silently serves old styles and has misled reviews before.
 8. **Source images** live in `public/brand/` in this repo:
    - `resonance-logo-concept.png` — cone + hairline ring + lowercase wordmark on cream. The primary lockup reference.
@@ -219,7 +222,7 @@ Two palettes, one per world. Hexes are law; do not invent new tints.
   small orange text on cream. Orange on stage ~6:1 (fine at any size). Button:
   white/cream text on orange fill passes at >= 18 px semibold; check it.
 - **Note for taste-skill readers:** the cream+ink palette is not a
-  "premium-consumer default reach" — it is Resonance's existing, explicitly
+  "premium-consumer default reach" — it is Windtunnel's existing, explicitly
   documented brand system (the operator app's ink/paper dossier language),
   carried onto the public site for product continuity. That is the named-brand
   override, and orange is the locked single accent.
@@ -405,26 +408,27 @@ comparative-only disclaimer.
 pipeline).** H2 "From free-text answer to labeled number." Stored answer →
 embedding → cosine vs anchors → distribution → labeled result, with the SSR
 attribution sentence ("independent peer-reviewed research (arXiv:2510.08338),
-which Resonance productizes") and the Glass Box sentence verbatim.
+which Windtunnel productizes") and the Glass Box sentence verbatim.
 
 **07 — Method and limitations (`#method`; Dossier; family: definition list +
 FAQ).** H2 "Evidence you can inspect." Repeated sampling; measured versus
 simulated; Current/New prompt parity; provider and model disclosure; sample
 size and uncertainty; results that say no; snapshot limitations. FAQ in
 `<details>`: GEO/AEO adjacency, how Message Lift works, why repeat a prompt,
-consumer-interface non-equivalence.
+consumer-interface non-equivalence, the free-checker difference, day-to-day
+variance, and Singapore/APAC markets.
 
 **Contact (`#contact`; Stage; family: signature band).**
 H2 "Find out where your brand stands." "Email the research team" pill + the
 plain `mailto:`. Small print: "Measured and simulated figures are labeled. No
 ranking guarantees. Independent studies are not client endorsements." Mark +
-wordmark, mono line "Resonance · AI visibility · brand perception · message
-testing · 2026".
+wordmark, mono line "Windtunnel (windtunnel.observer) · AI visibility audits
+and message tests · Singapore · 2026".
 
 **/studies (`studies.html`).** One study per page as it grows. Fixed
 structure: the question, the verbatim prompt set, sample size and route, the
 findings table, "What this study does not show", the not-a-client disclosure,
-and the contact band. Title pattern "<Brand> study · Resonance".
+and the contact band. Title pattern "<Brand> study · Windtunnel".
 
 ---
 
@@ -517,10 +521,10 @@ autoplaying video, no cursor followers, no magnetic buttons, no text scramble.
 - Semantic landmarks: `header`, `main`, one `section` per S-block with
   `aria-labelledby`, `footer`. One `h1` only. Focus-visible: 2 px orange
   outline, 2 px offset, on every interactive element. All shape images
-  `alt=""` (decorative); the mark's alt is "Resonance".
+  `alt=""` (decorative); the mark's alt is "Windtunnel".
 - Keyboard: nav anchors work without JS (zoom transition is enhancement).
-- Meta: every page has its own `<title>` (landing: "Resonance · Understand
-  how AI recommends your brand"; study pages: "<Brand> study · Resonance"),
+- Meta: every page has its own `<title>` (landing: "Windtunnel · Measure how
+  AI recommends your brand"; study pages: "<Brand> study · Windtunnel"),
   a description under 155 chars in the same voice, a `<link rel="canonical">`,
   and absolute `og:image` / `twitter:image` URLs (`site/og.jpg`, 1200x630,
   rendered from `og.svg`). Absolute URLs come from the `__SITE_URL__` stamp;
@@ -541,7 +545,7 @@ The site is built and live; this is the order for every subsequent edit.
    table over `site/*.html`. Any hit blocks the change.
 3. Verify every new figure against a stored run or a named third-party source
    (playbook §9.2). Stamp it MEASURED / SIMULATED / DIRECTIONAL / ILLUSTRATIVE.
-4. If CSS or JS changed, bump the `?v=` cache-buster on all three HTML pages.
+4. If CSS or JS changed, bump the `?v=` cache-buster on every HTML page.
 5. Run the pre-flight checklist (section 11).
 6. Commit with explicit paths (never `git add -A`; `site/.vercel/` is ignored).
 7. Deploy (Vercel dashboard on push, or `npx vercel --cwd site --prod`). If
@@ -569,10 +573,10 @@ on Vercel).
 - [ ] Every run figure traces to a stored run; every macro stat names its source.
 - [ ] No forbidden phrases (playbook §5.3 grep; also "guarantee", "ROI", "#1", "probability", "monitoring", "agentic shopping").
 - [ ] No em dash characters in HTML copy (grep for the character).
-- [ ] `grep -c __SITE_URL__ site/*` = 0 and no stale host (`windtunnel`) anywhere.
+- [ ] `grep -c __SITE_URL__ site/*` = 0 and no stale host (`resonance.observer`) anywhere.
 - [ ] `site/vercel.json` parses as JSON; `_headers` still present.
-- [ ] `styles.css?v=` and `motion.js?v=` identical across index, studies, 404.
-- [ ] HTML tag balance clean on all three pages; no duplicate ids or `style` attributes.
+- [ ] `styles.css?v=` and `motion.js?v=` identical across every HTML page.
+- [ ] HTML tag balance clean on every HTML page; no duplicate ids or `style` attributes.
 - [ ] Page weight <= 1.5 MB; Lighthouse mobile >= 90 x4.
 - [ ] Zero console errors; works with JS disabled (static + anchors).
 

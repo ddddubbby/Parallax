@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://resonance.observer/sitemap.xml
+Sitemap: https://windtunnel.observer/sitemap.xml

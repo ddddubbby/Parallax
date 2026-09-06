@@ -1,8 +1,8 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: identity, hard constraints, session rituals, documents index · TRACKER: STATUS.md
 
-# MASTER_CONTEXT.md - Resonance
+# MASTER_CONTEXT.md - Windtunnel
 
-> The single canonical context file for this repository. Every AI coding session and every human contributor starts here. It contains project identity, non-negotiable constraints, durable decisions, and session rituals. Resonance is the only product name. Compatibility-sensitive lowercase `parallax` package, database, cookie, service, and module identifiers are implementation details (D-119). Product scope lives in `PRD.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
+> The single canonical context file for this repository. Every AI coding session and every human contributor starts here. It contains project identity, non-negotiable constraints, durable decisions, and session rituals. Windtunnel is the only external product name (D-128); "Resonance" and "Parallax" survive only as compatibility identifiers. Compatibility-sensitive lowercase `parallax` package, database, cookie, service, and module identifiers are implementation details (D-119). Product scope lives in `PRD.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`.
 
 ---
 
@@ -16,7 +16,7 @@
 
 ## 1. What this product is
 
-Resonance is an internal operator tool with two structurally walled evidence classes. Evidence audits measure how AI systems describe, rank, recommend, cite, and misrepresent brands. Message Lift tests compare one verbatim Current message with one New message through either simulated buyer response or AI recommendation. Both test types disclose the exact A/B prompts and require “only the message changes” parity (D-119).
+Windtunnel is an internal operator tool with two structurally walled evidence classes. Evidence audits measure how AI systems describe, rank, recommend, cite, and misrepresent brands. Message Lift tests compare one verbatim Current message with one New message through either simulated buyer response or AI recommendation. Both test types disclose the exact A/B prompts and require “only the message changes” parity (D-119).
 
 Measurement and simulation have different epistemic status and never mix (C-12). The measurement engine's ground truth is the AI itself; Message Lift tests are bounded comparative simulations (a validated-but-bounded proxy for humans in the Buyer response type, the model's own shortlist in the AI recommendation type) and speak only in comparisons (C-14).
 
@@ -24,7 +24,7 @@ It is used by one operator, usually a consultant, to produce paid client brand a
 
 ## 2. Why it exists
 
-AI assistants have become decision intermediaries between brands and buyers. Resonance's differentiator is statistical honesty: LLM outputs are probabilistic, so audit prompts are sampled repeatedly and metrics ship with confidence intervals plus stability signals. Never build features or write copy that promise guaranteed AI rankings. The product measures distributions, verifies claims, and preserves evidence.
+AI assistants have become decision intermediaries between brands and buyers. Windtunnel's differentiator is statistical honesty: LLM outputs are probabilistic, so audit prompts are sampled repeatedly and metrics ship with confidence intervals plus stability signals. Never build features or write copy that promise guaranteed AI rankings. The product measures distributions, verifies claims, and preserves evidence.
 
 ## 3. Methodology in one screen
 
@@ -55,7 +55,7 @@ AI assistants have become decision intermediaries between brands and buyers. Res
 | C-9 | Mock runs are first-class but always flagged (`run_mode: mock`, MOCK badge) and never mixed into live aggregates. |
 | C-10 | Provider grounding capability is explicit. Grounded runs are blocked for providers that cannot return citations through an approved API path. |
 | C-11 | LLM provider API keys are never stored in source files, `.env.example`, `render.yaml`, fixtures, logs, or client-visible payloads. The operator enters them in the authenticated Settings UI; the server encrypts them at rest and only the server/worker can decrypt them. |
-| C-12 | Measured and simulated data never mix. Resonance (simulation) rows are structurally separated (matrix `kind`, `resonance_*` metric scopes, run-scoped report sections); audit aggregates, charts, and reports never include simulated samples and vice versa; every simulation surface renders a SIMULATED badge. Enforced by recompute dispatch plus wall tests (same isolation discipline as C-9). |
+| C-12 | Measured and simulated data never mix. Message Lift (simulation) rows are structurally separated (matrix `kind`, `resonance_*` metric scopes, run-scoped report sections); audit aggregates, charts, and reports never include simulated samples and vice versa; every simulation surface renders a SIMULATED badge. Enforced by recompute dispatch plus wall tests (same isolation discipline as C-9). |
 | C-13 | Simulations are evidence-conditioned: at approval, a study's `measured_ai` stimulus must cite stored raw response ids from the same project — no toggle can bypass this (D-078 removed the operator "unconditioned" toggle entirely). GENERIC is now a historical-only label, rendered truthfully on studies approved before D-078 but unreachable for any new approval. |
 | C-14 | Simulation claims are comparative only: rankings and deltas between stimulus variants. Never absolute purchase-intent promises, never sales/ROI predictions, never quoting the SSR paper's accuracy as our own. ΔPI is a Likert-scale survey-construct shift, never framed as purchase probability. Panel persona conditioning: age and income band are the paper-validated axes; location and behavioral profile are prompt context only, never presented as validated segmentation (D-066); no gender/ethnicity conditioning. Enforced in template copy by forbidden-phrase tests (RB-5 pattern). |
 | C-15 | Simulation baseline provenance (M44, D-114 — supersedes the D-099 snapshot ceremony). A measured Simulation baseline is a **verbatim stored response**, selected by the operator from theme-organized stored responses (machine pre-selection of the cluster-central response, operator confirm/override) and auto-stamped at attachment with immutable provenance: response id, engine, prompt, date, theme label (machine-generated, marked as such), and a mechanical recurrence line (descriptive counts `n/N responses`, engine/prompt spread — never Wilson/CI on correlated draws). The stamp renders wherever the simulation result renders. Low-recurrence baselines are usable but carry accurate labels (`SINGLE OBSERVED INSTANCE`), never "recurring framing." **Framing themes are presentation metadata only** — never the stimulus, never an admission gate, never certified coding. No semantic eligibility threshold exists. Historical codebook-era studies keep `LEGACY BASELINE`/`PRE-M34 BASELINE`/snapshot rendering truthfully; stored framing-evidence rows are never migrated or deleted (C-3). |
@@ -146,9 +146,9 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `AUDIT_METHODOLOGY.md` | ACTIVE | Standing whole-repo cleanup-audit playbook (D-086) |
 | `PROTECTED_REGISTER.md` | ACTIVE | Decision-Log-protected surfaces; consulted before any delete/merge/rename (D-086) |
 | `BUILD_NOTES.md` | ACTIVE | Disposable per-session working memory; pruned at milestone merge (D-025) |
-| `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Resonance external brand voice and claims law / site structure and deployment contract (D-119 language; the live site is the external source of truth, D-127) |
+| `BRAND_PLAYBOOK.md` / `BRAND_SITE_GUIDE.md` | ACTIVE | Windtunnel external brand voice and claims law / site structure and deployment contract (D-119 language; the live site is the external source of truth, D-127) |
 | `README.md` | ACTIVE | Quick orientation and local setup pointer |
-| `PRD.md` | ACTIVE | Resonance Evidence and Message Lift contract through M55/D-125 |
+| `PRD.md` | ACTIVE | Windtunnel Evidence and Message Lift contract through M55/D-125 |
 | `CALIBRATION_PROTOCOL.md` | PARKED | SSR human-benchmark calibration design for the Buyer response test (M26, D-082); parked until real paired data exists |
 | `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
 | `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |
@@ -164,7 +164,7 @@ A milestone's build plan is a special case of the same rule (D-090). A milestone
 
 Boot ritual for implementation sessions:
 
-> Read `STATUS.md` FIRST — it names the branch-local active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then the active product's PRD (`AGENT_PRD.md` for the GEO agent; `PRD.md` when STATUS selects the Resonance operator product), then the build plan named by STATUS's first-line TRACKER, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `STATUS.md` FIRST — it names the branch-local active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then the active product's PRD (`AGENT_PRD.md` for the GEO agent; `PRD.md` when STATUS selects the Windtunnel operator product), then the build plan named by STATUS's first-line TRACKER, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 

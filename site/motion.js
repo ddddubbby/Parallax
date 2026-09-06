@@ -1,4 +1,4 @@
-/* Resonance brand site — progressive enhancement only.
+/* Windtunnel brand site — progressive enhancement only.
    Readable with JS disabled. No page zoom. No scroll listeners. */
 (function () {
   "use strict";

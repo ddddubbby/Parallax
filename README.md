@@ -1,8 +1,8 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: quick orientation and local setup pointer
 
-# Resonance
+# Windtunnel
 
-Resonance measures how AI assistants describe, rank, cite, and misrepresent brands, then runs controlled Message Lift tests. Evidence audits and simulated tests remain structurally separate and never mix their data (C-12).
+Windtunnel measures how AI assistants describe, rank, cite, and misrepresent brands, then runs controlled Message Lift tests. Evidence audits and simulated tests remain structurally separate and never mix their data (C-12).
 
 Legacy lowercase `parallax` package, database, cookie, service, and module identifiers are compatibility-sensitive implementation details. They are not a second product or a human-facing brand.
 

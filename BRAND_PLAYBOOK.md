@@ -1,6 +1,6 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Resonance external brand voice and identity (D-119 language; live site as external source of truth, D-127)
+> LIFECYCLE: ACTIVE · ROLE: PLAYBOOK · OWNS: Windtunnel external brand voice and identity (D-119 language; live site as external source of truth, D-127)
 
-# BRAND_PLAYBOOK.md — Resonance
+# BRAND_PLAYBOOK.md — Windtunnel
 
 > The canonical brand document. Positioning, narrative, messaging, claims law,
 > and voice for every external surface: deck, website, one-pagers, sales
@@ -14,7 +14,7 @@
 > Internal note: the repo, package, and code identifiers retain the historical
 > engine codename per D-063. That name is now INTERNAL ONLY. It never appears
 > on any external surface, in any export, or in any client-facing sentence.
-> Externally there is one brand: **Resonance**.
+> Externally there is one brand: **Windtunnel**.
 
 ---
 
@@ -24,7 +24,7 @@
 
 **AI visibility measurement and message testing.**
 
-Resonance is the measurement and testing layer for GEO and AEO work. We
+Windtunnel is the measurement and testing layer for GEO and AEO work. We
 measure how AI assistants rank, describe, and substantiate a brand, then run a
 controlled Message Lift test to find out whether a new message moves the brand
 up the AI's shortlist. We do not publish content, build links, or promise
@@ -34,7 +34,7 @@ separates us from every monitoring dashboard on that shelf.
 
 ### 1.2 Positioning statement (canonical, adapt length not meaning)
 
-> Resonance is AI visibility measurement and message testing for brand teams.
+> Windtunnel is AI visibility measurement and message testing for brand teams.
 > We sample the OpenAI, Gemini, Claude and Perplexity models repeatedly to
 > measure whether AI names, ranks, describes and substantiates a brand, then
 > run one Current message against one New message in identical contexts and
@@ -93,7 +93,7 @@ changed anything.
 Must believe within 30 seconds:
 1. Clients are asking "what about ChatGPT?" and a single-run screenshot will
    not survive a QBR.
-2. Resonance supplies the baseline and the controlled test with the prompts
+2. Windtunnel supplies the baseline and the controlled test with the prompts
    disclosed, so the client can rerun it; the agency keeps the relationship
    and the content work.
 3. Nothing here competes with them: we measure and test, we never publish.
@@ -110,7 +110,7 @@ equivalence ("this is exactly what ChatGPT shows"). See section 5.
 
 | Layer | Name | Role |
 |---|---|---|
-| Company / platform | **Resonance** | The brand. One name, everywhere. |
+| Company / platform | **Windtunnel** | The brand. One name, everywhere. |
 | Land act | **the brand audit** (AI visibility audit) | Presence, position, perception, proof: how AI ranks, describes, and substantiates the brand today. Sold standalone; it is also the baseline every test starts from. |
 | Hero act | **Message Lift** (always introduced as "our A/B test for AI recommendations") | One Current message, one New message, shared contexts, disclosed prompts. Two test types: the **AI shortlist test** (leads externally; Shortlist lift in percentage points, top-five and top-choice rates) and the **Buyer response test** (secondary; Response lift on a 1 to 5 construct). |
 | Honesty apparatus | **the Glass Box** | Labels, intervals, sample gates, raw-text traceability. The trust asset. |
@@ -136,7 +136,7 @@ as a category are **dead** on external surfaces (section 5.3).
    your brand before a buyer reaches your site, sometimes without sending a
    click. Your analytics start after that moment.
 2. **One answer is an anecdote.** Model answers are probabilistic. Ask the
-   same question five times and the shortlist changes. Resonance samples
+   same question five times and the shortlist changes. Windtunnel samples
    repeatedly and reports rates with their sample size.
 3. **Four questions, in order.** Am I in AI's consideration set (Presence)?
    When compared, do I win (Position)? How does AI describe me (Perception)?
@@ -154,12 +154,12 @@ as a category are **dead** on external surfaces (section 5.3).
 
 **7 words:** Measure how AI recommends you. Test what moves you.
 
-**~30 words:** Resonance measures how AI recommends your brand, then tests
+**~30 words:** Windtunnel measures how AI recommends your brand, then tests
 which message moves you up its shortlist. Repeated samples, sample sizes
 shown, every figure labeled measured or simulated.
 
 **~100 words:** AI assistants already shape your buyers' shortlists, and most
-brands have never measured what those assistants say. Resonance samples the
+brands have never measured what those assistants say. Windtunnel samples the
 OpenAI, Gemini, Claude and Perplexity models repeatedly to measure whether AI
 names, ranks, describes and substantiates your brand, and logs what it gets
 wrong. Then it does what no dashboard can: it runs one Current message against
@@ -187,16 +187,16 @@ external sentence with a number in it must pass all five rules.
 1. **Attribution in the same breath.** The SSR paper's results (90% test-retest
    reliability, 9,300 human responses, 57 surveys, distributional similarity)
    may be cited only in sentences whose SUBJECT is the method or the paper,
-   never Resonance. Right: "The SSR method, published and validated by independent
+   never Windtunnel. Right: "The SSR method, published and validated by independent
    researchers, achieves 90% of human test-retest reliability
-   (arXiv:2510.08338)." Wrong: "Resonance is 90% as
+   (arXiv:2510.08338)." Wrong: "Windtunnel is 90% as
    reliable as a human panel." A footnote does not repair a headline. The
    research must ALWAYS be described as independent or third-party at first
    mention on any surface. "Our research", "we published", "our validation",
    and an unqualified "the published method" (where authorship could be
    misread) are banned. Approved formulations: "independent, peer-reviewed
    research (arXiv:2510.08338)"; "SSR, a method published by independent
-   researchers, which Resonance productizes".
+   researchers, which Windtunnel productizes".
 2. **Comparative, never absolute.** Simulation outputs compare one Current
    message with one New message and report lifts (Response lift, Shortlist
    lift) against the Current message. Never sales forecasts, never ROI,
@@ -280,6 +280,7 @@ banned-vocabulary check passed. Claims not in the table do not ship.
 | respondents said | the panel's simulated reactions read | Never imply humans |
 | our engine [codename] | the audit / the evidence | Architecture law |
 | "the published SSR method" (unqualified) | "SSR, from independent peer-reviewed research" | Authorship must be unmistakable |
+| Resonance (as the product name) | Windtunnel; "Resonance" is internal vocabulary only | D-128 |
 
 ### 6.2 Terms we own and define on every surface (first use)
 
@@ -303,7 +304,7 @@ or ethnicity.
 
 ### 6.4 The Glass Box (the one coined asset, use it consistently)
 
-Definition sentence for all surfaces: "Every Resonance figure ships in the
+Definition sentence for all surfaces: "Every Windtunnel figure ships in the
 Glass Box: labeled measured or simulated, gated by sample size, wrapped in
 its confidence interval where the math supports one, and traceable to the
 stored raw response behind it."
@@ -335,7 +336,7 @@ Humor: dry, sparing, never about the client's brand. Exclamation marks: no.
 Two axes: **AI-channel measurement** and **controlled message testing**.
 Dashboards have the first without sampling discipline; before/after GEO
 testers have a test without a held-constant model; synthetic-research vendors
-have a panel without measured stimulus; Resonance has both axes, plus honesty
+have a panel without measured stimulus; Windtunnel has both axes, plus honesty
 as the tiebreak column. The full 82-vendor map lives with the operator's GTM
 material; this section carries only the lines we say out loud.
 
@@ -456,11 +457,10 @@ that says no is published as a finding, with the same stamps.
 The live site is the external source of truth (D-127). Current canonical
 elements, which the site guide's blueprint mirrors:
 
-1. H1: "Understand how AI recommends your brand. Test what moves you toward
-   its top choice." Subhead names the measure-then-test workflow and the
-   shortlist / top-choice lift. Recommended tightening when next edited:
+1. H1 (the recommended tightening adopted live on the site, D-128):
    "Measure how AI recommends your brand. Test which message moves you up its
-   shortlist."
+   shortlist." Subhead names the measure-then-test workflow and the shortlist
+   lift.
 2. Section order (the 4.3 sequence): hero with a real study excerpt → How it
    works (four client questions: prompt discovery, baseline audit, Message
    Lift test, re-audit) → What we measure (four pillars) → What we found (two
@@ -509,3 +509,8 @@ verbatim, with rules 2/3 naming Response lift / Shortlist lift instead of ΔPI;
 proof library rebuilt on the named Insta360 studies, the anonymized hotel
 case, and the anonymized tea pilot, with four provenance rules; offer ladder
 names a quarterly manual re-audit, never "monitoring."
+
+**v2.1 — 2026-09-06 (D-128).** External product name is Windtunnel; "Resonance"
+joins "Parallax" as internal/historical vocabulary only. The §10.2 H1
+tightening is live on the site; §6.1 gains the product-name row. Compatibility
+identifiers (`parallax`, `resonance_*`, routes, file names) are unchanged.

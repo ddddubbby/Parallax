@@ -2,6 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/(.*)", "has": [{ "type": "host", "value": "www.windtunnel.observer" }], "destination": "https://windtunnel.observer/$1", "statusCode": 301 }
+  ],
   "headers": [
     {
       "source": "/(.*)",
