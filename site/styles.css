@@ -679,3 +679,47 @@ p { max-width: 68ch; text-wrap: pretty; }
 }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* Studies hub teasers and method definition cards (M57/D-128). */
+.study-teaser {
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  padding: 40px;
+  margin-bottom: 20px;
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+.study-teaser h3 { font: 700 clamp(1.3rem, 2.6vw, 1.8rem)/1.2 var(--font-display); letter-spacing: -.01em; max-width: 30ch; }
+.study-teaser h3 a { color: inherit; text-decoration: none; }
+.study-teaser h3 a:hover { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 4px; }
+.study-teaser p { color: var(--ink-80); max-width: 68ch; }
+.study-teaser .stamps { justify-items: start; }
+
+.term-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.term-card {
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  padding: 26px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--dur-standard) var(--ease-silk), transform var(--dur-standard) var(--ease-silk);
+}
+.term-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.term-card h3 { font: 500 1.15rem/1.25 var(--font-display); }
+.term-card p { font-size: .92rem; color: var(--ink-80); }
+
+@media (max-width: 900px) {
+  .term-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .term-grid { grid-template-columns: 1fr; }
+  .study-teaser { padding: 26px; }
+}

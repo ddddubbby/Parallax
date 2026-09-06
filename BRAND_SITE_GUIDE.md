@@ -319,27 +319,40 @@ labeled measured or simulated."
 ```
 site/
   index.html          landing page, 8 sections + FAQ + contact footer
-  studies.html        the published study page (currently the Insta360 study)
+  studies.html        the studies hub (one teaser card per published study)
+  studies/
+    insta360.html     the Insta360 study (associations across 25 stored answers)
+  methodology.html    repeated sampling and confidence intervals
+  method/
+    mention-rate.html       definition: mention rate
+    shortlist-rate.html     definition: shortlist rate (top-five inclusion rate)
+    top-choice-rate.html    definition: top-choice rate
+    shortlist-lift.html     definition: shortlist lift
+    stability-index.html    definition: stability index
+    repeated-sampling.html  definition: repeated sampling
   404.html            on-brand not-found page (noindex; Vercel serves it automatically)
-  styles.css          tokens + layout + motion CSS
+  styles.css          tokens + layout + motion CSS (+ hub teasers, term cards)
   motion.js           IntersectionObserver reveals, nav state, zoom transitions
-  vercel.json         EFFECTIVE host config: cleanUrls, security headers (CSP, HSTS), cache tiers
+  vercel.json         EFFECTIVE host config: cleanUrls, www-to-apex 301, security headers (CSP, HSTS), cache tiers
   _headers            Netlify/Cloudflare equivalent; inert on Vercel; kept for portability
-  robots.txt          Allow all; points at the sitemap
-  sitemap.xml         / and /studies (absolute URLs stamped by scripts/set-site-domain.sh)
+  robots.txt          Allow all + explicit AI-crawler groups (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot, Google-Extended); points at the sitemap
+  sitemap.xml         every public page with lastmod (absolute URLs stamped by scripts/set-site-domain.sh)
+  llms.txt            plain-text site map for LLM crawlers (stamped absolute URLs)
   og.jpg              1200x630 OG image (rendered from og.svg)
   og.svg              OG image source
   favicon.svg         simplified cone, no ring
   .gitignore          .vercel
   assets/
     mark.svg          from public/brand/resonance-mark.svg
-scripts/set-site-domain.sh   stamps __SITE_URL__ / re-stamps the live host into index, studies, robots, sitemap
+scripts/set-site-domain.sh   stamps __SITE_URL__ / re-stamps the live host into every HTML page, robots.txt, sitemap.xml, llms.txt
 ```
 
-Two pages plus 404, anchor navigation on the landing page. Nav is a fixed top
-bar: mark + wordmark left; links **How it works** (`#workflow`), **What we
-measure** (`#metrics`), **What we found** (`#finding`), **Method**
-(`#methodology`), **Studies** (`/studies`); "Request a brand audit" pill right.
+A landing page, the studies hub with one page per real study under
+`/studies/<slug>`, `/methodology`, definition pages under `/method/<term>`,
+plus 404; anchor navigation on the landing page. Nav is a fixed top
+bar: mark + wordmark left; links **How it works** (`/#workflow`), **What we
+measure** (`/#metrics`), **What we found** (`/#finding`), **Method**
+(`/methodology`), **Studies** (`/studies`); "Request a brand audit" pill right.
 Nav background: transparent over the hero, then `--stage` at 92% opacity with a
 hairline bottom border once scrolled past 80 px (toggle a class via
 IntersectionObserver on a sentinel div — not a scroll listener). A hamburger
@@ -425,10 +438,30 @@ ranking guarantees. Independent studies are not client endorsements." Mark +
 wordmark, mono line "Windtunnel (windtunnel.observer) · AI visibility audits
 and message tests · Singapore · 2026".
 
-**/studies (`studies.html`).** One study per page as it grows. Fixed
+**/studies (`studies.html`, the hub).** One teaser card per published study:
+stamps, headline linking to the study page, a two-sentence summary, and the
+not-a-client disclosure under the list. Title pattern "Studies · Windtunnel".
+JSON-LD: CollectionPage with an ItemList of study URLs.
+
+**/studies/<slug> (`studies/<slug>.html`).** One study per page. Fixed
 structure: the question, the verbatim prompt set, sample size and route, the
 findings table, "What this study does not show", the not-a-client disclosure,
-and the contact band. Title pattern "<Brand> study · Windtunnel".
+and the contact band. Title pattern "<Brand> study · Windtunnel". JSON-LD:
+Article (headline = H1, datePublished, author/publisher = the site
+Organization, about = the studied brand with no `url`).
+
+**/methodology (`methodology.html`).** Repeated sampling, which metrics carry
+Wilson intervals, the n>=30 gate, where a conclusion stops, and the term grid.
+Title pattern "Repeated sampling and confidence intervals · Windtunnel
+method". JSON-LD: TechArticle + DefinedTermSet (`@id`
+`.../methodology#terms`).
+
+**/method/<term> (`method/<term>.html`).** Definition pages: the term as H1,
+the definition paragraph, "How it is computed", "Where this appears", "What
+it does not mean", and the label rules. Title pattern "<Term> · Windtunnel
+method". JSON-LD: DefinedTerm (description = the definition paragraph
+verbatim) + WebPage; shortlist-rate adds alternateName "Top-five inclusion
+rate".
 
 ---
 
@@ -531,6 +564,20 @@ autoplaying video, no cursor followers, no magnetic buttons, no text scramble.
   after a domain change re-run `scripts/set-site-domain.sh` and resubmit
   `sitemap.xml` in Search Console so the same-host URLs are read. `404.html`
   carries `<meta name="robots" content="noindex">`.
+- Structured data: inline `application/ld+json` only. It is data, not executed
+  script, so the CSP is untouched. Landing: Organization + WebSite + WebPage +
+  FAQPage in one `@graph` (Organization `@id` `.../#org`; `sameAs` only ever
+  points at real operator profiles, omitted entirely when there are none).
+  Hub: CollectionPage + ItemList. Study pages: Article. Method pages:
+  DefinedTerm + WebPage. Methodology: TechArticle + DefinedTermSet. FAQ and
+  definition text in JSON-LD equals the visible text, character for character.
+- `llms.txt` lists the positioning statement, every study (with the
+  not-a-client line wherever a brand is named), every method page, and
+  contact, in absolute stamped URLs.
+- `sitemap.xml` carries one `<url>` per public page with `<lastmod>`:
+  `/` priority 1.0, studies 0.8, methodology 0.7, method pages 0.6. A future
+  post-submit page (`thanks.html`) never enters the sitemap. Resubmit on URL
+  changes.
 - Target Lighthouse >= 90 on all four categories, mobile.
 
 ---
@@ -550,8 +597,10 @@ The site is built and live; this is the order for every subsequent edit.
 6. Commit with explicit paths (never `git add -A`; `site/.vercel/` is ignored).
 7. Deploy (Vercel dashboard on push, or `npx vercel --cwd site --prod`). If
    the domain changed, run `./scripts/set-site-domain.sh <url>` first.
-8. After deploy: check `/`, `/studies`, `/404` return 200/200/404, then
-   resubmit `sitemap.xml` if URLs changed.
+8. After deploy: check `/`, `/studies`, `/studies/insta360`, `/methodology`,
+   one `/method/*` page, and `/llms.txt` return 200 and `/404` returns 404;
+   confirm the `www` host 301s to the apex; then resubmit `sitemap.xml` if
+   URLs changed.
 
 Local test: `python3 -m http.server 8080 --directory site` then open
 `http://localhost:8080` (use `/studies.html` locally; `/studies` only resolves
@@ -575,6 +624,10 @@ on Vercel).
 - [ ] No em dash characters in HTML copy (grep for the character).
 - [ ] `grep -c __SITE_URL__ site/*` = 0 and no stale host (`resonance.observer`) anywhere.
 - [ ] `site/vercel.json` parses as JSON; `_headers` still present.
+- [ ] Every `<script type="application/ld+json">` block parses as JSON, and
+      FAQ/definition text inside it equals the visible text.
+- [ ] `sitemap.xml` `<loc>` count equals the public page count, and every
+      study surface naming a brand carries the not-a-client disclosure.
 - [ ] `styles.css?v=` and `motion.js?v=` identical across every HTML page.
 - [ ] HTML tag balance clean on every HTML page; no duplicate ids or `style` attributes.
 - [ ] Page weight <= 1.5 MB; Lighthouse mobile >= 90 x4.

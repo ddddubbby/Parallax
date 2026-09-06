@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repeated sampling and confidence intervals · Windtunnel method</title>
+<meta name="description" content="How Windtunnel samples each prompt repeatedly, which metrics carry Wilson intervals, the n≥30 gate, and where a conclusion stops.">
+<link rel="canonical" href="https://windtunnel.observer/methodology">
+<meta property="og:title" content="Why one AI answer is an anecdote.">
+<meta property="og:description" content="How Windtunnel samples each prompt repeatedly, which metrics carry Wilson intervals, the n≥30 gate, and where a conclusion stops.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://windtunnel.observer/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Why one AI answer is an anecdote.">
+<meta name="twitter:description" content="How Windtunnel samples each prompt repeatedly, which metrics carry Wilson intervals, the n≥30 gate, and where a conclusion stops.">
+<meta name="twitter:image" content="https://windtunnel.observer/og.jpg">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css?v=20260906b">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "@id": "https://windtunnel.observer/methodology#article",
+      "mainEntityOfPage": "https://windtunnel.observer/methodology",
+      "headline": "Why one AI answer is an anecdote.",
+      "datePublished": "2026-09-06",
+      "image": "https://windtunnel.observer/og.jpg",
+      "author": { "@type": "Organization", "name": "Windtunnel", "url": "https://windtunnel.observer/" },
+      "publisher": { "@type": "Organization", "name": "Windtunnel", "url": "https://windtunnel.observer/" }
+    },
+    {
+      "@type": "DefinedTermSet",
+      "@id": "https://windtunnel.observer/methodology#terms",
+      "name": "Windtunnel method terms",
+      "url": "https://windtunnel.observer/methodology",
+      "hasDefinedTerm": [
+        { "@type": "DefinedTerm", "name": "Repeated sampling", "url": "https://windtunnel.observer/method/repeated-sampling" },
+        { "@type": "DefinedTerm", "name": "Mention rate", "url": "https://windtunnel.observer/method/mention-rate" },
+        { "@type": "DefinedTerm", "name": "Shortlist rate", "url": "https://windtunnel.observer/method/shortlist-rate" },
+        { "@type": "DefinedTerm", "name": "Top-choice rate", "url": "https://windtunnel.observer/method/top-choice-rate" },
+        { "@type": "DefinedTerm", "name": "Shortlist lift", "url": "https://windtunnel.observer/method/shortlist-lift" },
+        { "@type": "DefinedTerm", "name": "Stability index", "url": "https://windtunnel.observer/method/stability-index" }
+      ]
+    }
+  ]
+}
+</script>
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+
+<svg width="0" height="0" class="svg-defs" aria-hidden="true">
+  <defs>
+    <linearGradient id="coneBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFA26B"/><stop offset=".42" stop-color="#F15A24"/><stop offset="1" stop-color="#D4430D"/>
+    </linearGradient>
+    <linearGradient id="coneBase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E85419"/><stop offset="1" stop-color="#B23606"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<header class="nav" id="nav">
+  <a class="brand" href="/" aria-label="Windtunnel home">
+    <svg viewBox="0 0 512 512" aria-hidden="true">
+      <g transform="rotate(-14 256 256)">
+        <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
+        <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
+      </g>
+    </svg>
+    <span>windtunnel</span>
+  </a>
+  <nav class="links" aria-label="Primary">
+    <div class="nav-menu" id="nav-menu">
+      <a href="/#workflow">How it works</a>
+      <a href="/#metrics">What we measure</a>
+      <a href="/#finding">What we found</a>
+      <a href="/methodology" aria-current="page">Method</a>
+      <a href="/studies">Studies</a>
+    </div>
+    <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
+  </nav>
+</header>
+<div class="nav-scrim" id="nav-scrim"></div>
+<span id="nav-sentinel" aria-hidden="true"></span>
+
+
+<main id="top">
+
+  <section class="stage" aria-labelledby="methodology-h">
+    <div class="wrap">
+      <a class="label back-link" href="/">&larr; Back to Windtunnel</a>
+      <h1 id="methodology-h" data-reveal>Why one AI answer is an anecdote.</h1>
+      <p class="lead" data-reveal style="--i:1">Model answers are sampled from a distribution: ask the same question twice and the wording, the brands named, and the ranking can all differ. A single answer cannot tell you where you stand. Windtunnel treats the model itself as the measuring instrument and reads rates off repeated samples instead of anecdotes.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="sampling-h">
+    <div class="wrap">
+      <span class="label" data-reveal>01 / Repeated sampling</span>
+      <h2 id="sampling-h" data-reveal style="--i:1">Every audit prompt runs five times.</h2>
+      <p class="lead" data-reveal style="--i:2">Each audit prompt cell is sampled k=5 times per selected model route, so a rate like mention rate is computed over many stored answers, not one. A Message Lift test uses one AI model at k=5, because the comparison, not breadth, is the point there. Every stored answer is timestamped and traceable, so any figure can be re-derived from its source.</p>
+      <p class="lead" data-reveal style="--i:3">Repetition is also how honesty survives a bad day: a model that names you in two of five answers produces a very different rate from one that names you in four, and only repeated samples can tell those models apart. See <a class="tlink" href="/method/repeated-sampling">repeated sampling</a> for the term's definition.</p>
+    </div>
+  </section>
+
+  <section class="stage" aria-labelledby="intervals-h">
+    <div class="wrap">
+      <span class="label" data-reveal>02 / Uncertainty</span>
+      <h2 id="intervals-h" data-reveal style="--i:1">Which numbers carry an interval.</h2>
+      <p class="lead" data-reveal style="--i:2">Rate metrics with enough support carry a Wilson 95% confidence interval: mention rate and the shortlist-family rates. Some metrics are reported as point estimates on purpose: share of voice, average first position, and the stability index are computed in ways that break the assumptions an interval needs, and inventing one would be exactly the false precision this method exists to avoid.</p>
+      <p class="lead" data-reveal style="--i:3">Shortlist lift reports a bootstrap interval that resamples scenario clusters within the run, because recommendation scenarios in one run share a context and must not be treated as independent draws.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="gate-h">
+    <div class="wrap">
+      <span class="label" data-reveal>03 / The n≥30 gate</span>
+      <h2 id="gate-h" data-reveal style="--i:1">Small numbers get labels, not headlines.</h2>
+      <p class="lead" data-reveal style="--i:2">Aggregate findings render only when at least 30 eligible samples support them. Below that gate, figures are labeled directional and never promoted into claims. Cell-level observations, such as a single lost-shortlist prompt, are always directional-only, no matter the sample size.</p>
+    </div>
+  </section>
+
+  <section class="stage" aria-labelledby="limits-h">
+    <div class="wrap">
+      <span class="label" data-reveal>04 / Where a conclusion stops</span>
+      <h2 id="limits-h" data-reveal style="--i:1">A result is a snapshot, not a law.</h2>
+      <ul class="method-list" data-reveal style="--i:2">
+        <li><strong>Prompts.</strong> Conclusions hold for the tested prompt set, printed verbatim in every study.</li>
+        <li><strong>Routes.</strong> Every figure names the API/model route and mode that produced it. A consumer chat session can differ.</li>
+        <li><strong>Date.</strong> Models change without notice. A figure describes the day it was collected.</li>
+        <li><strong>Evidence class.</strong> Measured and simulated results are labeled and never mixed.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="terms-h">
+    <div class="wrap">
+      <span class="label" data-reveal>05 / Terms</span>
+      <h2 id="terms-h" data-reveal style="--i:1">The method, one definition at a time.</h2>
+      <div class="term-grid" data-reveal style="--i:2">
+        <a class="term-card" href="/method/repeated-sampling"><h3>Repeated sampling</h3><p>Each prompt runs k=5 times per model and mode; rates describe the distribution.</p></a>
+        <a class="term-card" href="/method/mention-rate"><h3>Mention rate</h3><p>Share of unbranded answers that name the brand unprompted.</p></a>
+        <a class="term-card" href="/method/shortlist-rate"><h3>Shortlist rate</h3><p>Share of valid AI-recommendation answers that place the brand among the five ranked recommendations.</p></a>
+        <a class="term-card" href="/method/top-choice-rate"><h3>Top-choice rate</h3><p>Share of valid AI-recommendation answers that rank the brand first.</p></a>
+        <a class="term-card" href="/method/shortlist-lift"><h3>Shortlist lift</h3><p>New minus Current shortlist rate, in percentage points.</p></a>
+        <a class="term-card" href="/method/stability-index"><h3>Stability index</h3><p>Mean pairwise Jaccard of top-5 tracked-brand sets across repeated samples.</p></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="stage footer" aria-labelledby="contact-h">
+    <div class="wrap">
+      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45"><path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/><path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/></g>
+        <path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      <h2 id="contact-h" data-reveal>Find out where your brand stands.</h2>
+      <p class="lead footer-lead" data-reveal style="--i:1">Tell us the category, competitors, or message you need to understand.</p>
+      <div class="cta" data-reveal style="--i:2">
+        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team</a>
+        <a class="tlink" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a>
+      </div>
+      <p class="fineprint" data-reveal style="--i:3">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+      <div class="sig">
+        <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
+        <span>windtunnel</span>
+      </div>
+      <div class="copy">Windtunnel (windtunnel.observer) · AI visibility audits and message tests · Singapore · 2026</div>
+    </div>
+  </section>
+</main>
+
+<script src="/motion.js?v=20260906b"></script>
+</body>
+</html>

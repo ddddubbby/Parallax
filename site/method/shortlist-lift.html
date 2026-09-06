@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shortlist lift · Windtunnel method</title>
+<meta name="description" content="New minus Current shortlist rate, in percentage points, with a run-seeded scenario-cluster bootstrap interval.">
+<link rel="canonical" href="https://windtunnel.observer/method/shortlist-lift">
+<meta property="og:title" content="Shortlist lift">
+<meta property="og:description" content="New minus Current shortlist rate, in percentage points, with a run-seeded scenario-cluster bootstrap interval.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://windtunnel.observer/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Shortlist lift">
+<meta name="twitter:description" content="New minus Current shortlist rate, in percentage points, with a run-seeded scenario-cluster bootstrap interval.">
+<meta name="twitter:image" content="https://windtunnel.observer/og.jpg">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css?v=20260906b">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://windtunnel.observer/method/shortlist-lift#webpage",
+      "url": "https://windtunnel.observer/method/shortlist-lift",
+      "name": "Shortlist lift · Windtunnel method",
+      "isPartOf": {
+        "@id": "https://windtunnel.observer/#website"
+      }
+    },
+    {
+      "@type": "DefinedTerm",
+      "@id": "https://windtunnel.observer/method/shortlist-lift#term",
+      "name": "Shortlist lift",
+      "description": "Shortlist lift is the New message’s shortlist rate minus the Current message’s shortlist rate, in percentage points, reported with a run-seeded scenario-cluster bootstrap interval.",
+      "url": "https://windtunnel.observer/method/shortlist-lift",
+      "inDefinedTermSet": "https://windtunnel.observer/methodology#terms"
+    }
+  ]
+}
+</script>
+<script>document.documentElement.className = "js";</script>
+</head>
+<body>
+
+<svg width="0" height="0" class="svg-defs" aria-hidden="true">
+  <defs>
+    <linearGradient id="coneBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFA26B"/><stop offset=".42" stop-color="#F15A24"/><stop offset="1" stop-color="#D4430D"/>
+    </linearGradient>
+    <linearGradient id="coneBase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E85419"/><stop offset="1" stop-color="#B23606"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<header class="nav" id="nav">
+  <a class="brand" href="/" aria-label="Windtunnel home">
+    <svg viewBox="0 0 512 512" aria-hidden="true">
+      <g transform="rotate(-14 256 256)">
+        <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
+        <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
+      </g>
+    </svg>
+    <span>windtunnel</span>
+  </a>
+  <nav class="links" aria-label="Primary">
+    <div class="nav-menu" id="nav-menu">
+      <a href="/#workflow">How it works</a>
+      <a href="/#metrics">What we measure</a>
+      <a href="/#finding">What we found</a>
+      <a href="/methodology">Method</a>
+      <a href="/studies">Studies</a>
+    </div>
+    <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
+  </nav>
+</header>
+<div class="nav-scrim" id="nav-scrim"></div>
+<span id="nav-sentinel" aria-hidden="true"></span>
+
+
+<main id="top">
+
+  <section class="stage" aria-labelledby="term-h">
+    <div class="wrap">
+      <a class="label back-link" href="/methodology">&larr; Method</a>
+      <p class="eyebrow" data-reveal>Windtunnel method</p>
+      <h1 id="term-h" data-reveal style="--i:1">Shortlist lift</h1>
+      <p class="lead" data-reveal style="--i:2">Shortlist lift is the New message’s shortlist rate minus the Current message’s shortlist rate, in percentage points, reported with a run-seeded scenario-cluster bootstrap interval.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="computed-h">
+    <div class="wrap">
+      <span class="label" data-reveal>How it is computed</span>
+      <h2 id="computed-h" data-reveal style="--i:1">One difference, everything else held fixed.</h2>
+      <p class="lead" data-reveal style="--i:1">A Message Lift test runs one Current message and one New message through shared contexts, so only the message changes. Shortlist lift is the difference between the two shortlist rates, in percentage points. Both rates come from the same AI model, the same scenarios, and the same disclosed prompts.</p>
+      <p class="lead" data-reveal style="--i:2">The interval is a bootstrap that resamples scenario clusters within the run, because scenarios in one run share a context and are not independent draws. A lift that crosses zero on both sides of that interval is reported as no lift, and a no is a finding.</p>
+    </div>
+  </section>
+
+  <section class="stage" aria-labelledby="appears-h">
+    <div class="wrap">
+      <span class="label" data-reveal>Where this appears</span>
+      <h2 id="appears-h" data-reveal style="--i:1">Reading a lift.</h2>
+      <p class="lead" data-reveal style="--i:2">The landing page&rsquo;s <a class="tlink" href="/#what-you-get">Message Lift section</a> shows the Current/New structure the lift is computed from. Public worked examples of Message Lift results, including one that said no, are linked from <a class="tlink" href="/#finding">What we found</a>.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="limits-h">
+    <div class="wrap">
+      <span class="label" data-reveal>What it does not mean</span>
+      <h2 id="limits-h" data-reveal style="--i:1">Three things a shortlist lift is not.</h2>
+      <ul class="method-list" data-reveal style="--i:2">
+        <li><strong>Not a sales forecast.</strong> It measures a change in simulated recommendations between two messages, never revenue, never a sales prediction.</li>
+        <li><strong>Not a head-to-head between brands.</strong> The two arms are two messages for one brand; competitor rates are context, not the result.</li>
+        <li><strong>Not a ranking prediction.</strong> A lift describes the tested model, prompts, and date. It does not promise where a model will place you next.</li>
+      </ul>
+      <div class="disclosure" data-reveal style="--i:3" role="note">
+        <p>Labels travel with numbers: figures traced to stored answers from real model routes are MEASURED; Message Lift results are SIMULATED and comparative only; anything below the n≥30 gate or drawn from a single prompt cell is DIRECTIONAL. No figure on this site ships without its label, sample size, and date.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="stage footer" aria-labelledby="contact-h">
+    <div class="wrap">
+      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45"><path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/><path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/></g>
+        <path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      <h2 id="contact-h" data-reveal>Find out where your brand stands.</h2>
+      <p class="lead footer-lead" data-reveal style="--i:1">Tell us the category, competitors, or message you need to understand.</p>
+      <div class="cta" data-reveal style="--i:2">
+        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team</a>
+        <a class="tlink" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a>
+      </div>
+      <p class="fineprint" data-reveal style="--i:3">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+      <div class="sig">
+        <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
+        <span>windtunnel</span>
+      </div>
+      <div class="copy">Windtunnel (windtunnel.observer) · AI visibility audits and message tests · Singapore · 2026</div>
+    </div>
+  </section>
+</main>
+
+<script src="/motion.js?v=20260906b"></script>
+</body>
+</html>

@@ -3,22 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Insta360 study · Windtunnel</title>
-<meta name="description" content="A study we ran on our own initiative: what AI assistants associate with Insta360 across 25 stored answers, what the brand can substantiate, and what is missing.">
+<title>Studies · Windtunnel</title>
+<meta name="description" content="Self-initiated studies of how AI describes and recommends brands, each with its prompts, sample size, and what it does not show.">
 <link rel="canonical" href="https://windtunnel.observer/studies">
-<meta property="og:title" content="What AI says about Insta360">
-<meta property="og:description" content="See where your brand stands in AI recommendations. Know which message performs better.">
+<meta property="og:title" content="Published studies, with their limits.">
+<meta property="og:description" content="Self-initiated studies of how AI describes and recommends brands, each with its prompts, sample size, and what it does not show.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://windtunnel.observer/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="What AI says about Insta360">
-<meta name="twitter:description" content="AI visibility, brand perception, and message testing for brand teams.">
+<meta name="twitter:title" content="Published studies, with their limits.">
+<meta name="twitter:description" content="Self-initiated studies of how AI describes and recommends brands, each with its prompts, sample size, and what it does not show.">
 <meta name="twitter:image" content="https://windtunnel.observer/og.jpg">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260906a">
+<link rel="stylesheet" href="/styles.css?v=20260906b">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": "https://windtunnel.observer/studies#webpage",
+  "url": "https://windtunnel.observer/studies",
+  "name": "Studies · Windtunnel",
+  "isPartOf": { "@id": "https://windtunnel.observer/#website" },
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "url": "https://windtunnel.observer/studies/insta360" }
+    ]
+  }
+}
+</script>
 <script>document.documentElement.className = "js";</script>
 </head>
 <body>
@@ -49,7 +65,7 @@
       <a href="/#workflow">How it works</a>
       <a href="/#metrics">What we measure</a>
       <a href="/#finding">What we found</a>
-      <a href="/#methodology">Method</a>
+      <a href="/methodology">Method</a>
       <a href="/studies" aria-current="page">Studies</a>
     </div>
     <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
@@ -64,105 +80,25 @@
 
 <main id="top">
 
-  <section class="stage" aria-labelledby="study-h">
+  <section class="stage" aria-labelledby="hub-h">
     <div class="wrap">
       <a class="label back-link" href="/">&larr; Back to Windtunnel</a>
-      <h1 id="study-h" data-reveal>What AI says about Insta360.</h1>
-      <p class="lead" data-reveal style="--i:1">A study we ran on our own initiative in July 2026, to develop and pressure-test the method. It is not client work. Everything below comes from twenty-five stored answers, each read and coded by a human reviewer.</p>
-      <div class="stamps study-stamps" data-reveal style="--i:2">
-        <span class="stamp">Measured</span><span class="stamp">11 Jul 2026</span><span class="stamp">n=25 responses</span><span class="stamp">DeepSeek &middot; ungrounded</span><span class="stamp">Single analyst</span>
-      </div>
-      <div class="disclosure" data-reveal style="--i:3" role="note">
-        <p>Insta360 was not a client, did not commission this work, did not participate, and has not endorsed the findings. Product names and official positioning are cited from public materials.</p>
-      </div>
+      <h1 id="hub-h" data-reveal>Published studies, with their limits.</h1>
+      <p class="lead" data-reveal style="--i:1">Self-initiated studies of how AI describes and recommends brands, each with its prompts, sample size, and what it does not show. Every named brand carries its not-a-client disclosure.</p>
     </div>
   </section>
 
-  <section aria-labelledby="asked-h">
+  <section aria-labelledby="list-h">
     <div class="wrap">
-      <span class="label" data-reveal>01 / What we asked</span>
-      <h2 id="asked-h" data-reveal style="--i:1">Five plain questions, five times each.</h2>
-      <p class="lead" data-reveal style="--i:2">The prompts are deliberately bare. They name the brand but ask nothing evaluative, so the answer reflects what the model already associates rather than anything the question planted. They are printed here verbatim, because a result you cannot reproduce is not evidence.</p>
-      <div class="layer-card" data-reveal style="--i:3">
-        <div class="layer-head"><h4>Prompt set <code>representation-prompts.v4</code></h4><span class="stamp">Verbatim</span></div>
-        <ul class="method-list">
-          <li><code>a1</code> &ldquo;What is Insta 360?&rdquo;</li>
-          <li><code>a2</code> &ldquo;Describe Insta 360.&rdquo;</li>
-          <li><code>a3</code> &ldquo;Tell me about Insta 360.&rdquo;</li>
-          <li><code>a4</code> &ldquo;Give an overview of Insta 360.&rdquo;</li>
-          <li><code>a5</code> &ldquo;Explain Insta 360.&rdquo;</li>
-        </ul>
-        <p class="module-note">Five variants &times; five repetitions = 25 denominator responses. Repetition matters because model answers vary; one answer is an anecdote.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="stage" aria-labelledby="assoc-h">
-    <div class="wrap">
-      <span class="label" data-reveal>02 / What AI associated</span>
-      <h2 id="assoc-h" data-reveal style="--i:1">Nine associations, and whether the brand can stand behind them.</h2>
-      <p class="lead" data-reveal style="--i:2">Recurrence is a descriptive count of how many of the twenty-five stored answers carried each association, and across how many of the five prompt variants. It is not a confidence interval and not a stability score.</p>
-      <div class="single-case">
-        <article class="case" data-reveal style="--i:3">
-          <table class="metric-table">
-            <caption class="sr-only">Association recurrence and gap classification</caption>
-            <thead><tr><th scope="col">Association</th><th scope="col">Responses</th><th scope="col">Prompts</th><th scope="col">Finding</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">Capture everything, frame later</th><td>20/25</td><td>5/5</td><td>Reinforced</td></tr>
-              <tr><th scope="row">Smooth, action-ready capture</th><td>20/25</td><td>5/5</td><td>Reinforced</td></tr>
-              <tr><th scope="row">Creator and adventure identity</th><td>19/25</td><td>5/5</td><td>Reinforced</td></tr>
-              <tr><th scope="row">Impossible-looking third-person shots</th><td>18/25</td><td>5/5</td><td>Reinforced</td></tr>
-              <tr><th scope="row">Software-powered creative simplicity</th><td>15/25</td><td>5/5</td><td>Reinforced</td></tr>
-              <tr><th scope="row">360-category leader and innovator</th><td>13/25</td><td>5/5</td><td>Unsupported</td></tr>
-              <tr><th scope="row">Versatile imaging ecosystem</th><td>8/25</td><td>4/5</td><td>Non-actionable</td></tr>
-              <tr><th scope="row">Workflow and technical trade-offs</th><td>8/25</td><td>4/5</td><td>Misframed</td></tr>
-              <tr><th scope="row">Direct-to-share flat video (InstaFrame)</th><td>0/25</td><td>0/5</td><td>Missing</td></tr>
-            </tbody>
-          </table>
-          <p class="evidence-foot">Every accepted association links to a literal, offset-verified span inside an immutable stored answer. Automated span extraction was assistive only; a human accepted or rejected every code.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section aria-labelledby="means-h">
-    <div class="wrap">
-      <span class="label" data-reveal>03 / What it means</span>
-      <h2 id="means-h" data-reveal style="--i:1">Three of the nine are worth acting on.</h2>
-
-      <div class="layer-card" data-reveal style="--i:2">
-        <div class="layer-head"><h4>Unsupported &middot; 360-category leader and innovator</h4><span class="stamp">13/25</span></div>
-        <p>AI regularly reaches for leadership and dominance language. The official public materials we scoped do not substantiate a market-share or category-leadership claim. The association is not necessarily wrong, but a brand team cannot repeat it without separate proof, and softer wording is the safer route.</p>
-      </div>
-
-      <div class="layer-card" data-reveal style="--i:3">
-        <div class="layer-head"><h4>Misframed &middot; Workflow and technical trade-offs</h4><span class="stamp">8/25</span></div>
-        <p>Some technical concerns remain fair. But the recurring framing of a heavy edit-workflow burden under-recognises current direct flat-video output and AI-assisted simplification. A correction should address the outdated workflow implication without denying the genuine limitations.</p>
-      </div>
-
-      <div class="layer-card" data-reveal style="--i:4">
-        <div class="layer-head"><h4>Missing &middot; Direct-to-share flat video</h4><span class="stamp">0/25</span></div>
-        <p>This is the clearest candidate to correct next. Official materials now emphasise InstaFrame direct output while preserving the 360 footage. Across all twenty-five answers, the coded evidence contained no distinct association for that newer workflow at all. AI is describing a version of the product the brand has already moved past.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="stage" aria-labelledby="limits-h">
-    <div class="wrap">
-      <span class="label" data-reveal>04 / Limits</span>
-      <h2 id="limits-h" data-reveal style="--i:1">What this study does not show.</h2>
-      <p class="lead" data-reveal style="--i:2">Stated in full, because a study that hides its boundaries is advertising.</p>
-      <ul class="method-list" data-reveal style="--i:3">
-        <li><strong>One engine, one mode.</strong> DeepSeek, ungrounded. Results do not generalise to other models, to grounded retrieval, or to a personalised consumer chat session.</li>
-        <li><strong>Twenty-five answers.</strong> A descriptive count, not a population estimate. No confidence interval is computed or implied.</li>
-        <li><strong>Single-analyst coding.</strong> Coded by one reviewer. Intra-rater consistency, machine-discrepancy checks, and inter-rater reliability were not run, so no reliability figure is claimed.</li>
-        <li><strong>Scoped positioning reference.</strong> Gap labels are judged against disclosed public Insta360 materials, not a confidential brand brief. A brand-authored fact sheet would sharpen them.</li>
-        <li><strong>A snapshot.</strong> Valid for the prompts, model, mode, and date above. Models change, and so will this.</li>
-        <li><strong>Development study.</strong> This ran to build and test the method, not as a commissioned audit.</li>
-      </ul>
-      <div class="btn-row" data-reveal style="--i:4">
-        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
-        <a class="btn ghost" href="/#method">Read the method</a>
+      <h2 id="list-h" class="sr-only">Study list</h2>
+      <article class="study-teaser" data-reveal>
+        <div class="stamps"><span class="stamp">Measured</span><span class="stamp">11 Jul 2026</span><span class="stamp">n=25</span><span class="stamp">DeepSeek &middot; ungrounded</span><span class="stamp">Not a client</span></div>
+        <h3><a href="/studies/insta360">AI describes a product generation Insta360 has already moved past.</a></h3>
+        <p>Five bare description prompts, five repetitions each, twenty-five stored answers read and coded by a human reviewer. The newest story in the brand&rsquo;s own materials appears in 0 of 25 answers; a category-leader claim AI repeats appears in 13.</p>
+        <a class="tlink" href="/studies/insta360">Read the study &rarr;</a>
+      </article>
+      <div class="disclosure" role="note">
+        <p>Insta360 was not a client, did not commission this study, and did not endorse it. The hotel-group Message Lift test summarized on the landing page is anonymized by design.</p>
       </div>
     </div>
   </section>
@@ -189,6 +125,6 @@
   </section>
 </main>
 
-<script src="motion.js?v=20260906a"></script>
+<script src="/motion.js?v=20260906b"></script>
 </body>
 </html>
