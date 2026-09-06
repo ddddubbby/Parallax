@@ -520,7 +520,7 @@ export function RunCreationForm({
       </fieldset>}
       {isMessageLift && (
         <p className="text-sm text-ink/60">
-          `${PRODUCT_NAME} keeps the sampling and comparison settings fixed so only the message changes.`
+          {PRODUCT_NAME} keeps the sampling and comparison settings fixed so only the message changes.
         </p>
       )}
 
