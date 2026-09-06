@@ -9,9 +9,9 @@
 | **Build plan** | [M57_BUILD_PLAN.md](M57_BUILD_PLAN.md) |
 | **Branch** | `m57`, cut from `main@c478231` (PR #17 merge) |
 | **Current milestone** | M57 — pivot to Windtunnel, site compliance, SEO page architecture |
-| **Milestone state** | P0 done on `m57` (governance); P1a next |
-| **Next action** | P1a — Windtunnel on every visible surface: `site/` copy to the D-127 lexicon, og/mark assets, `set-site-domain.sh` stamping to `https://windtunnel.observer`, `vercel.json` www→apex 301, root-docs name sweep; commit `M57 P1a: …` |
-| **Blocked on** | Nothing for P0–P2a. Operator-gated, non-blocking for code: domain purchase + Vercel attach (default `windtunnel.observer` assumed; a different final domain is one idempotent re-stamp), `hello@` mailbox (P1 keeps `resonance.research@pm.me`), profile URLs for `sameAs`, form endpoint (P3), trademark search, Search Console/Bing submission |
+| **Milestone state** | P0–P2b done on `m57`; P3 contact form blocked on the operator's form endpoint; closeout gates green |
+| **Next action** | Operator: buy + attach `windtunnel.observer` (and `www.`) in Vercel, keep `resonance.observer` 301ing for ≥12 months, provision `hello@`, Search Console + Bing submission, `sameAs` profile URLs. Engineering (when the endpoint exists): P3 contact form commit `M57 P3: …` — form + `thanks.html` + CSP `form-action` widened in the same commit, then push `m57` and open the PR to `main` |
+| **Blocked on** | P3 form needs the operator's form endpoint (Formspree-class plain-HTML POST). Push/PR need GitHub credentials on this machine (no `gh`; credential helper points at a deleted temp binary — same as M56) |
 | **Integration order** | `m57` merges to `main` after P3 closeout |
 | **Pending merge** | `m53` (D-123 sampling terminology, 343ab62, 8 behind main) stays unmerged by operator decision; trunk `PRD.md` has no §8.41 and `DECISIONS.md` no D-123 until it lands |
 | **Parked product** | Resonance GEO agent (historical name) remains parked (D-116); `AGENT_*` headers read PARKED from M56 P2 |
@@ -21,12 +21,12 @@
 | Phase | Scope | State |
 |---|---|---|
 | P0 | Governance: D-128 + register edges, M56 plan archived (byte-frozen), `M57_BUILD_PLAN.md`, STATUS/PRD/MASTER_CONTEXT sync, S-130 truncation + S-131, §G gotcha | Done |
-| P1a | External surfaces: site pages, og/mark assets, brand-kit, domain stamping script, www→apex redirect, root-docs name sweep | Pending |
-| P1b | `src/` user-visible strings via `PRODUCT_NAME`; copy-test updates; `ui-contracts` guard | Pending |
-| P2a | SEO page architecture: studies hub, per-study page, method/methodology pages, JSON-LD, robots AI-bot groups, sitemap, llms.txt | Pending |
-| P2b | Hotel + Leica study pages, dev-DB-verified (D-127) — absorbs the two M56 open follow-ups: run `cffd5856` date confirmation, and the hotel and Leica study pages | Pending |
-| P3 | Contact form via operator endpoint; CSP `form-action`; two CTA intents | Pending |
-| P3 closeout | Gates, STATUS/PRD/BUILD_NOTES handoff, PR `m57` → `main` | Pending |
+| P1a | External surfaces: site pages, og/mark assets, brand-kit, domain stamping script, www→apex redirect, root-docs name sweep | Done |
+| P1b | `src/` user-visible strings via `PRODUCT_NAME`; copy-test updates; `ui-contracts` guard | Done |
+| P2a | SEO page architecture: studies hub, per-study page, method/methodology pages, JSON-LD, robots AI-bot groups, sitemap, llms.txt | Done |
+| P2b | Hotel + Leica study pages, dev-DB-verified (D-127) — absorbs the two M56 open follow-ups: run `cffd5856` date confirmation, and the hotel and Leica study pages | Done |
+| P3 | Contact form via operator endpoint; CSP `form-action`; two CTA intents | Blocked on operator endpoint |
+| P3 closeout | Gates, STATUS/PRD/BUILD_NOTES handoff, PR `m57` → `main` | Done (push/PR operator-gated) |
 
 ## Baseline evidence (main@c478231)
 
