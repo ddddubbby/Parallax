@@ -203,3 +203,8 @@ visual too. Corrected preview: https://site-104ggjjp0-franklinhou-5415s-projects
 Lighthouse99/100/100/100 with restored content,142 KiB. No operator source change.
 User design acceptance remains pending; prior automated passes did not justify the
 content loss. GitHub upload remains blocked pending explicit approval, no retry here.
+
+Deployment follow-up: after the user's explicit request, Vercel production deployment
+`dpl_A91bsLMLcW1UaunkJQvJMw6gcDrh` completed and is aliased at
+`https://resonance.observer`. Post-deploy checks returned home 200, studies 200,
+methodology 200 and missing route 404. GitHub push remains a separate blocked action.

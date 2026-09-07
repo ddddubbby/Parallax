@@ -9,10 +9,10 @@
 | **Build plan** | [M58_BUILD_PLAN.md](M58_BUILD_PLAN.md) |
 | **Branch** | m58 from local M57 a27bea9 |
 | **Current milestone** | M58 — brand website redesign (D-129) |
-| **Milestone state** | Content restored (D-130); review drifts fixed (D-131: category-anchored title, D-128 H1, banned-word negations, definition links, CSP); local gates green |
-| **Next action** | Operator reviews the D-131 preview (`pnpm preview:site`); then push m57+m58 and open the PR; public publication approval remains separate |
+| **Milestone state** | Content restored (D-130); review drifts fixed (D-131); Vercel production deployed; local gates green |
+| **Next action** | Operator reviews `https://resonance.observer`; then push m57+m58 and open the PR |
 | **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
-| **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
+| **Blocked on** | GitHub branch publication requires upload approval; form endpoint and domain provisioning remain external follow-ups |
 | **Pending merge** | m53 remains unmerged by operator decision |
 | **Parked product** | Resonance GEO agent remains parked (D-116); AGENT_* docs unchanged |
 
@@ -39,8 +39,8 @@
 
 ## M58 review
 
-Preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app
-(account sign-in required). Production was not published.
+Production: https://resonance.observer
+Deployment: `dpl_A91bsLMLcW1UaunkJQvJMw6gcDrh`.
 
 Verified: 16 site checks including visual capture; lint/typecheck/docs/diff clean;
 916 unit tests (12 existing skips), 18 operator smoke tests, 4 forecast tests, and
@@ -55,7 +55,8 @@ robots groups are unchanged.
 
 ## Public upload approval gate
 
-Local implementation/verification commit: `dcc0986`. Public push and PR are not done.
+Local implementation/verification tip: `3f0a300`. Vercel production is deployed;
+public GitHub push and PR are not done.
 Automatic approval review rejected `git push -u origin m58`: although the existing
 origin is verified as public ddddubbby/Parallax, the branch includes governance docs
 (MASTER_CONTEXT.md and PROTECTED_REGISTER.md) whose public disclosure was not
