@@ -455,23 +455,19 @@ that says no is published as a finding, with the same stamps.
 
 ### 10.2 Website (`BRAND_SITE_GUIDE.md` is the visual and structural law)
 
-The live site is the external source of truth (D-127). Current canonical
-elements, which the site guide's blueprint mirrors:
+D-129 governs public website appearance and section order; claims law remains intact.
 
-1. H1 (the recommended tightening adopted live on the site, D-128):
-   "Measure how AI recommends your brand. Test which message moves you up its
-   shortlist." Subhead names the measure-then-test workflow and the shortlist
-   lift.
-2. Section order (the 4.3 sequence): hero with a real study excerpt → How it
-   works (four client questions: prompt discovery, baseline audit, Message
-   Lift test, re-audit) → What we measure (four pillars) → What we found (two
-   real studies, one negative) → Why now → What you get (Message Lift) → How
-   the scoring works → Method and limitations with FAQ → contact.
-3. CTA intents: "Request a brand audit" (primary), "See two real findings"
-   (secondary), "Email the research team" (footer). Studies link: "Read the
-   full study."
-4. The cone stays the mark; the Signal Wave means the one message that
-   carries through the noise.
+1. H1: “Your brand, through AI’s eyes.” Supporting copy explains measurement,
+   controlled message comparison, inspectable evidence and explicit limits.
+2. Order: opening and process illustration → featured measured finding → five-stage
+   engagement and four pillars → Current/New testing → research and FAQ → contact.
+3. Actions: “Request a brand audit,” “Explore the studies,” and “Email the research
+   team.” Contextual research links identify their destination.
+4. One dark system: matte surfaces, precise typography, segmented navigation,
+   restrained registration corners, meaningful signal paths and one orange accent.
+   The cone and lowercase wordmark remain the identity.
+5. Operator and export visual rules are unchanged. Website evidence is never
+   simplified into stronger claims for visual effect.
 
 ### 10.3 Everything else
 
@@ -515,3 +511,5 @@ names a quarterly manual re-audit, never "monitoring."
 joins "Parallax" as internal/historical vocabulary only. The §10.2 H1
 tightening is live on the site; §6.1 gains the product-name row. Compatibility
 identifiers (`parallax`, `resonance_*`, routes, file names) are unchanged.
+
+**v2.2 — 2026-09-07 (D-129).** Unified dark website direction and revised homepage hierarchy. Website-only appearance supersession; operator/export visuals and claims law preserved.

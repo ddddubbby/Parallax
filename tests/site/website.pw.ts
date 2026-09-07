@@ -107,3 +107,27 @@ for (const route of ['/', '/studies', '/studies/insta360', '/studies/hotel-group
     expect(errors).toEqual([]);
   });
 }
+
+test('metadata, public assets and homepage disclosures agree', async ({ page, request }) => {
+  for (const { route } of pages) {
+    await page.goto(route);
+    const description = await page.locator('meta[name="description"]').getAttribute('content');
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', description!);
+    await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', description!);
+    const assets = await page.locator('script[src],link[rel="stylesheet"],link[rel="icon"],img[src]').evaluateAll(es => es.map(e => e.getAttribute('src') || e.getAttribute('href')!));
+    for (const asset of assets.filter(a => a.startsWith('/'))) expect((await request.get(asset)).status(), asset).toBe(200);
+    const schemas = (await page.locator('script[type="application/ld+json"]').allTextContents()).flatMap(s => { const data = JSON.parse(s); return data['@graph'] || [data]; });
+    const term = schemas.find(s => s['@type'] === 'DefinedTerm');
+    if (term) expect(term.description).toBe((await page.locator('main .lead').first().innerText()).trim());
+    const faq = schemas.find(s => s['@type'] === 'FAQPage');
+    if (faq) {
+      const visible = await page.locator('#faq details').evaluateAll(es => es.map(e => ({ q: e.querySelector('summary')!.textContent, a: e.querySelector('p')!.textContent })));
+      expect(faq.mainEntity.map((q: {name: string; acceptedAnswer: {text: string}}) => ({ q: q.name, a: q.acceptedAnswer.text }))).toEqual(visible);
+    }
+    expect(readFileSync(pages.find(p => p.route === route)!.file, 'utf8')).not.toContain('__SITE_URL__');
+  }
+  await page.goto('/');
+  for (const text of ['0 of 25', '11 Jul 2026', 'DeepSeek', 'ungrounded', 'single-analyst', '3.45', '3.41', 'n=30 per message', '31 Jul 2026', 'not a client']) {
+    await expect(page.locator('main')).toContainText(new RegExp(text, 'i'));
+  }
+});

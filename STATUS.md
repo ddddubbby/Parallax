@@ -9,8 +9,8 @@
 | **Build plan** | [M58_BUILD_PLAN.md](M58_BUILD_PLAN.md) |
 | **Branch** | m58 from local M57 a27bea9 |
 | **Current milestone** | M58 — brand website redesign (D-129) |
-| **Milestone state** | P0–P4 complete; P5 in progress |
-| **Next action** | Synchronize brand assets, metadata and documentation |
+| **Milestone state** | P0–P5 complete; P6 in progress |
+| **Next action** | Complete repository checks and hosting preview review |
 | **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
 | **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
 | **Pending merge** | m53 remains unmerged by operator decision |
@@ -25,7 +25,7 @@
 | P2 — shared visual system | Complete |
 | P3 — homepage | Complete |
 | P4 — research pages | Complete |
-| P5 — assets and canon | Pending |
+| P5 — assets and canon | Complete |
 | P6 — verification and handoff | Pending |
 
 ## Carried forward from M57
