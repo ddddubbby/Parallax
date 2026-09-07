@@ -152,3 +152,5 @@ GOTCHAS: tsx and local listeners require sandbox escalation; unrelated product c
 P1: clean-URL/traversal, evidence and keyboard checks passed (3/3). Baseline axe/structure report saved to docs/audits/m58/baseline-checks.txt; existing failures are implementation targets. Dedicated .pw.ts discovery avoids operator and Vitest suites.
 
 P2: Shared dark tokens, navigation, footer, readable no-JS foundation and brand specimen implemented. Browser-reviewed methodology at desktop. Menu, no-JS and methodology axe pass; corrected link harness to accept the 404 document’s own skip target. Homepage and table composition continue in P3/P4.
+
+P3: Rebuilt homepage with original static cone/process SVG, featured measured finding, five-stage engagement, equal Current/New scores, research links and native FAQs. Homepage links/menu/axe pass. Full site run exposed pre-existing hotel definition-list semantics and narrow research-table overflow; P4 fixes these.
