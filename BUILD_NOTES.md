@@ -173,3 +173,10 @@ Remote main rechecked at c478231; no remote M57 exists. Review branch includes l
 M57 a27bea9. No operator, provider, database, lockfile or Render config diff against
 that baseline. Exact next action: review preview, reconcile M57 integration, then
 approve merge/publication; archive M58 and prune its notes in the merge commit.
+
+UPLOAD BLOCK: P6 commit dcc0986 saved locally. Auto-review twice rejected public push;
+second decision acknowledges verified public origin ddddubbby/Parallax but requires
+explicit approval for governance-doc disclosure (MASTER_CONTEXT/PROTECTED_REGISTER).
+No upload workaround used; no push/PR created. PR description saved in audit directory.
+Next action is user approval for exact branch payload including M57 prerequisites,
+governance docs and review artifacts, then push/draft PR. Production remains untouched.

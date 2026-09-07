@@ -10,7 +10,7 @@
 | **Branch** | m58 from local M57 a27bea9 |
 | **Current milestone** | M58 — brand website redesign (D-129) |
 | **Milestone state** | Code complete — unverified for custom-domain redirects and integration; all local gates passed |
-| **Next action** | Review the protected preview; reconcile local M57 with main before integration and production publication |
+| **Next action** | Obtain explicit approval for the public GitHub push, including governance documents; then push m58 and open a draft PR |
 | **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
 | **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
 | **Pending merge** | m53 remains unmerged by operator decision |
@@ -52,3 +52,13 @@ Custom-domain www/apex redirects, old-domain transfer, mailbox/form/search setup
 remote M57 integration remain external. The preview has verified clean HTML URLs,
 404 behavior, font delivery and security headers. The existing hosting config and
 robots groups are unchanged.
+
+## Public upload approval gate
+
+Local implementation/verification commit: `dcc0986`. Public push and PR are not done.
+Automatic approval review rejected `git push -u origin m58`: although the existing
+origin is verified as public ddddubbby/Parallax, the branch includes governance docs
+(MASTER_CONTEXT.md and PROTECTED_REGISTER.md) whose public disclosure was not
+specifically approved. It includes the disclosed local M57 prerequisites too.
+[Draft PR description](docs/audits/m58/PR_DESCRIPTION.md) is ready locally. Ask for
+explicit approval for that exact upload; do not use an alternative upload path.

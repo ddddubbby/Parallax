@@ -76,7 +76,7 @@ relative to local M57 a27bea9d07305deb5cf0cb5e53a212e239ca6948.
 | P3 homepage | c5d47fc |
 | P4 research | 5309bd8 |
 | P5 assets and contracts | 2e22e3f |
-| P6 verification | Commit titled `M58 P6: verify website redesign and complete handoff` |
+| P6 verification | dcc0986 |
 
 Remote main remains c478231a7889eff30eda884701df954d5e14c77f after the final fetch.
 No remote M57 branch exists. Therefore m58 is based on local completed M57 a27bea9;
@@ -88,3 +88,15 @@ integration**. Review the preview, reconcile M57, then decide on integration and
 production publication. Keep form endpoint, mailbox, domain and search-engine setup
 as separate follow-ups. Archive the M58 plan and prune its notes in the merge commit.
 Rollback means redeploying the previous verified site revision.
+
+## Upload gate
+
+Branch m58 is committed locally. No push or PR was created. Automatic approval
+review rejected the public GitHub push even after verifying the existing origin
+`https://github.com/ddddubbby/Parallax` and reviewing the outgoing file list. Its
+remaining reason is that the branch includes internal governance documents,
+including MASTER_CONTEXT.md and PROTECTED_REGISTER.md, whose public disclosure
+requires explicit user approval. Do not bypass this gate by another upload method.
+The reviewable PR text is saved in PR_DESCRIPTION.md. Next action: obtain explicit
+approval to push this branch, including local M57 prerequisites, governance documents
+and review artifacts, to that public repository; then push and create a draft PR.
