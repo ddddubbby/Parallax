@@ -158,3 +158,18 @@ P3: Rebuilt homepage with original static cone/process SVG, featured measured fi
 P4: Findings precede prompts on measured and hotel studies; separate test baselines retained. Research tables have labeled keyboard scrolling and aligned numeric columns. Hotel definition-list structure repaired. Preserved former homepage audit example separately from n=25 study. All 13 site checks pass, including all-route reflow at 1440/1280/768/390/375/320 and seven axe surfaces.
 
 P5: Replaced obsolete site design prescriptions, kept claims/operator/export rules scoped, synchronized metadata/FAQ/definitions/cache versions/sitemap/llms. Social card regenerated at 1200×630 and inspected at thumbnail size. Local licensed fonts remove measured external render blocking. Site suite:14 pass, opt-in artifact test passes separately. Lint/typecheck and 916 unit tests pass; production build passes. No src or lockfile changes against a27bea9.
+
+P6: Final all-site capture/check run passes 15/15; lint/typecheck/docs/diff pass.
+Repository gates: 916 unit tests pass (12 existing skips), build passes, 18 operator
+smoke and 4 forecast tests pass. Final mobile Lighthouse 99/100/100/100, 115 KiB.
+Six representative page types captured at 1440/1280/768/390; all routes reflow at
+375/320 too. Inspected desktop/mobile opening, hub, study, methodology, metric and
+social full/thumbnail. Fixed inline-link paragraph rhythm during final review.
+Preview https://site-40epfj9wd-franklinhou-5415s-projects.vercel.app is protected,
+not production. Authenticated hosted checks pass clean routes, .html→308, 404,
+font200 and required headers. Hosting injects its normal feedback script; normalized
+homepage equals local final source. Custom-domain redirects remain unverified.
+Remote main rechecked at c478231; no remote M57 exists. Review branch includes local
+M57 a27bea9. No operator, provider, database, lockfile or Render config diff against
+that baseline. Exact next action: review preview, reconcile M57 integration, then
+approve merge/publication; archive M58 and prune its notes in the merge commit.

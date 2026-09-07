@@ -223,3 +223,5 @@ details > p { margin-top: var(--s5); color: var(--muted); font-size: 16px; }
 .article-page .case-stats { margin-top:40px; }
 .article-page .layer-card { max-width:850px; }
 @media(max-width:767px){.featured-study{display:block}.featured-study>p{margin-top:24px}.metric-table{min-width:560px}.panel-lift-msg{font-size:24px}}
+/* Inline evidence links retain paragraph rhythm. */
+p .tlink { display:inline;padding:0; }

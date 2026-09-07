@@ -25,7 +25,7 @@ test('capture review artifacts', async ({ page }) => {
   }
   writeFileSync(`${dir}/browser-observations.json`, JSON.stringify(observations, null, 2));
   await page.setViewportSize({ width: 1200, height: 630 });
-  const fonts = '/styles.css?v=20260907c';
+  const fonts = '/styles.css?v=20260907d';
   await page.route('**/__social_artifact', route => route.fulfill({ contentType: 'text/html', body: `<html lang="en"><head><meta charset="utf-8"><link href="${fonts}" rel="stylesheet"><style>body{margin:0}svg{display:block}</style></head><body>${readFileSync('site/og.svg', 'utf8')}</body></html>` }));
   await page.goto('/__social_artifact');
   await page.evaluate(() => document.fonts.ready);

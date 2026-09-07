@@ -1,0 +1,26 @@
+
+> parallax@0.0.1 test:site /Users/tapp/Documents/Parallax
+> playwright test --config playwright.site.config.ts
+
+
+Running 15 tests using 1 worker
+
+(node:69820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/site/artifacts.pw.ts:5:5 › capture review artifacts (3.9s)
+  ✓   2 tests/site/website.pw.ts:11:5 › static server handles clean URLs, queries, missing routes and traversal (43ms)
+  ✓   3 tests/site/website.pw.ts:20:5 › all pages have valid links, fragments, unique IDs and one H1 (584ms)
+  ✓   4 tests/site/website.pw.ts:47:5 › published evidence retains values, qualification and anonymity (186ms)
+  ✓   5 tests/site/website.pw.ts:61:5 › mobile menu supports keyboard, Escape and breakpoint recovery (167ms)
+  ✓   6 tests/site/website.pw.ts:76:5 › content is readable without JavaScript (187ms)
+  ✓   7 tests/site/website.pw.ts:88:5 › all pages reflow at target widths and reduced motion (2.3s)
+  ✓   8 tests/site/website.pw.ts:101:7 › accessible page: / (449ms)
+  ✓   9 tests/site/website.pw.ts:101:7 › accessible page: /studies (366ms)
+  ✓  10 tests/site/website.pw.ts:101:7 › accessible page: /studies/insta360 (513ms)
+  ✓  11 tests/site/website.pw.ts:101:7 › accessible page: /studies/hotel-group (374ms)
+  ✓  12 tests/site/website.pw.ts:101:7 › accessible page: /methodology (388ms)
+  ✓  13 tests/site/website.pw.ts:101:7 › accessible page: /method/mention-rate (350ms)
+  ✓  14 tests/site/website.pw.ts:101:7 › accessible page: /404 (331ms)
+  ✓  15 tests/site/website.pw.ts:111:5 › metadata, public assets and homepage disclosures agree (632ms)
+
+  15 passed (11.3s)
