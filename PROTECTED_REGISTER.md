@@ -12,6 +12,13 @@ Every surface below was grep/read-verified to still exist in the current tree (2
 
 ---
 
+## M58 content preservation
+
+D-130 protects the substantive homepage report/dashboard showcase, four metric UI
+panels, full scoring pipeline, Glass Box and method/FAQ content (`site/index.html`).
+Restyling is allowed; removal as an aesthetic simplification is not. The rendered
+HTML/SVG demonstrations keep their real-study or illustrative labels.
+
 ## Protected surfaces
 
 | Surface (file + exact name) | D-number | Why it looks dead but isn't | Confidence |

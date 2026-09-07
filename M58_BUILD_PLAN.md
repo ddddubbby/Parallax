@@ -115,10 +115,10 @@ Commit: M58 P2: establish unified terminal visual system.
    significance/equivalence claim. Keep hotel anonymous everywhere.
 7. Link all three studies. Trust summary: repeated samples, traceability,
    uncertainty, limits. Native FAQ: measurement, Message Lift, repetitions,
-   API vs consumer chat. Put detailed scoring on methodology.
+   API vs consumer chat. Keep the full scoring explanation on the homepage and link deeper methodology.
 8. Contact: “Find out where your brand stands.” Invite category/competitors/message,
    retain contact behavior and shared footer.
-9. Remove miniature report, macro strip, illustrative chart grid and duplicate
+9. Preserve and restyle the report/dashboard showcase, metric UI panels and full scoring methodology. Simplify decorative framing and duplicate
    explanations. Keep anchors: top/opening, finding/evidence, workflow/process,
    metrics/pillars, what-you-get/testing, why-now/context, methodology+method/trust,
    contact/contact. Place meaningful visible targets with header offsets.
@@ -180,3 +180,12 @@ At each green phase: inspect, test, commit explicit paths, update status/notes a
 continue. Never git add -A. Durable visual rules belong in BRAND_SITE_GUIDE; runtime
 state belongs in STATUS; this plan owns sequence and acceptance. No further visual
 choice is needed: improve spacing/wrapping within the settled coherent dark system.
+
+## Content restoration correction (D-130)
+
+The first implementation removed substantive product demonstration and methodology
+content. The user rejected that loss. Restore the M57 report interface, four metric
+panels, full scoring diagram, Glass Box, method commitments and full FAQ on the
+homepage. Redesign presentation without deleting content that explains or proves
+the product. Preserve illustrative labels and real-study disclosures. M57 stores
+these UI visuals as HTML/SVG, not separate screenshot image files.

@@ -131,3 +131,15 @@ test('metadata, public assets and homepage disclosures agree', async ({ page, re
     await expect(page.locator('main')).toContainText(new RegExp(text, 'i'));
   }
 });
+
+test('homepage retains the product showcase and full methodology', async ({ page }) => {
+  await page.goto('/');
+  const dashboard = page.locator('#dashboard');
+  for (const value of ['94.9%', '33.2%', '32.7%', '31.5%', '2.5%', 'n=112', '80% positive', '19% mixed', '1% negative', 'different baselines']) await expect(dashboard).toContainText(value);
+  await expect(page.locator('#metrics .pillar-card')).toHaveCount(4);
+  await expect(page.locator('#metrics')).toContainText('Illustrative example');
+  await expect(page.locator('#methodology .pipe-stage')).toHaveCount(5);
+  for (const text of ['Stored answer', 'Embedding', 'Cosine vs anchors', 'Distribution', 'Labeled result', 'Glass Box', 'AI recommendation follows a different path.']) await expect(page.locator('#methodology')).toContainText(text);
+  await expect(page.locator('#method .method-list li')).toHaveCount(7);
+  await expect(page.locator('#faq details')).toHaveCount(7);
+});

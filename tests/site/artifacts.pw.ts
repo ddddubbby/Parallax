@@ -18,14 +18,17 @@ test('capture review artifacts', async ({ page }) => {
       await page.evaluate(() => document.fonts.ready);
       await expect(page.locator('h1')).toBeVisible();
       await page.screenshot({ path: `${dir}/${name}-${width}.png`, fullPage: true });
-      if (name === "home") await page.screenshot({ path: `${dir}/home-opening-${width}.png` });
+      if (name === "home") {
+        await page.screenshot({ path: `${dir}/home-opening-${width}.png` });
+        for (const section of ['dashboard', 'metrics', 'methodology', 'method']) await page.locator(`#${section}`).screenshot({ path: `${dir}/restored-${section}-${width}.png`, style: ".nav,.skip-link{visibility:hidden!important}" });
+      }
       observations.push({ route, width, errors, resources: await page.evaluate(() => performance.getEntriesByType('resource').map(e => ({ name: e.name, bytes: (e as PerformanceResourceTiming).decodedBodySize }))) });
       page.off('response', failed);
     }
   }
   writeFileSync(`${dir}/browser-observations.json`, JSON.stringify(observations, null, 2));
   await page.setViewportSize({ width: 1200, height: 630 });
-  const fonts = '/styles.css?v=20260907d';
+  const fonts = '/styles.css?v=20260907e';
   await page.route('**/__social_artifact', route => route.fulfill({ contentType: 'text/html', body: `<html lang="en"><head><meta charset="utf-8"><link href="${fonts}" rel="stylesheet"><style>body{margin:0}svg{display:block}</style></head><body>${readFileSync('site/og.svg', 'utf8')}</body></html>` }));
   await page.goto('/__social_artifact');
   await page.evaluate(() => document.fonts.ready);

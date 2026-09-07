@@ -2,7 +2,7 @@
   "base": "a27bea9",
   "pages": {
     "site/index.html": {
-      "sha256": "173103f006ea8371c4789b80a2b1cb15753606cab056dcd3cc6eecf4ce74d231",
+      "sha256": "ddeeb7a582dd2ac969e8cb88d905fe5ce9f748972cca8148f72a72a96af513c9",
       "ids": [
         "coneBody",
         "coneBase",
@@ -11,39 +11,42 @@
         "top",
         "instrument-title",
         "instrument-cone",
+        "dashboard",
+        "dashboard-h",
         "finding",
         "workflow",
-        "why-now",
         "metrics",
+        "metrics-h",
+        "why-now",
+        "why-now-h",
+        "old-scorecard-title",
         "what-you-get",
+        "research",
         "methodology",
+        "methodology-h",
         "method",
+        "method-h",
         "faq",
         "contact",
         "contact-h"
       ],
       "removedIds": [
         "finding-h",
-        "method-h",
-        "methodology-h",
-        "metrics-h",
         "nav-scrim",
         "nav-sentinel",
-        "old-scorecard-title",
         "what-you-get-h",
-        "why-now-h",
         "workflow-h"
       ],
       "canonical": [
         "https://windtunnel.observer/"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
-      "bytes": 15508
+      "bytes": 36707
     },
     "site/studies.html": {
-      "sha256": "ef033e464c0d292a49db2371477d97fc9c5570a7512b5999d61f76918b6ed97f",
+      "sha256": "8b66a1fea59d9493e60fa82c06b8dadf16c0a1b1ecb12b9eeda8c84a7a6fc017",
       "ids": [
         "coneBody",
         "coneBase",
@@ -63,12 +66,12 @@
         "https://windtunnel.observer/studies"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7620
     },
     "site/404.html": {
-      "sha256": "ad04abf5abc307819cd6e36829b1d97c2b574ce2814ee6b9624af54515828a82",
+      "sha256": "3be4f79bfe6c6132af383adb36a13bee7d7a66078bbb3656e36be53a8cbe43a3",
       "ids": [
         "coneBody",
         "coneBase",
@@ -82,12 +85,12 @@
       "removedIds": [],
       "canonical": [],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 4030
     },
     "site/methodology.html": {
-      "sha256": "7c27b0a92242c2756d179c752d1353d3b4a156d78c9850f61ef1139a538ce878",
+      "sha256": "f8c202048738b836201b240ce438bebce5c01ab31070ba64b33793983a4320c4",
       "ids": [
         "coneBody",
         "coneBase",
@@ -113,12 +116,12 @@
         "https://windtunnel.observer/methodology"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 11843
     },
     "site/studies/insta360.html": {
-      "sha256": "82d7d4a0d2878533cc0188e4696ad7439a7a560f63cb67cdda0e78c20d3a8eca",
+      "sha256": "f7277795f2b54d140eb9bb1731a1874e44e88636c36db7238fda5fb2cd4f2e31",
       "ids": [
         "coneBody",
         "coneBase",
@@ -143,12 +146,12 @@
         "https://windtunnel.observer/studies/insta360"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 14044
     },
     "site/studies/hotel-group.html": {
-      "sha256": "d3bfdf3f56688c0b475c8953d47e37081898145f0d36a62e276f5179e9f9965a",
+      "sha256": "f3ba284e1172bf0daf5563a447dcbeb37220a8f8be096baef1f6973843adf39b",
       "ids": [
         "coneBody",
         "coneBase",
@@ -170,12 +173,12 @@
         "https://windtunnel.observer/studies/hotel-group"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 8804
     },
     "site/studies/insta360-message-lift.html": {
-      "sha256": "871e0f65f96213623570188d33730114a78b199f647cc29b738c2d925f24d75b",
+      "sha256": "3c84a281f78a788803903a3844ea29f646f4bcd9460ef1e6bb046866c2368a72",
       "ids": [
         "coneBody",
         "coneBase",
@@ -198,12 +201,12 @@
         "https://windtunnel.observer/studies/insta360-message-lift"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 10914
     },
     "site/method/top-choice-rate.html": {
-      "sha256": "3c5ed602aea9f9676e831a2b756d9322f3c03cfba9c285cf94a6452d57615f2c",
+      "sha256": "698c77f825946eacdf014a058846c9f06adc93e33898ff0b326d489eaf967a6b",
       "ids": [
         "coneBody",
         "coneBase",
@@ -225,12 +228,12 @@
         "https://windtunnel.observer/method/top-choice-rate"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7693
     },
     "site/method/shortlist-rate.html": {
-      "sha256": "c45b8719c3cd0da8991653718561059f9fc35b45a6c086f12468e2bef5b446ee",
+      "sha256": "d80e9cf56ae75b1d472bf75439c8c11bce9724a9a60cf5e765d52d9d77146cf9",
       "ids": [
         "coneBody",
         "coneBase",
@@ -252,12 +255,12 @@
         "https://windtunnel.observer/method/shortlist-rate"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7819
     },
     "site/method/shortlist-lift.html": {
-      "sha256": "2eb9627413adec2d0b6f01a5eb43a9f00466895f41f1abd66ff1cf4d387d6327",
+      "sha256": "4175998342919d563bb5fbd1344b978f1f2a016ca3cf98db2b59a9b39076209e",
       "ids": [
         "coneBody",
         "coneBase",
@@ -279,12 +282,12 @@
         "https://windtunnel.observer/method/shortlist-lift"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7669
     },
     "site/method/mention-rate.html": {
-      "sha256": "563b0c4d69c91cd39c784a4abb525b9c14cdcbfd44867fb40ed6867f17d661a5",
+      "sha256": "52a64d14c114a5efa5329a7cdb2c054a737de6bf3eaf0050c32b8086f9802147",
       "ids": [
         "coneBody",
         "coneBase",
@@ -306,12 +309,12 @@
         "https://windtunnel.observer/method/mention-rate"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7713
     },
     "site/method/repeated-sampling.html": {
-      "sha256": "1684b80c4f13cfc9d36be7b15d4a483f82e9261d4fcfa95c63f770bb845277f4",
+      "sha256": "1cdfdb734817f2bbed61b6a34e29352d4ba0a956b3e515b9691bd1cfa86a2228",
       "ids": [
         "coneBody",
         "coneBase",
@@ -333,12 +336,12 @@
         "https://windtunnel.observer/method/repeated-sampling"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7722
     },
     "site/method/stability-index.html": {
-      "sha256": "4970bdb6a8862ddcb7036cc7259d59eb863190ff595e36c5e3bd6c1789970b10",
+      "sha256": "48af0f9473191dcf3a5d167d7d71d10a448b8e2aa79a2187024437f7cb7eacbe",
       "ids": [
         "coneBody",
         "coneBase",
@@ -360,7 +363,7 @@
         "https://windtunnel.observer/method/stability-index"
       ],
       "assetVersion": [
-        "20260907d"
+        "20260907e"
       ],
       "bytes": 7642
     }
@@ -389,5 +392,6 @@
       "ungrounded"
     ]
   },
-  "hostingConfigUnchanged": true
+  "hostingConfigUnchanged": true,
+  "restoration": "D-130 restores original HTML/SVG product showcase, metric UI and full methodology on homepage."
 }

@@ -180,3 +180,19 @@ explicit approval for governance-doc disclosure (MASTER_CONTEXT/PROTECTED_REGIST
 No upload workaround used; no push/PR created. PR description saved in audit directory.
 Next action is user approval for exact branch payload including M57 prerequisites,
 governance docs and review artifacts, then push/draft PR. Production remains untouched.
+
+## M58 content restoration / 2026-09-07
+User rejected substantive content loss. Reopened design acceptance. Recovered M57
+HTML/SVG report/dashboard, four metric UI panels, scoring pipeline, Glass Box,
+seven method commitments and seven FAQs. No separate screenshot assets are present
+in the M57 tree. Restoring these product visuals with dark styling and adding a
+content-preservation regression check. Prior preview/review metrics do not establish
+acceptance of this correction. GitHub upload gate remains unchanged.
+
+Restoration verified: 16 site checks including screenshots and explicit content-retention
+assertions pass; lint/typecheck/docs pass. Reviewed dashboard, metric panels and
+scoring at desktop and mobile. Restored attribution context and Current/New message
+visual too. Corrected preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app.
+Lighthouse99/100/100/100 with restored content,142 KiB. No operator source change.
+User design acceptance remains pending; prior automated passes did not justify the
+content loss. GitHub upload remains blocked pending explicit approval, no retry here.

@@ -9,8 +9,8 @@
 | **Build plan** | [M58_BUILD_PLAN.md](M58_BUILD_PLAN.md) |
 | **Branch** | m58 from local M57 a27bea9 |
 | **Current milestone** | M58 — brand website redesign (D-129) |
-| **Milestone state** | Code complete — unverified for custom-domain redirects and integration; all local gates passed |
-| **Next action** | Obtain explicit approval for the public GitHub push, including governance documents; then push m58 and open a draft PR |
+| **Milestone state** | Content restored and locally verified (D-130); corrected visual review pending |
+| **Next action** | Review corrected preview with restored product UI and methodology; public push approval remains separate |
 | **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
 | **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
 | **Pending merge** | m53 remains unmerged by operator decision |
@@ -39,13 +39,13 @@
 
 ## M58 review
 
-Preview: https://site-40epfj9wd-franklinhou-5415s-projects.vercel.app
+Preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app
 (account sign-in required). Production was not published.
 
-Verified: 15 site checks including visual capture; lint/typecheck/docs/diff clean;
+Verified: 16 site checks including visual capture; lint/typecheck/docs/diff clean;
 916 unit tests (12 existing skips), 18 operator smoke tests, 4 forecast tests, and
 production build. Mobile Lighthouse: 99 performance, 100 accessibility, 100 best
-practices, 100 SEO; 115 KiB measured page weight. See
+practices, 100 SEO; 142 KiB measured page weight. See
 [verification report](docs/audits/m58/REVIEW.md) for scope, images and limitations.
 
 Custom-domain www/apex redirects, old-domain transfer, mailbox/form/search setup and

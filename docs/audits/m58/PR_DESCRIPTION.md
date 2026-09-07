@@ -12,9 +12,9 @@ are unchanged relative to local M57 a27bea9.
 
 Validation: 15 site checks including responsive screenshot capture; lint, typecheck,
 docs check and production build; 916 unit tests, 18 operator smoke tests and four
-forecast tests. Mobile Lighthouse:99/100/100/100; measured homepage115 KiB.
+forecast tests. Mobile Lighthouse:99/100/100/100; measured homepage142 KiB.
 
-Preview: https://site-40epfj9wd-franklinhou-5415s-projects.vercel.app
+Preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app
 Protected by the hosting account; no production publication. Screenshots and detailed
 verification are in docs/audits/m58/REVIEW.md.
 

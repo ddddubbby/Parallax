@@ -130,8 +130,13 @@ observers, scrambling, parallax, continuous motion or scroll-gated content.
    or candidate message invitation, working email, shared footer and wordmark.
 
 Preserve every fragment above on a meaningful element with sticky-header offsets.
-No miniature hero dashboard, macro-stat strip or fictional chart grid. Detailed
-scoring belongs on methodology pages, not repeated across homepage sections.
+The homepage also retains a full report/dashboard showcase (`#dashboard`), four
+metric UI panels (`#metrics`), the complete five-stage Buyer response scoring diagram
+and distinct AI recommendation explanation (`#methodology`), Glass Box, seven method
+commitments and the full FAQ (`#method`). D-130 supersedes the earlier removal of
+these sections. The M57 product visuals are rendered HTML/SVG; do not mislabel them
+as literal application screenshots. Illustrative figures retain their labels.
+Restyle substantive content; do not remove it as an aesthetic shortcut.
 
 ## 6. Research and claims
 

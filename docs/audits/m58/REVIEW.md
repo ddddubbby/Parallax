@@ -4,7 +4,7 @@ Implemented the unified Windtunnel public website redesign. The offer, original
 process diagram, published evidence and contact action now form a coherent dark
 system across all 13 HTML documents. No production publication has occurred.
 
-[Protected hosting preview](https://site-40epfj9wd-franklinhou-5415s-projects.vercel.app)
+[Protected hosting preview](https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app)
 requires the hosting account’s normal sign-in. Local preview: `pnpm preview:site`,
 then http://127.0.0.1:8097. Design source is `site/`; review images are not deployed.
 
@@ -12,15 +12,15 @@ then http://127.0.0.1:8097. Design source is `site/`; review images are not depl
 
 | Gate | Result |
 |---|---|
-| Final site suite, including opt-in visual capture | 15 passed |
-| Default site suite | 14 passed; capture is intentionally opt-in |
+| Final site suite, including opt-in visual capture | 16 passed |
+| Default site suite | 15 passed; capture is intentionally opt-in |
 | Lint at zero warnings / typecheck / docs check / diff check | Passed |
 | Repository unit tests | 916 passed; 12 existing skips, 125 files passed |
 | Production build | Passed |
 | Operator smoke | 18 passed |
 | Forecast smoke | 4 passed |
 | Mobile Lighthouse on local static server | 99 performance / 100 accessibility / 100 best practices / 100 SEO |
-| Measured page weight | 115 KiB, under 1.5 MB |
+| Measured page weight | 142 KiB, under 1.5 MB |
 | All-route reflow | 1440, 1280, 768, 390, 375, 320px; no global overflow |
 | Accessibility | Seven representative page types; keyboard, no-JS and reduced motion checked |
 | Hosted preview | Clean routes200; .html→308; missing page404; font200; required security headers |
@@ -44,6 +44,12 @@ provisioning is external. Hosting config and robots groups are unchanged.
 - [Simulated study](simulated-1280.png), [methodology](methodology-1280.png).
 - [Metric page](metric-390.png), [social card](social-full.png), [thumbnail](social-thumbnail.png).
 
+The corrected homepage restores the M57 report interface, four metric UI panels, full
+scoring pipeline, Glass Box, seven method commitments and seven FAQs. See
+[dashboard](restored-dashboard-1280.png), [metric panels](restored-metrics-1280.png),
+[scoring methodology](restored-methodology-1280.png) and [method/FAQ](restored-method-1280.png).
+These visuals are restored HTML/SVG product demonstrations, not raster app screenshots.
+
 Each of the six representative page types also has captures at 1440, 1280, 768 and
 390px. Reviewed hierarchy, wrapping, spacing, control consistency and table reading.
 Final fixes included mobile word spacing, social UTF-8 rendering, valid hotel score
@@ -53,8 +59,7 @@ markup, local table scrolling and inline links that preserve paragraph rhythm.
 
 `baseline.json` inventories original routes, fragment IDs, content and hashes.
 `reconciliation.json` records final hashes, IDs, versions and preserved study values.
-All published study routes and their useful anchors survive. Removed IDs belong to
-obsolete homepage heading/artwork or navigation-sentinel machinery; the approved
+All published study routes and their useful anchors survive. Remaining removed IDs belong to navigation-sentinel machinery or consolidated headings; the approved
 public destinations `top`, `finding`, `workflow`, `metrics`, `what-you-get`, `why-now`,
 `methodology`, `method` and `contact` remain meaningful targets.
 

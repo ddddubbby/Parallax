@@ -459,8 +459,10 @@ D-129 governs public website appearance and section order; claims law remains in
 
 1. H1: “Your brand, through AI’s eyes.” Supporting copy explains measurement,
    controlled message comparison, inspectable evidence and explicit limits.
-2. Order: opening and process illustration → featured measured finding → five-stage
-   engagement and four pillars → Current/New testing → research and FAQ → contact.
+2. Order: opening and process illustration → report/dashboard showcase → featured
+   measured finding → engagement → four metric UI panels → attribution context →
+   Current/New testing → research → full scoring methodology → method/FAQ → contact.
+   D-130 requires retaining substantive product visuals and explanations during redesign.
 3. Actions: “Request a brand audit,” “Explore the studies,” and “Email the research
    team.” Contextual research links identify their destination.
 4. One dark system: matte surfaces, precise typography, segmented navigation,

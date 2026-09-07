@@ -1,5 +1,5 @@
 {
-  "preview": "https://site-40epfj9wd-franklinhou-5415s-projects.vercel.app",
+  "preview": "https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app",
   "results": [
     {
       "route": "/",
@@ -15,7 +15,7 @@
       },
       "matchesLocal": false,
       "matchesLocalContentWithoutPreviewToolbar": true,
-      "difference": "Hosting injects its preview feedback script; application content and final asset version match."
+      "difference": "Host-injected preview feedback script only; restored content matches local source."
     },
     {
       "route": "/studies",
