@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=20260906b">
+<link rel="stylesheet" href="/styles.css?v=20260907a">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -46,7 +46,7 @@
 </script>
 <script>document.documentElement.className = "js";</script>
 </head>
-<body>
+<body class="article-page">
 
 <svg width="0" height="0" class="svg-defs" aria-hidden="true">
   <defs>
@@ -59,32 +59,14 @@
   </defs>
 </svg>
 
-<header class="nav" id="nav">
-  <a class="brand" href="/" aria-label="Windtunnel home">
-    <svg viewBox="0 0 512 512" aria-hidden="true">
-      <g transform="rotate(-14 256 256)">
-        <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
-        <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
-      </g>
-    </svg>
-    <span>windtunnel</span>
-  </a>
-  <nav class="links" aria-label="Primary">
-    <div class="nav-menu" id="nav-menu">
-      <a href="/#workflow">How it works</a>
-      <a href="/#metrics">What we measure</a>
-      <a href="/#finding">What we found</a>
-      <a href="/methodology">Method</a>
-      <a href="/studies">Studies</a>
-    </div>
-    <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
-      <span></span><span></span><span></span>
-    </button>
-    <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
-  </nav>
-</header>
-<div class="nav-scrim" id="nav-scrim"></div>
-<span id="nav-sentinel" aria-hidden="true"></span>
+<a class="skip-link" href="#top">Skip to content</a>
+<header class="nav" id="nav"><div class="wrap nav-inner">
+<a class="brand" href="/" aria-label="Windtunnel home"><svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg><span>windtunnel</span></a>
+<nav class="links" aria-label="Primary"><div class="nav-menu" id="nav-menu">
+<a href="/#workflow">How it works</a><a href="/studies">Studies</a><a href="/methodology">Method</a>
+</div><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
+<button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu"><span></span><span></span></button>
+</nav></div></header>
 
 
 <main id="top">
@@ -92,66 +74,53 @@
   <section class="stage" aria-labelledby="term-h">
     <div class="wrap">
       <a class="label back-link" href="/methodology">&larr; Method</a>
-      <p class="eyebrow" data-reveal>Windtunnel method</p>
-      <h1 id="term-h" data-reveal style="--i:1">Shortlist rate</h1>
-      <p class="lead" data-reveal style="--i:2">Shortlist rate is the share of valid AI-recommendation answers that place the brand among the five ranked recommendations, computed per model and weighted across scenarios.</p>
+      <p class="eyebrow">Windtunnel method</p>
+      <h1 id="term-h">Shortlist rate</h1>
+      <p class="lead">Shortlist rate is the share of valid AI-recommendation answers that place the brand among the five ranked recommendations, computed per model and weighted across scenarios.</p>
     </div>
   </section>
 
   <section aria-labelledby="computed-h">
     <div class="wrap">
-      <span class="label" data-reveal>How it is computed</span>
-      <h2 id="computed-h" data-reveal style="--i:1">Five ranked recommendations, parsed exactly.</h2>
-      <p class="lead" data-reveal style="--i:1">In an AI shortlist test, the candidate message is supplied as untrusted context to brand-neutral shopping situations, and the model is asked for exactly five ranked recommendations. The reply is parsed deterministically: exact brand and alias matching, no fuzzy matching, and a malformed answer stays invalid rather than being retried until it looks right.</p>
-      <p class="lead" data-reveal style="--i:2">The rate is computed separately per model, because each model is its own population, and weighted across scenario clusters so no single scenario dominates. As a proportion it carries a Wilson 95% confidence interval.</p>
+      <span class="label">How it is computed</span>
+      <h2 id="computed-h">Five ranked recommendations, parsed exactly.</h2>
+      <p class="lead">In an AI shortlist test, the candidate message is supplied as untrusted context to brand-neutral shopping situations, and the model is asked for exactly five ranked recommendations. The reply is parsed deterministically: exact brand and alias matching, no fuzzy matching, and a malformed answer stays invalid rather than being retried until it looks right.</p>
+      <p class="lead">The rate is computed separately per model, because each model is its own population, and weighted across scenario clusters so no single scenario dominates. As a proportion it carries a Wilson 95% confidence interval.</p>
     </div>
   </section>
 
   <section class="stage" aria-labelledby="appears-h">
     <div class="wrap">
-      <span class="label" data-reveal>Where this appears</span>
-      <h2 id="appears-h" data-reveal style="--i:1">Where the shortlist family lives.</h2>
-      <p class="lead" data-reveal style="--i:2">Shortlist rate is one of the two rates reported by the AI recommendation half of a Message Lift test. The <a class="tlink" href="/#what-you-get">Message Lift section</a> on the landing page shows how the test is built; the term first appears in results as shortlist rate, then as shortlist lift when two messages are compared.</p>
+      <span class="label">Where this appears</span>
+      <h2 id="appears-h">Where the shortlist family lives.</h2>
+      <p class="lead">Shortlist rate is one of the two rates reported by the AI recommendation half of a Message Lift test. The <a class="tlink" href="/#what-you-get">Message Lift section</a> on the landing page shows how the test is built; the term first appears in results as shortlist rate, then as shortlist lift when two messages are compared.</p>
     </div>
   </section>
 
   <section aria-labelledby="limits-h">
     <div class="wrap">
-      <span class="label" data-reveal>What it does not mean</span>
-      <h2 id="limits-h" data-reveal style="--i:1">Three things a shortlist rate is not.</h2>
-      <ul class="method-list" data-reveal style="--i:2">
+      <span class="label">What it does not mean</span>
+      <h2 id="limits-h">Three things a shortlist rate is not.</h2>
+      <ul class="method-list">
         <li><strong>Not a purchase prediction.</strong> It says where a model placed a brand in a simulated recommendation, not what buyers will do.</li>
         <li><strong>Not search visibility.</strong> Nothing here measures a search engine; the shortlist is the model&rsquo;s own ranked output under disclosed prompts.</li>
         <li><strong>Not an absolute verdict.</strong> Results are SIMULATED and labeled, and they compare contexts inside one test, not brands across tests.</li>
       </ul>
-      <div class="disclosure" data-reveal style="--i:3" role="note">
+      <div class="disclosure" role="note">
         <p>Labels travel with numbers: figures traced to stored answers from real model routes are MEASURED; Message Lift results are SIMULATED and comparative only; anything below the n≥30 gate or drawn from a single prompt cell is DIRECTIONAL. No figure on this site ships without its label, sample size, and date.</p>
       </div>
     </div>
   </section>
 
-  <section id="contact" class="stage footer" aria-labelledby="contact-h">
-    <div class="wrap">
-      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
-        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45"><path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/><path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/></g>
-        <path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
-      </svg>
-      <h2 id="contact-h" data-reveal>Find out where your brand stands.</h2>
-      <p class="lead footer-lead" data-reveal style="--i:1">Tell us the category, competitors, or message you need to understand.</p>
-      <div class="cta" data-reveal style="--i:2">
-        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team</a>
-        <a class="tlink" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a>
-      </div>
-      <p class="fineprint" data-reveal style="--i:3">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
-      <div class="sig">
-        <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
-        <span>windtunnel</span>
-      </div>
-      <div class="copy">Windtunnel (windtunnel.observer) · AI visibility audits and message tests · Singapore · 2026</div>
-    </div>
-  </section>
-</main>
 
-<script src="/motion.js?v=20260906b"></script>
+</main>
+<footer class="site-footer" id="contact"><div class="wrap">
+<div class="footer-contact"><h2 id="contact-h">Find out where<br>your brand stands.</h2><div><p>Tell us the category, competitors, or message you need to understand.</p><div class="cta"><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team <span aria-hidden="true">↗</span></a></div></div></div>
+<p class="fineprint">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+<div class="footer-wordmark" aria-hidden="true">windtunnel</div>
+<div class="footer-meta"><span>AI visibility measurement &amp; message testing</span><span>Singapore · 2026</span><a href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a></div>
+</div></footer>
+
+<script src="/motion.js?v=20260907a"></script>
 </body>
 </html>

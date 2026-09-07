@@ -150,3 +150,5 @@ NEXT: P1 static site harness, then P2 foundation.
 GOTCHAS: tsx and local listeners require sandbox escalation; unrelated product code remains untouched. M57 notes preserved because merge not verified.
 
 P1: clean-URL/traversal, evidence and keyboard checks passed (3/3). Baseline axe/structure report saved to docs/audits/m58/baseline-checks.txt; existing failures are implementation targets. Dedicated .pw.ts discovery avoids operator and Vitest suites.
+
+P2: Shared dark tokens, navigation, footer, readable no-JS foundation and brand specimen implemented. Browser-reviewed methodology at desktop. Menu, no-JS and methodology axe pass; corrected link harness to accept the 404 document’s own skip target. Homepage and table composition continue in P3/P4.

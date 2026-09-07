@@ -32,7 +32,7 @@ test('all pages have valid links, fragments, unique IDs and one H1', async ({ pa
       if (checked.has(url.href)) continue;
       checked.add(url.href);
       const response = await request.get(url.pathname);
-      expect(response.status(), href).toBe(200);
+      expect(response.status(), href).toBe(url.pathname === "/404" ? 404 : 200);
       if (url.hash) expect(await response.text(), href).toContain(`id="${decodeURIComponent(url.hash.slice(1))}"`);
     }
     const source = readFileSync(pages.find(p => p.route === route)!.file, 'utf8');

@@ -2,33 +2,7 @@
    Readable with JS disabled. No page zoom. No scroll listeners. */
 (function () {
   "use strict";
-  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  var items = document.querySelectorAll("[data-reveal]");
-  if (reduced || !("IntersectionObserver" in window)) {
-    items.forEach(function (el) { el.classList.add("in"); });
-  } else {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting) {
-          e.target.classList.add("in");
-          io.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.01, rootMargin: "0px 0px -8% 0px" });
-    items.forEach(function (el) { io.observe(el); });
-  }
-
   var nav = document.getElementById("nav");
-  var sentinel = document.getElementById("nav-sentinel");
-  if (nav && sentinel && "IntersectionObserver" in window) {
-    new IntersectionObserver(function (entries) {
-      nav.classList.toggle("scrolled", !entries[0].isIntersecting);
-    }, { rootMargin: "-80px 0px 0px 0px" }).observe(sentinel);
-  } else if (nav) {
-    nav.classList.add("scrolled");
-  }
-
   var hamburger = document.querySelector(".hamburger");
   var navMenu = document.getElementById("nav-menu");
   var navScrim = document.getElementById("nav-scrim");

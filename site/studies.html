@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css?v=20260906b">
+<link rel="stylesheet" href="/styles.css?v=20260907a">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -39,7 +39,7 @@
 </script>
 <script>document.documentElement.className = "js";</script>
 </head>
-<body>
+<body class="article-page">
 
 <svg width="0" height="0" class="svg-defs" aria-hidden="true">
   <defs>
@@ -52,32 +52,14 @@
   </defs>
 </svg>
 
-<header class="nav" id="nav">
-  <a class="brand" href="/" aria-label="Windtunnel home">
-    <svg viewBox="0 0 512 512" aria-hidden="true">
-      <g transform="rotate(-14 256 256)">
-        <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
-        <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
-      </g>
-    </svg>
-    <span>windtunnel</span>
-  </a>
-  <nav class="links" aria-label="Primary">
-    <div class="nav-menu" id="nav-menu">
-      <a href="/#workflow">How it works</a>
-      <a href="/#metrics">What we measure</a>
-      <a href="/#finding">What we found</a>
-      <a href="/methodology">Method</a>
-      <a href="/studies" aria-current="page">Studies</a>
-    </div>
-    <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
-      <span></span><span></span><span></span>
-    </button>
-    <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
-  </nav>
-</header>
-<div class="nav-scrim" id="nav-scrim"></div>
-<span id="nav-sentinel" aria-hidden="true"></span>
+<a class="skip-link" href="#top">Skip to content</a>
+<header class="nav" id="nav"><div class="wrap nav-inner">
+<a class="brand" href="/" aria-label="Windtunnel home"><svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg><span>windtunnel</span></a>
+<nav class="links" aria-label="Primary"><div class="nav-menu" id="nav-menu">
+<a href="/#workflow">How it works</a><a href="/studies" aria-current="page">Studies</a><a href="/methodology">Method</a>
+</div><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
+<button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu"><span></span><span></span></button>
+</nav></div></header>
 
 
 <main id="top">
@@ -85,27 +67,27 @@
   <section class="stage" aria-labelledby="hub-h">
     <div class="wrap">
       <a class="label back-link" href="/">&larr; Back to Windtunnel</a>
-      <h1 id="hub-h" data-reveal>Published studies, with their limits.</h1>
-      <p class="lead" data-reveal style="--i:1">Self-initiated studies of how AI describes and recommends brands, each with its prompts, sample size, and what it does not show. Every named brand carries its not-a-client disclosure.</p>
+      <h1 id="hub-h">Published studies, with their limits.</h1>
+      <p class="lead">Self-initiated studies of how AI describes and recommends brands, each with its prompts, sample size, and what it does not show. Every named brand carries its not-a-client disclosure.</p>
     </div>
   </section>
 
   <section aria-labelledby="list-h">
     <div class="wrap">
       <h2 id="list-h" class="sr-only">Study list</h2>
-      <article class="study-teaser" data-reveal>
+      <article class="study-teaser">
         <div class="stamps"><span class="stamp">Measured</span><span class="stamp">11 Jul 2026</span><span class="stamp">n=25</span><span class="stamp">DeepSeek &middot; ungrounded</span><span class="stamp">Not a client</span></div>
         <h3><a href="/studies/insta360">AI describes a product generation Insta360 has already moved past.</a></h3>
         <p>Five bare description prompts, five repetitions each, twenty-five stored answers read and coded by a human reviewer. The newest story in the brand&rsquo;s own materials appears in 0 of 25 answers; a category-leader claim AI repeats appears in 13.</p>
         <a class="tlink" href="/studies/insta360">Read the study &rarr;</a>
       </article>
-      <article class="study-teaser" data-reveal>
+      <article class="study-teaser">
         <div class="stamps"><span class="stamp sim">Simulated</span><span class="stamp">9 &amp; 19 Jul 2026</span><span class="stamp">n=5 per engine per message</span><span class="stamp">Directional</span><span class="stamp">Not a client</span></div>
         <h3><a href="/studies/insta360-message-lift">Two partnership messages, two tests, two different answers.</a></h3>
         <p>Two Buyer response tests on candidate Insta360 partnership messages, separate baselines, not a head-to-head. One message moved simulated intent up on both engines; the other moved it backward.</p>
         <a class="tlink" href="/studies/insta360-message-lift">Read the tests &rarr;</a>
       </article>
-      <article class="study-teaser" data-reveal>
+      <article class="study-teaser">
         <div class="stamps"><span class="stamp sim">Simulated</span><span class="stamp">31 Jul 2026</span><span class="stamp">n=30 per message</span><span class="stamp">Not a client</span></div>
         <h3><a href="/studies/hotel-group">The candidate message scored no better than the current one.</a></h3>
         <p>A Message Lift test for a global hotel group, anonymized by design: the current executive-lounge message against a cocktail-messaging rewrite. 3.45 vs 3.41 on the 1 to 5 construct; the candidate was stopped.</p>
@@ -117,28 +99,15 @@
     </div>
   </section>
 
-  <section id="contact" class="stage footer" aria-labelledby="contact-h">
-    <div class="wrap">
-      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
-        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45"><path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/><path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/></g>
-        <path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
-      </svg>
-      <h2 id="contact-h" data-reveal>Find out where your brand stands.</h2>
-      <p class="lead footer-lead" data-reveal style="--i:1">Tell us the category, competitors, or message you need to understand.</p>
-      <div class="cta" data-reveal style="--i:2">
-        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team</a>
-        <a class="tlink" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a>
-      </div>
-      <p class="fineprint" data-reveal style="--i:3">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
-      <div class="sig">
-        <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
-        <span>windtunnel</span>
-      </div>
-      <div class="copy">Windtunnel (windtunnel.observer) · AI visibility audits and message tests · Singapore · 2026</div>
-    </div>
-  </section>
-</main>
 
-<script src="/motion.js?v=20260906b"></script>
+</main>
+<footer class="site-footer" id="contact"><div class="wrap">
+<div class="footer-contact"><h2 id="contact-h">Find out where<br>your brand stands.</h2><div><p>Tell us the category, competitors, or message you need to understand.</p><div class="cta"><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team <span aria-hidden="true">↗</span></a></div></div></div>
+<p class="fineprint">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+<div class="footer-wordmark" aria-hidden="true">windtunnel</div>
+<div class="footer-meta"><span>AI visibility measurement &amp; message testing</span><span>Singapore · 2026</span><a href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a></div>
+</div></footer>
+
+<script src="/motion.js?v=20260907a"></script>
 </body>
 </html>
