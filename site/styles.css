@@ -164,7 +164,7 @@ details > p { margin-top: var(--s5); color: var(--muted); font-size: 16px; }
 }
 /* Homepage composition */
 .hero-grid { display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center; }
-.opening h1 { font-size:clamp(44px,6.4vw,88px);max-width:11ch;letter-spacing:-.065em; }
+.opening h1 { font-size:clamp(44px,4.6vw,64px);max-width:16ch;letter-spacing:-.055em; }
 .opening .lead { max-width:50ch; }
 .opening .label { color:var(--muted); }
 .instrument { min-width:0;padding:24px 0;position:relative; }
@@ -205,7 +205,7 @@ details > p { margin-top: var(--s5); color: var(--muted); font-size: 16px; }
 @media(max-width:1100px){.hero-grid{gap:24px}.message-grid{gap:40px}.research-list a{grid-template-columns:180px 1fr 24px}}
 @media(max-width:767px){
 .hero-grid,.evidence-grid,.message-grid,.pillars,.faq-grid{grid-template-columns:1fr;gap:40px}
-.opening h1{font-size:clamp(44px,10vw,72px);max-width:12ch}.opening h1 br{display:none}
+.opening h1{font-size:clamp(44px,9.5vw,60px);max-width:13ch}.opening h1 br{display:none}
 .instrument{margin-top:16px}.instrument-key{font-size:12px;padding-inline:4px;gap:4px}.instrument .evidence-foot{font-size:14px}
 .finding-number{font-size:112px}.section-intro{margin-bottom:32px}.section-intro h2 br,.footer-contact h2 br{display:none}
 .process li{grid-template-columns:40px 1fr;gap:16px}.process li>.stamp{grid-column:2;width:fit-content;margin-top:0}.process li:not(:last-child)::after{top:70px}

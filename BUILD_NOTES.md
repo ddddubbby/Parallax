@@ -142,6 +142,13 @@ GOAL/DONE: (retroactive) Fiction cut and real Insta360 study published; Vercel p
 NEXT: Open follow-ups are in `STATUS.md`: confirm the hotel-case date against run `cffd5856`; give the hotel and Leica tests their own `/studies` pages.
 GOTCHAS: Cache-busters are manual and must be bumped on all three HTML pages together; `_headers` is inert on Vercel; real run figures live only in the local dev DB, so verify before publishing. Truncated in M56 P3 (D-126).
 
+## S-133 / 2026-09-07 / M58 review fixes (D-131)
+GOAL: Apply the review findings on the M58 site: restore the differentiating H1 and a category-anchored title, remove banned words that survived as negations, link the owned definitions, fix hub title and description length, tighten CSP.
+DONE: `site/index.html` title/H1/JSON-LD WebPage name; two negated banned-word sentences; three `/method/` links (shortlist rate, top-choice rate, shortlist lift); `site/studies.html` title; `site/studies/insta360.html` description ≤155 on all three tags; `site/vercel.json` + `site/_headers` CSP without Google Fonts hosts; D-131 + register edge; BRAND_SITE_GUIDE §5, BRAND_PLAYBOOK §10.2, M58 plan P3 annotated. `site/styles.css` `.opening h1` retuned for the longer headline (desktop clamp 44–64px / 16ch, mobile 44–60px / 13ch) so the hero stays above the fold at 1280; cache-busters bumped to `20260907f` on all 13 pages. Gates: docs:check 20/21, test:site 15/15, lint clean; hero checked at 1280 and 375 in the browser.
+UNVERIFIED: og.jpg still carries “Your brand, through AI’s eyes.” by ruling, not by omission; hosted preview not re-deployed.
+NEXT: Operator review of the restored H1 on the local preview (`pnpm preview:site`); then the M58 handoff items (push m57+m58, PR, domain, form endpoint, mailbox) unchanged.
+GOTCHAS: Playbook §5.3 is a grep list — banned words inside negations still trip it; write the positive form.
+
 ## S-132 / 2026-09-07 / M58
 GOAL: Implement approved unified dark website design.
 DONE: P0 baseline inventory and full homepage screenshot in docs/audits/m58; m58 cut from a27bea9; D-129, plan, status and scope records.

@@ -9,8 +9,8 @@
 | **Build plan** | [M58_BUILD_PLAN.md](M58_BUILD_PLAN.md) |
 | **Branch** | m58 from local M57 a27bea9 |
 | **Current milestone** | M58 — brand website redesign (D-129) |
-| **Milestone state** | Content restored and locally verified (D-130); corrected visual review pending |
-| **Next action** | Review corrected preview with restored product UI and methodology; public push approval remains separate |
+| **Milestone state** | Content restored (D-130); review drifts fixed (D-131: category-anchored title, D-128 H1, banned-word negations, definition links, CSP); local gates green |
+| **Next action** | Operator reviews the D-131 preview (`pnpm preview:site`); then push m57+m58 and open the PR; public publication approval remains separate |
 | **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
 | **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
 | **Pending merge** | m53 remains unmerged by operator decision |

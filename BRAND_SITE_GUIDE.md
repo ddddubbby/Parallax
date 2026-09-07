@@ -105,7 +105,7 @@ observers, scrambling, parallax, continuous motion or scroll-gated content.
 
 ## 5. Homepage blueprint
 
-1. **Opening, `#top`.** H1: “Your brand, through AI’s eyes.” Supporting copy:
+1. **Opening, `#top`.** Title: “Windtunnel · AI visibility audits and message testing”. H1: “Measure how AI recommends your brand. Test which message moves you up its shortlist.” (D-131; the social card keeps “Your brand, through AI’s eyes.” as its image line and og:title). Supporting copy:
    “We measure how AI describes and recommends your brand, then test your current
    message against a new one under the same conditions. You get the evidence, the
    comparison, and the limits.” Request a brand audit and Explore the studies.

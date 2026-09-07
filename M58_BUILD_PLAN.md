@@ -96,7 +96,7 @@ Commit: M58 P2: establish unified terminal visual system.
 
 ### P3 — Homepage
 
-1. Opening H1: “Your brand, through AI’s eyes.” Supporting text: “We measure how
+1. Opening H1: “Your brand, through AI’s eyes.” (superseded by D-131: the D-128 measure/test/shortlist H1 and a category-anchored title are restored; the line survives on the social card and og:title). Supporting text: “We measure how
    AI describes and recommends your brand, then test your current message against
    a new one under the same conditions. You get the evidence, the comparison,
    and the limits.” CTAs: Request a brand audit / Explore the studies.

@@ -457,7 +457,7 @@ that says no is published as a finding, with the same stamps.
 
 D-129 governs public website appearance and section order; claims law remains intact.
 
-1. H1: “Your brand, through AI’s eyes.” Supporting copy explains measurement,
+1. H1: “Measure how AI recommends your brand. Test which message moves you up its shortlist.” (D-131 restored the D-128 claim; “Your brand, through AI’s eyes.” survives only as the social-card line and og:title). Supporting copy explains measurement,
    controlled message comparison, inspectable evidence and explicit limits.
 2. Order: opening and process illustration → report/dashboard showcase → featured
    measured finding → engagement → four metric UI panels → attribution context →
