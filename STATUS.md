@@ -1,49 +1,64 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: the branch-local M56 cleanup pass, phase state, next action, and integration target · TRACKER: M56_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: branch-local M58 phase state, integration and next action · TRACKER: M58_BUILD_PLAN.md
 
-# STATUS.md — M56 control plane
+# STATUS.md — M58 control plane
 
 | Field | Value |
 |---|---|
-| **Active product** | Resonance operator web product — M56 whole-repo cleanup pass (D-126/D-127); no product behavior change |
-| **Product contract** | [PRD.md](PRD.md) (requirements unchanged; drift annotations only) |
-| **Build plan** | [M56_BUILD_PLAN.md](M56_BUILD_PLAN.md) |
-| **Branch** | `m56`, cut from `main@5ba6e65` (the local merge of `m54`) |
-| **Current milestone** | M56 — docs drift, repo noise, plan archival, zero-reference exports |
-| **Milestone state** | Done — all phases committed on `m56`; ready to merge to `main` (push and PR are operator-gated) |
-| **Next action** | Push `main` (carries the m54 site landing 5ba6e65) and `m56`, open the PR for `m56` → `main`; then M57 P0 archives `M56_BUILD_PLAN.md` to `docs/history/` and prunes S-130 (D-025/D-126) |
-| **Blocked on** | Pushing `main`/`m56` and opening the PR need GitHub credentials on this machine (no `gh`, credential helper points at a deleted temp binary) |
-| **Integration order** | `m54` is already on local `main` (5ba6e65); `m56` merges to `main` after P5 |
-| **Pending merge** | `m53` (D-123 sampling terminology, 343ab62, 8 behind main) stays unmerged by operator decision; trunk `PRD.md` has no §8.41 and `DECISIONS.md` no D-123 until it lands |
-| **Parked product** | Resonance GEO agent remains parked (D-116); `AGENT_*` headers read PARKED from M56 P2 |
+| **Active product** | Windtunnel public brand website; no operator product behavior change |
+| **Product contract** | [PRD.md](PRD.md), [BRAND_SITE_GUIDE.md](BRAND_SITE_GUIDE.md) |
+| **Build plan** | [M58_BUILD_PLAN.md](M58_BUILD_PLAN.md) |
+| **Branch** | m58 from local M57 a27bea9 |
+| **Current milestone** | M58 — brand website redesign (D-129) |
+| **Milestone state** | Content restored (D-130); review drifts fixed (D-131: category-anchored title, D-128 H1, banned-word negations, definition links, CSP); local gates green |
+| **Next action** | Operator reviews the D-131 preview (`pnpm preview:site`); then push m57+m58 and open the PR; public publication approval remains separate |
+| **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
+| **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
+| **Pending merge** | m53 remains unmerged by operator decision |
+| **Parked product** | Resonance GEO agent remains parked (D-116); AGENT_* docs unchanged |
 
-## M56 phase ledger
+## Phase ledger
 
-| Phase | Scope | State |
-|---|---|---|
-| P-1 | Merge `m54` (site source) into `main`; cut `m56` | Done (local; push pending) |
-| P0 | D-126/D-127, STATUS, this plan, PROTECTED_REGISTER, audit register, baseline gates | Done |
-| P1 | Repo noise: worktrees, stale branches, upload zip, `.gitkeep`, env var names | Done |
-| P2 | Brand canon rewrite (D-127); current-state docs synced to code | Done |
-| P3 | Archive eight merged plans to `docs/history/`; D-025 BUILD_NOTES truncation | Done |
-| P4 | Delete zero-reference exports DC-01..DC-24 | Done |
-| P5 | Closeout: gates, audit artifacts removed, handoff | Done |
+| Phase | State |
+|---|---|
+| P0 — baseline and governance | Complete |
+| P1 — static verification | Complete; baseline visual defects recorded |
+| P2 — shared visual system | Complete |
+| P3 — homepage | Complete |
+| P4 — research pages | Complete |
+| P5 — assets and canon | Complete |
+| P6 — verification and handoff | Local and preview gates passed; integration/domain follow-ups open |
 
-## Closeout evidence (m56 head)
+## Carried forward from M57
 
-- `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check` (20 governed root docs, 19 historical) green after P4.
-- Full Vitest after the deletions: 915 passed / 12 skipped / 0 failed (unchanged from baseline). Playwright `test:e2e`: 18/18.
-- Grep gates G1–G12 (`M56_BUILD_PLAN.md`): green; the only residue is the playbook's own "don't say" table and the D-114-kept `createFramingStudyFormAction`.
-- Archived plan bodies proven byte-frozen (`git diff HEAD~1:<old> HEAD:<new>` = 2 header lines each).
-- `pnpm build` and `pnpm test:e2e:forecast` results are recorded in the P5 commit's BUILD_NOTES entry.
+- Form endpoint not supplied; retain resonance.research@pm.me mailto. No thanks page exists.
+- Buy/attach windtunnel.observer and www, configure old-domain 301 for >=12 months,
+  provision mailbox, Search Console/Bing, and real sameAs profiles. Do not invent them.
+- Remote merge/push/PR state needs reconciliation. M57 is complete locally except
+  the explicitly deferred form; it is not verified merged or deployed.
+- Future duplicate-helper and operator wording cleanup remain outside M58.
 
-## Baseline evidence (main@5ba6e65)
+## M58 review
 
-- `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm docs:check` (27 governed root docs before the M56 plan, 28 after) green.
-- Full Vitest: 915 passed / 12 skipped / 0 failed (125 files passed, 2 skipped).
-- Playwright `test:e2e`: 18/18.
+Preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app
+(account sign-in required). Production was not published.
 
-## Open follow-ups (not M56 scope)
+Verified: 16 site checks including visual capture; lint/typecheck/docs/diff clean;
+916 unit tests (12 existing skips), 18 operator smoke tests, 4 forecast tests, and
+production build. Mobile Lighthouse: 99 performance, 100 accessibility, 100 best
+practices, 100 SEO; 142 KiB measured page weight. See
+[verification report](docs/audits/m58/REVIEW.md) for scope, images and limitations.
 
-- Hotel-case run date on the live site (31 Jul 2026, from S-123) should be confirmed against run `cffd5856` when the dev DB is up.
-- `/studies` carries only the Insta360 study; the hotel and Leica tests are candidates for their own pages.
-- Duplicate-helper merges and UI "Simulation runs/study pack" wording are recorded in D-126 as a future proposal.
+Custom-domain www/apex redirects, old-domain transfer, mailbox/form/search setup and
+remote M57 integration remain external. The preview has verified clean HTML URLs,
+404 behavior, font delivery and security headers. The existing hosting config and
+robots groups are unchanged.
+
+## Public upload approval gate
+
+Local implementation/verification commit: `dcc0986`. Public push and PR are not done.
+Automatic approval review rejected `git push -u origin m58`: although the existing
+origin is verified as public ddddubbby/Parallax, the branch includes governance docs
+(MASTER_CONTEXT.md and PROTECTED_REGISTER.md) whose public disclosure was not
+specifically approved. It includes the disclosed local M57 prerequisites too.
+[Draft PR description](docs/audits/m58/PR_DESCRIPTION.md) is ready locally. Ask for
+explicit approval for that exact upload; do not use an alternative upload path.

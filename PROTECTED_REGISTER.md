@@ -12,6 +12,13 @@ Every surface below was grep/read-verified to still exist in the current tree (2
 
 ---
 
+## M58 content preservation
+
+D-130 protects the substantive homepage report/dashboard showcase, four metric UI
+panels, full scoring pipeline, Glass Box and method/FAQ content (`site/index.html`).
+Restyling is allowed; removal as an aesthetic simplification is not. The rendered
+HTML/SVG demonstrations keep their real-study or illustrative labels.
+
 ## Protected surfaces
 
 | Surface (file + exact name) | D-number | Why it looks dead but isn't | Confidence |
@@ -27,7 +34,7 @@ Every surface below was grep/read-verified to still exist in the current tree (2
 | `render.yaml` — `generateValue: true` on `CREDENTIALS_ENCRYPTION_KEY` | D-045 | Flagged by an audit as possibly wrong-shaped, then **verified against Render's Blueprint docs and confirmed correct** (always a 256-bit base64 value, exactly what `crypto.ts loadKey()` requires). Explicitly "documented in `RENDER_DEPLOYMENT.md` so the question isn't re-opened." | HIGH |
 | `Intent` type name + the `CellIntent = Intent \| "simulation"` union split + `isAuditIntent` guard (`src/core/matrix.ts`) | D-068 (D-051, D-077) | `Intent` deliberately keeps its name and five audit values so the allocator / PM-9 / frame code keeps compiling; the union split is the C-12 wall. Rejected: widening `Intent` with a sixth value, and "renaming to `AuditIntent` stays optional cosmetics." | HIGH |
 | `audit_runs` table name (`src/db/schema/runs.ts`, `auditRuns`) — holds resonance runs too | D-068 (D-071) | Renaming is "migration churn, zero behavior" even though the table now stores simulation runs; kind-aware UI copy handles the wording instead. Confirmed unchanged again in D-071. | HIGH |
-| The `Parallax` name across repo / package / code identifiers (`package.json` `"name": "parallax"`, module paths, code symbols) | D-063 (D-077) | Product-facing copy says "Resonance," but code identifiers deliberately stay "Parallax" — rejected: "renaming repo/code identifiers (churn, zero behavior gain)." Only external surfaces were re-copied; internal `Parallax` is not stale. | HIGH |
+| The `Parallax` name across repo / package / code identifiers (`package.json` `"name": "parallax"`, module paths, code symbols) | D-063 (D-077, D-128) | Product-facing copy says "Windtunnel" (D-128); "Resonance" joins "Parallax" as internal/historical vocabulary, but code identifiers deliberately stay `Parallax`/`resonance` — rejected: "renaming repo/code identifiers (churn, zero behavior gain)." Only external surfaces are re-copied; internal identifiers are not stale. | HIGH |
 | The `resonance` route segment (`src/app/projects/[id]/resonance/`) | D-077 | M21 renamed the UI copy to "Simulation" but deliberately kept the route path — rejected: "renaming the `resonance` route segment (link/bookmark churn for a copy-only milestone)." | HIGH |
 | The `matrix` route segment (`src/app/projects/[id]/matrix/`) | D-087 | M31 regrouped Matrix under Setup sub-tabs but deliberately kept `/matrix` as its own page/route — same D-077 churn rejection extended: "renaming the `matrix`/`resonance` route segments to match the new nav grouping … is bookmark/link churn for zero behavior gain." | HIGH |
 | Setup Inputs / Prompt matrix / Simulation studies as **separate pages** (`/setup`, `/matrix`, `/resonance`) — never one merged Setup form | D-087 / D-088 (C-4) | M32 replaces the old sub-tab component with sidebar navigation, but preserves the load-bearing separation: folding mutable inputs and frozen matrices into one form would blur C-4. | HIGH |
@@ -121,3 +128,17 @@ Surfaces investigated during the M56 whole-repo cleanup and deliberately kept. A
 | `console.warn` in `src/modules/runner/budget.ts`, `console.error` in `src/modules/framing/observations.ts` | D-076 | Seam bypasses noted for the Sentry swap; changing them is a behavior change outside a cleanup pass. | REVIEW |
 | `"SIMULATION LAYER"` string in `src/core/funnel.ts` | D-077 | Dormant internal stamp for the unreachable `lower` stage; documented in DESIGN_GUIDELINES §1. | REVIEW |
 | Duplicate helpers: `groupBy` ×4, `validIds` ×3, `formatDelta`/`formatPi`/`pct` ×2, two `cosineSimilarity` contracts | D-126 | Merge candidates recorded as a future proposal; the two cosine implementations have different invariants (throw vs truncate) and must not be silently unified. | HIGH |
+
+## M57 pivot (D-128, 2026-09-06)
+
+Surfaces created or deliberately kept during the M57 pivot to Windtunnel. A future pass that flags any of these is re-litigating a settled ruling — cite the D-number.
+
+| Surface (file + exact name) | D-number | Why it looks dead but isn't | Confidence |
+|---|---|---|---|
+| `site/robots.txt` explicit groups — `GPTBot`, `OAI-SearchBot`, `PerplexityBot`, `ClaudeBot`, `Google-Extended` | D-128 | They look redundant with `User-agent: *` `Allow: /`; they are explicit opt-in signals for AI crawlers that many sites block by default, and each group can diverge later without touching `*`. | HIGH |
+| `site/llms.txt` | D-128 | No HTML page references it; it is read by LLM crawlers, not browsers, and is stamped with absolute URLs by `set-site-domain.sh`. | HIGH |
+| Inline JSON-LD blocks (`<script type="application/ld+json">`) in `site/*.html` | D-128 | No runtime effect and invisible on the page — the machine-readable layer for search engines and LLMs. `application/ld+json` is data, not executed script, so the CSP is unaffected. | HIGH |
+| `redirects` block in `site/vercel.json` (www→apex 301) | D-128 | Looks like one more config knob; it is the only code-side redirect — the old-domain redirect is a Vercel domain setting (manual operator step, documented in BRAND_SITE_GUIDE §1.2). | HIGH |
+| `site/thanks.html` | D-128 | Unlinked except by the form endpoint's redirect; `noindex`, never in the sitemap. A post-submit destination, not an orphan. | HIGH |
+| `site/_headers` not mirroring `vercel.json`'s redirects | D-128 | Netlify expresses redirects in `_redirects`, not `_headers`, so `_headers` stays headers-only and inert on Vercel; kept for host portability (same ruling as the D-127 row above). | HIGH |
+| `public/brand/resonance-*.png` / `resonance-*.svg` | D-128 | Historical cone-concept source assets; the filename is the artifact's name, not a brand statement — they are never served from `site/`, so renaming has zero SEO value. | HIGH |

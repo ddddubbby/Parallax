@@ -1,8 +1,8 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: quick orientation and local setup pointer
 
-# Resonance
+# Windtunnel
 
-Resonance measures how AI assistants describe, rank, cite, and misrepresent brands, then runs controlled Message Lift tests. Evidence audits and simulated tests remain structurally separate and never mix their data (C-12).
+Windtunnel measures how AI assistants describe, rank, cite, and misrepresent brands, then runs controlled Message Lift tests. Evidence audits and simulated tests remain structurally separate and never mix their data (C-12).
 
 Legacy lowercase `parallax` package, database, cookie, service, and module identifiers are compatibility-sensitive implementation details. They are not a second product or a human-facing brand.
 
@@ -85,3 +85,8 @@ Render still needs app-level secrets such as `APP_PASSWORD`, `SESSION_SECRET`, a
 ## Render
 
 The first deploy contract is in `RENDER_DEPLOYMENT.md`; the Blueprint is `render.yaml`.
+
+### Static website verification (M58)
+
+`pnpm preview:site` serves only `site/` on http://127.0.0.1:8097 with clean HTML URLs.
+`pnpm test:site` runs isolated Playwright checks without the operator app or database.

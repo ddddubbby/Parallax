@@ -3,22 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Resonance &middot; Understand how AI recommends your brand</title>
-<meta name="description" content="Brand marketing in the agentic shopping era. We measure how AI ranks and describes your brand, then test which message lifts your shortlist and top-choice rates.">
-<link rel="canonical" href="https://resonance.observer/">
-<meta property="og:title" content="Understand how AI recommends your brand. Test what moves you toward its top choice.">
-<meta property="og:description" content="We measure how AI ranks and describes your brand, then test which message lifts your shortlist and top-choice rates.">
+<title>Windtunnel · AI visibility audits and message testing</title>
+<meta name="description" content="Measure how AI describes and recommends your brand. Test Current against New under shared conditions, with inspectable evidence and explicit limits.">
+<link rel="canonical" href="https://windtunnel.observer/">
+<meta property="og:title" content="Windtunnel · Your brand, through AI’s eyes.">
+<meta property="og:description" content="Measure how AI describes and recommends your brand. Test Current against New under shared conditions, with inspectable evidence and explicit limits.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://resonance.observer/og.jpg">
+<meta property="og:image" content="https://windtunnel.observer/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Understand how AI recommends your brand. Test what moves you toward its top choice.">
-<meta name="twitter:description" content="We measure how AI ranks and describes your brand, then test which message lifts your shortlist and top-choice rates.">
-<meta name="twitter:image" content="https://resonance.observer/og.jpg">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260830g">
+<meta name="twitter:title" content="Windtunnel · Your brand, through AI’s eyes.">
+<meta name="twitter:description" content="Measure how AI describes and recommends your brand. Test Current against New under shared conditions, with inspectable evidence and explicit limits.">
+<meta name="twitter:image" content="https://windtunnel.observer/og.jpg">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://windtunnel.observer/#org",
+      "name": "Windtunnel",
+      "url": "https://windtunnel.observer/",
+      "logo": "https://windtunnel.observer/assets/mark.svg",
+      "email": "resonance.research@pm.me",
+      "areaServed": "SG"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://windtunnel.observer/#website",
+      "url": "https://windtunnel.observer/",
+      "name": "Windtunnel",
+      "publisher": {
+        "@id": "https://windtunnel.observer/#org"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://windtunnel.observer/#webpage",
+      "url": "https://windtunnel.observer/",
+      "name": "Windtunnel · AI visibility audits and message testing",
+      "isPartOf": {
+        "@id": "https://windtunnel.observer/#website"
+      },
+      "about": {
+        "@id": "https://windtunnel.observer/#org"
+      },
+      "primaryImageOfPage": "https://windtunnel.observer/og.jpg"
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://windtunnel.observer/#faq",
+      "isPartOf": {
+        "@id": "https://windtunnel.observer/#webpage"
+      },
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Windtunnel a GEO or AEO tool?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "GEO and AEO describe work intended to improve how brands appear in AI answers. Windtunnel is the measurement and testing layer for that work: it measures AI visibility, citations, competitive ranking, and brand perception, then tests messages. It does not publish content, build links, or promise rankings. Agencies use the audit to set a baseline and the test to show what their work changed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Message Lift work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Message Lift begins with a stored AI answer from the same audit. One Current message and one New message then go through shared contexts, so only the message changes. Buyer-response and AI-recommendation results are both labeled simulated."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why run the same audit prompt more than once?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "LLM answers are probabilistic. One answer is an anecdote. Repeated answers support a rate, with a confidence interval where the math supports one."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do results match a consumer chat interface exactly?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Windtunnel uses disclosed API/model routes and settings. Those can differ from a personalized consumer chat session. The site makes no consumer-interface equivalence claim."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is this different from a free “what does ChatGPT say about my brand” checker?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A one-off chat check is one anecdote. Windtunnel samples every prompt repeatedly, reports rates with their sample size and a confidence interval where the math supports one, and stores each answer so every figure traces to its source."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why do AI visibility scores change from day to day?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Answers are sampled from a distribution, so a single run is an anecdote, not a fact about your brand. Windtunnel reports rates over repeated samples, states the sample size, and timestamps every stored answer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this work for Singapore and APAC markets?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Market context is part of every prompt. Results are labeled by market, route, and date, so a Singapore answer is never pooled with one from another market."
+          }
+        }
+      ]
+    }
+  ]
+}</script>
+<link rel="preload" href="/assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css?v=20260907f">
 <script>document.documentElement.className = "js";</script>
 </head>
 <body>
@@ -34,69 +133,21 @@
   </defs>
 </svg>
 
-<header class="nav" id="nav">
-  <a class="brand" href="#top" aria-label="Resonance home">
-    <svg viewBox="0 0 512 512" aria-hidden="true">
-      <g transform="rotate(-14 256 256)">
-        <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
-        <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
-      </g>
-    </svg>
-    <span>resonance</span>
-  </a>
-  <nav class="links" aria-label="Primary">
-    <div class="nav-menu" id="nav-menu">
-      <a href="#workflow">How it works</a>
-      <a href="#metrics">What we measure</a>
-      <a href="#finding">What we found</a>
-      <a href="#methodology">Method</a>
-      <a href="/studies">Studies</a>
-    </div>
-    <button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
-      <span></span><span></span><span></span>
-    </button>
-    <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">Request a brand audit</a>
-  </nav>
-</header>
-<div class="nav-scrim" id="nav-scrim"></div>
-<span id="nav-sentinel" aria-hidden="true"></span>
+<a class="skip-link" href="#top">Skip to content</a>
+<header class="nav" id="nav"><div class="wrap nav-inner">
+<a class="brand" href="/" aria-label="Windtunnel home"><svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg><span>windtunnel</span></a>
+<nav class="links" aria-label="Primary"><div class="nav-menu" id="nav-menu">
+<a href="/#workflow">How it works</a><a href="/studies">Studies</a><a href="/methodology">Method</a>
+</div><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
+<button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu"><span></span><span></span></button>
+</nav></div></header>
 
-<main id="top">
-
-  <section class="hero stage" aria-label="Introduction">
-    <div class="wrap hero-grid">
-      <div class="hero-copy">
-        <p class="eyebrow" data-reveal>Brand marketing in the agentic shopping era</p>
-        <h1 data-reveal style="--i:1">Understand how AI recommends your brand. Test what moves you toward its top choice.</h1>
-        <p class="hero-benefit" data-reveal style="--i:2">We measure where you stand in AI answers today, then test one Current message against one New message and report the lift in shortlist and top-choice rates. Every figure labeled measured or simulated.</p>
-        <div class="btn-row" data-reveal style="--i:3">
-          <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">Request a brand audit</a>
-          <a class="btn ghost" href="#finding">See two real findings</a>
-        </div>
-      </div>
-
-      <div class="hero-visual" data-reveal style="--i:1">
-        <div class="hero-motif" aria-hidden="true">
-          <svg class="hero-cone" viewBox="0 0 512 512">
-            <circle cx="256" cy="252" r="150" fill="none" stroke="rgba(240,238,228,.22)" stroke-width="3"/>
-            <g transform="rotate(-14 256 256)">
-              <ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/>
-              <path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/>
-              <path d="M256 92 L300 336 A104 36 0 0 0 340 322 Z" fill="#fff" opacity=".18"/>
-            </g>
-          </svg>
-          <svg class="hero-wave" viewBox="0 0 960 160" fill="none">
-            <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45">
-              <path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/>
-              <path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/>
-            </g>
-            <path d="M40 84h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
-          </svg>
-        </div>
-
-        <figure class="report-panel">
+<main>
+<section id="top" class="opening"><div class="wrap hero-grid"><div class="hero-copy"><span class="label">AI visibility measurement &amp; message testing</span><h1>Measure how AI recommends your brand.<br> Test which message moves you up its shortlist.</h1><p class="lead">We measure how AI describes and recommends your brand, then test your current message against a new one under the same conditions. You get the evidence, the comparison, and the limits.</p><div class="btn-row"><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit <span aria-hidden="true">↗</span></a><a class="tlink" href="/studies">Explore the studies <span aria-hidden="true">↗</span></a></div></div>
+<figure class="instrument registration" aria-labelledby="instrument-title"><figcaption id="instrument-title" class="label">How an audit works</figcaption><svg viewBox="0 0 500 370" role="img" aria-label="Questions pass through repeated AI answers to an inspectable evidence report."><defs><linearGradient id="instrument-cone" x1="0" x2="1"><stop stop-color="#813413"/><stop offset=".45" stop-color="#F15A24"/><stop offset="1" stop-color="#BF421B"/></linearGradient></defs><g fill="none" stroke="#F0EEE4" stroke-opacity=".25"><path d="M18 64H140L205 154M18 104H120L205 174M18 144H100L205 194M18 184H120L205 214M18 224H140L205 234"/><ellipse cx="257" cy="192" rx="104" ry="138"/><ellipse cx="257" cy="192" rx="76" ry="138"/><path d="M257 24V50M257 334V360M138 192H157M357 192H380M325 152H385L410 120H479M325 192H479M325 232H385L410 264H479"/></g><path d="M257 80L303 271Q265 295 218 271Z" fill="url(#instrument-cone)"/><path d="M218 271Q260 294 303 271L303 281Q261 308 218 281Z" fill="#8F3617"/><g fill="#F15A24"><circle cx="18" cy="64" r="3"/><circle cx="18" cy="104" r="3"/><circle cx="18" cy="144" r="3"/><circle cx="18" cy="184" r="3"/><circle cx="18" cy="224" r="3"/></g><g fill="none" stroke="#F0EEE4" stroke-opacity=".65"><path d="M461 107H484V133H461ZM466 115H479M466 122H477M461 179H484V205H461ZM466 187H479M466 194H477M461 251H484V277H461ZM466 259H479M466 266H477"/></g></svg><div class="instrument-key"><span>Questions</span><span>Repeated answers</span><span>Evidence</span></div><p class="evidence-foot">A controlled process. An inspectable result.</p></figure></div></section>
+<section id="dashboard" aria-labelledby="dashboard-h"><div class="wrap"><div class="section-intro"><span class="label">Inside the report</span><h2 id="dashboard-h">See what the evidence looks like.</h2><p class="lead">A dashboard of findings, with the conditions behind every number. Explore this real report excerpt, then inspect the full studies.</p></div><figure class="report-panel">
           <figcaption class="report-panel-head">
-            <span class="mono">Resonance &middot; Brand audit</span>
+            <span class="mono">Windtunnel &middot; Brand audit</span>
             <span class="stamp">Real study excerpt</span>
           </figcaption>
           <p class="report-panel-title">Insta 360</p>
@@ -104,7 +155,7 @@
 
           <p class="report-panel-section">01 &middot; Presence</p>
           <p class="panel-stat"><span>Mention rate</span><strong>94.9%</strong><small>Wilson 95% CI 89.3&ndash;97.7</small></p>
-          <ul class="bar-chart">
+          <p class="mono">Share of voice</p><ul class="bar-chart">
             <li style="--d:0"><span>DJI</span><span class="bar-track"><span class="bar-fill ink-2" style="--value:100%"></span></span><strong>33.2%</strong></li>
             <li style="--d:1"><span>Go Pro</span><span class="bar-track"><span class="bar-fill ink-3" style="--value:98%"></span></span><strong>32.7%</strong></li>
             <li style="--d:2"><span>Insta 360</span><span class="bar-track"><span class="bar-fill client" style="--value:95%"></span></span><strong>31.5%</strong></li>
@@ -116,94 +167,31 @@
             <span class="positive" style="--value:80.4%">80%</span>
             <span class="neutral" style="--value:18.8%">19%</span>
             <span class="negative" style="--value:0.8%"></span>
-          </div>
+          </div><p class="evidence-foot">Organic sentiment: 80% positive · 19% mixed · 1% negative. Rounded displayed percentages; n=112.</p>
 
           <p class="report-panel-section">Message Lift <span>two framings, one partnership</span><span class="stamp sim">Simulated</span><span class="stamp">Directional</span></p>
           <ul class="panel-lift-list">
             <li>
               <p class="panel-lift-msg">&ldquo;&hellip;collaborating with Leica to enhance image and video quality&rdquo;</p>
-              <p class="panel-lift-row"><span class="panel-lift-meta">9 Jul &middot; OpenAI + DeepSeek &middot; n=5</span><em class="is-up">+0.15 to +0.57</em></p>
+              <p class="panel-lift-row"><span class="panel-lift-meta">9 Jul 2026 &middot; OpenAI + DeepSeek &middot; ungrounded &middot; n=5 per engine per message</span><em class="is-up">+0.15 to +0.57</em></p>
             </li>
             <li>
               <p class="panel-lift-msg">&ldquo;New product with Leica certified lens and Leica designed filters&rdquo;</p>
-              <p class="panel-lift-row"><span class="panel-lift-meta">19 Jul &middot; OpenAI &middot; n=5</span><em class="is-down">&minus;0.31</em></p>
+              <p class="panel-lift-row"><span class="panel-lift-meta">19 Jul 2026 &middot; OpenAI &middot; ungrounded &middot; n=5 per message</span><em class="is-down">&minus;0.31</em></p>
             </li>
           </ul>
           <p class="panel-lift-note">Two separate studies against different baselines, not a head-to-head test. One framing of the partnership moved expressed intent. The other did not.</p>
 
-          <p class="report-panel-foot">Self-initiated study, not client work. Every figure traces to a stored answer. <a class="tlink" href="/studies">See the full study &rarr;</a></p>
-        </figure>
-      </div>
-
-      <aside class="hero-stats" data-reveal style="--i:4" aria-label="Why the AI channel matters now">
-        <div class="hero-stat">
-          <strong>&minus;25%</strong>
-          <p>Gartner projects traditional search engine volume drops 25% by 2026 as buyers shift to AI chatbots and agents.</p>
-          <span class="stat-source">Gartner &middot; Feb 2024</span>
-        </div>
-        <div class="hero-stat">
-          <strong>56%</strong>
-          <p>of US consumers plan to use AI chatbots to compare prices and find deals, per Deloitte&rsquo;s holiday survey.</p>
-          <span class="stat-source">Deloitte &middot; 2025</span>
-        </div>
-        <div class="hero-stat">
-          <strong>10&ndash;20%</strong>
-          <p>of US e-commerce is projected to be agent-driven by 2030, per Morgan Stanley research.</p>
-          <span class="stat-source">Morgan Stanley</span>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <section id="workflow" aria-labelledby="workflow-h">
+          <p class="report-panel-foot">Self-initiated study, not client work. Every figure traces to a stored answer. <a class="tlink" href="/studies/insta360#audit">Inspect the audit example &rarr;</a></p>
+        </figure><p class="evidence-foot">Reconstructed report interface using the previously published study figures. The audit and the two simulated tests are separate evidence sets, not a single combined result. Insta360 was not a client and did not commission or endorse this work.</p></div></section>
+<section id="finding" class="featured"><div class="wrap evidence-grid"><div><span class="label">Independent research / Insta360</span><div class="finding-number" aria-hidden="true">0<span>/25</span></div><p class="mono">Answers mentioning the newest story</p></div><div><h2>The newest story appeared in 0 of 25 answers.</h2><p class="lead">The brand’s 360° camera story was familiar. Its newer positioning was absent from this sample. Being known is different from being understood as intended.</p><div class="stamps"><span class="stamp">Measured</span><span class="stamp">DeepSeek · ungrounded</span><span class="stamp">11 Jul 2026</span><span class="stamp">n=25 · directional</span></div><p class="evidence-foot">Five prompts, five answers each; single-analyst coding. Independent study: Insta360 was not a client, did not commission the work, and did not endorse it.</p><a class="tlink" href="/studies/insta360">Inspect the evidence <span aria-hidden="true">↗</span></a></div></div></section>
+<section id="workflow"><div class="wrap"><div class="section-intro"><span class="label">The engagement</span><h2>From the question<br> to the next decision.</h2><p class="lead">Find the gap between the story you tell and the answers buyers receive. Test a candidate message before deciding what to change.</p></div><ol class="process"><li><span class="step">01</span><div><h3>Discover relevant questions.</h3><p>Define the category, competitors, markets and buying situations that matter.</p></div><span class="stamp">Scope</span></li><li><span class="step">02</span><div><h3>Audit repeated AI answers.</h3><p>Measure how the brand appears across disclosed prompts and engine modes.</p></div><span class="stamp">Measured</span></li><li><span class="step">03</span><div><h3>Inspect the evidence report.</h3><p>Trace findings to stored answers, sample sizes and explicit limitations.</p></div><span class="stamp">Measured</span></li><li class="simulation-step"><span class="step">04</span><div><h3>Test a candidate message.</h3><p>Compare Current and New in shared contexts. These results are simulations.</p></div><span class="stamp">Simulated</span></li><li><span class="step">05</span><div><h3>Re-audit later.</h3><p>A later engagement measures the new state. It is a re-audit, not a subscription.</p></div><span class="stamp">Follow-up</span></li></ol></div></section>
+<section id="metrics" class="metrics-section" aria-labelledby="metrics-h">
     <div class="wrap">
-      <span class="label" data-reveal>01 / How it works</span>
-      <h2 id="workflow-h" data-reveal style="--i:1">As our client, you will always know where you stand.</h2>
-      <p class="lead" data-reveal style="--i:2">Every engagement answers the same four questions, in order. You get each answer labeled, with the sample size shown, so you can see how much weight it carries.</p>
-      <ol class="workflow-timeline" data-reveal style="--i:3" aria-label="Resonance engagement sequence">
-        <li class="workflow-step" style="--step:0">
-          <span class="timeline-node" aria-hidden="true">01</span>
-          <div class="step-card">
-            <span class="step-tag">Prompt discovery</span>
-            <h3>What do your customers ask AI?</h3>
-            <p>We generate the prompt matrix automatically: buying intents crossed with personas and markets, so coverage is designed, not guessed.</p>
-          </div>
-        </li>
-        <li class="workflow-step" style="--step:1">
-          <span class="timeline-node" aria-hidden="true">02</span>
-          <div class="step-card">
-            <span class="step-tag">Baseline audit</span>
-            <h3>Where do you stand in AI answers today?</h3>
-            <p>Repeated sampling measures whether AI names, ranks, describes, and substantiates you.</p>
-          </div>
-        </li>
-        <li class="workflow-step" style="--step:2">
-          <span class="timeline-node" aria-hidden="true">03</span>
-          <div class="step-card">
-            <span class="step-tag">Message Lift test</span>
-            <h3>Would a new message move you up?</h3>
-            <p>One Current and one New message run through shared contexts. Only the message changes.</p>
-            <span class="stamp sim">Simulated</span>
-          </div>
-        </li>
-        <li class="workflow-step" style="--step:3">
-          <span class="timeline-node" aria-hidden="true">04</span>
-          <div class="step-card">
-            <span class="step-tag">Ongoing monitoring</span>
-            <h3>Are you gaining or losing ground?</h3>
-            <p>Quarterly re-audits track your movement, competitor shifts, and new entrants.</p>
-          </div>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section id="metrics" class="metrics-section" aria-labelledby="metrics-h">
-    <div class="wrap">
-      <span class="label" data-reveal>02 / What we measure</span>
-      <h2 id="metrics-h" data-reveal style="--i:1">What we measure, and what each number means.</h2>
-      <p class="lead" data-reveal style="--i:2">The metric names matter less than the decisions behind them. Each pillar answers one question a brand team can act on.</p>
-      <div class="pillar-grid" data-reveal style="--i:3">
+      <span class="label">02 / What we measure</span>
+      <h2 id="metrics-h">What we measure, and what each number means.</h2>
+      <p class="lead">The metric names matter less than the decisions behind them. Each pillar answers one question a brand team can act on.</p>
+      <div class="pillar-grid">
         <article class="pillar-card">
           <p class="pillar-report-line">From the audit report &middot; Pillar 01</p>
           <div class="pillar-meta"><span>01</span><strong>Presence</strong></div>
@@ -221,7 +209,7 @@
             <div class="stamps"><span class="stamp sample">Illustrative example</span><span class="stamp">n=180</span></div>
           </div>
           <ul class="pillar-metrics" aria-label="Presence metrics">
-            <li>Mention Rate</li>
+            <li><a href="/method/mention-rate">Mention Rate</a></li>
             <li>Share of Voice</li>
             <li>Avg First Position</li>
           </ul>
@@ -258,7 +246,7 @@
               <li style="--d:2"><span>Leader, unsupported</span><span class="bar-track"><span class="bar-fill client" style="--value:52%"></span></span><strong>13/25</strong></li>
               <li style="--d:3"><span>Newest story, missing</span><span class="bar-track"><span class="bar-fill client" style="--value:0%"></span></span><strong>0/25</strong></li>
             </ul>
-            <div class="stamps"><span class="stamp">Measured</span><span class="stamp">Insta360 &middot; n=25</span></div>
+            <div class="stamps"><span class="stamp">Measured</span><span class="stamp">Insta360 &middot; n=25</span><span class="stamp">11 Jul 2026 · DeepSeek · ungrounded</span><span class="stamp">Single analyst · directional · not a client</span></div>
           </div>
           <ul class="pillar-metrics" aria-label="Perception metrics">
             <li>Sentiment</li>
@@ -290,88 +278,19 @@
           </ul>
         </article>
       </div>
-      <aside class="confidence-rail" data-reveal style="--i:4" aria-label="Confidence rail">
+      <aside class="confidence-rail" aria-label="Confidence rail">
         <span>Confidence rail</span>
         <strong>Repeated samples. Sample size shown. Uncertainty stated where the metric supports it.</strong>
       </aside>
     </div>
   </section>
-
-  <section id="finding" class="stage case-stage" aria-labelledby="finding-h">
+<section id="why-now" aria-labelledby="why-now-h">
     <div class="wrap">
-      <span class="label" data-reveal>03 / What we found</span>
-      <h2 id="finding-h" data-reveal style="--i:1">Two studies. One found a missing story. One said no.</h2>
-      <p class="lead" data-reveal style="--i:2">Both ran on our own initiative to pressure-test the method. Neither brand was a client.</p>
+      <span class="label">04 / Why now</span>
+      <h2 id="why-now-h">The click no longer tells the whole story.</h2>
+      <p class="lead why-lead">AI can compare, describe, and recommend brands before a buyer reaches a site, sometimes without sending a click at all. Your analytics start after that moment.</p>
 
-      <details class="study-card" data-reveal style="--i:3">
-        <summary>
-          <div class="stamps"><span class="stamp">Measured</span><span class="stamp">11 Jul 2026</span><span class="stamp">n=25</span><span class="stamp">DeepSeek &middot; ungrounded</span><span class="stamp">Not a client</span></div>
-          <h3 class="study-headline">AI describes a product generation Insta360 has already moved past. The newest story appears in 0 of 25 answers.</h3>
-        </summary>
-        <div class="study-body">
-          <dl class="case-stats">
-            <div>
-              <dt>Signature framing reinforced</dt>
-              <dd>20/25</dd>
-              <small>Capture everything, frame later</small>
-            </div>
-            <div class="is-key">
-              <dt>Leadership claim, unsupported</dt>
-              <dd>13/25</dd>
-              <small>AI repeats a claim the brand never makes</small>
-            </div>
-            <div class="is-key">
-              <dt>Direct-to-share mention</dt>
-              <dd>0/25</dd>
-              <small>The newest story, entirely missing</small>
-            </div>
-          </dl>
-          <p class="evidence-foot">Insta360&rsquo;s official materials now lead on direct-to-share output that preserves the 360 footage, yet across all twenty-five stored answers the coded evidence contained no distinct association for it. Five fixed description prompts, five repetitions each; every association was accepted by a human reviewer against a literal span in a stored answer. Limits: one engine, one mode, single-analyst coding, descriptive counts below the n=30 aggregate gate, no confidence interval claimed.</p>
-          <div class="disclosure" role="note">
-            <p>Insta360 was not a client, did not commission this, and did not endorse it. <a class="tlink" href="/studies">Read the full study</a>.</p>
-          </div>
-        </div>
-      </details>
-
-      <details class="study-card" data-reveal style="--i:4">
-        <summary>
-          <div class="stamps"><span class="stamp sim">Simulated</span><span class="stamp">31 Jul 2026</span><span class="stamp">n=30 per message</span><span class="stamp">Not a client</span></div>
-          <h3 class="study-headline">The candidate message scored no better than the current one. A weak message dies in the test, not in market.</h3>
-        </summary>
-        <div class="study-body">
-          <dl class="case-stats">
-            <div>
-              <dt>Current message</dt>
-              <dd>3.45</dd>
-              <small>Buyer response, 1 to 5 expressed-intent construct</small>
-            </div>
-            <div>
-              <dt>New message</dt>
-              <dd>3.41</dd>
-              <small>Same contexts, same construct. Only the message changed</small>
-            </div>
-            <div class="is-key">
-              <dt>Shift</dt>
-              <dd>&minus;0.04</dd>
-              <small>No lift. The candidate does not ship</small>
-            </div>
-          </dl>
-          <p class="evidence-foot">A proposed executive-lounge message for a global hotel group, tested against the current framing. Scores come from a synthetic panel&rsquo;s simulated reactions, benchmarked with anchor sets from independent peer-reviewed research (arXiv:2510.08338). Comparative only: never a sales forecast, never a ranking promise. Limits: one model route, a simulated panel rather than human respondents, a snapshot of the tested date.</p>
-          <div class="disclosure" role="note">
-            <p>The brand, a global hotel group, was not a client, did not commission this, and did not endorse it. We tested a plausible candidate message on our own initiative. The value of the run is the no.</p>
-          </div>
-        </div>
-      </details>
-    </div>
-  </section>
-
-  <section id="why-now" aria-labelledby="why-now-h">
-    <div class="wrap">
-      <span class="label" data-reveal>04 / Why now</span>
-      <h2 id="why-now-h" data-reveal style="--i:1">The click no longer tells the whole story.</h2>
-      <p class="lead why-lead" data-reveal style="--i:2">AI can compare, describe, and recommend brands before a buyer reaches a site, sometimes without sending a click at all. Your analytics start after that moment.</p>
-
-      <figure class="attribution-scene" data-reveal style="--i:3" aria-labelledby="old-scorecard-title">
+      <figure class="attribution-scene" aria-labelledby="old-scorecard-title">
         <div class="scene-head">
           <div><p class="mono">Traditional attribution</p><h3 id="old-scorecard-title">Where the old scorecard starts too late.</h3></div>
         </div>
@@ -380,34 +299,20 @@
       </figure>
     </div>
   </section>
-
-  <section id="what-you-get" aria-labelledby="what-you-get-h">
-    <div class="wrap">
-      <span class="label" data-reveal>05 / What you get</span>
-      <h2 id="what-you-get-h" data-reveal style="--i:1">The old A/B test finds a winner. The new one finds the next message.</h2>
-      <p class="lead" data-reveal style="--i:2">Message Lift starts with the measured audit. It takes one stored AI answer as the baseline, then tests one Current message against one New message.</p>
-
-      <div class="layer-card message-lift-card" data-reveal style="--i:3">
-        <div class="layer-head"><h4>Message Lift</h4><span class="stamp sim">Simulated</span></div>
-        <div class="message-comparison">
+<section id="what-you-get"><div class="wrap"><div class="section-intro"><span class="label">Message Lift / Controlled comparison</span><h2>Shared contexts.<br> Only the message changes.</h2></div><div class="message-comparison">
           <div class="message-card"><p class="mono">Current message</p><p>What you say today.</p></div>
           <div class="parity-connector"><span aria-hidden="true">&rarr;</span><strong>Shared contexts.<br>Only the message changes.</strong></div>
           <div class="message-card is-new"><p class="mono">New message</p><p>The candidate you are considering.</p></div>
         </div>
-        <p class="module-note">Two tests run against the pair. <strong>Buyer response</strong> scores simulated reactions on a 1 to 5 construct. <strong>AI recommendation</strong> supplies each message as context in brand-neutral situations and reports shortlist rate. Both are comparative simulations, never a prediction of sales or AI ranking.</p>
-      </div>
-
-      <p class="lead sample-cta" data-reveal style="--i:4">Want to see the whole thing? <a class="tlink" href="/studies">Read the full Insta360 study</a>, including every prompt we used and every limit that applies.</p>
-    </div>
-  </section>
-
-  <section id="methodology" class="stage" aria-labelledby="methodology-h">
+        <div class="message-grid"><div class="test-types"><div><h3>AI recommendation</h3><p>Compare <a href="/method/shortlist-rate">top-five shortlist</a> and <a href="/method/top-choice-rate">top-choice rates</a> in brand-neutral shopping situations.</p></div><div><h3>Buyer response</h3><p>Compare simulated free-text reactions, scored on the same 1–5 response construct.</p></div><p class="evidence-foot">Both test types are simulated. Neither predicts sales or rankings.</p><a class="tlink" href="/methodology">Read how testing works ↗</a></div><article class="comparison registration"><span class="label">Hotel group / Buyer response</span><h3>A rewrite is not always an improvement.</h3><div class="score-pair"><div><span class="mono">Current</span><strong>3.45</strong></div><div><span class="mono">New</span><strong>3.41</strong></div></div><div class="stamps"><span class="stamp">Simulated</span><span class="stamp">n=30 per message</span></div><p class="evidence-foot">DeepSeek · ungrounded · 31 Jul 2026. Anonymized independent study; not a client. Means on a 1–5 construct, not a significance or equivalence claim.</p><a class="tlink" href="/studies/hotel-group">Read why the candidate was stopped ↗</a></article></div></div></section>
+<section id="research"><div class="wrap"><div class="section-intro"><span class="label">Research &amp; method</span><h2>Evidence you can<br> look beneath.</h2><p class="lead">Repeated sampling makes variability visible. Stored answers make results traceable. We report uncertainty where the method supports it, and state what each study cannot establish.</p></div><div class="research-list"><a href="/studies/insta360"><span class="mono">Measured / n=25</span><h3>The story AI remembers about Insta360.</h3><span aria-hidden="true">↗</span></a><a href="/studies/insta360-message-lift"><span class="mono">Simulated / n=5 per engine per message</span><h3>Two partnership messages. Separate tests.</h3><span aria-hidden="true">↗</span></a><a href="/studies/hotel-group"><span class="mono">Simulated / n=30 per message</span><h3>A hotel rewrite that scored no better.</h3><span aria-hidden="true">↗</span></a></div></div></section>
+<section id="methodology" class="stage" aria-labelledby="methodology-h">
     <div class="wrap">
-      <span class="label" data-reveal>06 / How the scoring works</span>
-      <h2 id="methodology-h" data-reveal style="--i:1">From free-text answer to labeled number.</h2>
-      <p class="lead" data-reveal style="--i:2">Nothing in the scoring is a black box. A stored answer becomes a distribution you can inspect and reproduce, and the anchor method comes from independent peer-reviewed research (arXiv:2510.08338), which Resonance productizes.</p>
+      <span class="label">How the scoring works / Buyer response</span>
+      <h2 id="methodology-h">From free-text answer to labeled number.</h2>
+      <p class="lead">Nothing in the scoring is a black box. A stored answer becomes a distribution you can inspect and reproduce, and the anchor method comes from independent peer-reviewed research (arXiv:2510.08338), which Windtunnel productizes.</p>
 
-      <div class="pipeline" data-reveal style="--i:3" aria-label="Scoring pipeline">
+      <div class="stamps"><span class="stamp">Simulated · Buyer response</span></div><div class="pipeline" aria-label="Scoring pipeline">
         <div class="pipe-stage">
           <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
             <rect x="6" y="6" width="48" height="42" rx="4" stroke="currentColor" stroke-width="1.5"/>
@@ -454,25 +359,24 @@
             <rect x="36" y="27" width="12" height="8" rx="1" stroke="#F15A24" stroke-width="1.5"/>
           </svg>
           <p class="mono">Labeled result</p>
-          <p>The score ships with n, an interval where the math supports one, and its label.</p>
+          <p>Response lift compares mean scores on the 1–5 construct, with n and its simulated label. No confidence interval is invented.</p>
           <span class="stamp sim">Simulated</span>
         </div>
       </div>
 
-      <div class="disclosure glassbox-note" data-reveal style="--i:4" role="note">
-        <p>Every Resonance figure ships in the Glass Box: labeled measured or simulated, gated by sample size, wrapped in its confidence interval where the math supports one, and traceable to the stored raw response behind it.</p>
+      <div class="layer-card"><h3>AI recommendation follows a different path.</h3><p class="lead">Each message is supplied as untrusted context to the same brand-neutral shopping situations. Exactly five ranked recommendations are parsed deterministically. Top-five and top-choice rates describe the result; <a href="/method/shortlist-lift">Shortlist lift</a> compares Current and New in percentage points, with scenario-cluster bootstrap intervals.</p><a class="tlink" href="/methodology#message-testing">Inspect both scoring methods ↗</a></div><div class="disclosure glassbox-note" role="note">
+        <p>Every Windtunnel figure ships in the Glass Box: labeled measured or simulated, gated by sample size, wrapped in its confidence interval where the math supports one, and traceable to the stored raw response behind it.</p>
       </div>
     </div>
   </section>
-
-  <section id="method" aria-labelledby="method-h">
+<section id="method" aria-labelledby="method-h">
     <div class="wrap method-layout">
       <div>
-        <span class="label" data-reveal>07 / Method and limitations</span>
-        <h2 id="method-h" data-reveal style="--i:1">Evidence you can inspect.</h2>
-        <p class="lead" data-reveal style="--i:2">Every result shows when it was produced, which model route was tested, how many answers were reviewed, and where the conclusion stops.</p>
-        <ul class="method-list" data-reveal style="--i:3">
-          <li><strong>Repeated sampling.</strong> Audit prompts run multiple times because model answers vary. Rates describe that distribution.</li>
+        <span class="label">Method and limitations</span>
+        <h2 id="method-h">Evidence you can inspect.</h2>
+        <p class="lead">Every result shows when it was produced, which model route was tested, how many answers were reviewed, and where the conclusion stops.</p>
+        <ul class="method-list">
+          <li><strong><a href="/method/repeated-sampling">Repeated sampling</a>.</strong> Audit prompts run multiple times because model answers vary. Rates describe that distribution.</li>
           <li><strong>Measured versus simulated.</strong> Visibility evidence comes from stored model answers. Both Message Lift test types are comparative simulations. The two evidence classes never mix.</li>
           <li><strong>Current/New prompt parity.</strong> Both messages use the same prompts and settings. Only the message changes.</li>
           <li><strong>Provider and model disclosure.</strong> Every figure names the API/model route and mode that produced it.</li>
@@ -481,11 +385,11 @@
           <li><strong>Snapshot limitations.</strong> Conclusions apply only to the tested prompts, routes, modes, and date.</li>
         </ul>
       </div>
-      <div class="faq" data-reveal style="--i:4">
+      <div class="faq" id="faq">
         <h3 class="faq-title">FAQ</h3>
         <details>
-          <summary>Is Resonance a GEO or AEO tool?</summary>
-          <p>GEO and AEO describe work intended to improve how brands appear in AI answers. Resonance measures AI visibility, citations, competitive ranking, and brand perception, then tests messages. It does not publish content or promise ranking improvements.</p>
+          <summary>Is Windtunnel a GEO or AEO tool?</summary>
+          <p>GEO and AEO describe work intended to improve how brands appear in AI answers. Windtunnel is the measurement and testing layer for that work: it measures AI visibility, citations, competitive ranking, and brand perception, then tests messages. It does not publish content, build links, or promise rankings. Agencies use the audit to set a baseline and the test to show what their work changed.</p>
         </details>
         <details>
           <summary>How does Message Lift work?</summary>
@@ -497,34 +401,31 @@
         </details>
         <details>
           <summary>Do results match a consumer chat interface exactly?</summary>
-          <p>No. Resonance uses disclosed API/model routes and settings. Those can differ from a personalized consumer chat session. The site makes no consumer-interface equivalence claim.</p>
+          <p>No. Windtunnel uses disclosed API/model routes and settings. Those can differ from a personalized consumer chat session. The site makes no consumer-interface equivalence claim.</p>
+        </details>
+        <details>
+          <summary>How is this different from a free &ldquo;what does ChatGPT say about my brand&rdquo; checker?</summary>
+          <p>A one-off chat check is one anecdote. Windtunnel samples every prompt repeatedly, reports rates with their sample size and a confidence interval where the math supports one, and stores each answer so every figure traces to its source.</p>
+        </details>
+        <details>
+          <summary>Why do AI visibility scores change from day to day?</summary>
+          <p>Answers are sampled from a distribution, so a single run is an anecdote, not a fact about your brand. Windtunnel reports rates over repeated samples, states the sample size, and timestamps every stored answer.</p>
+        </details>
+        <details>
+          <summary>Does this work for Singapore and APAC markets?</summary>
+          <p>Market context is part of every prompt. Results are labeled by market, route, and date, so a Singapore answer is never pooled with one from another market.</p>
         </details>
       </div>
     </div>
   </section>
-
-  <section id="contact" class="stage footer" aria-labelledby="contact-h">
-    <div class="wrap">
-      <svg class="wave" viewBox="0 0 960 160" fill="none" aria-hidden="true">
-        <g stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".45"><path d="M120 64c120 0 160-40 240-40s120 56 240 56 160-32 240-32"/><path d="M120 104c120 0 160 24 240 24s120-48 240-48 160 40 240 40"/></g>
-        <path d="M40 88h180c90 0 130-36 220-36s130 72 220 72 130-36 260-36" stroke="#F15A24" stroke-width="6" stroke-linecap="round"/>
-      </svg>
-      <h2 id="contact-h" data-reveal>Find out where your brand stands.</h2>
-      <p class="lead footer-lead" data-reveal style="--i:1">Tell us the category, competitors, or message you need to understand.</p>
-      <div class="cta" data-reveal style="--i:2">
-        <a class="btn primary" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">Email the research team</a>
-        <a class="tlink" href="mailto:resonance.research@pm.me?subject=Resonance%20brand%20audit%20inquiry">resonance.research@pm.me</a>
-      </div>
-      <p class="fineprint" data-reveal style="--i:3">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
-      <div class="sig">
-        <svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg>
-        <span>resonance</span>
-      </div>
-      <div class="copy">Resonance · AI visibility · brand perception · message testing · 2026</div>
-    </div>
-  </section>
 </main>
+<footer class="site-footer" id="contact"><div class="wrap">
+<div class="footer-contact"><h2 id="contact-h">Find out where<br> your brand stands.</h2><div><p>Tell us the category, competitors, or message you need to understand.</p><div class="cta"><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team <span aria-hidden="true">↗</span></a></div></div></div>
+<p class="fineprint">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+<div class="footer-wordmark" aria-hidden="true">windtunnel</div>
+<div class="footer-meta"><span>AI visibility measurement &amp; message testing</span><span>Singapore · 2026</span><a href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a></div>
+</div></footer>
 
-<script src="motion.js?v=20260830g"></script>
+<script src="/motion.js?v=20260907f"></script>
 </body>
 </html>

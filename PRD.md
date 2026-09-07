@@ -1,8 +1,8 @@
-> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Resonance Evidence and Message Lift product scope through M55 market-context prompt guardrail, with M56 drift annotations · TRACKER: STATUS.md
+> LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: Windtunnel Evidence and Message Lift product scope through M55 market-context prompt guardrail, with M56 drift annotations · TRACKER: STATUS.md
 
-# PRD.md - Resonance MVP
+# PRD.md - Windtunnel MVP
 
-> **STATUS: M55 (D-125) merged to `main` via GitHub PR #16 (2026-08-03). M56 whole-repo cleanup pass in progress on `m56` (D-126/D-127; no product change). M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M56 merged to `main` via GitHub PR #17 (2026-09-06). M58 brand website redesign implemented on `m58`; review and integration pending (D-129; no product change). Local M57 a27bea9 is the implementation base; refreshed origin/main remains at M56 c478231. M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent (historical name) remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; Executed milestone plans (M43–M55) are archived in `docs/history/`.
 
@@ -10,13 +10,13 @@
 
 ## 1. Vision
 
-Resonance is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and tests whether a new message moves the brand up the AI's shortlist (Message Lift, D-119). It was organized around two named epistemic layers (D-077; the layer names were retired as primary product language by D-119): the Evidence audit (Presence, Position, and Perception as the Four P pillars answering the client's core questions, with Proof as the trust rail underneath all three), and the simulation half, now the two Message Lift test types (Buyer response, AI recommendation), plus the M20 study template packs as historical presets. The split is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
+Windtunnel is the product umbrella (D-063): an internal operator tool that measures how AI assistants present a brand at every buying stage and tests whether a new message moves the brand up the AI's shortlist (Message Lift, D-119). It was organized around two named epistemic layers (D-077; the layer names were retired as primary product language by D-119): the Evidence audit (Presence, Position, and Perception as the Four P pillars answering the client's core questions, with Proof as the trust rail underneath all three), and the simulation half, now the two Message Lift test types (Buyer response, AI recommendation), plus the M20 study template packs as historical presets. The split is a presentation layer over the existing pillar/intent taxonomy — no stored data, metric keys, or intents are renamed by it.
 
-Resonance turns a multi-week manual research task—“how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?”—into a same-day operator pipeline. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations. Legacy lowercase `parallax` identifiers remain internal for compatibility (D-119).
+Windtunnel turns a multi-week manual research task—“how do AI assistants describe, rank, recommend, and misrepresent this brand versus competitors?”—into a same-day operator pipeline. The software runs, counts, stores evidence, and drafts. The operator remains responsible for prompt curation, QA, claim confirmation, and final recommendations. Legacy lowercase `parallax` identifiers remain internal for compatibility (D-119).
 
 Message Lift tests have a different epistemic status from the Evidence audit: measured and simulated data never mix (C-12), tests start from a stored measured answer (C-13), and simulation claims are comparative only (C-14). The product is an internal operator tool: the existing shared-password login stays (it guards spendable credentials); multi-user, client portals, and payments are post-PoC.
 
-## 2. How Resonance works
+## 2. How Windtunnel works
 
 1. The operator creates a project and enters the client brand, aliases, competitors, fact sheet, desired attributes, personas, and target markets.
 2. The app generates a prompt matrix across the five allocated audit intent types plus the appended `representation` intent (D-102), every ordinary cell prefixed with the canonical `market-context.v1` instruction (D-125), defaulting to 40 prompt cells and never exceeding 50.
@@ -342,7 +342,7 @@ OX-6 (M15): Jargon pass: operator-facing terms (cell, rep, engine-mode) get inli
 
 FL-1: A pure core mapping (`src/core/funnel.ts`) assigns pillars to funnel stages: Presence -> Upper, Position + Perception -> Mid, Proof -> trust rail (never a stage), lower funnel fed by resonance metrics only. Additive over D-051; no pillar/metric/intent renames.
 FL-2: Dashboard and matrix pillar sections display their funnel-stage chip; Proof displays "TRUST RAIL". Chips are structural (badge tokens), never a new accent (V-2).
-FL-3 (superseded by D-119): Resonance is the only product name. Compatibility-sensitive lowercase internal identifiers are not renamed.
+FL-3 (superseded by D-119, D-128): Windtunnel is the only external product name. Compatibility-sensitive internal identifiers, including `resonance`, are not renamed.
 FL-4: A shared `SimulatedBadge` component exists; every simulation surface added in M17+ must render it (C-12).
 FL-5: Project subnav gains a Resonance item from M16 (stub until M17); glossary gains funnel-stage and simulated terms.
 
@@ -524,7 +524,7 @@ The `/resonance` workspace is Message Lift: compare one verbatim Current message
 4. **Simple controls** — exactly two messages, one AI model, ungrounded mode, fixed k=5. No exposed statistical or scoring configuration.
 5. **Transparent evidence** — Prompts view in draft and frozen states; representative and complete prompt pairs; reports call the method section “How this was tested”; Evidence JSON contains every exact request, raw response, deterministic extraction, and metric.
 6. **Strict dispatch** — Evidence audits use paid extraction; Buyer response uses response scoring/embeddings; AI recommendation has no secondary provider. Models and test types are never pooled.
-7. **Compatibility** — historical studies, prompts, results, routes, and IDs remain readable. Resonance is the sole product name; lowercase legacy internal identifiers remain implementation details.
+7. **Compatibility** — historical studies, prompts, results, routes, and IDs remain readable. Windtunnel is the sole external product name (D-128); `Resonance` joins `Parallax` as internal vocabulary; lowercase legacy internal identifiers remain implementation details.
 
 Execution playbook (historical): `docs/history/M49_BUILD_PLAN.md`. Schema: migration `0023_m49_message_lift_tests.sql`.
 
@@ -661,10 +661,13 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M52 | Run detail Diagnostics consolidation (D-122) | Overview narrative + Diagnostics drill-down; Events/Extraction tabs retired; `events`/`extraction` URL aliases; simulation Diagnostics events-only; no migration | Done on `main` via GitHub PR #14 |
 | M54 | Collecting responses Overview substance trace (D-124) | Overview Collecting responses lanes (ask / collect / read-or-score); `liveActivity` on run detail; plain-language status; no SSE/migration | Done on `main` via GitHub PR #15 |
 | M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `main` via GitHub PR #16 |
-| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | Done on `m56` (D-126/D-127); merge to `main` pending push |
+| M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | Done on `m56` (D-126/D-127); merged to `main` via PR #17 |
+| M57 | Pivot to Windtunnel, site compliance, SEO page architecture (D-128) | External name Windtunnel on every visible surface; live site to D-127 lexicon; study/method/methodology pages; JSON-LD, robots AI-bot groups, llms.txt, www→apex 301, contact form | P0–P2b done on `m57`; P3 contact form blocked on operator endpoint |
+| M58 | Brand website redesign (D-129) | Unified dark site, clear offer, preserved evidence, site-only verification | Code complete — unverified: custom-domain redirects and integration; local/preview gates pass |
 
 Progress notes:
 
+- 2026-09-06 M57 pivot to Windtunnel (D-128): every visible surface renamed from Resonance (compatibility identifiers untouched), site copy to the D-127 lexicon, studies hub with per-study pages and six `/method/*` definition pages plus `/methodology`, inline JSON-LD, AI-crawler robots groups, `llms.txt`, www→apex 301, and dev-DB-verified hotel and Insta360 Message Lift study pages; the og.jpg social card rebuilt with the Windtunnel design after the review found the original carried the old wordmark. P3 contact form pending the operator's form endpoint. No product behavior change, no migration.
 - 2026-09-06 M56 cleanup pass (D-126/D-127): docs drift synced to code, `AGENT_*` headers PARKED, brand canon rewritten, eight merged plans archived to `docs/history/`, D-025 truncation, repo noise and zero-reference exports removed. No product change. M53 (D-123) remains on branch `m53` by operator decision; §8.41 is intentionally absent on trunk until it merges.
 - 2026-08-02 M54 P0 governance (D-124): branch `m54` cut from `main@b49b645`; D-124; `M54_BUILD_PLAN.md`; STATUS/PRD §8.42/index retargeted. No migration. Implementation merged to `main` via GitHub PR #15.
 - 2026-08-02 M55 Done (D-125, no migration): exact `market-context.v1` ordinary-prompt rendering; missing/unknown/altered approval rejection at action and repository boundaries; archived-inclusive copied-draft upgrade; representation isolation and legacy-approved run compatibility. Gates: focused 42 + DB 29, lint, typecheck, docs:check (26), Vitest 909/12, build, Playwright 18/18, mock worker e2e 6/6. Evidence: BUILD_NOTES S-128.

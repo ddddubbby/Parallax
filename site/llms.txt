@@ -1,0 +1,25 @@
+# Windtunnel
+
+> Windtunnel measures how AI describes and recommends brands, then tests Current and New messages under shared conditions. Audit evidence is measured; AI recommendation and Buyer response comparisons are simulated. Results disclose routes, modes, dates, sample sizes and limits, and trace to stored answers.
+
+## Studies
+
+- [What AI says about Insta360](https://windtunnel.observer/studies/insta360): five bare description prompts, five repetitions each, twenty-five stored answers, human-reviewed coding. Insta360 was not a client, did not commission the study, and did not endorse it.
+- [Insta360 Message Lift tests](https://windtunnel.observer/studies/insta360-message-lift): two Buyer response tests on partnership messages; separate baselines, not a head-to-head; every engine's result shown; n=5 per engine per message, directional. Insta360 was not a client and did not endorse these tests; Leica was not involved.
+- [Hotel group Message Lift test](https://windtunnel.observer/studies/hotel-group): a self-initiated test for a global hotel group (anonymized, not a client): simulated Buyer response, candidate message 3.41 vs current 3.45, n=30 per message, and the candidate was stopped.
+- [Studies hub](https://windtunnel.observer/studies): all published studies with their limits.
+
+## Method
+
+- [Repeated sampling and confidence intervals](https://windtunnel.observer/methodology): how each prompt is sampled repeatedly, which metrics carry Wilson intervals, the n>=30 gate, and where a conclusion stops.
+- [Repeated sampling](https://windtunnel.observer/method/repeated-sampling): every audit prompt runs k=5 times per model and mode; rates describe the distribution of answers.
+- [Mention rate](https://windtunnel.observer/method/mention-rate): share of unbranded answers that name the brand unprompted; Wilson confidence interval.
+- [Shortlist rate](https://windtunnel.observer/method/shortlist-rate): share of valid AI-recommendation answers that place the brand among the five ranked recommendations; also called top-five inclusion rate.
+- [Top-choice rate](https://windtunnel.observer/method/top-choice-rate): share of valid AI-recommendation answers that rank the brand first.
+- [Shortlist lift](https://windtunnel.observer/method/shortlist-lift): New minus Current shortlist rate, in percentage points, with a scenario-cluster bootstrap interval.
+- [Stability index](https://windtunnel.observer/method/stability-index): mean pairwise Jaccard of top-5 tracked-brand sets across repeated samples; point estimate, no interval.
+
+## Contact
+
+- Email: [resonance.research@pm.me](mailto:resonance.research@pm.me) for brand audit inquiries.
+- Site: [windtunnel.observer](https://windtunnel.observer/)

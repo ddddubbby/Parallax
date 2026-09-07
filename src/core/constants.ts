@@ -1,3 +1,8 @@
+// D-128: the external product name and the only source of it in src/.
+// Identifiers, routes, DB values, and file names keep the internal `resonance`
+// vocabulary (compatibility-sensitive, never renamed).
+export const PRODUCT_NAME = "Windtunnel";
+
 // Guardrail defaults from DEVELOPMENT_GUIDELINES.md section D and PRD PM-2.
 // These are the canonical values; nothing else in the codebase may restate them.
 

@@ -1,0 +1,650 @@
+[
+  {
+    "route": "/",
+    "width": 1440,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies",
+    "width": 1440,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/insta360",
+    "width": 1440,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/hotel-group",
+    "width": 1440,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/methodology",
+    "width": 1440,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/method/mention-rate",
+    "width": 1440,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      }
+    ]
+  },
+  {
+    "route": "/",
+    "width": 1280,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies",
+    "width": 1280,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/insta360",
+    "width": 1280,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/hotel-group",
+    "width": 1280,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/methodology",
+    "width": 1280,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/method/mention-rate",
+    "width": 1280,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      }
+    ]
+  },
+  {
+    "route": "/",
+    "width": 768,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies",
+    "width": 768,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/insta360",
+    "width": 768,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/hotel-group",
+    "width": 768,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/methodology",
+    "width": 768,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/method/mention-rate",
+    "width": 768,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      }
+    ]
+  },
+  {
+    "route": "/",
+    "width": 390,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies",
+    "width": 390,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/insta360",
+    "width": 390,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/studies/hotel-group",
+    "width": 390,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/methodology",
+    "width": 390,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      }
+    ]
+  },
+  {
+    "route": "/method/mention-rate",
+    "width": 390,
+    "errors": [],
+    "resources": [
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/space-grotesk-latin.woff2",
+        "bytes": 22320
+      },
+      {
+        "name": "http://127.0.0.1:8097/styles.css?v=20260907e",
+        "bytes": 23509
+      },
+      {
+        "name": "http://127.0.0.1:8097/motion.js?v=20260907e",
+        "bytes": 2459
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/ibm-plex-mono-latin.woff2",
+        "bytes": 10052
+      },
+      {
+        "name": "http://127.0.0.1:8097/assets/fonts/inter-latin.woff2",
+        "bytes": 48432
+      }
+    ]
+  }
+]

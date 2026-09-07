@@ -28,12 +28,16 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
-## S-130 / 2026-09-06 / M56 whole-repo cleanup pass (Fable)
-GOAL: Execute the approved M56 plan: land the m54 site source on main, then docs drift, repo noise, plan archival + D-025 truncation, zero-reference exports. Register-first per AUDIT_METHODOLOGY; every Delete has rg proof in `docs/audits/m56/AUDIT_REGISTER.md`.
-DONE: P-1 — `m54` merged into `main` locally with a merge commit (5ba6e65; only conflict was BUILD_NOTES, resolved additively); m56 cut from main. P0 — D-126/D-127, STATUS, M56 plan, PROTECTED_REGISTER M56 section, audit register (baseline: lint 0 warnings, typecheck, docs:check 28, `pnpm test` 915/12, `pnpm test:e2e` 18/18). P1 — worktrees pruned, `strange-carson` worktree+branch and `chore/purge-apple-design-skill` deleted, upload zip / `.pnpm-store-link/` / `public/.gitkeep` removed, `EMBEDDING_PROVIDER`/`OPENAI_EMBEDDING_MODEL` names added to `.env.example`. P2 — BRAND_PLAYBOOK and BRAND_SITE_GUIDE rewritten in place (claims law, Glass Box, voice, visual law verbatim); README, MASTER_CONTEXT, PRD, DEVELOPMENT_GUIDELINES, ENGINEERING_SPEC, DESIGN_GUIDELINES, RELEASE_CHECKLIST, RENDER_DEPLOYMENT synced to code; AGENT_* headers PARKED. P3 — M43/M47/M49/M50/M51/M52/M54/M55 plans archived (bodies byte-frozen, verified), BUILD_NOTES truncated to stubs per D-025. P4 — DC-01..DC-24 deleted; typecheck, lint, full Vitest 915/12 (unchanged), `test:e2e` 18/18 after the deletions. P5 — `docs/audits/m56/` removed; gates re-run: docs:check 20/19, `git diff --check` clean, G1–G12 green, `pnpm build` exit 0 (run with the `.env.local` `HTTPS_PROXY` bypassed: the local 127.0.0.1:7890 proxy was down, so `next/font` could not fetch Google Fonts through it — same environmental cause STATUS recorded for M55), `pnpm test:e2e:forecast` 4 passed (20.7s).
-REJECTED: opening GitHub PR #17 for the m54 landing — no `gh` on the machine and the git credential helper points at a deleted temp binary, so the merge landed locally; pushing `main`/`m56` and the PR are operator-gated.
-NEXT: Operator pushes `main` and `m56` (needs GitHub credentials; `gh` is absent and the credential helper points at a deleted temp binary) and opens the PR `m56` → `main`. After merge, M57 P0 archives `M56_BUILD_PLAN.md` and prunes this entry (D-025/D-126). Open follow-ups stay in STATUS: hotel-case date vs run `cffd5856`; `/studies` pages for the hotel and Leica tests; `m53` (D-123) merge decision.
-GOTCHAS: Pushing is impossible from this machine until a credential helper exists; local `main` is two merges ahead of `origin/main` (m54 landing) and `m56` is unpushed. `git worktree remove` on a detached worktree needs `--force`. Restricting `git show -M` to the new path breaks rename pairing; verify archived-plan freezes with `git diff <parent>:<old> HEAD:<new>`. A `git commit --amend` commits everything staged, including an earlier `git rm` meant for a later phase. `pnpm build` fails with `next/font` fetch errors whenever the local proxy in `.env.local` is not running; run it with `HTTPS_PROXY= HTTP_PROXY= NO_PROXY='*'` or start the proxy.
+## S-130 / 2026-09-06 / M56 whole-repo cleanup pass: merged to main via PR #17, entry truncated per Rule 2 (D-025)
+GOAL/DONE: (retroactive) D-126/D-127 executed; brand canon rewritten; eight plans archived; zero-reference exports deleted. Gates green at 9dd5a23.
+NEXT: Nothing pending from M56. Current work is S-131 below (M57).
+
+## S-131 / 2026-09-06 / M57 pivot to Windtunnel
+GOAL: Execute the M57 plan (D-128): external brand pivot, site copy to the D-127 lexicon, SEO page architecture, contact form; no product behavior change.
+DONE: P0 (174c3fd) — D-128 + two register edges after D-127; `M56_BUILD_PLAN.md` archived byte-frozen (diff vs HEAD~1 shows the header line only); `M57_BUILD_PLAN.md`; STATUS/PRD/MASTER_CONTEXT synced; proxy gotcha graduated to DEVELOPMENT_GUIDELINES §G; PROTECTED_REGISTER M57 section; S-130 truncated; docs:check 20/20. P1a (6825fe3) — Windtunnel on every site surface, og/mark/brand-kit assets, `set-site-domain.sh` extended (all HTML + robots + sitemap + llms.txt + canonical/JSON-LD/llms patterns; idempotency re-verified), www→apex 301 in `site/vercel.json`, three FAQ additions, root-docs sweep. P1b (987ea8c) — `PRODUCT_NAME` in `src/core/constants.ts`; literals replaced in layout/login/shell/pipeline/run-form/export-JSON/report service plus two review-found user-visible strings the plan list missed (`prompt-disclosure-panel`, `study-wizard`); `ui-contracts` guard test scans `src/app`+`src/components` for `\bResonance\b` outside comments (excludes `*.test.`); gates: lint, typecheck, Vitest 916/12, e2e 18/18, build. P2a (1f0167d) — `studies.html` → `studies/insta360.html` (history preserved), hub, `/methodology`, six `/method/*` DefinedTerm pages, index `@graph` (Organization/WebSite/WebPage/FAQPage), robots 6 UA groups, sitemap 10 URLs, `llms.txt`, k=5 row added to playbook §5.4, guide synced. P2b (c126770) — hotel-group + insta360-message-lift pages, every figure verified read-only against the dev DB: run `cffd5856` completed 2026-07-30 17:07 UTC = 31 Jul SGT (site date correct, unchanged), DeepSeek, n=30 per message, Current 3.448/New 3.413 → 3.45/3.41; run `99da3549` (9 Jul, DeepSeek+OpenAI) lifts +0.575/+0.153 → +0.15/+0.57; run `f521c669` (19 Jul, OpenAI) −0.307 → −0.31; hub/sitemap(12)/llms.txt updated; `marriott` grep on `site/` empty. Review fixes — P1b JSX bug: `${PRODUCT_NAME}` template literal sat as JSX text (run-creation-form) and would render verbatim; replaced with `{PRODUCT_NAME}` expression; lint/typecheck/Vitest 916/12 re-run green. P1a og card: original `og.jpg` was a designed social card with the old wordmark; rebuilt the design in `og.svg` (Instrument Serif headline, shortlist panel, waves, brand cone, Space Grotesk `windtunnel` wordmark) and rendered 1200×630 via headless Chrome loading the Google Fonts stylesheet (no local font install); index og/twitter descriptions synced to the new copy.
+UNVERIFIED: Nothing deployed — domain not purchased/attached, so canonical/sitemap/JSON-LD URLs are provisional `windtunnel.observer` until Vercel attach + old-domain 301; the rebuilt og card is a coded recreation of the original design (flat brand cone instead of the photoreal one) — operator review of the render welcome; P3 contact form not built (no endpoint); optional `npx vercel --cwd site` cleanUrls collision preview not run (no CLI auth); post-deploy Search Console/Bing steps are operator items.
+NEXT: When the operator provides the form endpoint: P3 commit — form in `site/index.html#contact` (name/work email/brand/honeypot, endpoint redirect to `/thanks`, submit "Request a brand audit"), `site/thanks.html` (noindex, out of sitemap), nav/hero CTAs → `/#contact` (mailto count on index drops to 1), CSP `form-action 'self' https://<endpoint-host>` in `vercel.json` + `_headers` in the same commit, two-CTA-intent updates in guide §5/§11 and playbook §10.2 item 3. Then: full gates, push `m57`, open the PR (push needs operator credentials; `gh` absent).
+GOTCHAS: `git mv` + editing the moved file without re-`git add` commits the OLD content (caught at P0 via the 100%-similarity rename; re-added and amended). JSX template literals as JSX CHILD TEXT render verbatim and no gate catches it — write `{EXPR}` not `` `${EXPR}` `` in element bodies. Chrome headless renders webfonts only from a document context: screenshot an HTML wrapper that inlines the SVG and links the Google Fonts stylesheet with `--virtual-time-budget=15000`; SVG-in-`<img>` would isolate fonts, and `@resvg/resvg-cli` does not exist on npm. The §12 banned-vocab grep needs `wind tunnel|WindTunnel` run case-SENSITIVELY — under `-i` the `WindTunnel` alternative matches the correct "Windtunnel". Remaining grep hits on `site/` are sanctioned: the `resonance.research@pm.me` mailto (until the operator mailbox exists), "No ranking guarantees" disclaimers, and the pre-existing "probability mass" PMF line in the scoring section.
 
 ## S-118..S-129 / 2026-07-20..2026-08-03 / M47, M49–M55: merged to main via PRs #8, #10–#16, entries truncated per Rule 2 (D-025)
 GOAL/DONE: (retroactive) M47 (D-118), M49 Message Lift (D-119, incl. the migration-drift repair and Marriott recovery sessions), M50 forecast (D-120), M51 honesty/remediation (D-121), M52 Diagnostics (D-122), M54 Collecting responses (D-124), M55 market context (D-125). Durable content graduated to `DECISIONS.md`, `PRD.md` §8.36–§8.43 and §11, `docs/history/M47..M55_BUILD_PLAN.md`, and `ENGINEERING_SPEC.md` §2 (the C-6 drift-repair lesson). Three S-numbers (121–123) were issued twice on parallel branches; both entries are gone, none renumbered.
@@ -137,3 +141,65 @@ GOTCHAS: Archive/prune ran on `m47` P0 because PR #7's merge commit left the D-0
 GOAL/DONE: (retroactive) Fiction cut and real Insta360 study published; Vercel package (`vercel.json`, `robots.txt`, `sitemap.xml`, `404.html`, `__SITE_URL__` + `scripts/set-site-domain.sh`); the August war-room rebuild (question-led workflow, 2.5D pillar cards, scoring pipeline section, hero report panel with verified run `a45cbc1e` figures and both Leica Message Lift results, anonymized hotel case); live domain stamped and canonicals added. Durable facts graduated to `BRAND_SITE_GUIDE.md` §1/§6/§7/§9/§10/§11, `RENDER_DEPLOYMENT.md` (marketing-site section), and `BRAND_PLAYBOOK.md` §5.4/§9 (D-127).
 NEXT: Open follow-ups are in `STATUS.md`: confirm the hotel-case date against run `cffd5856`; give the hotel and Leica tests their own `/studies` pages.
 GOTCHAS: Cache-busters are manual and must be bumped on all three HTML pages together; `_headers` is inert on Vercel; real run figures live only in the local dev DB, so verify before publishing. Truncated in M56 P3 (D-126).
+
+## S-133 / 2026-09-07 / M58 review fixes (D-131)
+GOAL: Apply the review findings on the M58 site: restore the differentiating H1 and a category-anchored title, remove banned words that survived as negations, link the owned definitions, fix hub title and description length, tighten CSP.
+DONE: `site/index.html` title/H1/JSON-LD WebPage name; two negated banned-word sentences; three `/method/` links (shortlist rate, top-choice rate, shortlist lift); `site/studies.html` title; `site/studies/insta360.html` description ≤155 on all three tags; `site/vercel.json` + `site/_headers` CSP without Google Fonts hosts; D-131 + register edge; BRAND_SITE_GUIDE §5, BRAND_PLAYBOOK §10.2, M58 plan P3 annotated. `site/styles.css` `.opening h1` retuned for the longer headline (desktop clamp 44–64px / 16ch, mobile 44–60px / 13ch) so the hero stays above the fold at 1280; cache-busters bumped to `20260907f` on all 13 pages. Gates: docs:check 20/21, test:site 15/15, lint clean; hero checked at 1280 and 375 in the browser.
+UNVERIFIED: og.jpg still carries “Your brand, through AI’s eyes.” by ruling, not by omission; hosted preview not re-deployed.
+NEXT: Operator review of the restored H1 on the local preview (`pnpm preview:site`); then the M58 handoff items (push m57+m58, PR, domain, form endpoint, mailbox) unchanged.
+GOTCHAS: Playbook §5.3 is a grep list — banned words inside negations still trip it; write the positive form.
+
+## S-132 / 2026-09-07 / M58
+GOAL: Implement approved unified dark website design.
+DONE: P0 baseline inventory and full homepage screenshot in docs/audits/m58; m58 cut from a27bea9; D-129, plan, status and scope records.
+UNVERIFIED: Remote main remains c478231 after fetch and ls-remote; M57 not merged.
+NEXT: P1 static site harness, then P2 foundation.
+GOTCHAS: tsx and local listeners require sandbox escalation; unrelated product code remains untouched. M57 notes preserved because merge not verified.
+
+P1: clean-URL/traversal, evidence and keyboard checks passed (3/3). Baseline axe/structure report saved to docs/audits/m58/baseline-checks.txt; existing failures are implementation targets. Dedicated .pw.ts discovery avoids operator and Vitest suites.
+
+P2: Shared dark tokens, navigation, footer, readable no-JS foundation and brand specimen implemented. Browser-reviewed methodology at desktop. Menu, no-JS and methodology axe pass; corrected link harness to accept the 404 document’s own skip target. Homepage and table composition continue in P3/P4.
+
+P3: Rebuilt homepage with original static cone/process SVG, featured measured finding, five-stage engagement, equal Current/New scores, research links and native FAQs. Homepage links/menu/axe pass. Full site run exposed pre-existing hotel definition-list semantics and narrow research-table overflow; P4 fixes these.
+
+P4: Findings precede prompts on measured and hotel studies; separate test baselines retained. Research tables have labeled keyboard scrolling and aligned numeric columns. Hotel definition-list structure repaired. Preserved former homepage audit example separately from n=25 study. All 13 site checks pass, including all-route reflow at 1440/1280/768/390/375/320 and seven axe surfaces.
+
+P5: Replaced obsolete site design prescriptions, kept claims/operator/export rules scoped, synchronized metadata/FAQ/definitions/cache versions/sitemap/llms. Social card regenerated at 1200×630 and inspected at thumbnail size. Local licensed fonts remove measured external render blocking. Site suite:14 pass, opt-in artifact test passes separately. Lint/typecheck and 916 unit tests pass; production build passes. No src or lockfile changes against a27bea9.
+
+P6: Final all-site capture/check run passes 15/15; lint/typecheck/docs/diff pass.
+Repository gates: 916 unit tests pass (12 existing skips), build passes, 18 operator
+smoke and 4 forecast tests pass. Final mobile Lighthouse 99/100/100/100, 115 KiB.
+Six representative page types captured at 1440/1280/768/390; all routes reflow at
+375/320 too. Inspected desktop/mobile opening, hub, study, methodology, metric and
+social full/thumbnail. Fixed inline-link paragraph rhythm during final review.
+Preview https://site-40epfj9wd-franklinhou-5415s-projects.vercel.app is protected,
+not production. Authenticated hosted checks pass clean routes, .html→308, 404,
+font200 and required headers. Hosting injects its normal feedback script; normalized
+homepage equals local final source. Custom-domain redirects remain unverified.
+Remote main rechecked at c478231; no remote M57 exists. Review branch includes local
+M57 a27bea9. No operator, provider, database, lockfile or Render config diff against
+that baseline. Exact next action: review preview, reconcile M57 integration, then
+approve merge/publication; archive M58 and prune its notes in the merge commit.
+
+UPLOAD BLOCK: P6 commit dcc0986 saved locally. Auto-review twice rejected public push;
+second decision acknowledges verified public origin ddddubbby/Parallax but requires
+explicit approval for governance-doc disclosure (MASTER_CONTEXT/PROTECTED_REGISTER).
+No upload workaround used; no push/PR created. PR description saved in audit directory.
+Next action is user approval for exact branch payload including M57 prerequisites,
+governance docs and review artifacts, then push/draft PR. Production remains untouched.
+
+## M58 content restoration / 2026-09-07
+User rejected substantive content loss. Reopened design acceptance. Recovered M57
+HTML/SVG report/dashboard, four metric UI panels, scoring pipeline, Glass Box,
+seven method commitments and seven FAQs. No separate screenshot assets are present
+in the M57 tree. Restoring these product visuals with dark styling and adding a
+content-preservation regression check. Prior preview/review metrics do not establish
+acceptance of this correction. GitHub upload gate remains unchanged.
+
+Restoration verified: 16 site checks including screenshots and explicit content-retention
+assertions pass; lint/typecheck/docs pass. Reviewed dashboard, metric panels and
+scoring at desktop and mobile. Restored attribution context and Current/New message
+visual too. Corrected preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app.
+Lighthouse99/100/100/100 with restored content,142 KiB. No operator source change.
+User design acceptance remains pending; prior automated passes did not justify the
+content loss. GitHub upload remains blocked pending explicit approval, no retry here.

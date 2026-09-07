@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mention rate · Windtunnel method</title>
+<meta name="description" content="Share of unbranded answers that name the brand unprompted. How Windtunnel computes it, its confidence interval, and what it does not mean.">
+<link rel="canonical" href="https://windtunnel.observer/method/mention-rate">
+<meta property="og:title" content="Mention rate · Windtunnel method">
+<meta property="og:description" content="Share of unbranded answers that name the brand unprompted. How Windtunnel computes it, its confidence interval, and what it does not mean.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://windtunnel.observer/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mention rate · Windtunnel method">
+<meta name="twitter:description" content="Share of unbranded answers that name the brand unprompted. How Windtunnel computes it, its confidence interval, and what it does not mean.">
+<meta name="twitter:image" content="https://windtunnel.observer/og.jpg">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css?v=20260907f">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://windtunnel.observer/method/mention-rate#webpage",
+      "url": "https://windtunnel.observer/method/mention-rate",
+      "name": "Mention rate · Windtunnel method",
+      "isPartOf": {
+        "@id": "https://windtunnel.observer/#website"
+      }
+    },
+    {
+      "@type": "DefinedTerm",
+      "@id": "https://windtunnel.observer/method/mention-rate#term",
+      "name": "Mention rate",
+      "description": "Mention rate is the share of unbranded answers that name the brand unprompted. It is computed over eligible stored answers and carries a Wilson 95% confidence interval.",
+      "url": "https://windtunnel.observer/method/mention-rate",
+      "inDefinedTermSet": "https://windtunnel.observer/methodology#terms"
+    }
+  ]
+}
+</script>
+<script>document.documentElement.className = "js";</script>
+</head>
+<body class="article-page">
+
+<svg width="0" height="0" class="svg-defs" aria-hidden="true">
+  <defs>
+    <linearGradient id="coneBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFA26B"/><stop offset=".42" stop-color="#F15A24"/><stop offset="1" stop-color="#D4430D"/>
+    </linearGradient>
+    <linearGradient id="coneBase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E85419"/><stop offset="1" stop-color="#B23606"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<a class="skip-link" href="#top">Skip to content</a>
+<header class="nav" id="nav"><div class="wrap nav-inner">
+<a class="brand" href="/" aria-label="Windtunnel home"><svg viewBox="0 0 512 512" aria-hidden="true"><g transform="rotate(-14 256 256)"><ellipse cx="256" cy="344" rx="104" ry="36" fill="url(#coneBase)"/><path d="M256 92 L152 344 A104 36 0 0 0 360 344 Z" fill="url(#coneBody)"/></g></svg><span>windtunnel</span></a>
+<nav class="links" aria-label="Primary"><div class="nav-menu" id="nav-menu">
+<a href="/#workflow">How it works</a><a href="/studies">Studies</a><a href="/methodology">Method</a>
+</div><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Request a brand audit</a>
+<button class="hamburger" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu"><span></span><span></span></button>
+</nav></div></header>
+
+
+<main id="top">
+
+  <section class="stage" aria-labelledby="term-h">
+    <div class="wrap">
+      <a class="label back-link" href="/methodology">&larr; Method</a>
+      <p class="eyebrow">Windtunnel method</p>
+      <h1 id="term-h">Mention rate</h1>
+      <p class="lead">Mention rate is the share of unbranded answers that name the brand unprompted. It is computed over eligible stored answers and carries a Wilson 95% confidence interval.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="computed-h">
+    <div class="wrap">
+      <span class="label">How it is computed</span>
+      <h2 id="computed-h">Counting only what the question did not plant.</h2>
+      <p class="lead">The denominator is eligible unbranded samples: stored answers to brand-free questions like &ldquo;What should I look for in an action camera?&rdquo;. The numerator is the share of those answers that name the brand. A mention a branded prompt planted does not count: if the question names you, your presence is not visibility, it is the prompt&rsquo;s structure.</p>
+      <p class="lead">Because answers are sampled repeatedly, the rate is a proportion over many stored answers, and it ships with a Wilson 95% confidence interval so the sample size is never hidden.</p>
+    </div>
+  </section>
+
+  <section class="stage" aria-labelledby="appears-h">
+    <div class="wrap">
+      <span class="label">Where this appears</span>
+      <h2 id="appears-h">A public example.</h2>
+      <p class="lead">The Insta360 audit in the <a class="tlink" href="/studies/insta360#audit">published audit example</a> reports a 94.9% mention rate (Wilson 95% CI 89.3&ndash;97.7, n=118, stored run from 19 Jul 2026, OpenAI + DeepSeek, ungrounded). The metric heads the Presence pillar of every Windtunnel audit report.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="limits-h">
+    <div class="wrap">
+      <span class="label">What it does not mean</span>
+      <h2 id="limits-h">Three things a mention rate is not.</h2>
+      <ul class="method-list">
+        <li><strong>Not a recommendation.</strong> Being named is not being ranked or advised; the recommendation family of metrics answers that separately.</li>
+        <li><strong>Not a ranking prediction.</strong> A rate describes stored answers on a tested date. It does not predict what a model will say tomorrow, and it is never a promise.</li>
+        <li><strong>Not a trend.</strong> One audit is a snapshot. Movement over time comes from a re-audit with the same prompts and method, a quarter later.</li>
+      </ul>
+      <div class="disclosure" role="note">
+        <p>Labels travel with numbers: figures traced to stored answers from real model routes are MEASURED; Message Lift results are SIMULATED and comparative only; anything below the n≥30 gate or drawn from a single prompt cell is DIRECTIONAL. No figure on this site ships without its label, sample size, and date.</p>
+      </div>
+    </div>
+  </section>
+
+
+</main>
+<footer class="site-footer" id="contact"><div class="wrap">
+<div class="footer-contact"><h2 id="contact-h">Find out where<br> your brand stands.</h2><div><p>Tell us the category, competitors, or message you need to understand.</p><div class="cta"><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team <span aria-hidden="true">↗</span></a></div></div></div>
+<p class="fineprint">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+<div class="footer-wordmark" aria-hidden="true">windtunnel</div>
+<div class="footer-meta"><span>AI visibility measurement &amp; message testing</span><span>Singapore · 2026</span><a href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a></div>
+</div></footer>
+
+<script src="/motion.js?v=20260907f"></script>
+</body>
+</html>

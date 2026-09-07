@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { isUuid } from "@/core/id";
+import { PRODUCT_NAME } from "@/core/constants";
 import { resonanceExportMetadata } from "@/core/resonance";
 import { isReportableRunState } from "@/core/runner";
 import { getExportCitations, getExportExtractions, getExportMetrics, getExportResponses } from "@/db/repositories/export";
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       resonance: resonanceExportMetadata(resonanceStudy),
       promptDisclosure: promptManifest
         ? {
-            description: "The complete request content supplied by Resonance to the provider API.",
+            description: `The complete request content supplied by ${PRODUCT_NAME} to the provider API.`,
             ...promptManifest,
           }
         : null,

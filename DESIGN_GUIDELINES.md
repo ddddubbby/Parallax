@@ -1,14 +1,16 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: visual language — tokens, typography, surfaces, motion, guardrails V-1..V-13
 
-# DESIGN_GUIDELINES.md - Resonance Visual Language
+# DESIGN_GUIDELINES.md - Windtunnel Visual Language
 
-> How Resonance looks, moves, and speaks across Evidence and Message Lift surfaces. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.
+> How Windtunnel looks, moves, and speaks across Evidence and Message Lift surfaces. Architecture and code rules live in `DEVELOPMENT_GUIDELINES.md`; scope lives in `PRD.md`. Where a visual choice conflicts with a hard constraint in `MASTER_CONTEXT.md` section 4, the constraint wins.
 
 ---
 
+> Scope (D-129): this document governs the operator application and exported reports. The standalone public website uses the unified dark system in `BRAND_SITE_GUIDE.md`; its typography, rectangular controls and surfaces do not change operator/export rules.
+
 ## 1. Aesthetic thesis
 
-Resonance looks like a **machine-age evidence dossier**: the terminal, industrial-editorial language of Bitkey and "Machine Age Modernism" applied to a measurement instrument. Every screen should feel like a numbered field document produced by a precise machine — monospace metadata, ink-on-paper contrast, one signal-orange accent, geometric solidity, and silk-smooth restrained motion.
+Windtunnel looks like a **machine-age evidence dossier**: the terminal, industrial-editorial language of Bitkey and "Machine Age Modernism" applied to a measurement instrument. Every screen should feel like a numbered field document produced by a precise machine — monospace metadata, ink-on-paper contrast, one signal-orange accent, geometric solidity, and silk-smooth restrained motion.
 
 This is deliberate product fit, not decoration: the product sells statistical honesty and preserved evidence. A dossier aesthetic — dates, run numbers, stamps, uppercase labels — makes the evidence-chain identity visible in the UI itself. The dossier discipline is exactly why the simulation layer fits without softening the differentiator: a `SIMULATED` stamp is a native dossier element, and marking simulated evidence as plainly as measured evidence (C-12) is the aesthetic doing its job, not a compromise of it.
 

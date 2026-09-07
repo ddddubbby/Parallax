@@ -1,5 +1,6 @@
 import { SimulatedBadge } from "@/components/simulated-badge";
 import { Stamp } from "@/components/ui";
+import { PRODUCT_NAME } from "@/core/constants";
 
 export interface PromptDisclosureData {
   testType: "buyer_response" | "ai_recommendation";
@@ -41,7 +42,7 @@ export function PromptDisclosurePanel({
       </div>
 
       <p className="text-sm leading-6 text-ink/70">
-        These are the complete request contents supplied by Resonance to the provider API. They do not
+        These are the complete request contents supplied by {PRODUCT_NAME} to the provider API. They do not
         include the provider&rsquo;s private system prompt, routing, or safety layers.
       </p>
 

@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from "./constants";
+
 // Pipeline stage resolution (OX-2, extended by M44/D-114): the single primary
 // next action for a project, from its intake/matrix/run/study state. Pure —
 // the repository supplies the booleans, the component builds hrefs from the
@@ -81,7 +83,7 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
         stageLabel: "Message Lift test running",
         nextLabel: "Watch the test",
         nextPath: "resonance",
-        hint: "Resonance is comparing the Current and New messages now.",
+        hint: `${PRODUCT_NAME} is comparing the Current and New messages now.`,
         journey: "test",
       };
     }
@@ -154,7 +156,7 @@ export function resolveProjectStage(s: PipelineState): PipelineStage {
       stageLabel: "Message Lift test running",
       nextLabel: "Watch the test",
       nextPath: "resonance",
-      hint: "Resonance is comparing the Current and New messages now.",
+      hint: `${PRODUCT_NAME} is comparing the Current and New messages now.`,
       journey: "test",
     };
   }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, InlineStatus, Input } from "@/components/ui";
 import { login } from "@/modules/auth/actions";
+import { PRODUCT_NAME } from "@/core/constants";
 
 // Ink surface per DESIGN_GUIDELINES §6: auth screens are an explicit
 // ink-surface use case, not the paper workbench.
@@ -35,7 +36,7 @@ export default function LoginPage() {
         aria-busy={pending}
       >
         <p className="label-mono mb-4 text-[11px] text-paper/45">Operator dossier / secure access</p>
-        <h1 className="label-mono mb-1 text-lg font-semibold text-paper">Resonance</h1>
+        <h1 className="label-mono mb-1 text-lg font-semibold text-paper">{PRODUCT_NAME}</h1>
         <p className="mb-6 text-sm text-paper/55">
           Operator access only
         </p>

@@ -1,0 +1,378 @@
+
+> parallax@0.0.1 test:site /Users/tapp/Documents/Parallax
+> playwright test --config playwright.site.config.ts --grep 'all pages have|accessible page: /$'
+
+[WebServer] (node:63814) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:63815) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/site/website.pw.ts:20:5 › all pages have valid links, fragments, unique IDs and one H1 (413ms)
+(node:63833) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/site/website.pw.ts:101:7 › accessible page: / (918ms)
+
+
+  1) tests/site/website.pw.ts:20:5 › all pages have valid links, fragments, unique IDs and one H1 ──
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "20260906b"
+    Received: undefined
+
+      39 |     const css = source.match(/styles\.css\?v=([^"&]+)/)?.[1];
+      40 |     const js = source.match(/motion\.js\?v=([^"&]+)/)?.[1];
+    > 41 |     expect(css).toBeTruthy(); expect(js).toBe(css); versions.add(css!);
+         |                                          ^
+      42 |     for (const block of await page.locator('script[type="application/ld+json"]').allTextContents()) expect(() => JSON.parse(block)).not.toThrow();
+      43 |   }
+      44 |   expect(versions.size).toBe(1);
+        at /Users/tapp/Documents/Parallax/tests/site/website.pw.ts:41:42
+
+    Error Context: test-results/website.pw.ts-all-pages-ha-0317d-ments-unique-IDs-and-one-H1/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/website.pw.ts-all-pages-ha-0317d-ments-unique-IDs-and-one-H1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/website.pw.ts-all-pages-ha-0317d-ments-unique-IDs-and-one-H1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) tests/site/website.pw.ts:101:7 › accessible page: / ───────────────────────────────────────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 303
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 2.75,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#919089",
+    +               "fontSize": "7.2pt (9.6px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.2pt (9.6px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.2pt (9.6px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<small>Wilson 95% CI 89.3–97.7</small>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".panel-stat > small",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 2.75,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#919089",
+    +               "fontSize": "7.9pt (10.56px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.9pt (10.56px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.9pt (10.56px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>organic sentiment · n=112</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".report-panel-section:nth-child(7) > span",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 2.75,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#919089",
+    +               "fontSize": "7.9pt (10.56px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.9pt (10.56px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.9pt (10.56px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span>two framings, one partnership</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".report-panel-section:nth-child(9) > span:nth-child(1)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 1.74,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#b9b6ac",
+    +               "fontSize": "6.6pt (8.8px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.74 (foreground color: #b9b6ac, background color: #f0eee4, font size: 6.6pt (8.8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.74 (foreground color: #b9b6ac, background color: #f0eee4, font size: 6.6pt (8.8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"stamp sim\">Simulated</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".report-panel-section:nth-child(9) > .sim.stamp",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 1.74,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#b9b6ac",
+    +               "fontSize": "6.6pt (8.8px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 1.74 (foreground color: #b9b6ac, background color: #f0eee4, font size: 6.6pt (8.8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 1.74 (foreground color: #b9b6ac, background color: #f0eee4, font size: 6.6pt (8.8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"stamp\">Directional</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".report-panel-section:nth-child(9) > .stamp:nth-child(3)",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 2.75,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#919089",
+    +               "fontSize": "7.2pt (9.6px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.2pt (9.6px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.2pt (9.6px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"panel-lift-meta\">9 Jul · OpenAI + DeepSeek · n=5</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "li:nth-child(1) > .panel-lift-row > .panel-lift-meta",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 2.75,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#919089",
+    +               "fontSize": "7.2pt (9.6px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.2pt (9.6px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.75 (foreground color: #919089, background color: #f0eee4, font size: 7.2pt (9.6px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<span class=\"panel-lift-meta\">19 Jul · OpenAI · n=5</span>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           "li:nth-child(2) > .panel-lift-row > .panel-lift-meta",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f0eee4",
+    +               "contrastRatio": 2.89,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#f15a24",
+    +               "fontSize": "8.2pt (10.88px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 2.89 (foreground color: #f15a24, background color: #f0eee4, font size: 8.2pt (10.88px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<figure class=\"report-panel\">",
+    +                 "target": Array [
+    +                   ".report-panel",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 2.89 (foreground color: #f15a24, background color: #f0eee4, font size: 8.2pt (10.88px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<a class=\"tlink\" href=\"/studies/insta360\">See the full study →</a>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".report-panel-foot > .tlink[href$=\"insta360\"]",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      104 |     await page.goto(route);
+      105 |     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+    > 106 |     expect(result.violations).toEqual([]);
+          |                               ^
+      107 |     expect(errors).toEqual([]);
+      108 |   });
+      109 | }
+        at /Users/tapp/Documents/Parallax/tests/site/website.pw.ts:106:31
+
+    Error Context: test-results/website.pw.ts-accessible-page-/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/website.pw.ts-accessible-page-/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/website.pw.ts-accessible-page-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    tests/site/website.pw.ts:20:5 › all pages have valid links, fragments, unique IDs and one H1 ───
+    tests/site/website.pw.ts:101:7 › accessible page: / ────────────────────────────────────────────
+ ELIFECYCLE  Command failed with exit code 1.

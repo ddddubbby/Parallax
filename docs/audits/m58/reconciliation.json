@@ -1,0 +1,397 @@
+{
+  "base": "a27bea9",
+  "pages": {
+    "site/index.html": {
+      "sha256": "ddeeb7a582dd2ac969e8cb88d905fe5ce9f748972cca8148f72a72a96af513c9",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "instrument-title",
+        "instrument-cone",
+        "dashboard",
+        "dashboard-h",
+        "finding",
+        "workflow",
+        "metrics",
+        "metrics-h",
+        "why-now",
+        "why-now-h",
+        "old-scorecard-title",
+        "what-you-get",
+        "research",
+        "methodology",
+        "methodology-h",
+        "method",
+        "method-h",
+        "faq",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "finding-h",
+        "nav-scrim",
+        "nav-sentinel",
+        "what-you-get-h",
+        "workflow-h"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 36707
+    },
+    "site/studies.html": {
+      "sha256": "8b66a1fea59d9493e60fa82c06b8dadf16c0a1b1ecb12b9eeda8c84a7a6fc017",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "hub-h",
+        "list-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/studies"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7620
+    },
+    "site/404.html": {
+      "sha256": "3be4f79bfe6c6132af383adb36a13bee7d7a66078bbb3656e36be53a8cbe43a3",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "nf-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [],
+      "canonical": [],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 4030
+    },
+    "site/methodology.html": {
+      "sha256": "f8c202048738b836201b240ce438bebce5c01ab31070ba64b33793983a4320c4",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "methodology-h",
+        "sampling-h",
+        "intervals-h",
+        "gate-h",
+        "limits-h",
+        "terms-h",
+        "message-testing",
+        "testing-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/methodology"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 11843
+    },
+    "site/studies/insta360.html": {
+      "sha256": "f7277795f2b54d140eb9bb1731a1874e44e88636c36db7238fda5fb2cd4f2e31",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "study-h",
+        "asked-h",
+        "assoc-h",
+        "means-h",
+        "limits-h",
+        "audit",
+        "audit-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/studies/insta360"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 14044
+    },
+    "site/studies/hotel-group.html": {
+      "sha256": "f3ba284e1172bf0daf5563a447dcbeb37220a8f8be096baef1f6973843adf39b",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "study-h",
+        "setup-h",
+        "result-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/studies/hotel-group"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 8804
+    },
+    "site/studies/insta360-message-lift.html": {
+      "sha256": "3c84a281f78a788803903a3844ea29f646f4bcd9460ef1e6bb046866c2368a72",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "study-h",
+        "how-h",
+        "test1-h",
+        "test2-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/studies/insta360-message-lift"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 10914
+    },
+    "site/method/top-choice-rate.html": {
+      "sha256": "698c77f825946eacdf014a058846c9f06adc93e33898ff0b326d489eaf967a6b",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "term-h",
+        "computed-h",
+        "appears-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/method/top-choice-rate"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7693
+    },
+    "site/method/shortlist-rate.html": {
+      "sha256": "d80e9cf56ae75b1d472bf75439c8c11bce9724a9a60cf5e765d52d9d77146cf9",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "term-h",
+        "computed-h",
+        "appears-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/method/shortlist-rate"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7819
+    },
+    "site/method/shortlist-lift.html": {
+      "sha256": "4175998342919d563bb5fbd1344b978f1f2a016ca3cf98db2b59a9b39076209e",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "term-h",
+        "computed-h",
+        "appears-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/method/shortlist-lift"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7669
+    },
+    "site/method/mention-rate.html": {
+      "sha256": "52a64d14c114a5efa5329a7cdb2c054a737de6bf3eaf0050c32b8086f9802147",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "term-h",
+        "computed-h",
+        "appears-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/method/mention-rate"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7713
+    },
+    "site/method/repeated-sampling.html": {
+      "sha256": "1cdfdb734817f2bbed61b6a34e29352d4ba0a956b3e515b9691bd1cfa86a2228",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "term-h",
+        "computed-h",
+        "appears-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/method/repeated-sampling"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7722
+    },
+    "site/method/stability-index.html": {
+      "sha256": "48af0f9473191dcf3a5d167d7d71d10a448b8e2aa79a2187024437f7cb7eacbe",
+      "ids": [
+        "coneBody",
+        "coneBase",
+        "nav",
+        "nav-menu",
+        "top",
+        "term-h",
+        "computed-h",
+        "appears-h",
+        "limits-h",
+        "contact",
+        "contact-h"
+      ],
+      "removedIds": [
+        "nav-scrim",
+        "nav-sentinel"
+      ],
+      "canonical": [
+        "https://windtunnel.observer/method/stability-index"
+      ],
+      "assetVersion": [
+        "20260907e"
+      ],
+      "bytes": 7642
+    }
+  },
+  "evidence": {
+    "insta360": [
+      "20/25",
+      "0/25",
+      "11 Jul 2026",
+      "DeepSeek",
+      "ungrounded"
+    ],
+    "insta360-message-lift": [
+      "+0.15",
+      "+0.57",
+      "\u22120.31",
+      "n=5",
+      "Directional"
+    ],
+    "hotel-group": [
+      "3.45",
+      "3.41",
+      "n=30",
+      "31 Jul 2026",
+      "DeepSeek",
+      "ungrounded"
+    ]
+  },
+  "hostingConfigUnchanged": true,
+  "restoration": "D-130 restores original HTML/SVG product showcase, metric UI and full methodology on homepage."
+}

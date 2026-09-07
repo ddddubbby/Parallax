@@ -44,7 +44,9 @@
     "research:retired:m34:v3:gold": "tsx scripts/framing-feasibility/retired-guard.ts && tsx scripts/framing-feasibility/v3-gold-packet.ts",
     "research:m34a:collect": "tsx scripts/framing-feasibility/m34a-collect.ts",
     "research:m34a:workflow": "tsx scripts/framing-feasibility/m34a-workflow.ts",
-    "research:m34a:report": "tsx scripts/framing-feasibility/m34a-report.ts"
+    "research:m34a:report": "tsx scripts/framing-feasibility/m34a-report.ts",
+    "test:site": "playwright test --config playwright.site.config.ts",
+    "preview:site": "node scripts/site-preview.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",

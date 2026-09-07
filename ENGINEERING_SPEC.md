@@ -1,6 +1,6 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: detailed schema, lifecycle states, provider matrix, seeds
 
-# ENGINEERING_SPEC.md - Resonance Execution Contract
+# ENGINEERING_SPEC.md - Windtunnel Execution Contract
 
 > Detailed implementation contract for schema, lifecycle states, provider capabilities, and seeds (milestone acceptance commands live in `DEVELOPMENT_GUIDELINES.md` §F). Read after `MASTER_CONTEXT.md`, `PRD.md`, and `DEVELOPMENT_GUIDELINES.md` when starting M0.5, M1, or any worker/provider/schema work.
 
@@ -59,7 +59,7 @@ Framing study state (M34A, D-102 — workflow RETIRED by D-114; states kept only
 - `revealed | reviewing` -> `completed` only when every source job has a terminal review outcome
 - Locked codebooks, completed response reviews, and evidence snapshots have no backward transition.
 
-Resonance study state (M17+, D-064; approval compiles and freezes the study's resonance matrix version in the same transaction):
+Message Lift study state (M17+, D-064; approval compiles and freezes the study's resonance matrix version in the same transaction):
 
 - `draft` -> `approved`
 - `draft | approved` -> `archived`
@@ -145,7 +145,7 @@ Seed and fixture files are implementation contracts:
 - Prompt templates are seeded into `prompt_templates`; they are not hard-coded in JSX. Seed at least three variant phrasings per intent (`v1`, `v2`, `v3`); cells are intent x persona x market x variant, so variant depth is what lets the allocator reach its per-intent quotas.
 - Demo sizing: the demo project must yield enough candidate cells for the default allocation and the cap boundary tests. With 2 personas x 2 markets x 3 variants x the 5 allocated audit intents = 60 candidates (the sixth intent, `representation`, appends its pinned cells after allocation, D-102), the 40-cell default allocation (12 per intent maximum = 2 x 2 x 3) is exactly reachable and 51-cell rejection tests have headroom.
 
-Resonance fixtures (M17+, D-064):
+Message Lift fixtures (internal `resonance` tables; M17+, D-064):
 
 - `fixtures/ssr/anchor-sets.json`: versioned anchor statement sets — `{ version, construct, sets: [{ id, sentences[5] }] }`, >=4 sets, sentences[i] maps to Likert i+1. Editing sentences requires a new `version` string; the loader refuses unknown versions.
 - `fixtures/ssr/fixture-pmfs.json`: hand-authored plausible PMFs keyed by mock-response fixture id — the fixture-backed scoring path for mock runs (D-022 discipline); loader errors loudly on an unmapped fixture.

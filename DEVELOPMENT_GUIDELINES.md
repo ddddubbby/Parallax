@@ -1,6 +1,6 @@
 > LIFECYCLE: ACTIVE · ROLE: CANON · OWNS: architecture rules, provider contracts, test discipline, command tables
 
-# DEVELOPMENT_GUIDELINES.md - Resonance
+# DEVELOPMENT_GUIDELINES.md - Windtunnel
 
 > How to build. Constraints and decisions live in `MASTER_CONTEXT.md`; product scope lives in `PRD.md`.
 
@@ -363,3 +363,9 @@ Manual checklist seeds:
 - Handoff ritual (also in `MASTER_CONTEXT.md` §8): `BUILD_NOTES.md` session entry; Decision Log row when durable; `PROTECTED_REGISTER.md` append when a new decision protects a surface from delete/rename/merge (D-086); PRD tracker + progress note; update `README.md` / this file's command tables when scripts or acceptance gates change; update `DESIGN_GUIDELINES.md` only when a visual rule changes.
 - Any proposal to delete, merge, rename, or "simplify away" an existing surface must check `PROTECTED_REGISTER.md` first (D-086).
 - A UI-touching milestone cannot be marked Done until its interactive verification ran and is evidenced in `BUILD_NOTES.md` (D-092).
+- `pnpm build` fails on the `next/font` Google Fonts fetch whenever the local proxy in `.env.local` is down; run with `HTTPS_PROXY= HTTP_PROXY= NO_PROXY='*'` or start the proxy.
+
+### Static website verification (M58)
+
+`pnpm preview:site` serves only `site/` on http://127.0.0.1:8097 with clean HTML URLs.
+`pnpm test:site` runs isolated Playwright checks without the operator app or database.
