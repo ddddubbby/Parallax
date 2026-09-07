@@ -6,6 +6,8 @@
 
 ---
 
+> Scope (D-129): this document governs the operator application and exported reports. The standalone public website uses the unified dark system in `BRAND_SITE_GUIDE.md`; its typography, rectangular controls and surfaces do not change operator/export rules.
+
 ## 1. Aesthetic thesis
 
 Windtunnel looks like a **machine-age evidence dossier**: the terminal, industrial-editorial language of Bitkey and "Machine Age Modernism" applied to a measurement instrument. Every screen should feel like a numbered field document produced by a precise machine — monospace metadata, ink-on-paper contrast, one signal-orange accent, geometric solidity, and silk-smooth restrained motion.

@@ -2,7 +2,7 @@
 
 # PRD.md - Windtunnel MVP
 
-> **STATUS: M56 merged to `main` via GitHub PR #17 (2026-09-06). M57 pivot to Windtunnel, site compliance and SEO architecture in progress on `m57` (D-128; no product change). M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent (historical name) remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
+> **STATUS: M56 merged to `main` via GitHub PR #17 (2026-09-06). M58 brand website redesign in progress on `m58` (D-129; no product change). Local M57 a27bea9 is the implementation base; refreshed origin/main remains at M56 c478231. M53 (D-123, sampling terminology) exists only on branch `m53` and is pending merge by operator decision, so §8.41 is absent on trunk.** Market-context prompt guardrails passed closeout gates (§8.43). Existing approved matrices, provider behavior, audit metrics, epistemic walls (C-12/C-14), and export payloads remain frozen. The Resonance GEO agent (historical name) remains parked (D-116); `AGENT_PRD.md` is authoritative if that track resumes.
 
 > What to build. Identity and decisions live in `MASTER_CONTEXT.md`; implementation rules live in `DEVELOPMENT_GUIDELINES.md`. Historical execution detail for M16+ lives in `docs/history/RESONANCE_BUILD_PLAN.md`; Executed milestone plans (M43–M55) are archived in `docs/history/`.
 
@@ -663,6 +663,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M55 | Market Context Prompt Guardrail (D-125) | Canonical visible market instruction on every newly approved ordinary audit prompt; draft-copy upgrade; action/repository approval backstops; legacy approvals remain runnable; no migration | Done on `main` via GitHub PR #16 |
 | M56 | Whole-repo cleanup pass (D-126/D-127) | Current-state docs synced to code; eight merged plans archived; D-025 truncation; repo noise removed; zero-reference exports deleted; brand canon rewritten to D-119 language | Done on `m56` (D-126/D-127); merged to `main` via PR #17 |
 | M57 | Pivot to Windtunnel, site compliance, SEO page architecture (D-128) | External name Windtunnel on every visible surface; live site to D-127 lexicon; study/method/methodology pages; JSON-LD, robots AI-bot groups, llms.txt, www→apex 301, contact form | P0–P2b done on `m57`; P3 contact form blocked on operator endpoint |
+| M58 | Brand website redesign (D-129) | Unified dark site, clear offer, preserved evidence, site-only verification | P0 in progress |
 
 Progress notes:
 

@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M57 pivot to Windtunnel (D-128), site compliance (D-127), SEO page architecture; no product behaviour change · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M57 pivot implementation, with form and launch work carried forward · DISPOSITION: SUPERSEDED BY M58_BUILD_PLAN.md
 
 # M57 — Pivot to Windtunnel: brand, site compliance, SEO foundation
 

@@ -141,3 +141,10 @@ GOTCHAS: Archive/prune ran on `m47` P0 because PR #7's merge commit left the D-0
 GOAL/DONE: (retroactive) Fiction cut and real Insta360 study published; Vercel package (`vercel.json`, `robots.txt`, `sitemap.xml`, `404.html`, `__SITE_URL__` + `scripts/set-site-domain.sh`); the August war-room rebuild (question-led workflow, 2.5D pillar cards, scoring pipeline section, hero report panel with verified run `a45cbc1e` figures and both Leica Message Lift results, anonymized hotel case); live domain stamped and canonicals added. Durable facts graduated to `BRAND_SITE_GUIDE.md` §1/§6/§7/§9/§10/§11, `RENDER_DEPLOYMENT.md` (marketing-site section), and `BRAND_PLAYBOOK.md` §5.4/§9 (D-127).
 NEXT: Open follow-ups are in `STATUS.md`: confirm the hotel-case date against run `cffd5856`; give the hotel and Leica tests their own `/studies` pages.
 GOTCHAS: Cache-busters are manual and must be bumped on all three HTML pages together; `_headers` is inert on Vercel; real run figures live only in the local dev DB, so verify before publishing. Truncated in M56 P3 (D-126).
+
+## S-132 / 2026-09-07 / M58
+GOAL: Implement approved unified dark website design.
+DONE: P0 baseline inventory and full homepage screenshot in docs/audits/m58; m58 cut from a27bea9; D-129, plan, status and scope records.
+UNVERIFIED: Remote main remains c478231 after fetch and ls-remote; M57 not merged.
+NEXT: P1 static site harness, then P2 foundation.
+GOTCHAS: tsx and local listeners require sandbox escalation; unrelated product code remains untouched. M57 notes preserved because merge not verified.

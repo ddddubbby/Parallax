@@ -136,7 +136,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
 | `AGENT_PRD.md` | PARKED | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
 | `AGENT_BUILD_PLAN.md` | PARKED | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
-| `M57_BUILD_PLAN.md` | ACTIVE | M57 pivot to Windtunnel (D-128), site compliance (D-127), SEO page architecture; no product change |
+| `M58_BUILD_PLAN.md` | ACTIVE | M58 brand website redesign and independent website verification (D-129); no operator product change |
 | `AGENT_STRATEGY_MEMO.md` | PARKED | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
