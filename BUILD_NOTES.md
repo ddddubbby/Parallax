@@ -154,3 +154,5 @@ P1: clean-URL/traversal, evidence and keyboard checks passed (3/3). Baseline axe
 P2: Shared dark tokens, navigation, footer, readable no-JS foundation and brand specimen implemented. Browser-reviewed methodology at desktop. Menu, no-JS and methodology axe pass; corrected link harness to accept the 404 document’s own skip target. Homepage and table composition continue in P3/P4.
 
 P3: Rebuilt homepage with original static cone/process SVG, featured measured finding, five-stage engagement, equal Current/New scores, research links and native FAQs. Homepage links/menu/axe pass. Full site run exposed pre-existing hotel definition-list semantics and narrow research-table overflow; P4 fixes these.
+
+P4: Findings precede prompts on measured and hotel studies; separate test baselines retained. Research tables have labeled keyboard scrolling and aligned numeric columns. Hotel definition-list structure repaired. Preserved former homepage audit example separately from n=25 study. All 13 site checks pass, including all-route reflow at 1440/1280/768/390/375/320 and seven axe surfaces.
