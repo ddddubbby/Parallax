@@ -85,3 +85,8 @@ Render still needs app-level secrets such as `APP_PASSWORD`, `SESSION_SECRET`, a
 ## Render
 
 The first deploy contract is in `RENDER_DEPLOYMENT.md`; the Blueprint is `render.yaml`.
+
+### Static website verification (M58)
+
+`pnpm preview:site` serves only `site/` on http://127.0.0.1:8097 with clean HTML URLs.
+`pnpm test:site` runs isolated Playwright checks without the operator app or database.

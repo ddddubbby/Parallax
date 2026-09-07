@@ -148,3 +148,5 @@ DONE: P0 baseline inventory and full homepage screenshot in docs/audits/m58; m58
 UNVERIFIED: Remote main remains c478231 after fetch and ls-remote; M57 not merged.
 NEXT: P1 static site harness, then P2 foundation.
 GOTCHAS: tsx and local listeners require sandbox escalation; unrelated product code remains untouched. M57 notes preserved because merge not verified.
+
+P1: clean-URL/traversal, evidence and keyboard checks passed (3/3). Baseline axe/structure report saved to docs/audits/m58/baseline-checks.txt; existing failures are implementation targets. Dedicated .pw.ts discovery avoids operator and Vitest suites.

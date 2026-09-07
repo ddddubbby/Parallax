@@ -205,3 +205,8 @@ representation (intent): the sixth audit intent (M34, D-094/D-099) — a minimal
 Message Lift test: one Current message, one New message, shared contexts, disclosed exact prompts, and a lift result (D-119). Buyer response: simulated free-text response scored internally on a 1–5 scale; the primary result is Response lift. AI recommendation: the message is supplied as untrusted context to brand-neutral shopping situations; the primary result is Shortlist lift in absolute percentage points. Historical `resonance` study, stimulus, persona, SSR, PMF, and ΔPI terms remain internal/read-compatibility vocabulary and belong in “How this was tested,” not the primary workflow.
 
 "Validation" is overloaded; always qualify it: validation (intent) is one of the six prompt intents (five allocated audit intents plus the appended `representation` intent, D-102); validation run (`live_validation`, "validation-only") is a cheap k=2 pipeline dry-run that is never client-ready evidence; schema validation is Zod input/output checking. The provider id `google` is the Gemini provider — prose says Gemini, code says `google`.
+
+### Static website verification (M58)
+
+`pnpm preview:site` serves only `site/` on http://127.0.0.1:8097 with clean HTML URLs.
+`pnpm test:site` runs isolated Playwright checks without the operator app or database.
