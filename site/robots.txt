@@ -16,4 +16,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://windtunnel.observer/sitemap.xml
+Sitemap: https://windtunnel.tech/sitemap.xml

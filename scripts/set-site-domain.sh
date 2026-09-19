@@ -3,7 +3,7 @@
 # OG images and sitemaps require absolute URLs, so the package ships with a
 # __SITE_URL__ token that this script replaces after the domain is known.
 #
-#   ./scripts/set-site-domain.sh https://windtunnel.observer
+#   ./scripts/set-site-domain.sh https://windtunnel.tech
 #
 # Idempotent: re-running with a new domain replaces the previous one.
 set -eu

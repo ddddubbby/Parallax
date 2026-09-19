@@ -179,8 +179,8 @@ Hosting target remains a standalone Vercel project with Root Directory `site`.
 `site/_headers` is retained for host portability and is inert on Vercel.
 `site/.vercel/` is ignored operator configuration. No connection to `render.yaml`.
 
-The configured canonical host is `https://windtunnel.observer`; actual domain and
-publication verification lives in STATUS, not an assumed deployment claim here.
+The configured canonical host is `https://windtunnel.tech`; verify publication
+and live responses independently of the source files.
 `scripts/set-site-domain.sh <url>` stamps or re-stamps HTML, robots, sitemap and
 llms URLs idempotently. Preserve its compatibility and all explicit robots groups.
 Old-domain redirects require hosting configuration. Contact provisioning remains

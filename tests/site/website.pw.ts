@@ -17,6 +17,21 @@ test('static server handles clean URLs, queries, missing routes and traversal', 
   expect((await request.post('/')).status()).toBe(405);
 });
 
+test('brand favicon is discoverable in a Google-supported format', async ({ page, request }) => {
+  for (const { route } of pages) {
+    await page.goto(route);
+    await expect(page.locator('head link[rel="icon"]')).toHaveAttribute('href', '/favicon.png');
+  }
+  const icon = await request.get('/favicon.png');
+  expect(icon.status()).toBe(200);
+  expect(icon.headers()['content-type']).toContain('image/png');
+  const png = await icon.body();
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(png.readUInt32BE(16)).toBe(96);
+  expect(png.readUInt32BE(20)).toBe(96);
+  expect((await request.get('/favicon.ico')).status()).toBe(200);
+});
+
 test('all pages have valid links, fragments, unique IDs and one H1', async ({ page, request }) => {
   const checked = new Set<string>();
   const versions = new Set<string>();
@@ -112,6 +127,7 @@ test('metadata, public assets and homepage disclosures agree', async ({ page, re
   for (const { route } of pages) {
     await page.goto(route);
     const description = await page.locator('meta[name="description"]').getAttribute('content');
+    if (route !== '/404') await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://windtunnel.tech${route}`);
     await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', description!);
     await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', description!);
     const assets = await page.locator('script[src],link[rel="stylesheet"],link[rel="icon"],img[src]').evaluateAll(es => es.map(e => e.getAttribute('src') || e.getAttribute('href')!));
@@ -127,6 +143,8 @@ test('metadata, public assets and homepage disclosures agree', async ({ page, re
     expect(readFileSync(pages.find(p => p.route === route)!.file, 'utf8')).not.toContain('__SITE_URL__');
   }
   await page.goto('/');
+  expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap: https://windtunnel.tech/sitemap.xml');
+  expect(await (await request.get('/sitemap.xml')).text()).not.toContain('windtunnel.observer');
   for (const text of ['0 of 25', '11 Jul 2026', 'DeepSeek', 'ungrounded', 'single-analyst', '3.45', '3.41', 'n=30 per message', '31 Jul 2026', 'not a client']) {
     await expect(page.locator('main')).toContainText(new RegExp(text, 'i'));
   }
