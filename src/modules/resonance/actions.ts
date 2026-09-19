@@ -131,8 +131,16 @@ function validIds(...ids: string[]) {
   return ids.every(isUuid);
 }
 
+// The multipart/form-data encoding normalizes every LF in a string entry to
+// CRLF, so a body pasted with plain newlines still arrives here as `\r\n`.
+// A measured_ai body is copied server-side from `responses.rawText` (LF), so
+// without this the two prompts of a Message Lift test differed on every line,
+// not only in the message slot (D-119 parity). Normalize at intake; stored rows
+// are never rewritten (C-3).
 function textField(formData: FormData, key: string) {
-  return String(formData.get(key) ?? "").trim();
+  return String(formData.get(key) ?? "")
+    .replace(/\r\n?/g, "\n")
+    .trim();
 }
 
 function parseKind(value: string): StimulusKind {
