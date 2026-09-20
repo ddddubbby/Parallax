@@ -16,6 +16,7 @@
     "than the current one."
   ],
   "hubTeaser": "An anonymized hotel Buyer response test: 3.45 versus 3.41, n=30 per message. Independent study; not a client.",
-  "cardFooter": "SIMULATED · FULL CONDITIONS IN THE STUDY",
-  "hubSummary": "A global hotel group wanted to rewrite its executive-lounge pitch. We tested the rewrite first. It scored no better, so it was shelved."
+  "cardFooter": "SIMULATED \u00b7 FULL CONDITIONS IN THE STUDY",
+  "hubSummary": "A global hotel group wanted to rewrite its executive-lounge pitch. We tested the rewrite first. It scored no better, so it was shelved.",
+  "category": "Hotels"
 }

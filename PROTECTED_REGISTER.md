@@ -153,3 +153,5 @@ existing legacy disclosures. D-135 preserves all directional and simulation labe
 ## M60 research rewrite
 
 D-136/D-137/D-138 protect: the scoped light-theme tokens under `body.research-article`/`body.research-index` in `site/styles.css`; `content/research/brands.json` (one fixed colour per brand, reused across articles); `scripts/lib/site-research-charts.mjs`; generated `site/research/<slug>.evidence.json` and chart PNGs; the noindex header for evidence files in `site/vercel.json`; the headline gate and the plain-words method sentence in every article.
+
+D-140 protects: the `.paper` scope in `site/styles.css`; the homepage `<!-- research:latest -->` marker rewritten by `scripts/site-research.mjs`; `#scoring` and `#commitments` on `/methodology` (relocated homepage content).

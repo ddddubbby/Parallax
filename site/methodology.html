@@ -16,7 +16,7 @@
 <meta name="twitter:image" content="https://windtunnel.tech/og.jpg">
 <link rel="icon" href="/favicon.png" type="image/png" sizes="96x96">
 <link rel="preload" href="/assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/styles.css?v=20260921a">
+<link rel="stylesheet" href="/styles.css?v=20260921b">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -50,7 +50,7 @@
 </script>
 <script>document.documentElement.className = "js";</script>
 </head>
-<body class="article-page">
+<body class="article-page paper">
 
 <svg width="0" height="0" class="svg-defs" aria-hidden="true">
   <defs>
@@ -139,15 +139,85 @@
 
 
 <section id="message-testing" aria-labelledby="testing-h"><div class="wrap"><span class="label">Simulation / Two distinct test types</span><h2 id="testing-h">The response is not the shortlist.</h2><div class="layer-card"><h3>Buyer response</h3><p class="lead">A synthetic panel produces free-text reactions, not numeric ratings. Embedding similarity against versioned anchor statements maps reactions onto a five-point Likert probability distribution. Response lift compares point-estimate means on that construct. No invented confidence intervals, purchase probabilities, or sales predictions.</p></div><div class="layer-card"><h3>AI recommendation</h3><p class="lead">Each message is supplied as untrusted context to the same brand-neutral shopping situations. Five ranked JSON recommendations are parsed deterministically. Top-five and top-choice rates describe the simulated recommendation outcome; Shortlist lift is the difference in percentage points, with scenario-cluster bootstrap intervals.</p></div><p class="evidence-foot">Aggregate results require at least 30 eligible samples. Persona slices remain directional. Both test types disclose exact A/B prompts and use shared contexts: only the message changes. Simulation rows never enter measured audit aggregates.</p><a class="tlink" href="/research">Inspect the published studies ↗</a></div></section>
+<section id="scoring" aria-labelledby="scoring-h">
+    <div class="wrap">
+      <span class="label">How the scoring works / Buyer response</span>
+      <h2 id="scoring-h">From free-text answer to labeled number.</h2>
+      <p class="lead">Nothing in the scoring is a black box. A stored answer becomes a distribution you can inspect and reproduce, and the anchor method comes from independent peer-reviewed research (arXiv:2510.08338), which Windtunnel productizes.</p><div class="pipeline" aria-label="Scoring pipeline">
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <rect x="6" y="6" width="48" height="42" rx="4" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M13 16h34M13 24h34M13 32h22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M13 40h14" stroke="#F15A24" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p class="mono">Stored answer</p>
+          <p>A free-text response, immutable and timestamped.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <circle cx="16" cy="18" r="2.5" fill="currentColor"/><circle cx="30" cy="10" r="2.5" fill="currentColor"/><circle cx="44" cy="20" r="2.5" fill="currentColor"/>
+            <circle cx="22" cy="36" r="2.5" fill="currentColor"/><circle cx="40" cy="40" r="2.5" fill="#F15A24"/>
+            <path d="M16 18l14-8m0 0l14 10M22 36l18 4" stroke="currentColor" stroke-width="1" opacity=".45"/>
+          </svg>
+          <p class="mono">Embedding</p>
+          <p>The answer becomes a vector: a position in meaning-space.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <path d="M10 44L44 12" stroke="#F15A24" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 44L52 34" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M28 27a14 14 0 0 1 8 12" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          </svg>
+          <p class="mono">Cosine vs anchors</p>
+          <p>Similarity against anchor statements: 5 intent levels &times; 6 wordings = 30 anchors.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <path d="M10 46h40" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="12" y="34" width="6" height="12" fill="currentColor" opacity=".5"/>
+            <rect x="21" y="26" width="6" height="20" fill="currentColor" opacity=".7"/>
+            <rect x="30" y="16" width="6" height="30" fill="#F15A24"/>
+            <rect x="39" y="24" width="6" height="22" fill="currentColor" opacity=".7"/>
+            <rect x="48" y="38" width="2" height="8" fill="currentColor" opacity=".5"/>
+          </svg>
+          <p class="mono">Distribution</p>
+          <p>A probability mass across the 1 to 5 scale, not a single guess.</p>
+        </div>
+        <div class="pipe-stage">
+          <svg class="pipe-glyph" viewBox="0 0 60 54" fill="none" aria-hidden="true">
+            <rect x="8" y="12" width="44" height="30" rx="3" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M15 22h20M15 30h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="36" y="27" width="12" height="8" rx="1" stroke="#F15A24" stroke-width="1.5"/>
+          </svg>
+          <p class="mono">Labeled result</p>
+          <p>Response lift compares mean scores on the 1–5 construct, with n and its simulated label. No confidence interval is invented.</p>
+          <span class="stamp sim">Simulated</span>
+        </div>
+      </div>
+
+      <div class="layer-card"><h3>AI recommendation follows a different path.</h3><p class="lead">Each message is supplied as untrusted context to the same brand-neutral shopping situations. Exactly five ranked recommendations are parsed deterministically. Top-five and top-choice rates describe the result; <a href="/method/shortlist-lift">Shortlist lift</a> compares Current and New in percentage points, with scenario-cluster bootstrap intervals.</p><a class="tlink" href="/methodology#message-testing">Inspect both scoring methods ↗</a></div><div class="disclosure" role="note">
+        <p>Every Windtunnel figure ships in the Glass Box: labeled measured or simulated, gated by sample size, wrapped in its confidence interval where the math supports one, and traceable to the stored raw response behind it.</p>
+      </div>
+    </div>
+  </section>
+<section id="commitments" aria-labelledby="commitments-h"><div class="wrap"><h2 id="commitments-h">What every result carries.</h2><ul class="method-list">
+          <li><strong><a href="/method/repeated-sampling">Repeated sampling</a>.</strong> Audit prompts run multiple times because model answers vary. Rates describe that distribution.</li>
+          <li><strong>Measured versus simulated.</strong> Visibility evidence comes from stored model answers. Both Message Lift test types are comparative simulations. The two evidence classes never mix.</li>
+          <li><strong>Current/New prompt parity.</strong> Both messages use the same prompts and settings. Only the message changes.</li>
+          <li><strong>Provider and model disclosure.</strong> Every figure names the API/model route and mode that produced it.</li>
+          <li><strong>Sample size and uncertainty.</strong> Rates show n and confidence intervals where the metric supports one.</li>
+          <li><strong>Results that say no.</strong> A study that only ever confirms the brief is not measuring anything. Where the evidence does not support a claim, the report says so, and that is the finding.</li>
+          <li><strong>Snapshot limitations.</strong> Conclusions apply only to the tested prompts, routes, modes, and date.</li>
+        </ul></div></section>
 <section aria-labelledby="sk-example"><div class="wrap"><h2 id="sk-example">See the method in a complete study.</h2><p class="lead">The SK Jewellery investigation separates a visibility audit, an AI recommendation test and simulated buyer responses, with exact prompts and directional breakdowns.</p><a class="tlink" href="/research/sk-jewellery-ai-visibility-message-test">Read the SK Jewellery study →</a></div></section>
 </main>
 <footer class="site-footer" id="contact"><div class="wrap">
 <div class="footer-contact"><h2 id="contact-h">Find out where<br> your brand stands.</h2><div><p>Tell us the category, competitors, or message you need to understand.</p><div class="cta"><a class="btn primary" href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">Email the research team <span aria-hidden="true">↗</span></a></div></div></div>
-<p class="fineprint">Measured and simulated figures are labeled. No ranking guarantees. Independent studies are not client endorsements.</p>
+<p class="fineprint">No ranking guarantees.</p>
 <div class="footer-wordmark" aria-hidden="true">windtunnel</div>
 <div class="footer-meta"><span>AI visibility measurement &amp; message testing</span><span>Singapore · 2026</span><a href="mailto:resonance.research@pm.me?subject=Windtunnel%20brand%20audit%20inquiry">resonance.research@pm.me</a></div>
 </div></footer>
 
-<script src="/motion.js?v=20260921a"></script>
+<script src="/motion.js?v=20260921b"></script>
 </body>
 </html>

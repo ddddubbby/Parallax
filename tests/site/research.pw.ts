@@ -29,12 +29,12 @@ test('SK article leads with findings, six charts and no label chips',async({page
  expect(text.split(/\s+/).length).toBeLessThan(3400);
 });
 
-test('research is light, the rest of the site stays dark',async({page})=>{
- for(const path of [route,'/research','/research/hotel-group']){
+test('research and method pages are paper; the homepage keeps its dark hero',async({page})=>{
+ for(const path of [route,'/research','/research/hotel-group','/methodology','/method/mention-rate']){
   await page.goto(path);
   expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),path).toBe('rgb(250, 247, 240)');
  }
- for(const path of ['/','/methodology']){
+ for(const path of ['/']){
   await page.goto(path);
   expect(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),path).toBe('rgb(11, 11, 13)');
  }

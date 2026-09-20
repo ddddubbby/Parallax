@@ -140,19 +140,36 @@ test('metadata, public assets and homepage disclosures agree', async ({ page, re
   await page.goto('/');
   expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap: https://windtunnel.tech/sitemap.xml');
   expect(await (await request.get('/sitemap.xml')).text()).not.toContain('windtunnel.observer');
-  for (const text of ['0 of 25', '11 Jul 2026', 'DeepSeek', 'ungrounded', 'single-analyst', '3.45', '3.41', 'n=30 per message', '31 Jul 2026', 'not a client']) {
-    await expect(page.locator('main')).toContainText(new RegExp(text, 'i'));
-  }
+  for (const text of ['97%', '0 of 140', '0 times', '80%', '98%', '10–20%', '25%']) await expect(page.locator('#why')).toContainText(text);
 });
 
-test('homepage retains the product showcase and full methodology', async ({ page }) => {
+// M61 (D-140): the homepage says what we do, shows what a client gets, and proves it with findings.
+test('homepage explains the service as a flow, four metrics, the message test and five proven benefits', async ({ page }) => {
   await page.goto('/');
-  const dashboard = page.locator('#dashboard');
-  for (const value of ['94.9%', '33.2%', '32.7%', '31.5%', '2.5%', 'n=112', '80% positive', '19% mixed', '1% negative', 'different baselines']) await expect(dashboard).toContainText(value);
-  await expect(page.locator('#metrics .pillar-card')).toHaveCount(4);
-  await expect(page.locator('#metrics')).toContainText('Illustrative example');
-  await expect(page.locator('#methodology .pipe-stage')).toHaveCount(5);
-  for (const text of ['Stored answer', 'Embedding', 'Cosine vs anchors', 'Distribution', 'Labeled result', 'Glass Box', 'AI recommendation follows a different path.']) await expect(page.locator('#methodology')).toContainText(text);
-  await expect(page.locator('#method .method-list li')).toHaveCount(7);
+  await expect(page.locator('h1')).toContainText('Measure how AI recommends your brand.');
+  await expect(page.locator('main .stamp')).toHaveCount(0);
+  await expect(page.locator('main .evidence-foot, main .disclosure')).toHaveCount(0);
+  const steps = page.locator('#workflow .flow li');
+  await expect(steps).toHaveCount(5);
+  for (const step of await steps.all()) await expect(step.locator('.you-get')).toContainText('You get');
+  await expect(page.locator('#audit .metric-card')).toHaveCount(4);
+  for (const card of await page.locator('#audit .metric-card').all()) { await expect(card.locator('[role="img"]')).toHaveAttribute('aria-label', /Example/); await expect(card.locator('.why-line')).toContainText('Why it matters'); }
+  await expect(page.locator('#audit')).toContainText('made-up brands');
+  await expect(page.locator('#message-test .test-card')).toHaveCount(2);
+  await expect(page.locator('#message-test')).toContainText('Only the message changes.');
+  await expect(page.locator('#message-test')).toContainText('role-play');
+  await expect(page.locator('#why .benefit-card')).toHaveCount(5);
+  for (const card of await page.locator('#why .benefit-card').all()) await expect(card.locator('a.tlink')).toHaveAttribute('href', /^\/research/);
+  await expect(page.locator('#research .research-list a')).toHaveCount(3);
   await expect(page.locator('#faq details')).toHaveCount(7);
+  const colour = (selector: string) => page.evaluate(sel => getComputedStyle(document.querySelector(sel)!).backgroundColor, selector);
+  expect(await colour('body')).toBe('rgb(11, 11, 13)');
+  expect(await colour('#workflow')).toBe('rgb(250, 247, 240)');
+});
+
+test('scoring pipeline and commitments live on the methodology page', async ({ page }) => {
+  await page.goto('/methodology');
+  await expect(page.locator('#scoring .pipe-stage')).toHaveCount(5);
+  for (const text of ['Stored answer', 'Embedding', 'Cosine vs anchors', 'Distribution', 'Labeled result', 'AI recommendation follows a different path.']) await expect(page.locator('#scoring')).toContainText(text);
+  await expect(page.locator('#commitments .method-list li')).toHaveCount(7);
 });

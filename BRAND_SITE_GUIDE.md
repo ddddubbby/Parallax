@@ -16,7 +16,7 @@ Local verification uses `pnpm preview:site` on `http://127.0.0.1:8097` and
 
 All public HTML pages share navigation, footer, fonts and versioned assets:
 
-- `/`: offer, featured evidence, engagement, message comparison, research and contact.
+- `/`: dark hero, then on paper: what-you-get flow, four audit metrics with example charts, message test, five proven benefits, latest research, FAQ, contact (D-140).
 - `/research`: research index, one flat newest-first list (D-138).
 - `/research/sk-jewellery-ai-visibility-message-test`: measured SK audit and separate AI recommendation / buyer-response experiments.
 - `/research/insta360-action-camera-ai-study`: action-camera market audit, Insta360 descriptions and the Leica message tests in one article (D-139); the two earlier Insta360 URLs redirect here.
@@ -38,7 +38,7 @@ All public HTML pages share navigation, footer, fonts and versioned assets:
 | Accent | #F15A24 | Brand, actions, selection and subject series |
 | Border | rgba(240,238,228,.16) | Structural hairlines |
 
-All product and method reading surfaces are dark; Research (`/research*`) uses the scoped light editorial theme (D-136). Ordinary prose remains unboxed. Depth comes from
+All product and method reading surfaces are dark; Research (`/research*`), everything below the homepage hero, `/methodology` and `/method/*` use the light `.paper` scope (D-136, D-140). Ordinary prose remains unboxed. Depth comes from
 surface steps and fine borders. No glass, glow, decorative gradients or repeating
 background grids. Gradients are confined to cone shading. Signed values and explicit
 language convey result direction; green/red result colors are not used.

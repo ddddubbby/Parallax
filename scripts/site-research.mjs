@@ -104,8 +104,9 @@ function outputs(all){
  out.set('site/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...nonResearch,...research].join('\n')}\n</urlset>\n`);
  const llms=read('site/llms.txt').replace(/## (?:Studies|Research)[\s\S]*?(?=## Method)/,`## Research\n\n${all.map(a=>`- [${a.headline}](${config.url}/research/${a.slug}): ${a.hubSummary}`).join('\n')}\n- [Research index](${config.url}/research): every piece, newest first.\n\n`);
  out.set('site/llms.txt',llms);
- const latest=all[0];
- out.set('site/index.html',read('site/index.html').replace(/<!-- research:featured:start -->[\s\S]*?<!-- research:featured:end -->/,`<!-- research:featured:start --><a href="/research/${latest.slug}"><span class="mono">Latest research</span><h3>${escape(latest.headline)}</h3><span aria-hidden="true">↗</span></a><!-- research:featured:end -->`));
+ // The homepage lists the latest three pieces so it can never point at retired articles.
+ const rows=all.slice(0,3).map(a=>`<a href="/research/${a.slug}"><span class="mono">${escape(a.category||'Research')}</span><h3>${escape(a.headline)}</h3><span aria-hidden="true">↗</span></a>`).join('');
+ out.set('site/index.html',read('site/index.html').replace(/<!-- research:latest:start -->[\s\S]*?<!-- research:latest:end -->/,`<!-- research:latest:start -->${rows}<!-- research:latest:end -->`));
  return out;
 }
 const fontFaces=()=>[['Space Grotesk','space-grotesk'],['Inter','inter'],['IBM Plex Mono','ibm-plex-mono']].map(([name,file])=>`@font-face{font-family:"${name}";font-weight:100 900;src:url(data:font/woff2;base64,${readFileSync('site/assets/fonts/'+file+'-latin.woff2').toString('base64')}) format('woff2')}`).join('');

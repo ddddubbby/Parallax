@@ -35,3 +35,13 @@ The live site still serves the M59 article. M60 is local only: SK piece rewritte
 theme, flat index, evidence data file with noindex header, chart PNG export. Gates:
 `site:research check`, `pnpm test:research` 6/6, `pnpm test:site` 23 passed. The M59
 build plan remains the TRACKER file until M60's plan is archived with it at merge.
+
+## M61 homepage war room (2026-09-21)
+
+Local only, on `m60`: homepage restructured per D-140 (flow, four metrics with example
+charts, message test, five proven benefits, generated latest-research list, FAQ); paper
+theme below the hero and on method pages; 107 unused stylesheet rules removed; scoring
+pipeline and commitments moved to `/methodology`. Gates green: `site:research check`,
+`test:research` 6/6, `test:site` 24 passed. Not deployed; awaiting operator preview.
+Open operator items: contact address still `resonance.research@pm.me`; headline choices
+and logos are in; deploy covers M60 + M61 together.
