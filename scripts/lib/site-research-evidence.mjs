@@ -1,6 +1,6 @@
 // Publication verification must never call the app's recomputing export route.
 // Explicit columns only: credentials, costs, tokens and operational logs stay private.
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import pg from 'pg';
 
 export async function readEvidence(work) {
@@ -59,7 +59,18 @@ export async function pullRun(client, id) {
   return { run, metrics, cells, samples, brands, facts, attributes, study, stimuli, jobs };
 }
 
+// Committed research artifacts (for example the human-coded description study) are
+// evidence too: resolved from the repository file, never from the database.
+export function resolveArtifact(source) {
+  if (!/^docs\/audits\/[\w./-]+\.json$/.test(source.file) || source.file.includes('..')) throw new Error('Artifact must be a committed docs/audits JSON file');
+  const data = JSON.parse(readFileSync(source.file, 'utf8'));
+  if (source.select === 'recurrence') return { n: data.rows[0].denominator, reviewMethod: data.codingRun.reviewMethod, counts: data.rows.map(r => ({ name: r.associationLabel, count: r.responsesContainingAssociation })) };
+  if (source.select === 'gaps') return data.map(r => ({ id: r.associationId, kind: r.kind }));
+  throw new Error('Unsupported artifact selection');
+}
+
 export function resolveEvidence(source, bundle) {
+  if (source.kind === 'artifact') return resolveArtifact(source);
   const path = (value, key) => key.split('.').reduce((v, k) => v?.[k], value);
   const { kind } = source;
   if (kind === 'run') return path(bundle.run, source.field);

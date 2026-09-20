@@ -19,8 +19,7 @@ All public HTML pages share navigation, footer, fonts and versioned assets:
 - `/`: offer, featured evidence, engagement, message comparison, research and contact.
 - `/research`: research index, one flat newest-first list (D-138).
 - `/research/sk-jewellery-ai-visibility-message-test`: measured SK audit and separate AI recommendation / buyer-response experiments.
-- `/research/insta360`: measured descriptions and separately labeled audit example.
-- `/research/insta360-message-lift`: two independent Buyer response experiments.
+- `/research/insta360-action-camera-ai-study`: action-camera market audit, Insta360 descriptions and the Leica message tests in one article (D-139); the two earlier Insta360 URLs redirect here.
 - `/research/hotel-group`: anonymized Buyer response experiment.
 - `/methodology`: sampling, uncertainty, scoring boundaries and metric index.
 - `/method/mention-rate`, `/method/shortlist-rate`, `/method/top-choice-rate`,

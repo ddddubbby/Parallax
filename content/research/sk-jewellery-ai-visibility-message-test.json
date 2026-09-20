@@ -323,7 +323,8 @@
        "current": "p6Current",
        "next": "p6New"
       }
-     ]
+     ],
+     "afterLabel": "the sourcing line"
     },
     {
      "type": "p",
@@ -475,9 +476,8 @@
   "credit": "Logos and brand names belong to their owners and appear here only to identify the brands discussed."
  },
  "related": [
-  "insta360",
-  "hotel-group",
-  "insta360-message-lift"
+  "insta360-action-camera-ai-study",
+  "hotel-group"
  ],
  "social": {
   "linkedin": "We asked AI where to buy jewellery in Singapore {{mention|n}} times.\n\nSK Jewellery was named in {{mention|pct0}} of answers. It was ranked first in none of 140 shortlists.\n\nPoh Kong, Pandora, Swarovski and Clock Tower were never mentioned at all.\n\nBeing named isn't being chosen. For ring buyers, AI's first pick was Love & Co. or JannPaul 98% of the time. For gold savers it was BullionStar or UOB, because they answer the questions savers actually ask: price, spread, buyback.\n\nThe full breakdown, with charts, and what we'd do about it:",

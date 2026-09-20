@@ -62,5 +62,35 @@
     "colour": "#8C877C",
     "logo": null,
     "monogram": "SW"
+  },
+  "insta360": {
+    "name": "Insta360",
+    "colour": "#F15A24",
+    "logo": "/research/logos/insta360.png",
+    "monogram": "I3",
+    "source": "https://www.insta360.com",
+    "retrieved": "2026-09-21"
+  },
+  "dji": {
+    "name": "DJI",
+    "colour": "#2A6FB8",
+    "logo": "/research/logos/dji.png",
+    "monogram": "DJ",
+    "source": "https://www.dji.com",
+    "retrieved": "2026-09-21"
+  },
+  "gopro": {
+    "name": "GoPro",
+    "colour": "#0F8A6D",
+    "logo": "/research/logos/gopro.png",
+    "monogram": "GP",
+    "source": "https://gopro.com",
+    "retrieved": "2026-09-21"
+  },
+  "akaso": {
+    "name": "Akaso",
+    "colour": "#5B43A8",
+    "logo": null,
+    "monogram": "AK"
   }
 }

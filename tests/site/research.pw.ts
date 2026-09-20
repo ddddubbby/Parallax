@@ -45,7 +45,7 @@ test('research index is one flat newest-first list',async({page})=>{
  await expect(page.locator('h1')).toHaveText('Research');
  await expect(page.locator('main .stamp')).toHaveCount(0);
  const dates=await page.locator('.index-list time').evaluateAll(es=>es.map(e=>Date.parse(e.getAttribute('datetime')!)));
- expect(dates.length).toBeGreaterThanOrEqual(4);
+ expect(dates.length).toBeGreaterThanOrEqual(3);
  expect([...dates].sort((a,b)=>b-a)).toEqual(dates);
  const links=await page.locator('.index-list h2 a').evaluateAll(es=>es.map(e=>e.getAttribute('href')));
  const schema=JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent())!);
@@ -82,11 +82,13 @@ test('SK article reads without JavaScript on a phone',async({browser})=>{
  }finally{await context.close();}
 });
 
-test('legacy destinations retain their permanent redirects',()=>{
+test('retired URLs permanently redirect to their current article',()=>{
  const config=JSON.parse(readFileSync('site/vercel.json','utf8'));
- for(const slug of ['', '/insta360','/insta360-message-lift','/hotel-group']){
-  const redirect=config.redirects.find((r:{source:string})=>r.source===`/studies${slug}`);
-  expect(redirect).toMatchObject({destination:`/research${slug}`,statusCode:301});
-  expect(redirect.destination).not.toContain('#'); // browsers inherit incoming fragment
+ const target='/research/insta360-action-camera-ai-study';
+ const expected:Record<string,string>={'/studies':'/research','/studies/hotel-group':'/research/hotel-group','/studies/insta360':target,'/studies/insta360-message-lift':target,'/research/insta360':target,'/research/insta360-message-lift':target};
+ for(const [source,destination] of Object.entries(expected)){
+  const redirect=config.redirects.find((r:{source:string})=>r.source===source);
+  expect(redirect,source).toMatchObject({destination,statusCode:301});
+  expect(config.redirects.some((r:{source:string})=>r.source===destination),`${source} must not chain`).toBe(false);
  }
 });

@@ -46,9 +46,9 @@ export function renderChart(block, a, brands) {
     }
     case 'attributes': {
       const d = ev(block.ref); const labels = block.labels;
-      const rows = d.counts.map(c => ({ label: labels[c.name] || c.name, count: c.count, rate: c.count / d.n })).sort((x, y) => y.count - x.count);
+      const rows = [...d.counts, ...(block.zeroRows ?? []).map(name => ({ name, count: 0 }))].map(c => ({ label: labels?.[c.name] || c.name, count: c.count, rate: c.count / d.n })).sort((x, y) => y.count - x.count);
       const max = block.max ?? 0.2;
-      const inner = `<div class="bars bars-compact">${rows.map(r => `<div class="bar-row${r.count === 0 ? ' is-zero' : ''}" title="${escape(r.label)}: ${r.count} of ${d.n} answers"><span class="bar-name">${escape(r.label)}</span><span class="bar-track"><span class="bar-fill" style="--w:${Math.min(100, r.rate / max * 100).toFixed(2)}%;--c:${r.count === 0 ? 'var(--ghost)' : 'var(--accent)'}"></span></span><span class="bar-value">${r.count === 0 ? 'never' : pct0(r.rate)}</span></div>`).join('')}</div><p class="chart-scale">Bars run from 0 to ${pct0(max)} of the ${d.n} answers that named SK.</p>`;
+      const inner = `<div class="bars bars-compact">${rows.map(r => `<div class="bar-row${r.count === 0 ? ' is-zero' : ''}" title="${escape(r.label)}: ${r.count} of ${d.n} answers"><span class="bar-name">${escape(r.label)}</span><span class="bar-track"><span class="bar-fill" style="--w:${Math.min(100, r.rate / max * 100).toFixed(2)}%;--c:${r.count === 0 ? 'var(--ghost)' : 'var(--accent)'}"></span></span><span class="bar-value">${r.count === 0 ? 'never' : pct0(r.rate)}</span></div>`).join('')}</div><p class="chart-scale">${escape(block.scaleNote ?? `Bars run from 0 to ${pct0(max)} of ${d.n} answers.`)}</p>`;
       return figure(block, a.slug, inner, dataTable(block.title, ['What AI could have said', 'Answers', 'Share'], rows.map(r => [r.label, `${r.count} of ${d.n}`, (r.rate * 100).toFixed(1) + '%'])));
     }
     case 'dumbbell': {
@@ -58,7 +58,7 @@ export function renderChart(block, a, brands) {
       const inner = `<div class="dumbbells">${rows.map(r => {
         const dir = Math.abs(r.d) < 0.005 ? 'flat' : r.d > 0 ? 'up' : 'down';
         return `<div class="dumbbell-row is-${dir}" title="${escape(r.label)}: ${r.c.toFixed(2)} before, ${r.n.toFixed(2)} after"><span class="bar-name">${escape(r.label)}</span><span class="dumbbell-track"><span class="dumbbell-link" style="--a:${pos(Math.min(r.c, r.n))};--b:${pos(Math.max(r.c, r.n))}"></span><span class="dot dot-before" style="--x:${pos(r.c)}"></span><span class="dot dot-after" style="--x:${pos(r.n)}"></span></span><span class="bar-value">${dir === 'flat' ? 'no change' : `${dir === 'up' ? '▲' : '▼'} ${signed2(r.d)}`}</span></div>`;
-      }).join('')}<div class="dumbbell-axis"><span class="bar-name"></span><span class="axis">${ticks}</span><span class="bar-value"></span></div></div><p class="chart-key"><span class="key-dot dot-before"></span> before <span class="key-dot dot-after"></span> after the sourcing line · interest score out of 5, axis zoomed to ${lo.toFixed(1)}–${hi.toFixed(1)}</p>`;
+      }).join('')}<div class="dumbbell-axis"><span class="bar-name"></span><span class="axis">${ticks}</span><span class="bar-value"></span></div></div><p class="chart-key"><span class="key-dot dot-before"></span> before <span class="key-dot dot-after"></span> after ${escape(block.afterLabel ?? 'the change')} · interest score out of 5, axis zoomed to ${lo.toFixed(1)}–${hi.toFixed(1)}</p>`;
       return figure(block, a.slug, inner, dataTable(block.title, ['Buyer', 'Before', 'After', 'Change'], rows.map(r => [r.label, r.c.toFixed(2), r.n.toFixed(2), signed2(r.d)])));
     }
     case 'flips': {
@@ -69,6 +69,12 @@ export function renderChart(block, a, brands) {
         return `<div class="dumbbell-row is-${dir}" title="${escape(r.short)}: ${r.c} of ${r.of} before, ${r.n} of ${r.of} after"><span class="bar-name">${escape(r.short)}</span><span class="dumbbell-track"><span class="dumbbell-link" style="--a:${pos(Math.min(r.c, r.n))};--b:${pos(Math.max(r.c, r.n))}"></span><span class="dot dot-before" style="--x:${pos(r.c)}"></span><span class="dot dot-after" style="--x:${pos(r.n)}"></span></span><span class="bar-value">${r.c}/5 → ${r.n}/5</span></div>`;
       }).join('')}<div class="dumbbell-axis"><span class="bar-name"></span><span class="axis">${[0, 1, 2, 3, 4, 5].map(k => `<span class="axis-tick" style="--x:${pos(k)}">${k}</span>`).join('')}</span><span class="bar-value"></span></div></div><p class="chart-key"><span class="key-dot dot-before"></span> before <span class="key-dot dot-after"></span> after · shortlists (out of 5) that included SK</p>`;
       return figure(block, a.slug, inner, dataTable(block.title, ['Shopping question', 'Before', 'After'], rows.map(r => [r.short, `${r.c} of ${r.of}`, `${r.n} of ${r.of}`])));
+    }
+    case 'positions': {
+      const [lo, hi] = block.domain; const pos = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
+      const rows = block.rows.map(r => ({ ...r, brand: brands[r.brand], m: ev(r.ref) }));
+      const inner = `<div class="dumbbells positions">${rows.map(r => `<div class="dumbbell-row${r.subject ? ' is-subject' : ''}" title="${escape(r.brand.name)}: usually mentioned ${r.m.value.toFixed(1)} in the list"><span class="bar-name">${escape(r.brand.name)}</span><span class="dumbbell-track"><span class="dot dot-brand" style="--x:${pos(r.m.value)};--c:${escape(r.brand.colour)}"></span></span><span class="bar-value">${r.m.value.toFixed(1)}</span></div>`).join('')}<div class="dumbbell-axis"><span class="bar-name"></span><span class="axis">${block.ticks.map(t => `<span class="axis-tick" style="--x:${pos(t)}">${escape(block.tickLabels?.[t] ?? t)}</span>`).join('')}</span><span class="bar-value"></span></div></div>`;
+      return figure(block, a.slug, inner, dataTable(block.title, ['Brand', 'Average place in the list', 'Answers'], rows.map(r => [r.brand.name, r.m.value.toFixed(2), String(r.m.n)])));
     }
     default: throw new Error(`Unknown chart ${block.chart}`);
   }

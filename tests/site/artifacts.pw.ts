@@ -10,7 +10,7 @@ test('capture review artifacts', async ({ page }) => {
   const observations: object[] = [];
   for (const width of [1440, 1280, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const [name, route] of [['home', '/'], ['studies', '/research'], ['measured', '/research/insta360'], ['simulated', '/research/hotel-group'], ['methodology', '/methodology'], ['metric', '/method/mention-rate']]) {
+    for (const [name, route] of [['home', '/'], ['studies', '/research'], ['measured', '/research/insta360-action-camera-ai-study'], ['simulated', '/research/hotel-group'], ['methodology', '/methodology'], ['metric', '/method/mention-rate']]) {
       const errors: string[] = [];
       const failed = (response: import('@playwright/test').Response) => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); };
       page.on('response', failed);

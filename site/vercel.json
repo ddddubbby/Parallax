@@ -21,17 +21,27 @@
     },
     {
       "source": "/studies/insta360",
-      "destination": "/research/insta360",
+      "destination": "/research/insta360-action-camera-ai-study",
       "statusCode": 301
     },
     {
       "source": "/studies/insta360-message-lift",
-      "destination": "/research/insta360-message-lift",
+      "destination": "/research/insta360-action-camera-ai-study",
       "statusCode": 301
     },
     {
       "source": "/studies/hotel-group",
       "destination": "/research/hotel-group",
+      "statusCode": 301
+    },
+    {
+      "source": "/research/insta360",
+      "destination": "/research/insta360-action-camera-ai-study",
+      "statusCode": 301
+    },
+    {
+      "source": "/research/insta360-message-lift",
+      "destination": "/research/insta360-action-camera-ai-study",
       "statusCode": 301
     }
   ],

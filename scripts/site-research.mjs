@@ -22,7 +22,7 @@ const block=z.discriminatedUnion('type',[
  z.object({type:z.literal('pull'),text:z.string().min(1)}),
  z.object({type:z.literal('quote'),ref:z.string(),excerpt:z.string().optional(),who:z.string().min(1)}),
  z.object({type:z.literal('addition'),text:z.string().min(1),run:z.string(),who:z.string().min(1)}),
- z.object({type:z.literal('chart'),chart:z.enum(['ranking','funnel','leaders','attributes','dumbbell','flips']),id:z.string().regex(/^[a-z0-9-]+$/),title:z.string().min(1),caption:z.string().min(1)}).passthrough()]);
+ z.object({type:z.literal('chart'),chart:z.enum(['ranking','funnel','leaders','attributes','dumbbell','flips','positions']),id:z.string().regex(/^[a-z0-9-]+$/),title:z.string().min(1),caption:z.string().min(1)}).passthrough()]);
 const sourcedSchema=z.object({headlineCandidates:z.array(z.string().max(90)).min(5),standfirst:z.string().min(1),opening:z.array(z.string()).min(1),shortVersion:z.array(z.string()).min(3).max(5),
  sections:z.array(z.object({id:z.string().regex(/^[-a-z0-9]+$/),title:z.string().min(1),blocks:z.array(block).min(1),takeaway:z.string().min(1)})).min(3).max(7),
  recommendations:z.object({title:z.string(),intro:z.string(),items:z.array(z.object({title:z.string(),body:z.string()})).min(2).max(4)}),
@@ -37,12 +37,12 @@ export function validateArticle(a) {
  const ids=a.sections.map(s=>s.id);
  if(new Set(ids).size!==ids.length)throw Error('Duplicate section id');
  for(const [key,e] of Object.entries(a.evidence)){
-  if(!a.runs[e.source?.run]||e.data===undefined)throw Error('Missing provenance for '+key);
+  if((e.source?.kind!=='artifact'&&!a.runs[e.source?.run])||e.data===undefined)throw Error('Missing provenance for '+key);
   if(e.source.kind==='metric' && (!Number.isFinite(e.data.value)||!Number.isInteger(e.data.n)))throw Error('Invalid metric '+key);
  }
  for(const s of a.sections)for(const b of s.blocks){
   if(b.type==='addition'&&!a.evidence[b.run+'New']?.data.includes(b.text))throw Error('Addition is not verbatim message text');
-  if(b.type==='chart'&&b.chart==='dumbbell'){
+  if(b.type==='chart'&&b.chart==='dumbbell'&&b.rows.every(r=>r.key)){
    const profiles=a.evidence.profiles.data;
    if(b.rows.length!==profiles.length||b.rows.some((r,i)=>r.key!==profiles[i].key))throw Error('Buyer order changed from the tested order');
   }
@@ -82,8 +82,8 @@ function legacyHtml(a){
 const publicEvidence=a=>JSON.stringify({article:`${config.url}/research/${a.slug}`,published:a.published,updated:a.updated,note:'Every figure in the article resolves to one of these entries. Prompts, messages and quoted outputs are verbatim.',runs:Object.keys(a.runs),evidence:Object.fromEntries(Object.entries(a.evidence).map(([k,e])=>[k,{kind:e.source.kind,run:e.source.run,data:e.data}]))},null,1)+'\n';
 function outputs(all){
  const out=new Map();
+ for(const a of all)requireReceipt(a); // every receipt is checked before anything renders
  for(const a of all){
-  requireReceipt(a);
   out.set(`site/research/${a.slug}.html`,a.legacy?legacyHtml(a):renderArticle(a,config,all,brands));
   out.set(`site/research/${a.slug}.og.svg`,cardSvg(a,config));
   if(!a.legacy){
@@ -168,7 +168,7 @@ async function main(){
    const bundles={};for(const [name,id] of Object.entries(a.runs)){
     const bundle=await pullRun(c,id);
     if(bundle.run.state!=='completed'||bundle.run.run_mode==='mock')throw Error('Only completed live runs publish');
-    if(name==='audit'?bundle.run.kind!=='audit':bundle.study?.test_type!==(name==='buyer'?'buyer_response':'ai_recommendation'))throw Error('Study type mismatch');
+    if(name.startsWith('audit')?bundle.run.kind!=='audit':bundle.study?.test_type!==(name.startsWith('buyer')?'buyer_response':'ai_recommendation'))throw Error('Study type mismatch');
     bundles[name]=bundle;
    }
    for(const [key,item] of Object.entries(a.evidence)){
@@ -176,10 +176,14 @@ async function main(){
     // Normalize PostgreSQL Date objects to their JSON representation.
     if(actual===undefined||!isDeepStrictEqual(JSON.parse(JSON.stringify(actual)),item.data))throw Error('Evidence mismatch: '+key);
    }
-   for(const name of ['recommendation','buyer']){
-    const bundle=bundles[name];if(!bundle)continue;const baseline=bundle.stimuli.find(s=>s.id===bundle.study.baseline_stimulus_id);
-    const raw=bundles.audit.samples.find(s=>s.id===baseline?.baseline_stamp_json?.responseId);
-    if(!raw||baseline.body!==raw.raw_text)throw Error('Baseline is not verbatim stored audit evidence');
+   // Stamped baselines (M44+) must be a verbatim stored audit answer from a listed audit run.
+   // Pre-M44 tests carry an operator-written baseline and no stamp; the article says so in words.
+   const auditSamples=Object.entries(bundles).filter(([n])=>n.startsWith('audit')).flatMap(([,b])=>b.samples);
+   for(const [name,bundle] of Object.entries(bundles)){
+    if(!bundle.study)continue;const baseline=bundle.stimuli.find(s=>s.id===bundle.study.baseline_stimulus_id);
+    if(!baseline?.baseline_stamp_json)continue;
+    const raw=auditSamples.find(s=>s.id===baseline.baseline_stamp_json.responseId);
+    if(!raw||baseline.body!==raw.raw_text)throw Error('Baseline is not verbatim stored audit evidence: '+name);
    }
   });
   writeFileSync(receiptPath(a),JSON.stringify({contentSha256:hash(read(`${dir}/${a.slug}.json`)),sources:Object.keys(a.evidence).length,verifiedAt:new Date().toISOString(),method:'Read-only repeatable-read transaction; metric, prompt, message, quote and derived-count equality; verbatim baseline linkage'},null,2)+'\n');

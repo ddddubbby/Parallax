@@ -60,13 +60,9 @@ test('all pages have valid links, fragments, unique IDs and one H1', async ({ pa
 });
 
 test('published evidence retains values, qualification and anonymity', async ({ page }) => {
-  await page.goto('/research/insta360');
-  await expect(page.locator('main')).toContainText('20/25');
-  await expect(page.locator('main')).toContainText('0/25');
-  await expect(page.locator('main')).toContainText('not a client');
-  await expect(page.locator('main')).toContainText('ungrounded');
-  await page.goto('/research/insta360-message-lift');
-  for (const text of ['+0.15', '+0.57', '−0.31', 'n=5', 'Separate baselines, not a head-to-head.']) await expect(page.locator('main')).toContainText(text);
+  await page.goto('/research/insta360-action-camera-ai-study');
+  for (const text of ['100%', '98%', '95%', '8%', '97%', '70%', '20 of 25', '13 of 25', '+0.57', '+0.15', '−0.31', 'not interviews with real customers']) await expect(page.locator('main')).toContainText(text);
+  await expect(page.locator('figure.chart')).toHaveCount(4);
   await page.goto('/research/hotel-group');
   for (const text of ['3.45', '3.41', 'DeepSeek', '31 Jul 2026']) await expect(page.locator('main')).toContainText(text);
   for (const { file } of pages) expect(readFileSync(file, 'utf8')).not.toMatch(/marriott/i);
@@ -111,7 +107,7 @@ test('all pages reflow at target widths and reduced motion', async ({ page }) =>
   }
 });
 
-for (const route of ['/', '/research', '/research/insta360', '/research/hotel-group', '/research/sk-jewellery-ai-visibility-message-test', '/methodology', '/method/mention-rate', '/404']) {
+for (const route of ['/', '/research', '/research/insta360-action-camera-ai-study', '/research/hotel-group', '/research/sk-jewellery-ai-visibility-message-test', '/methodology', '/method/mention-rate', '/404']) {
   test(`accessible page: ${route}`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
