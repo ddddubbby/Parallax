@@ -1,11 +1,66 @@
 {
-  "sk": { "name": "SK Jewellery", "colour": "#F15A24", "logo": null, "monogram": "SK" },
-  "pohheng": { "name": "POH HENG", "colour": "#2A6FB8", "logo": null, "monogram": "PH" },
-  "goldheart": { "name": "Goldheart", "colour": "#0F8A6D", "logo": null, "monogram": "GH" },
-  "taka": { "name": "TAKA Jewellery", "colour": "#5B43A8", "logo": null, "monogram": "TK" },
-  "tomei": { "name": "Tomei", "colour": "#A87600", "logo": null, "monogram": "TM" },
-  "pohkong": { "name": "Poh Kong", "colour": "#8C877C", "logo": null, "monogram": "PK" },
-  "clocktower": { "name": "Clock Tower", "colour": "#8C877C", "logo": null, "monogram": "CT" },
-  "pandora": { "name": "Pandora", "colour": "#8C877C", "logo": null, "monogram": "PA" },
-  "swarovski": { "name": "Swarovski", "colour": "#8C877C", "logo": null, "monogram": "SW" }
+  "sk": {
+    "name": "SK Jewellery",
+    "colour": "#F15A24",
+    "logo": "/research/logos/sk.png",
+    "monogram": "SK",
+    "source": "https://www.skjewellery.com",
+    "retrieved": "2026-09-21"
+  },
+  "pohheng": {
+    "name": "POH HENG",
+    "colour": "#2A6FB8",
+    "logo": "/research/logos/pohheng.png",
+    "monogram": "PH",
+    "source": "https://www.pohheng.com.sg",
+    "retrieved": "2026-09-21"
+  },
+  "goldheart": {
+    "name": "Goldheart",
+    "colour": "#0F8A6D",
+    "logo": "/research/logos/goldheart.jpg",
+    "monogram": "GH",
+    "source": "https://www.goldheart.com",
+    "retrieved": "2026-09-21"
+  },
+  "taka": {
+    "name": "TAKA Jewellery",
+    "colour": "#5B43A8",
+    "logo": "/research/logos/taka.jpg",
+    "monogram": "TK",
+    "source": "https://www.takajewellery.com.sg",
+    "retrieved": "2026-09-21"
+  },
+  "tomei": {
+    "name": "Tomei",
+    "colour": "#A87600",
+    "logo": "/research/logos/tomei.png",
+    "monogram": "TM",
+    "source": "https://tomei.com.my",
+    "retrieved": "2026-09-21"
+  },
+  "pohkong": {
+    "name": "Poh Kong",
+    "colour": "#8C877C",
+    "logo": null,
+    "monogram": "PK"
+  },
+  "clocktower": {
+    "name": "Clock Tower",
+    "colour": "#8C877C",
+    "logo": null,
+    "monogram": "CT"
+  },
+  "pandora": {
+    "name": "Pandora",
+    "colour": "#8C877C",
+    "logo": null,
+    "monogram": "PA"
+  },
+  "swarovski": {
+    "name": "Swarovski",
+    "colour": "#8C877C",
+    "logo": null,
+    "monogram": "SW"
+  }
 }

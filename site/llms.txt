@@ -4,7 +4,7 @@
 
 ## Research
 
-- [AI names SK Jewellery 97% of the time. It never picks it first.](https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test): We asked AI where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first. Here's who was, and why.
+- [We analyzed how ChatGPT and DeepSeek recommend gold jewellery brands in Singapore](https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test): We asked the AI models behind ChatGPT and DeepSeek where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first.
 - [The candidate message scored no better than the current one.](https://windtunnel.tech/research/hotel-group): A global hotel group wanted to rewrite its executive-lounge pitch. We tested the rewrite first. It scored no better, so it was shelved.
 - [Two partnership messages, two tests, two different answers.](https://windtunnel.tech/research/insta360-message-lift): Two ways of announcing the same camera partnership. One made role-played buyers more interested. The other put them off.
 - [The newest story appeared in 0 of 25 answers.](https://windtunnel.tech/research/insta360): We asked AI to describe Insta360 25 times. The newest story the brand tells about itself never came up once.

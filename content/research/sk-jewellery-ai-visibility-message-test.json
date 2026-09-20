@@ -1,8 +1,9 @@
 {
  "schemaVersion": 2,
  "slug": "sk-jewellery-ai-visibility-message-test",
- "headline": "AI names SK Jewellery 97% of the time. It never picks it first.",
+ "headline": "We analyzed how ChatGPT and DeepSeek recommend gold jewellery brands in Singapore",
  "headlineCandidates": [
+  "We analyzed how ChatGPT and DeepSeek recommend gold jewellery brands in Singapore",
   "AI names SK Jewellery 97% of the time. It never picks it first.",
   "Four famous jewellers AI never mentioned in 139 answers",
   "97% named, 0% first choice: SK Jewellery in AI answers",
@@ -14,23 +15,23 @@
   "The jeweller AI always mentions and never recommends first",
   "One brand, 139 AI answers, zero first-place picks"
  ],
- "description": "We asked AI where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first. Here's who was.",
- "hubSummary": "We asked AI where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first. Here's who was, and why.",
+ "description": "We asked the AI models behind ChatGPT and DeepSeek where to buy jewellery in Singapore 139 times. Here's who they name, who they pick first, and why.",
+ "hubSummary": "We asked the AI models behind ChatGPT and DeepSeek where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first.",
  "published": "2026-09-20T03:54:31.194Z",
- "updated": "2026-09-20T11:29:38.864Z",
+ "updated": "2026-09-20T11:41:41.000Z",
  "byline": "Windtunnel Research",
  "brand": "SK Jewellery",
  "category": "Singapore jewellery",
  "cardLines": [
-  "AI names SK Jewellery 97%",
-  "of the time. It never",
-  "picks it first."
+  "We analyzed how ChatGPT and",
+  "DeepSeek recommend gold",
+  "jewellery brands in Singapore"
  ],
  "cardStat": {
   "value": "0 of 140",
   "label": "AI shortlists put SK first"
  },
- "standfirst": "We asked two AI models where to buy jewellery in Singapore, 139 answers' worth. SK Jewellery showed up almost every time. Here's why that still isn't enough, and what we'd do about it.",
+ "standfirst": "We asked the AI models behind ChatGPT and DeepSeek where to buy jewellery in Singapore, 139 answers' worth. One brand showed up almost every time and was never the first pick. Here's who was, and what we'd do about it.",
  "opening": [
   "Ask an AI assistant where to buy a wedding ring in Singapore and you'll get a confident, tidy list. We wanted to know who's on that list, so we asked. Not once: {{mention|n}} times, across the OpenAI and DeepSeek models, with the kinds of questions real shoppers type. First-time ring buyers. People saving in gold. Families planning a wedding set.",
   "SK Jewellery was named in {{mention|pct0}} of those answers. If you ran marketing there, you'd probably take that number and go home happy. But being named and being chosen turn out to be very different things, and the gap between them is where the work is."
@@ -467,7 +468,7 @@
  "how": {
   "title": "How we did this",
   "paragraphs": [
-   "We wrote 45 shopper questions about buying jewellery in Singapore and put each one to the OpenAI and DeepSeek models through their APIs, five times each, on 19 September 2026. That's 450 answers. The {{mention|pct0}} figure comes from the {{mention|n}} answers to questions that didn't name any brand, so every mention is one the AI volunteered.",
+   "We wrote 45 shopper questions about buying jewellery in Singapore and put each one to the OpenAI model that powers ChatGPT and to DeepSeek's model, through their APIs rather than the chat apps, five times each, on 19 September 2026. That's 450 answers. The {{mention|pct0}} figure comes from the {{mention|n}} answers to questions that didn't name any brand, so every mention is one the AI volunteered.",
    "For the shortlist test, we gave the OpenAI model 14 shopping questions, five times each, with one of two descriptions of SK as background, and asked for a ranked top five each time: 140 shortlists.",
    "For the buyer reactions, the same model played six shopper characters, five times per version. Those reactions are the model in character, not interviews with real customers. They are good for spotting what a message leaves unanswered, not for forecasting sales. We score them with a method published by independent researchers (arXiv:2510.08338)."
   ],

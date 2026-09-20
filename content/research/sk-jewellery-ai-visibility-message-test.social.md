@@ -1,4 +1,4 @@
-# AI names SK Jewellery 97% of the time. It never picks it first.
+# We analyzed how ChatGPT and DeepSeek recommend gold jewellery brands in Singapore
 
 ## LinkedIn
 

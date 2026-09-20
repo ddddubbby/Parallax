@@ -15,7 +15,7 @@ const reserved=['config.json','cards.json','brands.json'];
 // retired; what stays enforced is provenance (every number resolves to verified
 // evidence) and the headline gate.
 const articleSchema=z.object({schemaVersion:z.union([z.literal(1),z.literal(2)]),slug:z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
- headline:z.string().min(1).max(65),description:z.string().min(1).max(155),published:z.string().datetime({offset:true}),updated:z.string().datetime({offset:true}),
+ headline:z.string().min(1).max(90),description:z.string().min(1).max(155),published:z.string().datetime({offset:true}),updated:z.string().datetime({offset:true}),
  hubSummary:z.string().min(1).max(200),cardLines:z.array(z.string().max(34)).min(1).max(4),legacy:z.boolean().optional()}).passthrough();
 const block=z.discriminatedUnion('type',[
  z.object({type:z.literal('p'),text:z.string().min(1)}),
@@ -23,7 +23,7 @@ const block=z.discriminatedUnion('type',[
  z.object({type:z.literal('quote'),ref:z.string(),excerpt:z.string().optional(),who:z.string().min(1)}),
  z.object({type:z.literal('addition'),text:z.string().min(1),run:z.string(),who:z.string().min(1)}),
  z.object({type:z.literal('chart'),chart:z.enum(['ranking','funnel','leaders','attributes','dumbbell','flips']),id:z.string().regex(/^[a-z0-9-]+$/),title:z.string().min(1),caption:z.string().min(1)}).passthrough()]);
-const sourcedSchema=z.object({headlineCandidates:z.array(z.string().max(65)).min(5),standfirst:z.string().min(1),opening:z.array(z.string()).min(1),shortVersion:z.array(z.string()).min(3).max(5),
+const sourcedSchema=z.object({headlineCandidates:z.array(z.string().max(90)).min(5),standfirst:z.string().min(1),opening:z.array(z.string()).min(1),shortVersion:z.array(z.string()).min(3).max(5),
  sections:z.array(z.object({id:z.string().regex(/^[-a-z0-9]+$/),title:z.string().min(1),blocks:z.array(block).min(1),takeaway:z.string().min(1)})).min(3).max(7),
  recommendations:z.object({title:z.string(),intro:z.string(),items:z.array(z.object({title:z.string(),body:z.string()})).min(2).max(4)}),
  how:z.object({title:z.string(),paragraphs:z.array(z.string()).min(1),credit:z.string()}),related:z.array(z.string()).min(2),byline:z.string(),brand:z.string(),category:z.string()}).passthrough();
