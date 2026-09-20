@@ -333,6 +333,11 @@ constraint (time and cost), not their craft.
 
 Humor: dry, sparing, never about the client's brand. Exclamation marks: no.
 
+**Research voice (D-137).** Research articles talk to one brand marketer: "you", "we",
+contractions, short sentences, plain words, one rounded number per paragraph, no sentence
+whose only job is to limit the one before it. Say what we saw, then what you would do
+about it. Promise words in section 5.3 stay banned; method is told once in plain words.
+
 ---
 
 ## 8. Competitive positioning

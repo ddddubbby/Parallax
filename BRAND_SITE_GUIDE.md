@@ -17,7 +17,7 @@ Local verification uses `pnpm preview:site` on `http://127.0.0.1:8097` and
 All public HTML pages share navigation, footer, fonts and versioned assets:
 
 - `/`: offer, featured evidence, engagement, message comparison, research and contact.
-- `/research`: original research hub with a visible editorial-method statement.
+- `/research`: research index, one flat newest-first list (D-138).
 - `/research/sk-jewellery-ai-visibility-message-test`: measured SK audit and separate AI recommendation / buyer-response experiments.
 - `/research/insta360`: measured descriptions and separately labeled audit example.
 - `/research/insta360-message-lift`: two independent Buyer response experiments.
@@ -39,7 +39,7 @@ All public HTML pages share navigation, footer, fonts and versioned assets:
 | Accent | #F15A24 | Brand, actions, selection and subject series |
 | Border | rgba(240,238,228,.16) | Structural hairlines |
 
-All reading surfaces are dark. Ordinary prose remains unboxed. Depth comes from
+All product and method reading surfaces are dark; Research (`/research*`) uses the scoped light editorial theme (D-136). Ordinary prose remains unboxed. Depth comes from
 surface steps and fine borders. No glass, glow, decorative gradients or repeating
 background grids. Gradients are confined to cone shading. Signed values and explicit
 language convey result direction; green/red result colors are not used.
@@ -140,6 +140,14 @@ as literal application screenshots. Illustrative figures retain their labels.
 Restyle substantive content; do not remove it as an aesthetic shortcut.
 
 ## 6. Research and claims
+
+Research articles follow D-137: finding headline chosen by the operator, standfirst,
+"The short version", finding-led sections that each close on "What this means for you",
+"If I ran marketing here", one short "How we did this", share row. No chips, walls,
+limits lists or in-page prompt disclosures; every number still resolves to verified
+evidence and the full data ships as `/research/<slug>.evidence.json` (noindex). Charts use
+one fixed colour per brand, direct labels, teal/plum arrows for direction, never red/green.
+The rules below govern the pre-M60 legacy pieces until each is rewritten.
 
 Study order: finding, conditions and material limits, main evidence, prompts and
 method, interpretation and remaining limits, related research and contact.

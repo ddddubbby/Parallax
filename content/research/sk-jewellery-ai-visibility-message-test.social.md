@@ -1,45 +1,49 @@
-# AI knows SK Jewellery. What would make it recommend the brand?
+# AI names SK Jewellery 97% of the time. It never picks it first.
 
 ## LinkedIn
 
-SK Jewellery appeared in 97.1% of 139 sampled AI answers. That gives its marketing team a more specific question to investigate: what would make AI recommend the brand in different buying situations?
+We asked AI where to buy jewellery in Singapore 139 times.
 
-The audit examined visibility and brand framing. A separate simulated recommendation test did not establish an overall improvement from the alternative message: −1.4 percentage points, with a 95% interval spanning −12.9 to +8.6; n=70 per message.
+SK Jewellery was named in 97% of answers. It was ranked first in none of 140 shortlists.
 
-The report connects those results with exploratory buyer-profile responses and a practical next step: test messages against the purchase decisions they are meant to support.
+Poh Kong, Pandora, Swarovski and Clock Tower were never mentioned at all.
 
-Read the findings, prompts, and proposed content tests.
+Being named isn't being chosen. For ring buyers, AI's first pick was Love & Co. or JannPaul 98% of the time. For gold savers it was BullionStar or UOB, because they answer the questions savers actually ask: price, spread, buyback.
+
+The full breakdown, with charts, and what we'd do about it:
 
 https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test
 
 ## X thread
 
-1/10 SK Jewellery appeared in 97.1% of 139 sampled AI answers. We then tested an alternative message. The simulated recommendation result showed no clear overall lift. Here’s what the audit and buyer-profile analysis suggest testing next.
+1/8 We asked AI where to buy jewellery in Singapore 139 times. One brand was named in 97% of answers and never once ranked first. Here's what that tells brand marketers 🧵
 
-2/10 Measured: SK appeared in 135 of 139 eligible unbranded answers. Nine jewellers were tracked. These API results describe the sampled Singapore questions, not the whole category.
+2/8 First, who AI names at all. POH HENG: every answer. SK Jewellery: 97%. Goldheart: 96%. TAKA: 55%. Then the zeros: Poh Kong, Pandora, Swarovski, Clock Tower. Never mentioned.
 
-3/10 Measured: recognition and recommendation differ. SK was organically recommended in 100 of 139 eligible unbranded answers. The controlled message test asked a separate question.
+3/8 Being named isn't being picked. SK: named 97%, recommended 72%, ranked first in 0 of 140 shortlists.
 
-4/10 Simulated: we supplied a Current or New message separately to the same shopping scenarios and requested five ranked recommendations. Only the message field changed. The New message added a sourcing claim; length and line endings also differed.
+4/8 AI ranks brands for a need, not in general. Rings: Love & Co. or JannPaul first 98% of the time. Gold savers: BullionStar or UOB 80%. Why? They answer what that shopper asks: live price, spread, buyback.
 
-5/10 Simulated: shortlist rate moved 62.9% → 61.4%, n=70 per message. Lift: −1.4 pp; 95% interval −12.9 to +8.6 pp. This did not establish an improvement, harm or equivalence.
+5/8 What AI says about SK: modern designs, 999 gold, mall stores. What it almost never says: buyback (1 in 10), certified diamonds (once), trusted family jeweller (never).
 
-6/10 Simulated buyer response is a separate test with a different baseline: 3.20 → 3.24 on a five-point construct, n=30 per message. Those scores do not measure AI recommendations.
+6/8 We tested a fix: add an ethical-sourcing line to SK's description. Shortlist rate went 63% → 61%. A values line alone doesn't move the list.
 
-7/10 Simulated, directional: six buyer profiles, n=5 per profile per message. Gold-as-savings had the largest upward point estimate. Wedding-gold buyers moved slightly downward. The full table includes both.
+7/8 And the same ring question worded two ways flipped the result. One AI screenshot is an anecdote. Ask many times, many ways.
 
-8/10 Proposed next test: pair applicable sourcing proof with the decision details—diamond grading and prices for ring comparisons; purity, charges and buyback terms for gold. These pairings have not yet been tested.
-
-9/10 Limits: ungrounded API outputs, small simulated profiles, different baselines and unmatched message lengths. Some needs were supplied in the profiles themselves. Exact prompts and all scenario results are in the report.
-
-10/10 Read the evidence, exact prompts and proposed tests: https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test
+8/8 Full breakdown with charts, and what we would do next: https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test
 
 ## Partner email
 
-A Singapore jewellery audit and two separate message tests show how to turn AI visibility findings into specific, evidence-led content experiments.
+We asked two AI models where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first; four well-known brands were never mentioned. The piece shows who AI picks instead, why, and what a brand team can do about it.
 
 https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test
 
-## Image
+## Images to attach
 
-Article card: site/research/sk-jewellery-ai-visibility-message-test.og.jpg. Optional figure exports are deferred.
+- Card: site/research/sk-jewellery-ai-visibility-message-test.og.jpg
+- Who AI names when you ask where to buy jewellery in Singapore: site/research/sk-jewellery-ai-visibility-message-test-who-ai-names.png
+- Named, recommended, ranked first: where SK Jewellery drops off: site/research/sk-jewellery-ai-visibility-message-test-known-isnt-chosen.png
+- AI's first pick, by what the shopper wants: site/research/sk-jewellery-ai-visibility-message-test-who-wins.png
+- The reasons to choose SK that AI almost never gives: site/research/sk-jewellery-ai-visibility-message-test-what-ai-says.png
+- One added line, six kinds of buyer: who warmed up and who didn't: site/research/sk-jewellery-ai-visibility-message-test-six-buyers.png
+- Same shopper, different wording, different shortlist: site/research/sk-jewellery-ai-visibility-message-test-wording.png

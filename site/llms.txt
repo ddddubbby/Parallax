@@ -4,11 +4,11 @@
 
 ## Research
 
-- [AI knows SK Jewellery. What would make it recommend the brand?](https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test): Measured / Simulated. Strong sampled visibility, an inconclusive recommendation test, and six buyer profiles that turn the next content brief into a testable question.
-- [The candidate message scored no better than the current one.](https://windtunnel.tech/research/hotel-group): Simulated. An anonymized hotel Buyer response test: 3.45 versus 3.41, n=30 per message. Independent study; not a client.
-- [Two partnership messages, two tests, two different answers.](https://windtunnel.tech/research/insta360-message-lift): Simulated / Directional. Separate Buyer response tests, different baselines, n=5 per engine per message. Insta360 was not a client.
-- [The newest story appeared in 0 of 25 answers.](https://windtunnel.tech/research/insta360): Measured / Directional. Five bare prompts, five repetitions, human-reviewed descriptions. Independent study; Insta360 was not a client.
-- [Research hub](https://windtunnel.tech/research): studies and editorial method.
+- [AI names SK Jewellery 97% of the time. It never picks it first.](https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test): We asked AI where to buy jewellery in Singapore 139 times. SK Jewellery was named in 97% of answers and never ranked first. Here's who was, and why.
+- [The candidate message scored no better than the current one.](https://windtunnel.tech/research/hotel-group): A global hotel group wanted to rewrite its executive-lounge pitch. We tested the rewrite first. It scored no better, so it was shelved.
+- [Two partnership messages, two tests, two different answers.](https://windtunnel.tech/research/insta360-message-lift): Two ways of announcing the same camera partnership. One made role-played buyers more interested. The other put them off.
+- [The newest story appeared in 0 of 25 answers.](https://windtunnel.tech/research/insta360): We asked AI to describe Insta360 25 times. The newest story the brand tells about itself never came up once.
+- [Research index](https://windtunnel.tech/research): every piece, newest first.
 
 ## Method
 

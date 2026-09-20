@@ -7,32 +7,40 @@ import {spawnSync} from 'node:child_process';
 import {validateArticle} from '../../scripts/site-research.mjs';
 import {resolveEvidence} from '../../scripts/lib/site-research-evidence.mjs';
 import {stampDomain} from '../../scripts/site-domain.mjs';
-import {tokens,tinyDelta} from '../../scripts/lib/site-research-template.mjs';
+import {tokens} from '../../scripts/lib/site-research-template.mjs';
 const file='content/research/sk-jewellery-ai-visibility-message-test.json';
 const article=JSON.parse(readFileSync(file,'utf8'));
 
-test('malformed or re-ordered evidence fails closed',()=>{
+test('malformed, re-ordered or unchosen content fails closed',()=>{
+ const section=(a,id)=>a.sections.find(s=>s.id===id);
  for(const change of [
   a=>{delete a.evidence.mention.source;},
-  a=>{a.sections.find(s=>s.id==='profiles').status='Measured';},
-  a=>{a.sections.find(s=>s.id==='profiles').blocks.find(b=>b.type==='profiles').rows.reverse();},
-  a=>{a.sections.find(s=>s.id==='shopping-situations').blocks.find(b=>b.type==='scenarios').rows[0].label='Invented persona';},
-  a=>{a.sections.find(s=>s.id==='buyer-response').blocks.find(b=>b.type==='comparison').addition='Invented statement';},
+  a=>{a.headline='A headline nobody chose';},
+  a=>{section(a,'one-fix').blocks.find(b=>b.chart==='dumbbell').rows.reverse();},
+  a=>{section(a,'wording').blocks.find(b=>b.chart==='flips').rows.reverse();},
+  a=>{section(a,'one-fix').blocks.find(b=>b.type==='addition').text='Invented statement';},
+  a=>{section(a,'who-ai-names').blocks[0].text='Named in {{mention|nonsense}}';},
  ]) {const a=structuredClone(article);change(a);assert.throws(()=>validateArticle(a));}
 });
 
-test('full precision lift is not subtraction of rounded percentages',()=>{
+test('prose numbers come from full-precision evidence',()=>{
+ assert.equal(tokens('{{mention|pct0}}',article),'97%');
+ assert.equal(tokens('{{recommendationCurrentScore|pct0}} {{recommendationNewScore|pct0}}',article),'63% 61%');
  assert.equal(tokens('{{recommendationLift|signed1}}',article),'−1.4');
- assert.equal(tokens('{{recommendationLift|ciSigned}}',article),'−12.9 to +8.6');
- assert.equal(tinyDelta(-0.00058230866),'<0.01 decrease');
- assert.equal(tinyDelta(0.004175549),'<0.01 increase');
+ assert.equal(tokens('{{buyerCurrentScore|fixed2}} {{buyerNewScore|fixed2}}',article),'3.20 3.24');
+});
+
+test('first-place tallies fold spelling variants and skip invalid outputs',()=>{
+ const rec=(brand,state='valid')=>({cell_id:'c',extraction_state:state,extracted_json:{kind:'recommendation',recommendations:[{rank:1,brand},{rank:2,brand:'Other'}]}});
+ const bundle={cells:[{id:'c',panel_persona_key:'s1'}],samples:[rec('Poh Heng'),rec('Poh Heng Jewellery'),rec('JannPaul'),rec('JannPaul','dead_lettered')]};
+ assert.deepEqual(resolveEvidence({kind:'rankOneCounts',keys:['s1'],aliases:{'Poh Heng':'POH HENG','Poh Heng Jewellery':'POH HENG'}},bundle),{n:3,counts:[{brand:'POH HENG',count:2},{brand:'JannPaul',count:1}]});
 });
 
 test('edited article cannot build with an old verification receipt',()=>{
  const root=mkdtempSync(join(tmpdir(),'research-receipt-'));
  try {
   cpSync('content',join(root,'content'),{recursive:true});
-  const a=structuredClone(article);a.opening+=' Unverified editorial change.';
+  const a=structuredClone(article);a.opening.push('Unverified editorial change.');
   writeFileSync(join(root,file),JSON.stringify(a));
   const result=spawnSync(process.execPath,[resolve('scripts/site-research.mjs'),'check'],{cwd:root,encoding:'utf8'});
   assert.equal(result.status,1);assert.match(result.stderr,/Reverify changed evidence\/content/);

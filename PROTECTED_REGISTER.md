@@ -149,3 +149,7 @@ D-133 protects content/research, read-only research verification, generated arti
 cards/feed, and legacy Studies redirects. Article fragments and legacy evidence
 survive migration. D-134 permits relationship-neutral SK copy only; preserve the
 existing legacy disclosures. D-135 preserves all directional and simulation labels.
+
+## M60 research rewrite
+
+D-136/D-137/D-138 protect: the scoped light-theme tokens under `body.research-article`/`body.research-index` in `site/styles.css`; `content/research/brands.json` (one fixed colour per brand, reused across articles); `scripts/lib/site-research-charts.mjs`; generated `site/research/<slug>.evidence.json` and chart PNGs; the noindex header for evidence files in `site/vercel.json`; the headline gate and the plain-words method sentence in every article.

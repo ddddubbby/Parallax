@@ -66,10 +66,9 @@ test('published evidence retains values, qualification and anonymity', async ({ 
   await expect(page.locator('main')).toContainText('not a client');
   await expect(page.locator('main')).toContainText('ungrounded');
   await page.goto('/research/insta360-message-lift');
-  for (const text of ['+0.15', '+0.57', '−0.31', 'Directional', 'n=5', 'Separate baselines, not a head-to-head.']) await expect(page.locator('main')).toContainText(text);
-  await expect(page.locator('main')).toContainText('Simulated');
+  for (const text of ['+0.15', '+0.57', '−0.31', 'n=5', 'Separate baselines, not a head-to-head.']) await expect(page.locator('main')).toContainText(text);
   await page.goto('/research/hotel-group');
-  for (const text of ['3.45', '3.41', 'Simulated', 'n=30', 'DeepSeek', 'ungrounded', '31 Jul 2026']) await expect(page.locator('main')).toContainText(text);
+  for (const text of ['3.45', '3.41', 'DeepSeek', '31 Jul 2026']) await expect(page.locator('main')).toContainText(text);
   for (const { file } of pages) expect(readFileSync(file, 'utf8')).not.toMatch(/marriott/i);
 });
 

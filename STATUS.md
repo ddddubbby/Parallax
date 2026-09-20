@@ -1,15 +1,15 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: branch-local M59 progress and publication state · TRACKER: M59_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: branch-local M60 progress and publication state · TRACKER: M59_BUILD_PLAN.md
 
-# M59 status
+# M60 status
 
 | Field | Value |
 |---|---|
 | **Active product** | Windtunnel public research website |
-| **Branch** | m59 from 11320ee (merged M58 plus windtunnel.tech/favicon update) |
-| **Current milestone** | M59 — Research section and SK decision guide |
-| **Milestone state** | Implemented and published; local and hosted acceptance checks pass |
+| **Branch** | m60 from m59 (50fe5b0); m59 is published but not yet merged to main |
+| **Current milestone** | M60 — Research rewritten as shareable articles: light theme, charts, flat index (D-136/D-137/D-138) |
+| **Milestone state** | Code complete and locally verified; NOT deployed. Headline is provisional pending operator choice; brand logos pending (monogram chips in place) |
 | **Production** | https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test |
-| **Next action** | Repository handoff; Search Console submission deferred by user |
+| **Next action** | Operator picks the SK headline from `headlineCandidates` and supplies or approves logo files; then `pnpm site:research verify` + `build`, review, deploy |
 | **Parked product** | GEO agent remains parked (D-116); operator product unchanged |
 | **Build plan** | [M59_BUILD_PLAN.md](M59_BUILD_PLAN.md) |
 
@@ -27,3 +27,11 @@ Search Console requires Google sign-in. User explicitly chose to leave sitemap
 submission as a follow-up; do not imply submission or indexing is confirmed. Review
 search queries, article impressions/clicks, available AI citations and qualified
 enquiries on 18 October 2026. Prepared social copy has not been posted or emailed.
+
+## M60 (2026-09-21)
+
+The live site still serves the M59 article. M60 is local only: SK piece rewritten
+(1,477 words, six charts, 216 evidence entries re-verified read-only), light research
+theme, flat index, evidence data file with noindex header, chart PNG export. Gates:
+`site:research check`, `pnpm test:research` 6/6, `pnpm test:site` 23 passed. The M59
+build plan remains the TRACKER file until M60's plan is archived with it at merge.

@@ -94,5 +94,19 @@ export function resolveEvidence(source, bundle) {
       .map(s=>s.extracted_json?.brands?.find(b=>b.canonical_brand_id===source.brand && b.mentioned)).filter(Boolean);
     return { n: mentions.length, counts: bundle.attributes.map(a=>({ name:a.name, count:mentions.filter(m=>m.attributes.includes(a.name)).length })) };
   }
+  if (kind === 'rankOneCounts') {
+    // First-place picks across the named scenario keys, both messages pooled: the
+    // shortlist's own rank 1, with spelling variants folded by the declared aliases.
+    const cells = bundle.cells.filter(c=>source.keys.includes(c.panel_persona_key)).map(c=>c.id);
+    const samples = bundle.samples.filter(s=>cells.includes(s.cell_id) && ['valid','qa_reviewed'].includes(s.extraction_state) && s.extracted_json?.kind==='recommendation');
+    const tally = new Map();
+    for (const s of samples) {
+      const first = s.extracted_json.recommendations.find(r=>r.rank===1)?.brand?.trim();
+      if (!first) continue;
+      const name = source.aliases?.[first] ?? first;
+      tally.set(name, (tally.get(name) ?? 0) + 1);
+    }
+    return { n: samples.length, counts: [...tally].map(([brand,count])=>({brand,count})).sort((a,b)=>b.count-a.count||a.brand.localeCompare(b.brand)) };
+  }
   throw new Error(`Unsupported evidence source: ${kind}`);
 }
