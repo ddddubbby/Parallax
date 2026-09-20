@@ -70,6 +70,8 @@ Stack: Next.js 15 + TypeScript + Tailwind + shadcn/ui, Drizzle ORM, Zod, Vitest,
 
 | Command | Does |
 |---|---|
+| `pnpm site:research build/check` | Offline static research publishing and drift checks; `verify <slug>` uses read-only evidence access |
+| `pnpm test:research` | Publisher provenance, precision and domain-stamping tests without a database |
 | `pnpm dev` | Run the Next.js app locally |
 | `pnpm worker` | Run the polling worker locally |
 | `pnpm test` | Run Vitest, including golden dataset tests — DB-backed tests run against an ephemeral, auto-migrated+seeded embedded Postgres (`scripts/vitest-global-setup.ts`), never the dev DB (D-078) |
@@ -118,7 +120,7 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 /fixtures                Mock responses and golden expectations
 /scripts                 Local verification, seed, research, and site-domain scripts
 /e2e                     Playwright smoke + axe floor and the forecast harness (D-092/D-120)
-/site                    Standalone static brand site, deployed to Vercel at resonance.observer (D-127)
+/site                    Standalone static brand site, deployed to Vercel at windtunnel.tech (D-127)
 /public/brand            Brand source assets and the living brand-kit specimen page
 /docs                    history/ (byte-frozen executed plans) and audits/ (disposable working artifacts)
 ```
@@ -136,7 +138,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
 | `AGENT_PRD.md` | PARKED | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
 | `AGENT_BUILD_PLAN.md` | PARKED | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
-| `M58_BUILD_PLAN.md` | ACTIVE | M58 brand website redesign and independent website verification (D-129); no operator product change |
+| `M59_BUILD_PLAN.md` | ACTIVE | M59 Research publishing, verified SK article and publication acceptance |
 | `AGENT_STRATEGY_MEMO.md` | PARKED | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
@@ -153,7 +155,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `docs/history/` | HISTORICAL | Executed/superseded plans and proposals, each with a `DISPOSITION` header — never edited, only appended to by future archival |
 | `docs/audits/` | — | Working audit artifacts (per `AUDIT_METHODOLOGY.md` §8 disposability convention) |
 | `fixtures/` | — | Demo project, mock response manifest, golden expectation manifest |
-| `site/` | — | Standalone static brand site (Vercel, `resonance.observer`); governed by `BRAND_SITE_GUIDE.md`, never wired into the app |
+| `site/` | — | Standalone static brand site (Vercel, `windtunnel.tech`); governed by `BRAND_SITE_GUIDE.md`, never wired into the app |
 | `public/brand/` | — | Brand source assets (concept PNGs, vector mark, `brand-kit.html`); operator-owned, referenced from `BRAND_SITE_GUIDE.md` |
 
 Split a section into a separate file only when it exceeds roughly 300 lines or changes at a clearly different cadence. Record the split in the Decision Log.

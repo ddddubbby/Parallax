@@ -1,0 +1,18 @@
+{
+  "sk-jewellery-ai-visibility-message-test": {
+    "svgSha256": "fbef224c017d77331f7de95be7d2b58870074862bd32e6992cc929de101261e8",
+    "jpgSha256": "5bbc105fc9e3d8d9dffa168ff3cac97e427ee1cdca76874c2baefcc6bc225ac0"
+  },
+  "hotel-group": {
+    "svgSha256": "f5b7a2aeb55a77731f7f1e2f63be816eeeb3aa8cc9771c78d3f484d814c7c3d5",
+    "jpgSha256": "74c246a1a355fdda499280ffbdb78e2a8a5b1864230db0ec093a889bee3683d4"
+  },
+  "insta360-message-lift": {
+    "svgSha256": "042b0d176e0117c94808bb61a7d14852416b36e1609412a6d990bc81abbcad1a",
+    "jpgSha256": "be548f16913d5261f1f9bf1ef4f6df276aebaff55bf95aa42e7b834aeb3440f0"
+  },
+  "insta360": {
+    "svgSha256": "e2f2fefb49f90537adf3afaa516448e05423c0606ebef8de4792236e68a3d6be",
+    "jpgSha256": "efa74daf2c9bc09ff9eff03ccc2b5ec280d029ef3f00328c75e01f4b942ed73c"
+  }
+}

@@ -17,10 +17,11 @@ Local verification uses `pnpm preview:site` on `http://127.0.0.1:8097` and
 All public HTML pages share navigation, footer, fonts and versioned assets:
 
 - `/`: offer, featured evidence, engagement, message comparison, research and contact.
-- `/studies`: independent research hub.
-- `/studies/insta360`: measured descriptions and separately labeled audit example.
-- `/studies/insta360-message-lift`: two independent Buyer response experiments.
-- `/studies/hotel-group`: anonymized Buyer response experiment.
+- `/research`: original research hub with a visible editorial-method statement.
+- `/research/sk-jewellery-ai-visibility-message-test`: measured SK audit and separate AI recommendation / buyer-response experiments.
+- `/research/insta360`: measured descriptions and separately labeled audit example.
+- `/research/insta360-message-lift`: two independent Buyer response experiments.
+- `/research/hotel-group`: anonymized Buyer response experiment.
 - `/methodology`: sampling, uncertainty, scoring boundaries and metric index.
 - `/method/mention-rate`, `/method/shortlist-rate`, `/method/top-choice-rate`,
   `/method/shortlist-lift`, `/method/stability-index`, `/method/repeated-sampling`.
@@ -85,7 +86,7 @@ Repeated answers → Evidence; no numeric data is implied by its geometry.
 ## 4. Navigation and motion
 
 The mark and wordmark link to `/`. Segments are How it works (`/#workflow`), Studies
-(`/studies`), Method (`/methodology`), and Request a brand audit (working contact).
+(`/research`), Method (`/methodology`), and Request a brand audit (working contact).
 Mobile retains the audit action and a 44px menu button. Enter/Space opens, Escape
 closes and returns focus; desktop resize restores navigation. With JavaScript
 disabled, all navigation links remain visible and the inactive button is hidden.
@@ -123,7 +124,7 @@ observers, scrambling, parallax, continuous motion or scroll-gated content.
    equal visual weight. Hotel example: 3.45 / 3.41; simulated, n=30 per message,
    DeepSeek, ungrounded, 31 Jul 2026, anonymous and independent. No significance or
    equivalence claim. Do not label Buyer response as Shortlist lift.
-5. **Research, `#methodology` and `#method`.** Three studies, repeated sampling,
+5. **Research, `#methodology` and `#method`.** Original studies, repeated sampling,
    traceability, uncertainty and limits. Native FAQ covers what is measured,
    Message Lift, prompt repetition and API/consumer-chat differences.
 6. **Contact, `#contact`.** “Find out where your brand stands.” Category, competitors
@@ -174,7 +175,9 @@ and links every research/definition page with accurate evidence status.
 Every changed public page gets a sitemap lastmod update. 404 and any future thank-you
 page remain excluded. CSS/JS cache versions match across every HTML document.
 
-Hosting target remains a standalone Vercel project with Root Directory `site`.
+Hosting target is the standalone Vercel `site` project. CLI deployments run from
+`site/` (project root `.`); a future repository integration must use Root Directory
+`site` to avoid deploying operator files.
 `site/vercel.json` owns clean URLs, redirects, CSP/security headers and cache tiers.
 `site/_headers` is retained for host portability and is inert on Vercel.
 `site/.vercel/` is ignored operator configuration. No connection to `render.yaml`.
@@ -182,7 +185,7 @@ Hosting target remains a standalone Vercel project with Root Directory `site`.
 The configured canonical host is `https://windtunnel.tech`; verify publication
 and live responses independently of the source files.
 `scripts/set-site-domain.sh <url>` stamps or re-stamps HTML, robots, sitemap and
-llms URLs idempotently. Preserve its compatibility and all explicit robots groups.
+llms/feed URLs idempotently, then rebuilds generated research and raster cards. It changes only the configured site origin, preserving external evidence links. Preserve its compatibility and all explicit robots groups.
 Old-domain redirects require hosting configuration. Contact provisioning remains
 external; retain the working mailto until a real endpoint/mailbox is available.
 
@@ -196,8 +199,8 @@ with the 404 document/status, and rejects traversal. It does not verify host hea
 Review 1440, 1280, 768 and 390px plus 375/320px overflow. Check keyboard navigation,
 Escape/focus/resize, skip link, headings, native disclosures, no-JS, reduced motion,
 all routes, table scroll, console and assets. Save screenshots outside deployed site,
-under `docs/audits/m58/`. For the reproducible visual capture test, run
-`M58_CAPTURE=1 pnpm test:site --grep 'capture review artifacts'`.
+under `docs/audits/m59/` for the current milestone. For the reproducible visual capture test, run
+`M59_CAPTURE=1 pnpm test:site --grep 'capture M59 research review artifacts'`.
 
 Target mobile Lighthouse ≥90 in performance, accessibility, best practices and SEO;
 page weight ≤1.5MB. Record actual measurements and limitations. Verify extensionless
@@ -205,3 +208,29 @@ routes, headers and redirects on an available hosting preview separately. Show t
 preview/screenshots before production publication. Missing required verification is
 “Code complete — unverified,” never a passed gate. Rollback redeploys the previous
 verified revision. Milestone merge archives the plan and prunes its session notes.
+
+## 9. Research publishing (M59, D-133–D-135)
+
+`content/research/*.json` owns curated editorial text, source pointers, claim status,
+interpretation and proposed action. `site:research verify <slug>` reads completed
+stored runs inside an enforced read-only transaction; it never uses recomputing
+exports. Public rendering omits internal record IDs and full raw packs. The hash-bound
+receipt must match before a build. See `M59_BUILD_PLAN.md` while implementation is active.
+
+Run `pnpm site:research build` to generate articles, hub, feed, sitemap, social copy,
+SVG and JPEG cards; `pnpm site:research check` fails on drift or missing cards.
+`pnpm test:research` checks provenance failures, full-precision deltas and domain
+restamping. Ordinary tests verify production cards; they never create them.
+
+Keep one canonical article per study. Legacy `/studies` paths permanently redirect
+to `/research` with browser fragments preserved. Each figure states population,
+date, model/API route and evidence class. Recommendation scenarios and buyer profiles
+remain distinct. Directional results include negative and flat rows in original order.
+An observation, an interpretation and a proposed test are three different claims.
+Named studies use relationship-neutral disclosure unless evidence supports a specific
+relationship statement; historical not-client disclosures remain intact.
+
+A publication checklist covers live 301s/fragments, canonical/structured metadata,
+card delivery, sitemap availability and Search Console submission status. Four weeks
+after publication, compare queries, impressions/clicks, available AI citations and
+qualified enquiries to choose the next research question. Promise no ranking outcome.

@@ -60,15 +60,15 @@ test('all pages have valid links, fragments, unique IDs and one H1', async ({ pa
 });
 
 test('published evidence retains values, qualification and anonymity', async ({ page }) => {
-  await page.goto('/studies/insta360');
+  await page.goto('/research/insta360');
   await expect(page.locator('main')).toContainText('20/25');
   await expect(page.locator('main')).toContainText('0/25');
   await expect(page.locator('main')).toContainText('not a client');
   await expect(page.locator('main')).toContainText('ungrounded');
-  await page.goto('/studies/insta360-message-lift');
+  await page.goto('/research/insta360-message-lift');
   for (const text of ['+0.15', '+0.57', '−0.31', 'Directional', 'n=5', 'Separate baselines, not a head-to-head.']) await expect(page.locator('main')).toContainText(text);
   await expect(page.locator('main')).toContainText('Simulated');
-  await page.goto('/studies/hotel-group');
+  await page.goto('/research/hotel-group');
   for (const text of ['3.45', '3.41', 'Simulated', 'n=30', 'DeepSeek', 'ungrounded', '31 Jul 2026']) await expect(page.locator('main')).toContainText(text);
   for (const { file } of pages) expect(readFileSync(file, 'utf8')).not.toMatch(/marriott/i);
 });
@@ -91,7 +91,7 @@ test('mobile menu supports keyboard, Escape and breakpoint recovery', async ({ p
 test('content is readable without JavaScript', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
-  for (const route of ['/', '/studies', '/methodology']) {
+  for (const route of ['/', '/research', '/methodology', '/research/sk-jewellery-ai-visibility-message-test']) {
     await page.goto(`http://127.0.0.1:8097${route}`);
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('h1')).toHaveCSS('opacity', '1');
@@ -112,7 +112,7 @@ test('all pages reflow at target widths and reduced motion', async ({ page }) =>
   }
 });
 
-for (const route of ['/', '/studies', '/studies/insta360', '/studies/hotel-group', '/methodology', '/method/mention-rate', '/404']) {
+for (const route of ['/', '/research', '/research/insta360', '/research/hotel-group', '/research/sk-jewellery-ai-visibility-message-test', '/methodology', '/method/mention-rate', '/404']) {
   test(`accessible page: ${route}`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));

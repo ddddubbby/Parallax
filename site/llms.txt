@@ -2,12 +2,13 @@
 
 > Windtunnel measures how AI describes and recommends brands, then tests Current and New messages under shared conditions. Audit evidence is measured; AI recommendation and Buyer response comparisons are simulated. Results disclose routes, modes, dates, sample sizes and limits, and trace to stored answers.
 
-## Studies
+## Research
 
-- [What AI says about Insta360](https://windtunnel.tech/studies/insta360): five bare description prompts, five repetitions each, twenty-five stored answers, human-reviewed coding. Insta360 was not a client, did not commission the study, and did not endorse it.
-- [Insta360 Message Lift tests](https://windtunnel.tech/studies/insta360-message-lift): two Buyer response tests on partnership messages; separate baselines, not a head-to-head; every engine's result shown; n=5 per engine per message, directional. Insta360 was not a client and did not endorse these tests; Leica was not involved.
-- [Hotel group Message Lift test](https://windtunnel.tech/studies/hotel-group): a self-initiated test for a global hotel group (anonymized, not a client): simulated Buyer response, candidate message 3.41 vs current 3.45, n=30 per message, and the candidate was stopped.
-- [Studies hub](https://windtunnel.tech/studies): all published studies with their limits.
+- [AI knows SK Jewellery. What would make it recommend the brand?](https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test): Measured / Simulated. Strong sampled visibility, an inconclusive recommendation test, and six buyer profiles that turn the next content brief into a testable question.
+- [The candidate message scored no better than the current one.](https://windtunnel.tech/research/hotel-group): Simulated. An anonymized hotel Buyer response test: 3.45 versus 3.41, n=30 per message. Independent study; not a client.
+- [Two partnership messages, two tests, two different answers.](https://windtunnel.tech/research/insta360-message-lift): Simulated / Directional. Separate Buyer response tests, different baselines, n=5 per engine per message. Insta360 was not a client.
+- [The newest story appeared in 0 of 25 answers.](https://windtunnel.tech/research/insta360): Measured / Directional. Five bare prompts, five repetitions, human-reviewed descriptions. Independent study; Insta360 was not a client.
+- [Research hub](https://windtunnel.tech/research): studies and editorial method.
 
 ## Method
 

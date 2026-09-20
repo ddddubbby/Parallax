@@ -203,3 +203,21 @@ visual too. Corrected preview: https://site-104ggjjp0-franklinhou-5415s-projects
 Lighthouse99/100/100/100 with restored content,142 KiB. No operator source change.
 User design acceptance remains pending; prior automated passes did not justify the
 content loss. GitHub upload remains blocked pending explicit approval, no retry here.
+
+## S-134 / 2026-09-20 / M59
+GOAL: Implement and publish the approved SK decision guide and Research system.
+DONE: Three completed runs verified via enforced read-only SQL (213 source entries).
+Research hub/static generator, legacy redirects, exact prompts, six buyer profiles,
+fourteen recommendation scenarios, content briefs, article cards/feed/social copy.
+Separate baselines and evidence types remain explicit. No operator source change.
+GATES: 21 site checks + five publisher checks + optional capture pass; zero-warning
+lint, typecheck, docs and diff pass. Repeat build byte-identical. Mobile Lighthouse
+article 90/100/100/100, hub 99/100/100/100. Live host checks and fragment redirect pass.
+PUBLISHED: https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test
+Vercel production dpl_EQgTzUQEBwod9kkYgb3PtNuvsAVC; only site/ uploaded. Added missing
+www hostname to existing project and verified its certificate/canonical 301.
+NEXT: Repository handoff. Search Console submission explicitly deferred by user;
+Google sign-in is required. Four-week review 18 October 2026 is documented.
+GOTCHAS: App JSON export recomputes metrics; never use for read-only verification.
+No human purchase-outcome or ethical-sourcing effect established. Length-matched
+control unrun. Social kit prepared only; no account posting or email sent.

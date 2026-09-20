@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "legacy": true,
+  "slug": "hotel-group",
+  "headline": "The candidate message scored no better than the current one.",
+  "description": "A self-initiated Message Lift test for a global hotel group: n=30 per message, simulated, and the candidate was stopped.",
+  "published": "2026-07-31T12:00:00+08:00",
+  "updated": "2026-09-20T18:00:00+08:00",
+  "type": "Study",
+  "status": [
+    "Simulated"
+  ],
+  "cardLines": [
+    "The candidate message",
+    "scored no better",
+    "than the current one."
+  ],
+  "hubTeaser": "An anonymized hotel Buyer response test: 3.45 versus 3.41, n=30 per message. Independent study; not a client.",
+  "cardFooter": "SIMULATED · FULL CONDITIONS IN THE STUDY"
+}

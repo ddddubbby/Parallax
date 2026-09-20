@@ -253,6 +253,11 @@ independent; we productize it).
 | "Gartner projects traditional search engine volume drops 25% by 2026 as buyers shift to AI chatbots and agents." | Gartner press release, 19 Feb 2024, attributed | Third-party forecast |
 | "56% of US consumers plan to use AI chatbots to compare prices and find deals." | Deloitte holiday survey, 2025, attributed | Third-party survey |
 | "10 to 20% of US e-commerce is projected to be agent-driven by 2030." | Morgan Stanley research, attributed | Third-party forecast |
+| "SK appeared in 135 of 139 eligible unbranded answers (97.1%; Wilson 95% interval 92.8–98.9%) among nine tracked jewellers." | Completed SK audit ec73cfc0, 19 Sep 2026; OpenAI + DeepSeek ungrounded APIs; hash-bound article verification receipt | Measured, sampled presence |
+| "SK’s buyback and trade-in associations appear in 18.2% and 17.3% of the broader contextual population (n=313); the separate spontaneous table uses n=135 SK-mentioned unbranded answers." | SK stored attribute metrics and latest valid extraction counts; populations never pooled | Measured, configured attributes only |
+| "The recommendation test changed top-five inclusion from 62.9% to 61.4%, −1.4 percentage points (95% scenario-cluster interval −12.9 to +8.6), n=70 per message; no overall improvement established." | Completed run 64f55bc9, 19 Sep 2026, OpenAI API; full-precision delta, fourteen scenarios | Simulated, inconclusive |
+| "Separate buyer responses changed from 3.20 to 3.24, +0.04 on a five-point construct, n=30 per message; all six profile shifts are exploratory at n=5 per message." | Completed Test A 1635a93f, 20 Sep 2026 Singapore time, OpenAI API; different recorded baseline | Simulated, directional profiles |
+| "Exact profile/scenario rows, attributed excerpts and proposed purchase-specific content briefs are published in the SK decision guide; a length-matched control has not run." | content/research/sk-jewellery-ai-visibility-message-test.json plus current verification receipt; quotes are checked verbatim, proposed tests are not findings | Mixed evidence, visibly separated |
 
 Adding a claim to this table requires: source named, label class assigned,
 banned-vocabulary check passed. Claims not in the table do not ship.
@@ -515,3 +520,13 @@ tightening is live on the site; §6.1 gains the product-name row. Compatibility
 identifiers (`parallax`, `resonance_*`, routes, file names) are unchanged.
 
 **v2.2 — 2026-09-07 (D-129).** Unified dark website direction and revised homepage hierarchy. Website-only appearance supersession; operator/export visuals and claims law preserved.
+
+### Research publication addendum — M59 (D-133–D-135)
+
+The public library is Research at `/research`. Studies can report measured audits
+and separate simulated tests in one article, with visible evidence boundaries.
+The SK decision guide reports strong sampled visibility, an inconclusive overall
+recommendation comparison and directional buyer-profile responses. It is not a
+successful purchase-intent lift claim. Its practical output is a prioritized next
+content test, with owner, destination, proof requirements and evaluation criteria.
+Use relationship-neutral SK wording; preserve existing legacy study disclosures.

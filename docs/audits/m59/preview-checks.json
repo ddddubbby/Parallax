@@ -1,0 +1,76 @@
+[
+  {
+    "path": "/research",
+    "status": 200,
+    "bytes": 9006,
+    "csp": true,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/research/sk-jewellery-ai-visibility-message-test",
+    "status": 200,
+    "bytes": 207635,
+    "csp": true,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/research/sk-jewellery-ai-visibility-message-test.og.jpg",
+    "status": 200,
+    "bytes": 63412,
+    "csp": true,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/sitemap.xml",
+    "status": 200,
+    "bytes": 1993,
+    "csp": true,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/feed.xml",
+    "status": 200,
+    "bytes": 2139,
+    "csp": true,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/studies",
+    "status": 301,
+    "location": "/research",
+    "bytes": 15,
+    "csp": false,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/studies/insta360",
+    "status": 301,
+    "location": "/research/insta360",
+    "bytes": 15,
+    "csp": false,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/studies/insta360-message-lift",
+    "status": 301,
+    "location": "/research/insta360-message-lift",
+    "bytes": 15,
+    "csp": false,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/studies/hotel-group",
+    "status": 301,
+    "location": "/research/hotel-group",
+    "bytes": 15,
+    "csp": false,
+    "indexing": "Preview noindex"
+  },
+  {
+    "path": "/not-a-page",
+    "status": 404,
+    "bytes": 4036,
+    "csp": true,
+    "indexing": "Preview noindex"
+  }
+]

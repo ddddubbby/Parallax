@@ -1,4 +1,4 @@
-> LIFECYCLE: ACTIVE · ROLE: PLAN · OWNS: M58 public website redesign, phase gates and handoff · TRACKER: STATUS.md
+> LIFECYCLE: HISTORICAL · ROLE: PLAN · OWNS: M58 website redesign execution record · DISPOSITION: EXECUTED
 
 # M58 — Windtunnel brand website redesign
 

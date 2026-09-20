@@ -1,64 +1,29 @@
-> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: branch-local M58 phase state, integration and next action · TRACKER: M58_BUILD_PLAN.md
+> LIFECYCLE: ACTIVE · ROLE: RECORD · OWNS: branch-local M59 progress and publication state · TRACKER: M59_BUILD_PLAN.md
 
-# STATUS.md — M58 control plane
+# M59 status
 
 | Field | Value |
 |---|---|
-| **Active product** | Windtunnel public brand website; no operator product behavior change |
-| **Product contract** | [PRD.md](PRD.md), [BRAND_SITE_GUIDE.md](BRAND_SITE_GUIDE.md) |
-| **Build plan** | [M58_BUILD_PLAN.md](M58_BUILD_PLAN.md) |
-| **Branch** | m58 from local M57 a27bea9 |
-| **Current milestone** | M58 — brand website redesign (D-129) |
-| **Milestone state** | Content restored (D-130); review drifts fixed (D-131: category-anchored title, D-128 H1, banned-word negations, definition links, CSP); local gates green |
-| **Next action** | Operator reviews the D-131 preview (`pnpm preview:site`); then push m57+m58 and open the PR; public publication approval remains separate |
-| **Integration target** | main; refreshed origin/main remains c478231 (M56), so M57 merge is not verified. Reconcile before integration; preserve all M57 commits |
-| **Blocked on** | Production publication requires review; form endpoint and domain provisioning remain external follow-ups |
-| **Pending merge** | m53 remains unmerged by operator decision |
-| **Parked product** | Resonance GEO agent remains parked (D-116); AGENT_* docs unchanged |
+| **Active product** | Windtunnel public research website |
+| **Branch** | m59 from 11320ee (merged M58 plus windtunnel.tech/favicon update) |
+| **Current milestone** | M59 — Research section and SK decision guide |
+| **Milestone state** | Implemented and published; local and hosted acceptance checks pass |
+| **Production** | https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test |
+| **Next action** | Repository handoff; Search Console submission deferred by user |
+| **Parked product** | GEO agent remains parked (D-116); operator product unchanged |
+| **Build plan** | [M59_BUILD_PLAN.md](M59_BUILD_PLAN.md) |
 
-## Phase ledger
+M58 is merged (30dbe36, PR #18). M59 is published through the existing standalone
+Vercel project, production dpl_EQgTzUQEBwod9kkYgb3PtNuvsAVC. Only site/ was uploaded.
+The missing www hostname was attached; valid HTTPS and www-to-apex 301 confirmed.
+No new paid study ran and verification made no database writes.
 
-| Phase | State |
-|---|---|
-| P0 — baseline and governance | Complete |
-| P1 — static verification | Complete; baseline visual defects recorded |
-| P2 — shared visual system | Complete |
-| P3 — homepage | Complete |
-| P4 — research pages | Complete |
-| P5 — assets and canon | Complete |
-| P6 — verification and handoff | Local and preview gates passed; integration/domain follow-ups open |
+213 evidence entries verified read-only; 21 standard site tests, five publisher tests,
+optional screenshot capture, lint/typecheck/docs/diff checks pass. Article mobile
+Lighthouse 90/100/100/100; hub 99/100/100/100. Live URLs, cards, feed, sitemap, headers,
+legacy 301s and fragment preservation verified. Evidence in docs/audits/m59/.
 
-## Carried forward from M57
-
-- Form endpoint not supplied; retain resonance.research@pm.me mailto. No thanks page exists.
-- Buy/attach windtunnel.observer and www, configure old-domain 301 for >=12 months,
-  provision mailbox, Search Console/Bing, and real sameAs profiles. Do not invent them.
-- Remote merge/push/PR state needs reconciliation. M57 is complete locally except
-  the explicitly deferred form; it is not verified merged or deployed.
-- Future duplicate-helper and operator wording cleanup remain outside M58.
-
-## M58 review
-
-Preview: https://site-104ggjjp0-franklinhou-5415s-projects.vercel.app
-(account sign-in required). Production was not published.
-
-Verified: 16 site checks including visual capture; lint/typecheck/docs/diff clean;
-916 unit tests (12 existing skips), 18 operator smoke tests, 4 forecast tests, and
-production build. Mobile Lighthouse: 99 performance, 100 accessibility, 100 best
-practices, 100 SEO; 142 KiB measured page weight. See
-[verification report](docs/audits/m58/REVIEW.md) for scope, images and limitations.
-
-Custom-domain www/apex redirects, old-domain transfer, mailbox/form/search setup and
-remote M57 integration remain external. The preview has verified clean HTML URLs,
-404 behavior, font delivery and security headers. The existing hosting config and
-robots groups are unchanged.
-
-## Public upload approval gate
-
-Local implementation/verification commit: `dcc0986`. Public push and PR are not done.
-Automatic approval review rejected `git push -u origin m58`: although the existing
-origin is verified as public ddddubbby/Parallax, the branch includes governance docs
-(MASTER_CONTEXT.md and PROTECTED_REGISTER.md) whose public disclosure was not
-specifically approved. It includes the disclosed local M57 prerequisites too.
-[Draft PR description](docs/audits/m58/PR_DESCRIPTION.md) is ready locally. Ask for
-explicit approval for that exact upload; do not use an alternative upload path.
+Search Console requires Google sign-in. User explicitly chose to leave sitemap
+submission as a follow-up; do not imply submission or indexing is confirmed. Review
+search queries, article impressions/clicks, available AI citations and qualified
+enquiries on 18 October 2026. Prepared social copy has not been posted or emailed.

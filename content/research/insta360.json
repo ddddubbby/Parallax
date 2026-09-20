@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "legacy": true,
+  "slug": "insta360",
+  "headline": "The newest story appeared in 0 of 25 answers.",
+  "description": "A self-initiated study: what AI assistants associate with Insta360 across 25 stored answers, what the brand can substantiate, and what is missing.",
+  "published": "2026-07-11T12:00:00+08:00",
+  "updated": "2026-09-20T18:00:00+08:00",
+  "type": "Study",
+  "status": [
+    "Measured",
+    "Directional"
+  ],
+  "cardLines": [
+    "The newest story appeared",
+    "in 0 of 25 answers."
+  ],
+  "hubTeaser": "Five bare prompts, five repetitions, human-reviewed descriptions. Independent study; Insta360 was not a client.",
+  "cardFooter": "MEASURED / DIRECTIONAL · FULL CONDITIONS IN THE STUDY"
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "legacy": true,
+  "slug": "insta360-message-lift",
+  "headline": "Two partnership messages, two tests, two different answers.",
+  "description": "Two self-initiated Message Lift tests on Insta360 partnership messages: two separate baselines, two different answers, every engine's result shown.",
+  "published": "2026-07-19T12:00:00+08:00",
+  "updated": "2026-09-20T18:00:00+08:00",
+  "type": "Study",
+  "status": [
+    "Simulated",
+    "Directional"
+  ],
+  "cardLines": [
+    "Two partnership messages.",
+    "Two separate tests.",
+    "Two different answers."
+  ],
+  "hubTeaser": "Separate Buyer response tests, different baselines, n=5 per engine per message. Insta360 was not a client.",
+  "cardFooter": "SIMULATED / DIRECTIONAL · FULL CONDITIONS IN THE STUDY"
+}

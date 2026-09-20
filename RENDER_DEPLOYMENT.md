@@ -57,7 +57,7 @@ The Blueprint cannot successfully deploy until M0 adds:
 
 ## Marketing site (separate, not in the Blueprint)
 
-The public brand site in `site/` is a standalone static site and is **not** part of `render.yaml`. It deploys to Vercel at `https://windtunnel.observer` with Root Directory `site`; `site/vercel.json` is the effective host config (clean URLs, CSP/HSTS headers, cache tiers) and `site/_headers` is kept inert for portability. After any domain change run `./scripts/set-site-domain.sh <url>` and redeploy so OG images and the sitemap carry absolute URLs. `site/.vercel/` is the operator's project link and is gitignored. Full contract: `BRAND_SITE_GUIDE.md` §1 and §10 (D-127). Vercel's Hobby tier is licensed for non-commercial use; a commercial brand site belongs on a paid plan (operator ops note).
+The public brand site in `site/` is a standalone static site and is **not** part of `render.yaml`. It deploys to Vercel at `https://windtunnel.tech` by running the CLI from `site/` (linked project root `.`; use Root Directory `site` for a future repository integration); `site/vercel.json` is the effective host config (clean URLs, CSP/HSTS headers, cache tiers) and `site/_headers` is kept inert for portability. After any domain change run `./scripts/set-site-domain.sh <url>` and redeploy so OG images and the sitemap carry absolute URLs. `site/.vercel/` is the operator's project link and is gitignored. Full contract: `BRAND_SITE_GUIDE.md` §1 and §8–9 (D-127). Vercel's Hobby tier is licensed for non-commercial use; a commercial brand site belongs on a paid plan (operator ops note).
 
 ## Render assumptions verified
 

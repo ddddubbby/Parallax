@@ -142,3 +142,10 @@ Surfaces created or deliberately kept during the M57 pivot to Windtunnel. A futu
 | `site/thanks.html` | D-128 | Unlinked except by the form endpoint's redirect; `noindex`, never in the sitemap. A post-submit destination, not an orphan. | HIGH |
 | `site/_headers` not mirroring `vercel.json`'s redirects | D-128 | Netlify expresses redirects in `_redirects`, not `_headers`, so `_headers` stays headers-only and inert on Vercel; kept for host portability (same ruling as the D-127 row above). | HIGH |
 | `public/brand/resonance-*.png` / `resonance-*.svg` | D-128 | Historical cone-concept source assets; the filename is the artifact's name, not a brand statement — they are never served from `site/`, so renaming has zero SEO value. | HIGH |
+
+## M59 research publication
+
+D-133 protects content/research, read-only research verification, generated article
+cards/feed, and legacy Studies redirects. Article fragments and legacy evidence
+survive migration. D-134 permits relationship-neutral SK copy only; preserve the
+existing legacy disclosures. D-135 preserves all directional and simulation labels.

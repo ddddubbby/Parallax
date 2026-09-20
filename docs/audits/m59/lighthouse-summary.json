@@ -1,0 +1,19 @@
+{
+  "url": "http://127.0.0.1:8097/research/sk-jewellery-ai-visibility-message-test",
+  "fetchTime": "2026-09-20T03:58:54.441Z",
+  "environment": {
+    "networkUserAgent": "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36",
+    "hostUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "benchmarkIndex": 2889.5,
+    "credits": {
+      "axe-core": "4.13.0"
+    }
+  },
+  "scores": {
+    "performance": 0.9,
+    "accessibility": 1,
+    "best-practices": 1,
+    "seo": 1
+  },
+  "bytes": 325408
+}
