@@ -221,6 +221,11 @@ Lighthouse99/100/100/100 with restored content,142 KiB. No operator source chang
 User design acceptance remains pending; prior automated passes did not justify the
 content loss. GitHub upload remains blocked pending explicit approval, no retry here.
 
+Deployment follow-up: after the user's explicit request, Vercel production deployment
+`dpl_A91bsLMLcW1UaunkJQvJMw6gcDrh` completed and is aliased at
+`https://resonance.observer`. Post-deploy checks returned home 200, studies 200,
+methodology 200 and missing route 404. GitHub push remains a separate blocked action.
+
 ## S-134 / 2026-09-20 / M59
 GOAL: Implement and publish the approved SK decision guide and Research system.
 DONE: Three completed runs verified via enforced read-only SQL (213 source entries).
