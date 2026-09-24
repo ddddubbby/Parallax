@@ -1,0 +1,118 @@
+{
+  "checkedAt": "2026-09-20T10:59:03.702Z",
+  "results": [
+    {
+      "path": "/",
+      "status": 200,
+      "location": null,
+      "contentType": "text/html; charset=utf-8",
+      "csp": true,
+      "robots": null,
+      "bytes": 37198
+    },
+    {
+      "path": "/research",
+      "status": 200,
+      "location": null,
+      "contentType": "text/html; charset=utf-8",
+      "csp": true,
+      "robots": null,
+      "bytes": 9006
+    },
+    {
+      "path": "/research/sk-jewellery-ai-visibility-message-test",
+      "status": 200,
+      "location": null,
+      "contentType": "text/html; charset=utf-8",
+      "csp": true,
+      "robots": null,
+      "bytes": 207635
+    },
+    {
+      "path": "/research/sk-jewellery-ai-visibility-message-test.og.jpg",
+      "status": 200,
+      "location": null,
+      "contentType": "image/jpeg",
+      "csp": true,
+      "robots": null,
+      "bytes": 63412
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "location": null,
+      "contentType": "application/xml",
+      "csp": true,
+      "robots": null,
+      "bytes": 1993
+    },
+    {
+      "path": "/feed.xml",
+      "status": 200,
+      "location": null,
+      "contentType": "application/xml",
+      "csp": true,
+      "robots": null,
+      "bytes": 2139
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "location": null,
+      "contentType": "text/plain; charset=utf-8",
+      "csp": true,
+      "robots": null,
+      "bytes": 240
+    },
+    {
+      "path": "/studies",
+      "status": 301,
+      "location": "/research",
+      "contentType": "text/plain",
+      "csp": false,
+      "robots": null,
+      "bytes": 15
+    },
+    {
+      "path": "/studies/insta360",
+      "status": 301,
+      "location": "/research/insta360",
+      "contentType": "text/plain",
+      "csp": false,
+      "robots": null,
+      "bytes": 15
+    },
+    {
+      "path": "/studies/insta360-message-lift",
+      "status": 301,
+      "location": "/research/insta360-message-lift",
+      "contentType": "text/plain",
+      "csp": false,
+      "robots": null,
+      "bytes": 15
+    },
+    {
+      "path": "/studies/hotel-group",
+      "status": 301,
+      "location": "/research/hotel-group",
+      "contentType": "text/plain",
+      "csp": false,
+      "robots": null,
+      "bytes": 15
+    },
+    {
+      "path": "/not-a-page",
+      "status": 404,
+      "location": null,
+      "contentType": "text/html; charset=utf-8",
+      "csp": true,
+      "robots": null,
+      "bytes": 4036
+    },
+    {
+      "path": "https://www.windtunnel.tech/research",
+      "status": 301,
+      "location": "https://windtunnel.tech/research"
+    }
+  ]
+}

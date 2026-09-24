@@ -1,0 +1,6 @@
+{
+  "contentSha256": "c504817c007072c49210e894acc5e6e7ecbd285675697162119bb00110dba5da",
+  "sources": 71,
+  "verifiedAt": "2026-09-20T11:54:55.880Z",
+  "method": "Read-only repeatable-read transaction; metric, prompt, message, quote and derived-count equality; verbatim baseline linkage"
+}

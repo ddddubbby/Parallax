@@ -17,6 +17,21 @@ test('static server handles clean URLs, queries, missing routes and traversal', 
   expect((await request.post('/')).status()).toBe(405);
 });
 
+test('brand favicon is discoverable in a Google-supported format', async ({ page, request }) => {
+  for (const { route } of pages) {
+    await page.goto(route);
+    await expect(page.locator('head link[rel="icon"]')).toHaveAttribute('href', '/favicon.png');
+  }
+  const icon = await request.get('/favicon.png');
+  expect(icon.status()).toBe(200);
+  expect(icon.headers()['content-type']).toContain('image/png');
+  const png = await icon.body();
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(png.readUInt32BE(16)).toBe(96);
+  expect(png.readUInt32BE(20)).toBe(96);
+  expect((await request.get('/favicon.ico')).status()).toBe(200);
+});
+
 test('all pages have valid links, fragments, unique IDs and one H1', async ({ page, request }) => {
   const checked = new Set<string>();
   const versions = new Set<string>();
@@ -45,16 +60,11 @@ test('all pages have valid links, fragments, unique IDs and one H1', async ({ pa
 });
 
 test('published evidence retains values, qualification and anonymity', async ({ page }) => {
-  await page.goto('/studies/insta360');
-  await expect(page.locator('main')).toContainText('20/25');
-  await expect(page.locator('main')).toContainText('0/25');
-  await expect(page.locator('main')).toContainText('not a client');
-  await expect(page.locator('main')).toContainText('ungrounded');
-  await page.goto('/studies/insta360-message-lift');
-  for (const text of ['+0.15', '+0.57', '−0.31', 'Directional', 'n=5', 'Separate baselines, not a head-to-head.']) await expect(page.locator('main')).toContainText(text);
-  await expect(page.locator('main')).toContainText('Simulated');
-  await page.goto('/studies/hotel-group');
-  for (const text of ['3.45', '3.41', 'Simulated', 'n=30', 'DeepSeek', 'ungrounded', '31 Jul 2026']) await expect(page.locator('main')).toContainText(text);
+  await page.goto('/research/insta360-action-camera-ai-study');
+  for (const text of ['100%', '98%', '95%', '8%', '97%', '70%', '20 of 25', '13 of 25', '+0.57', '+0.15', '−0.31', 'not interviews with real customers']) await expect(page.locator('main')).toContainText(text);
+  await expect(page.locator('figure.chart')).toHaveCount(4);
+  await page.goto('/research/hotel-group');
+  for (const text of ['3.45', '3.41', 'DeepSeek', '31 Jul 2026']) await expect(page.locator('main')).toContainText(text);
   for (const { file } of pages) expect(readFileSync(file, 'utf8')).not.toMatch(/marriott/i);
 });
 
@@ -76,7 +86,7 @@ test('mobile menu supports keyboard, Escape and breakpoint recovery', async ({ p
 test('content is readable without JavaScript', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
-  for (const route of ['/', '/studies', '/methodology']) {
+  for (const route of ['/', '/research', '/methodology', '/research/sk-jewellery-ai-visibility-message-test']) {
     await page.goto(`http://127.0.0.1:8097${route}`);
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('h1')).toHaveCSS('opacity', '1');
@@ -97,7 +107,7 @@ test('all pages reflow at target widths and reduced motion', async ({ page }) =>
   }
 });
 
-for (const route of ['/', '/studies', '/studies/insta360', '/studies/hotel-group', '/methodology', '/method/mention-rate', '/404']) {
+for (const route of ['/', '/research', '/research/insta360-action-camera-ai-study', '/research/hotel-group', '/research/sk-jewellery-ai-visibility-message-test', '/methodology', '/method/mention-rate', '/404']) {
   test(`accessible page: ${route}`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -112,6 +122,7 @@ test('metadata, public assets and homepage disclosures agree', async ({ page, re
   for (const { route } of pages) {
     await page.goto(route);
     const description = await page.locator('meta[name="description"]').getAttribute('content');
+    if (route !== '/404') await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://windtunnel.tech${route}`);
     await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', description!);
     await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', description!);
     const assets = await page.locator('script[src],link[rel="stylesheet"],link[rel="icon"],img[src]').evaluateAll(es => es.map(e => e.getAttribute('src') || e.getAttribute('href')!));
@@ -127,19 +138,38 @@ test('metadata, public assets and homepage disclosures agree', async ({ page, re
     expect(readFileSync(pages.find(p => p.route === route)!.file, 'utf8')).not.toContain('__SITE_URL__');
   }
   await page.goto('/');
-  for (const text of ['0 of 25', '11 Jul 2026', 'DeepSeek', 'ungrounded', 'single-analyst', '3.45', '3.41', 'n=30 per message', '31 Jul 2026', 'not a client']) {
-    await expect(page.locator('main')).toContainText(new RegExp(text, 'i'));
-  }
+  expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap: https://windtunnel.tech/sitemap.xml');
+  expect(await (await request.get('/sitemap.xml')).text()).not.toContain('windtunnel.observer');
+  for (const text of ['97%', '0 of 140', '0 times', '80%', '98%', '10–20%', '25%']) await expect(page.locator('#why')).toContainText(text);
 });
 
-test('homepage retains the product showcase and full methodology', async ({ page }) => {
+// M61 (D-140): the homepage says what we do, shows what a client gets, and proves it with findings.
+test('homepage explains the service as a flow, four metrics, the message test and five proven benefits', async ({ page }) => {
   await page.goto('/');
-  const dashboard = page.locator('#dashboard');
-  for (const value of ['94.9%', '33.2%', '32.7%', '31.5%', '2.5%', 'n=112', '80% positive', '19% mixed', '1% negative', 'different baselines']) await expect(dashboard).toContainText(value);
-  await expect(page.locator('#metrics .pillar-card')).toHaveCount(4);
-  await expect(page.locator('#metrics')).toContainText('Illustrative example');
-  await expect(page.locator('#methodology .pipe-stage')).toHaveCount(5);
-  for (const text of ['Stored answer', 'Embedding', 'Cosine vs anchors', 'Distribution', 'Labeled result', 'Glass Box', 'AI recommendation follows a different path.']) await expect(page.locator('#methodology')).toContainText(text);
-  await expect(page.locator('#method .method-list li')).toHaveCount(7);
+  await expect(page.locator('h1')).toContainText('Measure how AI recommends your brand.');
+  await expect(page.locator('main .stamp')).toHaveCount(0);
+  await expect(page.locator('main .evidence-foot, main .disclosure')).toHaveCount(0);
+  const steps = page.locator('#workflow .flow li');
+  await expect(steps).toHaveCount(5);
+  for (const step of await steps.all()) await expect(step.locator('.you-get')).toContainText('You get');
+  await expect(page.locator('#audit .metric-card')).toHaveCount(4);
+  for (const card of await page.locator('#audit .metric-card').all()) { await expect(card.locator('[role="img"]')).toHaveAttribute('aria-label', /Example/); await expect(card.locator('.why-line')).toContainText('Why it matters'); }
+  await expect(page.locator('#audit')).toContainText('made-up brands');
+  await expect(page.locator('#message-test .test-card')).toHaveCount(2);
+  await expect(page.locator('#message-test')).toContainText('Only the message changes.');
+  await expect(page.locator('#message-test')).toContainText('role-play');
+  await expect(page.locator('#why .benefit-card')).toHaveCount(5);
+  for (const card of await page.locator('#why .benefit-card').all()) await expect(card.locator('a.tlink')).toHaveAttribute('href', /^\/research/);
+  await expect(page.locator('#research .research-list a')).toHaveCount(3);
   await expect(page.locator('#faq details')).toHaveCount(7);
+  const colour = (selector: string) => page.evaluate(sel => getComputedStyle(document.querySelector(sel)!).backgroundColor, selector);
+  expect(await colour('body')).toBe('rgb(11, 11, 13)');
+  expect(await colour('#workflow')).toBe('rgb(250, 247, 240)');
+});
+
+test('scoring pipeline and commitments live on the methodology page', async ({ page }) => {
+  await page.goto('/methodology');
+  await expect(page.locator('#scoring .pipe-stage')).toHaveCount(5);
+  for (const text of ['Stored answer', 'Embedding', 'Cosine vs anchors', 'Distribution', 'Labeled result', 'AI recommendation follows a different path.']) await expect(page.locator('#scoring')).toContainText(text);
+  await expect(page.locator('#commitments .method-list li')).toHaveCount(7);
 });

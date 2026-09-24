@@ -142,3 +142,16 @@ Surfaces created or deliberately kept during the M57 pivot to Windtunnel. A futu
 | `site/thanks.html` | D-128 | Unlinked except by the form endpoint's redirect; `noindex`, never in the sitemap. A post-submit destination, not an orphan. | HIGH |
 | `site/_headers` not mirroring `vercel.json`'s redirects | D-128 | Netlify expresses redirects in `_redirects`, not `_headers`, so `_headers` stays headers-only and inert on Vercel; kept for host portability (same ruling as the D-127 row above). | HIGH |
 | `public/brand/resonance-*.png` / `resonance-*.svg` | D-128 | Historical cone-concept source assets; the filename is the artifact's name, not a brand statement — they are never served from `site/`, so renaming has zero SEO value. | HIGH |
+
+## M59 research publication
+
+D-133 protects content/research, read-only research verification, generated article
+cards/feed, and legacy Studies redirects. Article fragments and legacy evidence
+survive migration. D-134 permits relationship-neutral SK copy only; preserve the
+existing legacy disclosures. D-135 preserves all directional and simulation labels.
+
+## M60 research rewrite
+
+D-136/D-137/D-138 protect: the scoped light-theme tokens under `body.research-article`/`body.research-index` in `site/styles.css`; `content/research/brands.json` (one fixed colour per brand, reused across articles); `scripts/lib/site-research-charts.mjs`; generated `site/research/<slug>.evidence.json` and chart PNGs; the noindex header for evidence files in `site/vercel.json`; the headline gate and the plain-words method sentence in every article.
+
+D-140 protects: the `.paper` scope in `site/styles.css`; the homepage `<!-- research:latest -->` marker rewritten by `scripts/site-research.mjs`; `#scoring` and `#commitments` on `/methodology` (relocated homepage content).

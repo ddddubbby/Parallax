@@ -1,0 +1,29 @@
+{
+  "insta360-action-camera-ai-study": {
+    "svgSha256": "ebb635f8591e5a835d48bcbef39bfe1a2429d6007d94ab59f014e9b05464330e",
+    "jpgSha256": "250c7917e4114aa8a2ac0ffe7ab2dc39528b6604bb70c48bc4dd02745610eb2a",
+    "charts": {
+      "the-ranking": "afbfd4aba79fc3b4ad005993d199cc6446e37b21d2b9f8076fe80296cff34c46",
+      "first-name": "dd1a6bef30f2f7631d5db86e940c7006aac7875c871ecf89221513f09577b5c8",
+      "what-ai-says": "77ac5ff75cc7ac05d607b81e3c40adf38a4f78a61773076b3450b8cfdcc05264",
+      "leica": "c2916118fe04226063635d6be1416ce0c6bb43a7339126a474572488defd2d63"
+    }
+  },
+  "sk-jewellery-ai-visibility-message-test": {
+    "svgSha256": "a145fa52cd13d6215f321e7bdeb610e442a093e6a16bce69ce0d267d5ecca4f9",
+    "jpgSha256": "6cddb3740dbf0d9574892c879eb1a01a9431ddc3360b6d0df0a26b95904e42c2",
+    "charts": {
+      "who-ai-names": "906c5272769d692068c64a5871e20d44d45c0a15359d1ad457159b42c12ecd75",
+      "known-isnt-chosen": "caa0a5f2015cfd85b59aa8a7821756123a25f48bd3fc2498642f91a356f1fcc3",
+      "who-wins": "9b4d9333aa9589966a3ec7e613e77a4dd2feb21a001477213ce453abca45db43",
+      "what-ai-says": "8629c8b934d51a5bfb1e03b589599f529fa199fea480890a3830636ec24e466c",
+      "six-buyers": "7e2f6727d09c7e4aeab42e7149e0a574077b34e23e28431adb053261c29f5270",
+      "wording": "d15ed364768c2ccde1903e69ff0f79e9e42e3e494778fc1b7d629046ca8e6978"
+    }
+  },
+  "hotel-group": {
+    "svgSha256": "6cd64bee52711eff0cb03dfd1c93118781ab9e3eaffc30863fdda65027181ee1",
+    "jpgSha256": "60d0e62c1e45447108c9f31d625530d97bddd51993753f55a8c0d1d78173aec5",
+    "charts": {}
+  }
+}

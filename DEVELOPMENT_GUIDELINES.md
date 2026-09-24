@@ -365,7 +365,12 @@ Manual checklist seeds:
 - A UI-touching milestone cannot be marked Done until its interactive verification ran and is evidenced in `BUILD_NOTES.md` (D-092).
 - `pnpm build` fails on the `next/font` Google Fonts fetch whenever the local proxy in `.env.local` is down; run with `HTTPS_PROXY= HTTP_PROXY= NO_PROXY='*'` or start the proxy.
 
-### Static website verification (M58)
+### Static website verification (M58–M59)
 
 `pnpm preview:site` serves only `site/` on http://127.0.0.1:8097 with clean HTML URLs.
 `pnpm test:site` runs isolated Playwright checks without the operator app or database.
+
+M59 adds `pnpm site:research verify <slug>` (enforced read-only evidence access),
+`pnpm site:research build`, `pnpm site:research check`, and `pnpm test:research`.
+Production raster cards are build outputs; tests must not generate missing cards.
+Check hosted redirects with a fragment-bearing legacy URL before publication.

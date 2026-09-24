@@ -28,6 +28,16 @@ Session numbers increment forever and never reset; omit empty fields except NEXT
 
 ## Entries
 
+## S-133 / 2026-09-21 / M60 research rewrite (branch `m60` off `m59`)
+GOAL: Turn the published SK study into a shareable article for brand marketers: light theme, conversational copy, charts, flat index, labels removed (D-136/D-137/D-138).
+DONE: Generator rewritten (`scripts/site-research.mjs`, `lib/site-research-template.mjs`, new `lib/site-research-charts.mjs`): schema v2 with headline gate, six chart renderers, evidence-file emitter, chart PNG export, readability lint; new evidence kind `rankOneCounts` (first-place tallies by shopping need). SK data file rewritten; `site:research verify` 216 entries clean; `build`/`check` clean; `pnpm test:research` 6/6; `pnpm test:site` 23 passed incl. axe on the light theme and reflow to 320. Scoped light tokens in `site/styles.css`; `?v=20260921a` on every page; noindex header for `*.evidence.json` in `site/vercel.json`.
+UNVERIFIED: Not deployed; live checks (light theme in production, evidence JSON header, card validators) not run. Headline is my provisional pick. No real logos yet.
+REJECTED: One scaled SVG per chart (labels shrink below legibility at 320px; HTML marks reflow instead). `.sr-only` directly on a `<table>` (tables ignore the 1px width and caused horizontal overflow at 390px; wrap in a div). White-on-colour monogram chips and orange text links (fail AA on paper; chips are now white with a coloured ring, text links use `--accent-text`).
+DONE (later, same session): operator headline and official-site logos committed (3d3d70e); Insta360 pieces consolidated into `insta360-action-camera-ai-study` (D-139) with `artifact` evidence kind, `positions` chart, redirects without chains, 71 entries verified; suites green.
+DONE (M61, same session): homepage rebuilt per D-140; `.paper` scope extracted from the research theme; homepage research list now generated (latest three) so it cannot point at retired pieces; stylesheet pruned by a usage scan over every HTML file (107 single-line rules with no matching class anywhere).
+NEXT: Operator chooses the headline (edit `headline` to one of `headlineCandidates`, update `cardLines`), supplies logos to `site/research/logos/` and sets `logo` paths in `content/research/brands.json`; then `pnpm site:research verify sk-jewellery-ai-visibility-message-test && pnpm site:research build && pnpm test:site`, review, deploy.
+GOTCHAS: Homepage benefit figures (97%, 0 of 140, 80%, 98%, 0 of 25) are hand-copied from the verified article data; if an article's evidence changes, update `site/index.html` `#why` too. Element screenshots show the sticky nav floating mid-section; it is a capture artefact. Literal numbers in prose that tokens cannot reach (attribute counts, 49 of 50, 98%/80%) are hand-derived from verified evidence entries; re-check them if the evidence changes. The in-app browser pane scales emulated viewports, so reproduce mobile overflow with a Playwright script, not the pane.
+
 ## S-130 / 2026-09-06 / M56 whole-repo cleanup pass: merged to main via PR #17, entry truncated per Rule 2 (D-025)
 GOAL/DONE: (retroactive) D-126/D-127 executed; brand canon rewritten; eight plans archived; zero-reference exports deleted. Gates green at 9dd5a23.
 NEXT: Nothing pending from M56. Current work is S-131 below (M57).
@@ -38,6 +48,13 @@ DONE: P0 (174c3fd) — D-128 + two register edges after D-127; `M56_BUILD_PLAN.m
 UNVERIFIED: Nothing deployed — domain not purchased/attached, so canonical/sitemap/JSON-LD URLs are provisional `windtunnel.observer` until Vercel attach + old-domain 301; the rebuilt og card is a coded recreation of the original design (flat brand cone instead of the photoreal one) — operator review of the render welcome; P3 contact form not built (no endpoint); optional `npx vercel --cwd site` cleanUrls collision preview not run (no CLI auth); post-deploy Search Console/Bing steps are operator items.
 NEXT: When the operator provides the form endpoint: P3 commit — form in `site/index.html#contact` (name/work email/brand/honeypot, endpoint redirect to `/thanks`, submit "Request a brand audit"), `site/thanks.html` (noindex, out of sitemap), nav/hero CTAs → `/#contact` (mailto count on index drops to 1), CSP `form-action 'self' https://<endpoint-host>` in `vercel.json` + `_headers` in the same commit, two-CTA-intent updates in guide §5/§11 and playbook §10.2 item 3. Then: full gates, push `m57`, open the PR (push needs operator credentials; `gh` absent).
 GOTCHAS: `git mv` + editing the moved file without re-`git add` commits the OLD content (caught at P0 via the 100%-similarity rename; re-added and amended). JSX template literals as JSX CHILD TEXT render verbatim and no gate catches it — write `{EXPR}` not `` `${EXPR}` `` in element bodies. Chrome headless renders webfonts only from a document context: screenshot an HTML wrapper that inlines the SVG and links the Google Fonts stylesheet with `--virtual-time-budget=15000`; SVG-in-`<img>` would isolate fonts, and `@resvg/resvg-cli` does not exist on npm. The §12 banned-vocab grep needs `wind tunnel|WindTunnel` run case-SENSITIVELY — under `-i` the `WindTunnel` alternative matches the correct "Windtunnel". Remaining grep hits on `site/` are sanctioned: the `resonance.research@pm.me` mailto (until the operator mailbox exists), "No ranking guarantees" disclaimers, and the pre-existing "probability mass" PMF line in the scoring section.
+
+## S-132 / 2026-09-20 / Hotfix: Message Lift stimulus line endings (branch `fix/resonance-crlf` off main)
+GOAL: Stop operator-entered New messages being stored with `\r\n` while the verbatim Current message (copied server-side from `responses.raw_text`) has `\n` — the two disclosed prompts differed on every line, not only in the message slot (D-119 parity).
+DONE: Root cause traced in the SK Jewellery test `5d5d49be`: the wizard's textarea held 0 `\r`, yet the stored `custom` body carried 42 `\r\n` — multipart/form-data encoding normalizes LF→CRLF in every string entry, and `textField()` in `src/modules/resonance/actions.ts` only trimmed. Fix: `textField()` now maps `\r\n?` → `\n` at intake (covers stimulus body/label and the `panelPersonas` text path; `measured_ai` bodies were already server-enforced from `rawText`). Unit test "normalizes CRLF line endings in stimulus text before repository mutation" (add + update actions). Proof: `pnpm vitest run src/modules/resonance/actions.test.ts`; `pnpm test` 917 passed / 12 skipped; `pnpm lint --max-warnings 0`; `pnpm typecheck`; dev-server check — re-saved the New message of study `5d5d49be` and the Prompts view went from 42 literal `\r\n` escapes to 0 (page text 13,025 → 12,941 chars, exactly the 84 removed characters), Ethical Sourcing block present in the NEW prompt only.
+REJECTED: Normalizing in the pure renderer (`src/core/resonance.ts`) — would mask stored inconsistency instead of fixing intake, and frozen prompt cells must read what was stored. Rewriting existing rows — C-3.
+NEXT: Merge `fix/resonance-crlf` into main (PR), then re-save any draft New message created before the fix (one click on Save in the wizard) before approving it; approved studies are frozen and keep their historical prompts truthfully. Test B (length-matched "Store Network" control) for the SK Jewellery Message Lift test is still to be created.
+GOTCHAS: Any server action that receives multi-line text through `FormData` gets CRLF regardless of what the client held — the browser is not the culprit, so checking `textarea.value` proves nothing; check the stored row or the disclosed prompt. In the in-app browser, `?view=prompts` reached by client-side navigation from the design view can sit on "Opening project workspace…" indefinitely; a fresh tab loads it in seconds.
 
 ## S-118..S-129 / 2026-07-20..2026-08-03 / M47, M49–M55: merged to main via PRs #8, #10–#16, entries truncated per Rule 2 (D-025)
 GOAL/DONE: (retroactive) M47 (D-118), M49 Message Lift (D-119, incl. the migration-drift repair and Marriott recovery sessions), M50 forecast (D-120), M51 honesty/remediation (D-121), M52 Diagnostics (D-122), M54 Collecting responses (D-124), M55 market context (D-125). Durable content graduated to `DECISIONS.md`, `PRD.md` §8.36–§8.43 and §11, `docs/history/M47..M55_BUILD_PLAN.md`, and `ENGINEERING_SPEC.md` §2 (the C-6 drift-repair lesson). Three S-numbers (121–123) were issued twice on parallel branches; both entries are gone, none renumbered.
@@ -203,3 +220,26 @@ visual too. Corrected preview: https://site-104ggjjp0-franklinhou-5415s-projects
 Lighthouse99/100/100/100 with restored content,142 KiB. No operator source change.
 User design acceptance remains pending; prior automated passes did not justify the
 content loss. GitHub upload remains blocked pending explicit approval, no retry here.
+
+Deployment follow-up: after the user's explicit request, Vercel production deployment
+`dpl_A91bsLMLcW1UaunkJQvJMw6gcDrh` completed and is aliased at
+`https://resonance.observer`. Post-deploy checks returned home 200, studies 200,
+methodology 200 and missing route 404. GitHub push remains a separate blocked action.
+
+## S-134 / 2026-09-20 / M59
+GOAL: Implement and publish the approved SK decision guide and Research system.
+DONE: Three completed runs verified via enforced read-only SQL (213 source entries).
+Research hub/static generator, legacy redirects, exact prompts, six buyer profiles,
+fourteen recommendation scenarios, content briefs, article cards/feed/social copy.
+Separate baselines and evidence types remain explicit. No operator source change.
+GATES: 21 site checks + five publisher checks + optional capture pass; zero-warning
+lint, typecheck, docs and diff pass. Repeat build byte-identical. Mobile Lighthouse
+article 90/100/100/100, hub 99/100/100/100. Live host checks and fragment redirect pass.
+PUBLISHED: https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test
+Vercel production dpl_EQgTzUQEBwod9kkYgb3PtNuvsAVC; only site/ uploaded. Added missing
+www hostname to existing project and verified its certificate/canonical 301.
+NEXT: Repository handoff. Search Console submission explicitly deferred by user;
+Google sign-in is required. Four-week review 18 October 2026 is documented.
+GOTCHAS: App JSON export recomputes metrics; never use for read-only verification.
+No human purchase-outcome or ethical-sourcing effect established. Length-matched
+control unrun. Social kit prepared only; no account posting or email sent.

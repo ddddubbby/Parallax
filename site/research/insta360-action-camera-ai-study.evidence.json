@@ -1,0 +1,933 @@
+{
+ "article": "https://windtunnel.tech/research/insta360-action-camera-ai-study",
+ "published": "2026-09-20T11:54:26.153Z",
+ "updated": "2026-09-20T11:54:26.153Z",
+ "note": "Every figure in the article resolves to one of these entries. Prompts, messages and quoted outputs are verbatim.",
+ "runs": [
+  "audit",
+  "buyer",
+  "buyer2"
+ ],
+ "evidence": {
+  "audit_completed_at": {
+   "kind": "run",
+   "run": "audit",
+   "data": "2026-07-19T08:09:58.886Z"
+  },
+  "audit_state": {
+   "kind": "run",
+   "run": "audit",
+   "data": "completed"
+  },
+  "audit_run_mode": {
+   "kind": "run",
+   "run": "audit",
+   "data": "live_audit"
+  },
+  "audit_repetitions": {
+   "kind": "run",
+   "run": "audit",
+   "data": 5
+  },
+  "audit_selected_providers_json": {
+   "kind": "run",
+   "run": "audit",
+   "data": [
+    "openai",
+    "deepseek"
+   ]
+  },
+  "audit_selected_modes_json": {
+   "kind": "run",
+   "run": "audit",
+   "data": [
+    "ungrounded"
+   ]
+  },
+  "buyer_completed_at": {
+   "kind": "run",
+   "run": "buyer",
+   "data": "2026-07-09T02:11:58.073Z"
+  },
+  "buyer_state": {
+   "kind": "run",
+   "run": "buyer",
+   "data": "completed"
+  },
+  "buyer_run_mode": {
+   "kind": "run",
+   "run": "buyer",
+   "data": "live_audit"
+  },
+  "buyer_repetitions": {
+   "kind": "run",
+   "run": "buyer",
+   "data": 5
+  },
+  "buyer_selected_providers_json": {
+   "kind": "run",
+   "run": "buyer",
+   "data": [
+    "deepseek",
+    "openai"
+   ]
+  },
+  "buyer_selected_modes_json": {
+   "kind": "run",
+   "run": "buyer",
+   "data": [
+    "ungrounded"
+   ]
+  },
+  "buyer2_completed_at": {
+   "kind": "run",
+   "run": "buyer2",
+   "data": "2026-07-19T08:58:20.327Z"
+  },
+  "buyer2_state": {
+   "kind": "run",
+   "run": "buyer2",
+   "data": "completed"
+  },
+  "buyer2_run_mode": {
+   "kind": "run",
+   "run": "buyer2",
+   "data": "live_audit"
+  },
+  "buyer2_repetitions": {
+   "kind": "run",
+   "run": "buyer2",
+   "data": 5
+  },
+  "buyer2_selected_providers_json": {
+   "kind": "run",
+   "run": "buyer2",
+   "data": [
+    "openai"
+   ]
+  },
+  "buyer2_selected_modes_json": {
+   "kind": "run",
+   "run": "buyer2",
+   "data": [
+    "ungrounded"
+   ]
+  },
+  "auditSummary": {
+   "kind": "sampleSummary",
+   "run": "audit",
+   "data": {
+    "models": [
+     "deepseek/deepseek-v4-flash/ungrounded",
+     "openai/gpt-5.5-2026-04-23/ungrounded"
+    ],
+    "valid": 342,
+    "excluded": 0,
+    "refusals": 0
+   }
+  },
+  "auditCount": {
+   "kind": "sampleCount",
+   "run": "audit",
+   "data": 342
+  },
+  "mentionRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "mention_rate",
+    "value": 0.9491525423728814,
+    "n": 118,
+    "ci_low": 0.8934926488552369,
+    "ci_high": 0.9764903686330311,
+    "metadata_json": {}
+   }
+  },
+  "recommendationRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "recommendation_rate",
+    "value": 0.8305084745762712,
+    "n": 118,
+    "ci_low": 0.7526592831457406,
+    "ci_high": 0.8875168995343056,
+    "metadata_json": {}
+   }
+  },
+  "comparativeWinRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "comparative_win_rate",
+    "value": 0.8518518518518519,
+    "n": 54,
+    "ci_low": 0.7339988471639411,
+    "ci_high": 0.9229693686239466,
+    "metadata_json": {}
+   }
+  },
+  "shareOfVoice": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "share_of_voice",
+    "value": 0.3154929577464789,
+    "n": 118,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "avgFirstPosition": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "avg_first_position",
+    "value": 2.9411764705882355,
+    "n": 85,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "stabilityIndex": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "stability_index",
+    "value": 0.8803672316384179,
+    "n": 59,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "openaiMentionRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "provider",
+    "scope_key": "openai",
+    "metric_key": "mention_rate",
+    "value": 0.9827586206896551,
+    "n": 58,
+    "ci_low": 0.9085914190653199,
+    "ci_high": 0.9969499615539326,
+    "metadata_json": {}
+   }
+  },
+  "openaiRecommendationRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "provider",
+    "scope_key": "openai",
+    "metric_key": "recommendation_rate",
+    "value": 0.9655172413793104,
+    "n": 58,
+    "ci_low": 0.8827085453568732,
+    "ci_high": 0.9904920716688346,
+    "metadata_json": {}
+   }
+  },
+  "deepseekMentionRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "provider",
+    "scope_key": "deepseek",
+    "metric_key": "mention_rate",
+    "value": 0.9166666666666666,
+    "n": 60,
+    "ci_low": 0.8193105798166559,
+    "ci_high": 0.9638795433982693,
+    "metadata_json": {}
+   }
+  },
+  "deepseekRecommendationRate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "provider",
+    "scope_key": "deepseek",
+    "metric_key": "recommendation_rate",
+    "value": 0.7,
+    "n": 60,
+    "ci_low": 0.5749129205308552,
+    "ci_high": 0.8010183386123088,
+    "metadata_json": {}
+   }
+  },
+  "insta360_mention_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "91fe1ccb-65d8-403a-beeb-6eb49aeba989",
+    "metric_key": "mention_rate",
+    "value": 0.9491525423728814,
+    "n": 118,
+    "ci_low": 0.8934926488552369,
+    "ci_high": 0.9764903686330311,
+    "metadata_json": {}
+   }
+  },
+  "insta360_share_of_voice": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "91fe1ccb-65d8-403a-beeb-6eb49aeba989",
+    "metric_key": "share_of_voice",
+    "value": 0.3154929577464789,
+    "n": 118,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "insta360_avg_first_position": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "91fe1ccb-65d8-403a-beeb-6eb49aeba989",
+    "metric_key": "avg_first_position",
+    "value": 2.9411764705882355,
+    "n": 85,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "insta360_comparative_win_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "91fe1ccb-65d8-403a-beeb-6eb49aeba989",
+    "metric_key": "comparative_win_rate",
+    "value": 0.8518518518518519,
+    "n": 54,
+    "ci_low": 0.7339988471639411,
+    "ci_high": 0.9229693686239466,
+    "metadata_json": {}
+   }
+  },
+  "dji_mention_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "3b9b93e1-2855-4843-8db6-b4e8ba368484",
+    "metric_key": "mention_rate",
+    "value": 1,
+    "n": 118,
+    "ci_low": 0.9684716609775057,
+    "ci_high": 1,
+    "metadata_json": {}
+   }
+  },
+  "dji_share_of_voice": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "3b9b93e1-2855-4843-8db6-b4e8ba368484",
+    "metric_key": "share_of_voice",
+    "value": 0.3323943661971831,
+    "n": 118,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "dji_avg_first_position": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "3b9b93e1-2855-4843-8db6-b4e8ba368484",
+    "metric_key": "avg_first_position",
+    "value": 1.0952380952380953,
+    "n": 105,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "dji_comparative_win_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "3b9b93e1-2855-4843-8db6-b4e8ba368484",
+    "metric_key": "comparative_win_rate",
+    "value": 0.9074074074074074,
+    "n": 54,
+    "ci_low": 0.8009011740903731,
+    "ci_high": 0.9597988652429706,
+    "metadata_json": {}
+   }
+  },
+  "gopro_mention_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "f6f819ae-85a9-4e98-84a8-df756fed5a79",
+    "metric_key": "mention_rate",
+    "value": 0.9830508474576272,
+    "n": 118,
+    "ci_low": 0.9403025556519602,
+    "ci_high": 0.9953395574957996,
+    "metadata_json": {}
+   }
+  },
+  "gopro_share_of_voice": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "f6f819ae-85a9-4e98-84a8-df756fed5a79",
+    "metric_key": "share_of_voice",
+    "value": 0.3267605633802817,
+    "n": 118,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "gopro_avg_first_position": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "f6f819ae-85a9-4e98-84a8-df756fed5a79",
+    "metric_key": "avg_first_position",
+    "value": 2.2083333333333335,
+    "n": 96,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "gopro_comparative_win_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "f6f819ae-85a9-4e98-84a8-df756fed5a79",
+    "metric_key": "comparative_win_rate",
+    "value": 0.7222222222222222,
+    "n": 54,
+    "ci_low": 0.5910955707120474,
+    "ci_high": 0.8238317234697764,
+    "metadata_json": {}
+   }
+  },
+  "akaso_mention_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "b1dfa655-7472-40cb-823d-b4af14ef34a6",
+    "metric_key": "mention_rate",
+    "value": 0.07627118644067797,
+    "n": 118,
+    "ci_low": 0.040643209517551585,
+    "ci_high": 0.13861809473879952,
+    "metadata_json": {}
+   }
+  },
+  "akaso_share_of_voice": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "b1dfa655-7472-40cb-823d-b4af14ef34a6",
+    "metric_key": "share_of_voice",
+    "value": 0.02535211267605634,
+    "n": 118,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "akaso_avg_first_position": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "b1dfa655-7472-40cb-823d-b4af14ef34a6",
+    "metric_key": "avg_first_position",
+    "value": 4.833333333333333,
+    "n": 6,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "akaso_comparative_win_rate": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "brand",
+    "scope_key": "b1dfa655-7472-40cb-823d-b4af14ef34a6",
+    "metric_key": "comparative_win_rate",
+    "value": 0.2777777777777778,
+    "n": 54,
+    "ci_low": 0.1761682765302237,
+    "ci_high": 0.40890442928795256,
+    "metadata_json": {}
+   }
+  },
+  "attr_image_stabilization": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "attribute_Image Stabilization",
+    "value": 0.18932038834951456,
+    "n": 206,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "attr_high_quality_audio": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "attribute_High-Quality Audio",
+    "value": 0.019417475728155338,
+    "n": 206,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "attr_wind_reduction": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "attribute_Wind Reduction",
+    "value": 0.014563106796116505,
+    "n": 206,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "attr_waterproof_design": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "attribute_Waterproof Design",
+    "value": 0.33495145631067963,
+    "n": 206,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "attr_high_image_quality": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "attribute_High Image Quality",
+    "value": 0.24757281553398058,
+    "n": 206,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "attr_quick_mounting": {
+   "kind": "metric",
+   "run": "audit",
+   "data": {
+    "scope_type": "overall",
+    "scope_key": "__all__",
+    "metric_key": "attribute_Quick Mounting",
+    "value": 0.06310679611650485,
+    "n": 206,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {}
+   }
+  },
+  "descriptions": {
+   "kind": "artifact",
+   "data": {
+    "n": 25,
+    "reviewMethod": "single_analyst",
+    "counts": [
+     {
+      "name": "Capture everything, frame later",
+      "count": 20
+     },
+     {
+      "name": "Software-powered creative simplicity",
+      "count": 15
+     },
+     {
+      "name": "Impossible-looking third-person shots",
+      "count": 18
+     },
+     {
+      "name": "Smooth, action-ready capture",
+      "count": 20
+     },
+     {
+      "name": "Creator and adventure identity",
+      "count": 19
+     },
+     {
+      "name": "360-category leader and innovator",
+      "count": 13
+     },
+     {
+      "name": "Versatile imaging ecosystem",
+      "count": 8
+     },
+     {
+      "name": "Workflow and technical trade-offs",
+      "count": 8
+     }
+    ]
+   }
+  },
+  "descriptionGaps": {
+   "kind": "artifact",
+   "data": [
+    {
+     "id": "capture-frame-later",
+     "kind": "reinforced"
+    },
+    {
+     "id": "software-creative-simplicity",
+     "kind": "reinforced"
+    },
+    {
+     "id": "impossible-third-person-shots",
+     "kind": "reinforced"
+    },
+    {
+     "id": "smooth-action-capture",
+     "kind": "reinforced"
+    },
+    {
+     "id": "creator-adventure-identity",
+     "kind": "reinforced"
+    },
+    {
+     "id": "category-leader-innovator",
+     "kind": "unsupported"
+    },
+    {
+     "id": "versatile-imaging-ecosystem",
+     "kind": "non_actionable"
+    },
+    {
+     "id": "workflow-technical-tradeoffs",
+     "kind": "misframed"
+    },
+    {
+     "id": null,
+     "kind": "missing"
+    }
+   ]
+  },
+  "buyerCurrent": {
+   "kind": "stimulus",
+   "run": "buyer",
+   "data": "Buyers concern that smaller action cameras may have inferior image quality due to smaller lens and different USPs"
+  },
+  "buyerNew": {
+   "kind": "stimulus",
+   "run": "buyer",
+   "data": "Insta 360 will launch more action camera products collaborating with Leica to enhance image and video quality."
+  },
+  "buyerProfiles": {
+   "kind": "study",
+   "run": "buyer",
+   "data": [
+    {
+     "key": "p1",
+     "label": "Social media content creators",
+     "ageBand": "18-25",
+     "incomeBand": "$80k-$160k",
+     "locationContext": "Singapore",
+     "behavioralProfile": "researches carefully before choosing a product"
+    }
+   ]
+  },
+  "buyer_deepseek_current": {
+   "kind": "metric",
+   "run": "buyer",
+   "data": {
+    "scope_type": "resonance_variant",
+    "scope_key": "168ca90d-8a93-4f28-a17d-01d7dfec89c5|deepseek",
+    "metric_key": "pi_mean",
+    "value": 3.050321540589848,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "pmf": [
+      0.08345394700474028,
+      0.2965937378532266,
+      0.2525562298329562,
+      0.2209689981655994,
+      0.14642708714347757
+     ],
+     "label": "Measured AI framing",
+     "providerId": "deepseek",
+     "sufficientN": false,
+     "stimulusKind": "measured_ai"
+    }
+   }
+  },
+  "buyer_deepseek_new": {
+   "kind": "metric",
+   "run": "buyer",
+   "data": {
+    "scope_type": "resonance_variant",
+    "scope_key": "0c7892f7-f33d-4edc-9b06-43088fbb372c|deepseek",
+    "metric_key": "pi_mean",
+    "value": 3.6247824364963344,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "pmf": [
+      0.04418620447326269,
+      0.16555997516837004,
+      0.1843654038210548,
+      0.33306201246339523,
+      0.27282640407391723
+     ],
+     "label": "insta360 image quality",
+     "providerId": "deepseek",
+     "sufficientN": false,
+     "stimulusKind": "corrected"
+    }
+   }
+  },
+  "buyer_deepseek_lift": {
+   "kind": "metric",
+   "run": "buyer",
+   "data": {
+    "scope_type": "resonance_delta",
+    "scope_key": "0c7892f7-f33d-4edc-9b06-43088fbb372c|deepseek",
+    "metric_key": "delta_pi_mean",
+    "value": 0.5744608959064865,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "providerId": "deepseek",
+     "directionalOnly": true,
+     "baselineStimulusId": "168ca90d-8a93-4f28-a17d-01d7dfec89c5"
+    }
+   }
+  },
+  "buyer_openai_current": {
+   "kind": "metric",
+   "run": "buyer",
+   "data": {
+    "scope_type": "resonance_variant",
+    "scope_key": "168ca90d-8a93-4f28-a17d-01d7dfec89c5|openai",
+    "metric_key": "pi_mean",
+    "value": 3.2807035505352915,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "pmf": [
+      0.05830410572778294,
+      0.23228040531640137,
+      0.24616122715848926,
+      0.29691635628739454,
+      0.16633790550993197
+     ],
+     "label": "Measured AI framing",
+     "providerId": "openai",
+     "sufficientN": false,
+     "stimulusKind": "measured_ai"
+    }
+   }
+  },
+  "buyer_openai_new": {
+   "kind": "metric",
+   "run": "buyer",
+   "data": {
+    "scope_type": "resonance_variant",
+    "scope_key": "0c7892f7-f33d-4edc-9b06-43088fbb372c|openai",
+    "metric_key": "pi_mean",
+    "value": 3.4335023888743903,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "pmf": [
+      0.05140576821963807,
+      0.19805855321103252,
+      0.20801088830769193,
+      0.35067710199857643,
+      0.19184768826306112
+     ],
+     "label": "insta360 image quality",
+     "providerId": "openai",
+     "sufficientN": false,
+     "stimulusKind": "corrected"
+    }
+   }
+  },
+  "buyer_openai_lift": {
+   "kind": "metric",
+   "run": "buyer",
+   "data": {
+    "scope_type": "resonance_delta",
+    "scope_key": "0c7892f7-f33d-4edc-9b06-43088fbb372c|openai",
+    "metric_key": "delta_pi_mean",
+    "value": 0.1527988383390988,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "providerId": "openai",
+     "directionalOnly": true,
+     "baselineStimulusId": "168ca90d-8a93-4f28-a17d-01d7dfec89c5"
+    }
+   }
+  },
+  "buyer2Current": {
+   "kind": "stimulus",
+   "run": "buyer2",
+   "data": "Here are the best action camera choices for a holiday traveller in Japan, depending on what kind of trip videos you want to make.\n\n## Best overall: **DJI Osmo Action 4**\n**Best for:** most travellers, city walking, food markets, shrines, skiing, hiking, rain.\n\n**Why it’s great for Japan**\n- Excellent low-light performance for Tokyo/Osaka night streets.\n- Strong stabilization for walking, cycling, trains, and hiking.\n- Waterproof without a case.\n- Front and rear screens are useful for selfies and vlogging.\n- Generally easier to use than a 360 camera.\n\n**Good if you want:** reliable travel footage with minimal fuss.\n\n---\n\n## Best classic action cam: **GoPro HERO12 Black**\n**Best for:** adventure activities, skiing in Hokkaido, snorkeling in Okinawa, cycling, hiking.\n\n**Pros**\n- Excellent stabilization.\n- Great accessory ecosystem.\n- Strong image quality in daylight.\n- Rugged and waterproof.\n\n**Cons**\n- Low light is not as strong as DJI Osmo Action 4.\n- Battery life can be less impressive in cold weather.\n\n**Good if you want:** the most established action camera platform.\n\n---\n\n## Best for creative travel videos: **Insta360 X4**\n**Best for:** solo travellers, temples, crowded streets, trains, skiing, walking tours.\n\n**Why it’s great**\n- Shoots 360° video, so you don’t need to aim perfectly.\n- Lets you reframe later for vertical TikTok/Reels or horizontal YouTube.\n- Invisible selfie stick effect is excellent for travel.\n- Great for capturing immersive places like Shibuya Crossing, Kyoto streets, or mountain views.\n\n**Cons**\n- Editing takes more time.\n- Low-light performance is decent but not as good as DJI Osmo Action 4.\n- More fragile lenses, so you need to be careful.\n\n**Good if you want:** unique, cinematic holiday footage and don’t mind editing.\n\n---\n\n## Best for low-light vlogging: **Insta360 Ace Pro**\n**Best for:** night markets, city walks, casual vlogging, food travel.\n\n**Pros**\n- Very good low-light performance.\n- Flip screen is useful for filming yourself.\n- Strong stabilization.\n- Easy to use.\n\n**Cons**\n- Bulkier than some action cameras.\n- Not as “classic rugged” as GoPro/DJI for heavy sports use.\n\n**Good if you want:** a travel/vlogging action camera, especially for night scenes.\n\n---\n\n## Best tiny camera: **Insta360 GO 3 / GO 3S**\n**Best for:** ultra-light travel, POV clips, casual moments, family trips.\n\n**Pros**\n- Very small and discreet.\n- Easy to mount on clothing, hats, bags, or a pendant mount.\n- Great for short travel clips.\n\n**Cons**\n- Not the best image quality compared with larger cameras.\n- Battery and storage are more limited.\n- Less ideal as your only camera for a big trip.\n\n**Good if you want:** tiny, fun, casual clips without carrying much gear.\n\n---\n\n## Best budget option: **DJI Osmo Action 3**\n**Best for:** travellers who want solid quality for less money.\n\n**Pros**\n- Good stabilization.\n- Waterproof.\n- Good battery life.\n- Often cheaper than newer models.\n\n**Cons**\n- Low-light performance is weaker than Osmo Action 4.\n- Image quality is good but not class-leading.\n\n**Good if you want:** a capable action camera without spending top-tier money.\n\n---\n\n# My top picks for Japan\n\n## If you want one camera only\n**DJI Osmo Action 4**  \nBest balance of image quality, low-light, durability, and ease of use.\n\n## If you want the most creative travel footage\n**Insta360 X4**  \nBest for unique “third-person” travel shots and reframing later.\n\n## If you will film lots at night\n**Insta360 Ace Pro** or **DJI Osmo Action 4**  \nBoth are better choices than a GoPro for night city footage.\n\n## If you mainly do adventure activities\n**GoPro HERO12 Black** or **DJI Osmo Action 4**  \nBoth are excellent for skiing, hiking, cycling, and water activities.\n\n---\n\n# Accessories worth bringing to Japan\n\n- **Extra batteries** — especially for cold areas like Hokkaido or the Japanese Alps.\n- **Fast microSD cards** — V30 or better; 128GB/256GB is ideal.\n- **Small tripod/selfie stick** — useful for shrines, city views, and solo travel.\n- **Chest or backpack strap mount** — good for walking footage.\n- **Lens protectors** — especially important for Insta360 X4.\n- **Compact power bank** — very useful for long sightseeing days.\n- **Rain cover or waterproof case** if you expect heavy rain, snow, or sea use.\n\n---\n\n# Japan-specific tips\n\n- Be respectful when filming in temples, shrines, restaurants, trains, and private shops. Some places prohibit photography or video.\n- Avoid filming people too closely without permission, especially children or in quiet public spaces.\n- Japan is very safe, but don’t leave gear unattended in cafés or train stations.\n- If buying in Japan, check:\n  - Whether the camera menu supports your language.\n  - International warranty coverage.\n  - Tax-free eligibility for tourists.\n  - Whether the price is actually better than at home.\n\n---\n\n## Quick recommendation\n\nFor most holiday travellers in Japan, I’d choose:\n\n**1. DJI Osmo Action 4** — best all-rounder  \n**2. Insta360 X4** — best creative 360 travel camera  \n**3. Insta360 Ace Pro** — best if you’ll vlog and shoot at night  \n**4. GoPro HERO12 Black** — best if you prefer the classic action camera ecosystem"
+  },
+  "buyer2New": {
+   "kind": "stimulus",
+   "run": "buyer2",
+   "data": "New product with Leica certified lens and Leica designed filters"
+  },
+  "buyer2Profiles": {
+   "kind": "study",
+   "run": "buyer2",
+   "data": [
+    {
+     "key": "p1",
+     "label": "Holiday traveller",
+     "ageBand": "22-30",
+     "incomeBand": "$30k-$100k",
+     "locationContext": "Japan",
+     "behavioralProfile": "researches carefully before choosing"
+    }
+   ]
+  },
+  "buyer2_openai_current": {
+   "kind": "metric",
+   "run": "buyer2",
+   "data": {
+    "scope_type": "resonance_variant",
+    "scope_key": "d726a967-0012-4bf9-b154-830e17b93c0f|openai",
+    "metric_key": "pi_mean",
+    "value": 3.6519911829005602,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "pmf": [
+      0.05685903958812231,
+      0.12137248212562173,
+      0.19017315524885156,
+      0.3761089018723818,
+      0.2554864211650226
+     ],
+     "label": "What AI says today",
+     "providerId": "openai",
+     "sufficientN": false,
+     "stimulusKind": "measured_ai"
+    }
+   }
+  },
+  "buyer2_openai_new": {
+   "kind": "metric",
+   "run": "buyer2",
+   "data": {
+    "scope_type": "resonance_variant",
+    "scope_key": "b5f7ef34-964f-408d-8445-c57b189ffa39|openai",
+    "metric_key": "pi_mean",
+    "value": 3.345063338479747,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "pmf": [
+      0.08455168304094131,
+      0.1860328750096763,
+      0.20802122577189036,
+      0.34258885278367784,
+      0.17880536339381423
+     ],
+     "label": "brand collab",
+     "providerId": "openai",
+     "sufficientN": false,
+     "stimulusKind": "custom"
+    }
+   }
+  },
+  "buyer2_openai_lift": {
+   "kind": "metric",
+   "run": "buyer2",
+   "data": {
+    "scope_type": "resonance_delta",
+    "scope_key": "b5f7ef34-964f-408d-8445-c57b189ffa39|openai",
+    "metric_key": "delta_pi_mean",
+    "value": -0.3069278444208132,
+    "n": 5,
+    "ci_low": null,
+    "ci_high": null,
+    "metadata_json": {
+     "providerId": "openai",
+     "directionalOnly": true,
+     "baselineStimulusId": "d726a967-0012-4bf9-b154-830e17b93c0f"
+    }
+   }
+  },
+  "quoteCreator": {
+   "kind": "sample",
+   "run": "buyer",
+   "data": "As a content creator who obsesses over every detail in my videos, the idea of Insta360 partnering with Leica for better image quality is a huge signal. I’ve been comparing specs for weeks, and if the footage truly holds up in low light and dynamic range, this could finally push me past the research phase. I’d want to see sample files from local creators in Singapore, but my interest in actually buying just jumped significantly."
+  },
+  "quoteTraveller": {
+   "kind": "sample",
+   "run": "buyer2",
+   "data": "The Leica-certified lens and Leica-designed filters make me more interested, especially because I care about getting high-quality travel photos without too much editing. Since it’s a brand collaboration, I’d still want to check real sample photos, reviews, and whether the price is reasonable in Japan before buying. If the image quality looks strong in everyday travel situations, I’d be likely to visit the product page or compare it in-store."
+  }
+ }
+}

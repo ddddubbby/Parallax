@@ -86,7 +86,12 @@ Render still needs app-level secrets such as `APP_PASSWORD`, `SESSION_SECRET`, a
 
 The first deploy contract is in `RENDER_DEPLOYMENT.md`; the Blueprint is `render.yaml`.
 
-### Static website verification (M58)
+### Static website research and verification (M59)
 
 `pnpm preview:site` serves only `site/` on http://127.0.0.1:8097 with clean HTML URLs.
 `pnpm test:site` runs isolated Playwright checks without the operator app or database.
+
+`pnpm site:research verify <slug>` verifies curated sources using read-only SQL.
+`pnpm site:research build` generates static articles, hub, feed and social cards.
+`pnpm site:research check` detects stale text, provenance receipts and card hashes.
+`pnpm test:research` tests the publisher without a database. Only `site/` deploys.

@@ -46,7 +46,9 @@
     "research:m34a:workflow": "tsx scripts/framing-feasibility/m34a-workflow.ts",
     "research:m34a:report": "tsx scripts/framing-feasibility/m34a-report.ts",
     "test:site": "playwright test --config playwright.site.config.ts",
-    "preview:site": "node scripts/site-preview.mjs"
+    "preview:site": "node scripts/site-preview.mjs",
+    "site:research": "node scripts/site-research.mjs",
+    "test:research": "node --test tests/site/research-generator.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
