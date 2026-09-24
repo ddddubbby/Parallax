@@ -22,7 +22,6 @@ import {
   getBreakerCounts,
   getRun,
   getRunMatrixCellCount,
-  getRunProjectArchetype,
   getRunMatrixKind,
   getRunFailureCounts,
   isRunFinished,
@@ -39,7 +38,7 @@ import {
   recordSuccess,
 } from "@/db/repositories/runner";
 import { listResponsesMissingExtraction, listResponsesWithStaleExtraction } from "@/db/repositories/extraction";
-import { recordHeartbeat } from "@/db/repositories/agent-commerce";
+import { recordHeartbeat } from "@/db/repositories/heartbeats";
 import { extractResponse, recoverStaleExtraction } from "@/modules/extraction/service";
 import { tickFramingObservationBatches } from "@/modules/framing/observations";
 import { findExceededDailyBudget, secondaryProviderIdForKind } from "@/modules/runner/budget";
@@ -80,8 +79,6 @@ interface RunConfig {
   runMode: string;
   injection: FailureInjection | null;
   cellCount: number;
-  /** AGENT_PRD §11: crypto_token (agent) runs never run LLM extraction. */
-  projectArchetype: string | null;
 }
 
 const runConfigCache = new Map<string, RunConfig | null>();
@@ -101,7 +98,6 @@ async function getRunConfig(runId: string): Promise<RunConfig | null> {
         runMode: run.runMode,
         injection: injectionConfig?.generation ?? null,
         cellCount: await getRunMatrixCellCount(runId),
-        projectArchetype: await getRunProjectArchetype(runId),
       }
     : null;
   runConfigCache.set(runId, config);
@@ -362,15 +358,6 @@ async function processJob(job: ClaimedJob) {
       eventType: "job_persist_failed",
       message: `Provider call succeeded but persisting the response failed (DB fault, not a provider fault): ${err instanceof Error ? err.message : String(err)}`,
     });
-    await afterJobFinished(job.runId);
-    return;
-  }
-
-  // AGENT_PRD §11: no LLM reads the agent's model answers. crypto_token runs
-  // use mechanical (lexicon) extraction at report time only — skipping here
-  // also means an agent run never needs the D-041 DeepSeek credential to
-  // complete, and never mixes LLM-extraction rows into agent evidence.
-  if (config?.projectArchetype === "crypto_token") {
     await afterJobFinished(job.runId);
     return;
   }

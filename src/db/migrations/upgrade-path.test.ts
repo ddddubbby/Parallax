@@ -123,20 +123,15 @@ describe.skipIf(!dbAvailable)("forward migration upgrade path", () => {
           order by e.enumlabel`,
       );
       expect(enumValues.rows.map((row) => row.enumlabel)).toEqual(["crypto_token", "xai"]);
-      // M39 (0017_agent_commerce): the additive commerce tables land on an
-      // existing DB too. Assert a representative set exists after upgrade.
+      // M62 (0024_m62_retire_geo_agent): the agent commerce tables are gone
+      // after upgrade, while service_heartbeats (also from 0017) survives for
+      // the operator worker.
       const agentTables = await target.query<{ table_name: string }>(
         `select table_name from information_schema.tables
-          where table_name in ('agent_orders','agent_effects','agent_deliverables','agent_settlements','service_heartbeats')
+          where table_name like 'agent\\_%' or table_name = 'service_heartbeats'
           order by table_name`,
       );
-      expect(agentTables.rows.map((r) => r.table_name)).toEqual([
-        "agent_deliverables",
-        "agent_effects",
-        "agent_orders",
-        "agent_settlements",
-        "service_heartbeats",
-      ]);
+      expect(agentTables.rows.map((r) => r.table_name)).toEqual(["service_heartbeats"]);
     } finally {
       await target?.end().catch(() => {});
       await admin.query(

@@ -241,22 +241,6 @@ export async function getRun(runId: string) {
 }
 
 /**
- * The run's project archetype — the worker's signal for the agent product's
- * "no LLM reads model answers" rule (AGENT_PRD §11): crypto_token runs skip
- * the LLM extraction pipeline entirely (mechanical extraction happens at
- * report time, and D-041's DeepSeek credential must never be required for an
- * agent run to complete).
- */
-export async function getRunProjectArchetype(runId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ archetype: projects.categoryArchetype })
-    .from(auditRuns)
-    .innerJoin(projects, eq(auditRuns.projectId, projects.id))
-    .where(eq(auditRuns.id, runId));
-  return row?.archetype ?? null;
-}
-
-/**
  * Runs for a project's index page, newest first, each with total and
  * succeeded job counts (one grouped query, no N+1). Powers the runs list
  * that is the only navigation path back to an in-progress run's page.
@@ -1101,7 +1085,7 @@ export async function listLiveActivityForRun(
 export async function getRunDetail(runId: string) {
   const run = await getRun(runId);
   if (!run) return null;
-  const [progress, failureCounts, events, kind, heartbeatRow, pipelineJobs, archetype] =
+  const [progress, failureCounts, events, kind, heartbeatRow, pipelineJobs] =
     await Promise.all([
       getRunProgress(runId),
       getRunFailureCounts(runId),
@@ -1116,28 +1100,24 @@ export async function getRunDetail(runId: string) {
         .orderBy(desc(runEvents.createdAt))
         .limit(1),
       listJobPipelineRows(runId),
-      getRunProjectArchetype(runId),
     ]);
   const matrixKind: "audit" | "resonance" = kind?.kind === "resonance" ? "resonance" : "audit";
   const heartbeatAgeMs = heartbeatRow[0] ? Date.now() - new Date(heartbeatRow[0].at).getTime() : null;
   const workerOffline = isWorkerLikelyOffline(run.state, heartbeatAgeMs);
-  const skipsExtraction = archetype === "crypto_token";
-  const showSecondary = !skipsExtraction;
 
   const [stageProgress, liveActivity]: [RunStageProgress, LiveActivity] = [
     computeStageProgress({
       jobs: pipelineJobs,
       plannedCalls: run.plannedCalls,
       matrixKind,
-      skipsExtraction,
       runState: run.state,
     }),
-    await listLiveActivityForRun(runId, matrixKind, showSecondary),
+    await listLiveActivityForRun(runId, matrixKind, true),
   ];
 
   // M50/D-120: the forecast reads ONLY this run's terminal pipeline
   // completions — no historical-run seeding, no EWMA, no outlier filter.
-  const completionTimestamps = completionTimestampsFromJobs(pipelineJobs, { skipsExtraction });
+  const completionTimestamps = completionTimestampsFromJobs(pipelineJobs);
   const remainingCount = Math.max(0, stageProgress.overall.total - stageProgress.overall.completed);
   const forecast: RunForecast = computeRunForecast({
     remainingCount,

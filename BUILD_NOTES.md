@@ -243,3 +243,16 @@ Google sign-in is required. Four-week review 18 October 2026 is documented.
 GOTCHAS: App JSON export recomputes metrics; never use for read-only verification.
 No human purchase-outcome or ethical-sourcing effect established. Length-matched
 control unrun. Social kit prepared only; no account posting or email sent.
+
+## S-135 / 2026-09-24 / M62
+GOAL: Merge everything through m60 to main; remove the GEO agent entirely (D-141).
+DONE: m60 absorbed fix/resonance-crlf and the two m58 record commits (BUILD_NOTES
+additive, m60 STATUS kept). m62: agent removal + migration 0024. typecheck, lint,
+pnpm test 684 passed, docs:check pass.
+UNVERIFIED: 0024 not yet run against the dev or production DB; e2e not run locally.
+BLOCKED: push of m60 rejected - gh token lacks `workflow` scope (m59 edits ci.yml).
+Operator runs `gh auth refresh -h github.com -s workflow`; git credential helper also
+points at a deleted /tmp gh (`gh auth setup-git` fixes it).
+NEXT: push m60, PR to main, merge on green CI; then push m62 and PR it.
+GOTCHAS: drizzle-kit generate fails on the pre-existing 0021/0022 snapshot id
+collision; 0024 SQL, snapshot and journal entry were written by hand.

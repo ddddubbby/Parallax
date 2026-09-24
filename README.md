@@ -18,7 +18,7 @@ Legacy lowercase `parallax` package, database, cookie, service, and module ident
 ## Features
 
 - **End-to-end audit pipeline** — intake wizard, budget-aware prompt matrix with versioned approval, a mock run pipeline, structured extraction with claim verification, deterministic metrics with Wilson intervals, a dashboard with ≤2-click drill-down to raw answers, a findings engine, and an editable report builder with Markdown/print/JSON/CSV export.
-- **Six registered provider ids, one interface** — mock (provider #0, permanent), DeepSeek (ungrounded validation), OpenAI, Anthropic, Gemini, and Perplexity (grounded, with normalized citations), plus xAI/Grok as a metadata-only id for the parked GEO agent track (D-106/D-116); a provider that dies mid-run degrades gracefully instead of failing the whole run.
+- **Six registered provider ids, one interface** — mock (provider #0, permanent), DeepSeek (ungrounded validation), OpenAI, Anthropic, Gemini, and Perplexity (grounded, with normalized citations); a provider that dies mid-run degrades gracefully instead of failing the whole run.
 - **The Four P's** — every prompt, metric, and report chapter answers one client question: Presence, Position, Perception, Proof. The prompt-frame rule keeps metrics from counting a signal the prompt itself planted (D-054).
 - **Per-competitor spectrum** — the dashboard ranks the client against each tracked competitor, not "rest of the field."
 - **Trust and provenance** — report claims carry n, provider, mode, and date; every dashboard figure drills to the eligible raw responses behind it.
@@ -66,7 +66,6 @@ Useful scripts:
 - `pnpm archive:evidence <runId>` — writes an off-Render evidence pack for a delivered audit or resonance run.
 - `pnpm test:db` — boots the same ephemeral test-DB instance standalone in the foreground for manual poking (D-078).
 - `pnpm db:studio` — Drizzle Studio over the local dev DB (never production, C-6).
-- `pnpm test:agent-mock-e2e` / `pnpm agent:live-validate` — the parked GEO agent's acceptance and live-validation harnesses (D-116; kept runnable, not active work).
 - `pnpm build` — production build; fetches Google Fonts, so it needs network access, and must never run while a dev server holds :3000 (D-075).
 - `pnpm recompute:resonance` — one-shot dev-DB sweep migrating existing resonance runs' metric rows to the current composite scope-key format (D-080).
 - `pnpm research:m34a:collect` — bounded, explicitly capped M34A development collection using the adopted bare prompts; retains raw provenance and treats offset-span extraction as optional human-review assistance.

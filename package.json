@@ -24,8 +24,6 @@
     "db:studio": "drizzle-kit studio",
     "test:db": "tsx scripts/test-db.ts",
     "test:mock-e2e": "tsx scripts/test-mock-e2e.ts",
-    "test:agent-mock-e2e": "tsx scripts/test-agent-mock-e2e.ts",
-    "agent:live-validate": "tsx scripts/agent-live-validate.ts",
     "test:golden": "vitest run src/modules/extraction/golden.test.ts",
     "audit:deepseek-mini": "tsx scripts/audit-deepseek-mini.ts",
     "archive:evidence": "tsx scripts/archive-evidence.ts",
@@ -55,7 +53,6 @@
     "@radix-ui/react-dropdown-menu": "^2.1.15",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tailwindcss/postcss": "^4.3.2",
-    "@virtuals-protocol/acp-node-v2": "0.1.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.10",
@@ -72,7 +69,6 @@
     "tailwindcss": "^4.3.2",
     "tsx": "^4.22.5",
     "undici": "8.9.0",
-    "viem": "^2.55.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

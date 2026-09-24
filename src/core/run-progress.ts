@@ -32,11 +32,10 @@ export interface RunStageCounts {
 
 export interface RunStageProgress {
   generation: RunStageCounts;
-  secondary: RunStageCounts & { applicable: boolean };
+  secondary: RunStageCounts;
   overall: { completed: number; total: number };
   /** Terminal run still missing terminal latest-extraction rows. */
   extractionGap: boolean;
-  skipsExtraction: boolean;
 }
 
 export function isTerminalExtractionState(state: string | null | undefined): boolean {
@@ -60,28 +59,16 @@ export function isRunTerminalState(runState: string): boolean {
 /**
  * A successful job is overall-complete only when its latest extraction/scoring
  * row is terminal. Dead-lettered, cancelled, and skipped jobs count directly.
- * Crypto-agent (no-extraction) treated as complete at generation success.
  */
-export function isOverallPipelineComplete(
-  row: JobPipelineRow,
-  opts: { skipsExtraction: boolean },
-): boolean {
+export function isOverallPipelineComplete(row: JobPipelineRow): boolean {
   if (isDirectOverallComplete(row.jobState)) return true;
   if (row.jobState !== "succeeded") return false;
-  if (opts.skipsExtraction) return true;
   return isTerminalExtractionState(row.latestExtractionState);
 }
 
-export function overallCompletionAt(
-  row: JobPipelineRow,
-  opts: { skipsExtraction: boolean },
-): Date | null {
-  if (!isOverallPipelineComplete(row, opts)) return null;
-  if (
-    row.jobState === "succeeded" &&
-    !opts.skipsExtraction &&
-    row.latestExtractionUpdatedAt
-  ) {
+export function overallCompletionAt(row: JobPipelineRow): Date | null {
+  if (!isOverallPipelineComplete(row)) return null;
+  if (row.jobState === "succeeded" && row.latestExtractionUpdatedAt) {
     return row.latestExtractionUpdatedAt;
   }
   return row.jobUpdatedAt;
@@ -107,24 +94,19 @@ export function computeStageProgress(input: {
   jobs: JobPipelineRow[];
   plannedCalls: number;
   matrixKind: "audit" | "resonance";
-  skipsExtraction: boolean;
   runState: string;
 }): RunStageProgress {
   const labels = stageLabels(input.matrixKind);
   const generationCompleted = input.jobs.filter((j) => isGenerationFinished(j.jobState)).length;
   const responses = input.jobs.filter((j) => j.hasResponse);
-  const secondaryApplicable = !input.skipsExtraction;
-  const secondaryCompleted = secondaryApplicable
-    ? responses.filter((j) => isTerminalExtractionState(j.latestExtractionState)).length
-    : 0;
-  const secondaryTotal = secondaryApplicable ? responses.length : 0;
-  const overallCompleted = input.jobs.filter((j) =>
-    isOverallPipelineComplete(j, { skipsExtraction: input.skipsExtraction }),
+  const secondaryCompleted = responses.filter((j) =>
+    isTerminalExtractionState(j.latestExtractionState),
   ).length;
+  const secondaryTotal = responses.length;
+  const overallCompleted = input.jobs.filter((j) => isOverallPipelineComplete(j)).length;
   const overallTotal = Math.max(input.plannedCalls, input.jobs.length);
   const extractionGap =
     isRunTerminalState(input.runState) &&
-    secondaryApplicable &&
     responses.some((j) => !isTerminalExtractionState(j.latestExtractionState));
 
   return {
@@ -137,21 +119,16 @@ export function computeStageProgress(input: {
       completed: secondaryCompleted,
       total: secondaryTotal,
       label: labels.secondary,
-      applicable: secondaryApplicable,
     },
     overall: { completed: overallCompleted, total: overallTotal },
     extractionGap,
-    skipsExtraction: input.skipsExtraction,
   };
 }
 
-export function completionTimestampsFromJobs(
-  jobs: JobPipelineRow[],
-  opts: { skipsExtraction: boolean },
-): Date[] {
+export function completionTimestampsFromJobs(jobs: JobPipelineRow[]): Date[] {
   const stamps: Date[] = [];
   for (const job of jobs) {
-    const at = overallCompletionAt(job, opts);
+    const at = overallCompletionAt(job);
     if (at) stamps.push(at);
   }
   return stamps;

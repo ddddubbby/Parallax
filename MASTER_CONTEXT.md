@@ -32,7 +32,7 @@ AI assistants have become decision intermediaries between brands and buyers. Win
 - Each audit-grade cell runs k=5 repetitions per selected engine-mode. Validation mini-runs may use k=2 and must be labeled validation-only.
 - Metrics are rates or averages over samples and are reported with Wilson confidence intervals where applicable.
 - Mock is provider #0 and remains permanently registered for tests, demos, and failure injection.
-- The first live dry-run provider is DeepSeek, because its official API is OpenAI/Anthropic-compatible and currently offers low-cost text generation. MiniMax was a candidate second provider and was never built; xAI/Grok (`xai`) is a registered metadata-only provider id for the parked GEO agent (D-106/D-116) and has no live adapter.
+- The first live dry-run provider is DeepSeek, because its official API is OpenAI/Anthropic-compatible and currently offers low-cost text generation. MiniMax was a candidate second provider and was never built; `xai` survives only as a retired database enum label from the removed GEO agent (D-141); no adapter is registered.
 - The long-term target provider set remains OpenAI, Anthropic, Gemini, and Perplexity, added later through the same provider interface.
 - Grounded means the provider/API path supplies web-grounded output with normalized citations. If a provider cannot supply citations, its runs are ungrounded live validation runs and must not be mixed into grounded aggregates.
 - Metrics: Mention Rate, Organic Recommendation Rate, Comparative Win Rate, Share of Voice, Avg First Position, sentiment (organic/solicited, never pooled), attribute-association matrix, citation share, accuracy rate, and Stability Index. The prompt-frame rule (D-054, PRD MT-12) governs all of them: a metric never counts a signal the prompt itself planted — presence rates count only unbranded prompts, comparative wins only head-to-head prompts, and objection cells feed no sentiment.
@@ -59,8 +59,6 @@ AI assistants have become decision intermediaries between brands and buyers. Win
 | C-13 | Simulations are evidence-conditioned: at approval, a study's `measured_ai` stimulus must cite stored raw response ids from the same project — no toggle can bypass this (D-078 removed the operator "unconditioned" toggle entirely). GENERIC is now a historical-only label, rendered truthfully on studies approved before D-078 but unreachable for any new approval. |
 | C-14 | Simulation claims are comparative only: rankings and deltas between stimulus variants. Never absolute purchase-intent promises, never sales/ROI predictions, never quoting the SSR paper's accuracy as our own. ΔPI is a Likert-scale survey-construct shift, never framed as purchase probability. Panel persona conditioning: age and income band are the paper-validated axes; location and behavioral profile are prompt context only, never presented as validated segmentation (D-066); no gender/ethnicity conditioning. Enforced in template copy by forbidden-phrase tests (RB-5 pattern). |
 | C-15 | Simulation baseline provenance (M44, D-114 — supersedes the D-099 snapshot ceremony). A measured Simulation baseline is a **verbatim stored response**, selected by the operator from theme-organized stored responses (machine pre-selection of the cluster-central response, operator confirm/override) and auto-stamped at attachment with immutable provenance: response id, engine, prompt, date, theme label (machine-generated, marked as such), and a mechanical recurrence line (descriptive counts `n/N responses`, engine/prompt spread — never Wilson/CI on correlated draws). The stamp renders wherever the simulation result renders. Low-recurrence baselines are usable but carry accurate labels (`SINGLE OBSERVED INSTANCE`), never "recurring framing." **Framing themes are presentation metadata only** — never the stimulus, never an admission gate, never certified coding. No semantic eligibility threshold exists. Historical codebook-era studies keep `LEGACY BASELINE`/`PRE-M34 BASELINE`/snapshot rendering truthfully; stored framing-evidence rows are never migrated or deleted (C-3). |
-| C-16 | Resonance agent (`resonance_geo_v1`, D-106) descriptive-only rule: the autonomous agent offering never emits a legitimacy, trust, safety, investment, price, or trading judgment — measured distributions and verbatim evidence only. Enforced by forbidden-phrase tests on all report-authored prose (the C-14/RB-5 pattern), never by prompt instruction alone. Quoted model evidence (including financial-sounding language like "bullish"/"scam") is exempt — it is attributed engine output, not our claim. |
-| C-17 | Resonance agent buyer input is hostile by default. Every buyer-submitted field is schema-validated (`additionalProperties: false`), length-capped, escaped independently at every sink (prompt/JSON/log/HTML), and rate-limited per buyer identity. No free text, project claims, or fact assertions are accepted or verified; on-chain contract identity (name/symbol read from the contract itself) is the only accepted identity anchor, and it too is treated as attacker-controlled. |
 
 ## 5. Stack snapshot
 
@@ -84,7 +82,6 @@ Stack: Next.js 15 + TypeScript + Tailwind + shadcn/ui, Drizzle ORM, Zod, Vitest,
 | `pnpm test:golden` | Golden dataset: fixtures -> exact extraction -> exact metrics |
 | `pnpm test:mock-e2e` | Full mock pipeline end to end (500-job run, worker kill/restart, failure injection) |
 | `pnpm test:db` | Boot the same ephemeral test-DB instance standalone in the foreground, for manual poking (mirrors `pnpm db:dev`'s UX; D-078) |
-| `pnpm test:agent-mock-e2e` | M36 GEO-agent acceptance: headless contract→project→matrix→run path, 300/300 mock samples across the three engines, per-engine D-016 variation, adversarial resolver fixtures rejected pre-budget |
 | `pnpm db:migrate` | Apply Drizzle migrations |
 | `pnpm db:studio` | Inspect data with Drizzle Studio |
 | `pnpm research:m34a:collect` | Bounded live M34A neutral-evidence collection with raw provenance, span assistance, and harness-side C-2 ledger; never runs semantic eligibility |
@@ -111,8 +108,7 @@ This table is a snapshot of daily-driver commands. The canonical, complete comma
 /src/modules/settings    Provider credentials UI/service (M8, D-017/D-021)
 /src/modules/dashboard   Dashboard data assembly (M6)
 /src/modules/setup       Post-intake Setup editing (M27, D-084)
-/src/modules/agent       GEO agent (parked, D-116; untouched while parked)
-/src/middleware.ts       Auth gate for app routes; agent report tokens pass through
+/src/middleware.ts       Auth gate for app routes
 /src/observability.ts    reportError seam — the single swap-in point for Sentry (D-076)
 /src/providers           LLMProvider interface, mock, live provider adapters
 /src/db                  Drizzle schema, migrations, repositories
@@ -136,10 +132,7 @@ Parallel milestone branches may each carry an active plan (D-112). `STATUS.md` r
 | `STATUS.md` | ACTIVE | The single "where are we": active product, branch, gate state, next action (read FIRST, §8) |
 | `MASTER_CONTEXT.md` | ACTIVE | Identity, hard constraints, rituals, this index |
 | `DECISIONS.md` | ACTIVE | Append-only Decision Log + supersession register (D-107) |
-| `AGENT_PRD.md` | PARKED | GEO agent product contract: input schema, prompt matrix, extraction rules, metrics, exclusions |
-| `AGENT_BUILD_PLAN.md` | PARKED | GEO agent milestones M35–M42, ACP gateway/persistence architecture, wallet/deploy/ops, test plan |
 | `M59_BUILD_PLAN.md` | ACTIVE | M59 Research publishing, verified SK article and publication acceptance |
-| `AGENT_STRATEGY_MEMO.md` | PARKED | GEO agent commercial kill/scale criteria + GTM; non-binding on engineering |
 | `DEVELOPMENT_GUIDELINES.md` | ACTIVE | Architecture, provider contracts, schemas, tests, workflow |
 | `DESIGN_GUIDELINES.md` | ACTIVE | Visual language: tokens, typography, surfaces, motion, guardrails |
 | `ENGINEERING_SPEC.md` | ACTIVE | Detailed schema, lifecycle states, provider matrix, seeds, acceptance commands |
@@ -166,7 +159,7 @@ A milestone's build plan is a special case of the same rule (D-090). A milestone
 
 Boot ritual for implementation sessions:
 
-> Read `STATUS.md` FIRST — it names the branch-local active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then the active product's PRD (`AGENT_PRD.md` for the GEO agent; `PRD.md` when STATUS selects the Windtunnel operator product), then the build plan named by STATUS's first-line TRACKER, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
+> Read `STATUS.md` FIRST — it names the branch-local active product, its doc set, the current gate/milestone, and the exact next action; never derive "where are we" from anything else. Then read `MASTER_CONTEXT.md`, then `PRD.md`, then the build plan named by STATUS's first-line TRACKER, then `DEVELOPMENT_GUIDELINES.md` section A, then the current entries in `BUILD_NOTES.md`. For any UI-facing work, also read `DESIGN_GUIDELINES.md`. For cleanup/refactor work, also read `AUDIT_METHODOLOGY.md` and `PROTECTED_REGISTER.md`. Summarize the plan in <=10 bullets and list expected files to touch. Wait for confirmation before editing.
 
 Handoff ritual:
 
