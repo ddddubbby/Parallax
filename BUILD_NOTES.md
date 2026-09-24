@@ -256,3 +256,11 @@ points at a deleted /tmp gh (`gh auth setup-git` fixes it).
 NEXT: push m60, PR to main, merge on green CI; then push m62 and PR it.
 GOTCHAS: drizzle-kit generate fails on the pre-existing 0021/0022 snapshot id
 collision; 0024 SQL, snapshot and journal entry were written by hand.
+
+## S-136 / 2026-09-24 / post-M62 fix (branch `fix/provider-timeout-120s` off `m62`)
+GOAL: Raise the live per-call timeout to 120s after real-run failures, with a full-repo conflict audit (D-142).
+DONE: `src/core/worker-timing.ts` defaults 45s→120s call / 60s→125s lock; extraction sweep age now derived (`max(60s, call+15s)` = 135s) closing the double-paid-extraction-call window the audit found (sweep at 60s re-enqueued a row whose call could still be in flight); stale comment in `src/modules/extraction/service.ts` corrected; `worker-timing.test.ts` updated + new sweep-derivation and env-override assertions. Gates: `vitest` worker-timing/runner/extraction 81/81, `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm test:mock-e2e`, `pnpm docs:check` — all green at commit time.
+UNVERIFIED: nothing outstanding on this branch; Settings Verify can now hold a request 120s — confirm Render's proxy timeout tolerates it at next deploy.
+REJECTED: env-only tuning at 45s (failure reproduces at defaults); raising call timeout without the lock (breaks D-039); leaving sweep age fixed (double paid calls).
+NEXT: Merge `fix/provider-timeout-120s` via PR; no further code action.
+GOTCHAS: Mock e2e sets `WORKER_STALE_LOCK_MS=3000`, which clamps the provider timeout to 1.5s — fine at 15ms mock latency, but any harness adding real latency must also raise the lock.

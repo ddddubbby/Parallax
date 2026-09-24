@@ -21,11 +21,23 @@ describe("isWorkerLikelyOffline (RN-9)", () => {
 });
 
 describe("worker timing config (D-039)", () => {
-  it("keeps the default provider timeout below the stale-lock window", () => {
+  it("keeps the default provider timeout below the stale-lock window and the sweep above the call deadline", () => {
     const timing = resolveWorkerTiming({});
-    expect(timing.staleLockMs).toBe(60_000);
-    expect(timing.providerCallTimeoutMs).toBe(45_000);
+    expect(timing.staleLockMs).toBe(125_000);
+    expect(timing.providerCallTimeoutMs).toBe(120_000);
     expect(timing.providerCallTimeoutMs).toBeLessThan(timing.staleLockMs);
+    expect(timing.extractionSweepAgeMs).toBeGreaterThan(timing.providerCallTimeoutMs);
+  });
+
+  it("derives the extraction sweep age from the provider timeout so a sweep cannot re-enqueue an in-flight call", () => {
+    const timing = resolveWorkerTiming({ WORKER_PROVIDER_TIMEOUT_MS: "60000" });
+    expect(timing.providerCallTimeoutMs).toBe(60_000);
+    expect(timing.extractionSweepAgeMs).toBe(75_000);
+  });
+
+  it("still honors an explicit extraction sweep age override", () => {
+    const timing = resolveWorkerTiming({ WORKER_EXTRACTION_SWEEP_AGE_MS: "90000" });
+    expect(timing.extractionSweepAgeMs).toBe(90_000);
   });
 
   it("clamps a misconfigured provider timeout so a paid call cannot outlive its job lock", () => {
@@ -48,11 +60,11 @@ describe("worker timing config (D-039)", () => {
     });
 
     expect(timing).toMatchObject({
-      staleLockMs: 60_000,
+      staleLockMs: 125_000,
       staleReclaimIntervalMs: 15_000,
-      extractionSweepAgeMs: 60_000,
+      extractionSweepAgeMs: 135_000,
       extractionSweepBatch: 25,
-      providerCallTimeoutMs: 45_000,
+      providerCallTimeoutMs: 120_000,
     });
   });
 });
