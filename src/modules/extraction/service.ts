@@ -99,7 +99,9 @@ interface PipelineContext {
 // Same deadline rationale as the worker's generation timeout — a hung
 // extraction call must fail as a normal retryable attempt, not hang the
 // pipeline (though unlike generation, the job is already succeeded by now,
-// so no stale-lock duplication risk — just liveness).
+// so the stale-lock window doesn't guard this path). Liveness guard instead:
+// resolveWorkerTiming derives extractionSweepAgeMs from this deadline, so the
+// sweep never re-enqueues an extraction whose call can still be in flight.
 const EXTRACTION_CALL_TIMEOUT_MS = resolveWorkerTiming().providerCallTimeoutMs;
 
 async function runLiveExtraction(ctx: PipelineContext) {

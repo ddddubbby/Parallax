@@ -30,18 +30,29 @@ function positiveInteger(raw: string | undefined, fallback: number): number {
 }
 
 export function resolveWorkerTiming(env: Record<string, string | undefined> = process.env): WorkerTimingConfig {
-  const staleLockMs = positiveInteger(env.WORKER_STALE_LOCK_MS, 60_000);
-  const requestedProviderTimeout = positiveInteger(env.WORKER_PROVIDER_TIMEOUT_MS, 45_000);
+  const staleLockMs = positiveInteger(env.WORKER_STALE_LOCK_MS, 125_000);
+  const requestedProviderTimeout = positiveInteger(env.WORKER_PROVIDER_TIMEOUT_MS, 120_000);
   const staleMarginMs = Math.min(5_000, Math.max(1, Math.floor(staleLockMs / 2)));
   const maxProviderTimeoutMs = Math.max(1, staleLockMs - staleMarginMs);
+  // D-039: a provider call must not outlive the stale-lock window, or a
+  // still-running paid request can be reclaimed and billed twice.
+  // 120s default: real DeepSeek audit calls routinely exceed 45s and the
+  // old deadline dead-lettered jobs that would have succeeded.
+  const providerCallTimeoutMs = Math.min(requestedProviderTimeout, maxProviderTimeoutMs);
+  // The extraction sweep re-enqueues pending/retrying extraction rows older
+  // than the sweep age, and an in-flight extraction row is not touched until
+  // its call returns — so the sweep age must exceed the call deadline or the
+  // sweep launches a second paid call while the first is still running.
+  const extractionSweepAgeMs = positiveInteger(
+    env.WORKER_EXTRACTION_SWEEP_AGE_MS,
+    Math.max(60_000, providerCallTimeoutMs + 15_000),
+  );
 
   return {
     staleLockMs,
     staleReclaimIntervalMs: positiveInteger(env.WORKER_STALE_RECLAIM_INTERVAL_MS, 15_000),
-    extractionSweepAgeMs: positiveInteger(env.WORKER_EXTRACTION_SWEEP_AGE_MS, 60_000),
+    extractionSweepAgeMs,
     extractionSweepBatch: positiveInteger(env.WORKER_EXTRACTION_SWEEP_BATCH, 25),
-    // D-039: a provider call must not outlive the stale-lock window, or a
-    // still-running paid request can be reclaimed and billed twice.
-    providerCallTimeoutMs: Math.min(requestedProviderTimeout, maxProviderTimeoutMs),
+    providerCallTimeoutMs,
   };
 }
