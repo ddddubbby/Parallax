@@ -120,6 +120,26 @@ describe("resonance actions", () => {
     expect(result).toEqual({ ok: false, error: "Stimulus label and body are required" });
   });
 
+  it("normalizes CRLF line endings in stimulus text before repository mutation", async () => {
+    // multipart/form-data encoding turns every LF into CRLF, while a measured_ai
+    // body is copied from responses.rawText (LF); D-119 parity needs both stored
+    // with the same line endings.
+    const form = new FormData();
+    form.set("kind", "custom");
+    form.set("label", "Variant A\r\n");
+    form.set("body", "Line one\r\n\r\n- bullet\r\nLine three\rLine four\n");
+    mocks.addResonanceStimulus.mockResolvedValue({ id: VALID_ID });
+    mocks.updateResonanceStimulus.mockResolvedValue(1);
+
+    await expect(addStimulusAction(VALID_ID, VALID_ID, form)).resolves.toEqual({ ok: true, id: VALID_ID });
+    await expect(updateStimulusAction(VALID_ID, VALID_ID, VALID_ID, form)).resolves.toEqual({ ok: true });
+
+    const expected = { label: "Variant A", body: "Line one\n\n- bullet\nLine three\nLine four" };
+    expect(mocks.addResonanceStimulus).toHaveBeenCalledWith(expect.objectContaining(expected));
+    expect(mocks.updateResonanceStimulus).toHaveBeenCalledWith(expect.objectContaining(expected));
+    expect(mocks.addResonanceStimulus.mock.calls[0][0].body).not.toContain("\r");
+  });
+
   it("returns a controlled error when direct study creation fails", async () => {
     const form = new FormData();
     form.set("name", "Study");
