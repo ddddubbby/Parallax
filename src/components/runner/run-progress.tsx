@@ -340,14 +340,12 @@ export function RunProgress({
               total={detail.stageProgress.generation.total}
               suppressMotion={suppressProgressMotion}
             />
-            {detail.stageProgress.secondary.applicable && (
-              <StageLane
-                label={detail.stageProgress.secondary.label}
-                completed={detail.stageProgress.secondary.completed}
-                total={detail.stageProgress.secondary.total}
-                suppressMotion={suppressProgressMotion}
-              />
-            )}
+            <StageLane
+              label={detail.stageProgress.secondary.label}
+              completed={detail.stageProgress.secondary.completed}
+              total={detail.stageProgress.secondary.total}
+              suppressMotion={suppressProgressMotion}
+            />
           </div>
         )}
         {detail.stageProgress?.extractionGap && (

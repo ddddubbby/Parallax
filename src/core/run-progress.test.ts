@@ -44,18 +44,15 @@ describe("run-progress stage counting (M46/D-117)", () => {
       latestExtractionState: "valid",
       latestExtractionUpdatedAt: new Date("2026-07-19T10:01:00.000Z"),
     });
-    expect(isOverallPipelineComplete(succeededPending, { skipsExtraction: false })).toBe(false);
-    expect(isOverallPipelineComplete(succeededValid, { skipsExtraction: false })).toBe(true);
-    expect(isOverallPipelineComplete(succeededPending, { skipsExtraction: true })).toBe(true);
+    expect(isOverallPipelineComplete(succeededPending)).toBe(false);
+    expect(isOverallPipelineComplete(succeededValid)).toBe(true);
     expect(isTerminalExtractionState("qa_reviewed")).toBe(true);
   });
 
   it("counts dead-lettered / cancelled / skipped jobs as overall-complete directly", () => {
     for (const state of ["dead_lettered", "cancelled", "skipped"] as const) {
       expect(
-        isOverallPipelineComplete(job({ jobId: state, jobState: state }), {
-          skipsExtraction: false,
-        }),
+        isOverallPipelineComplete(job({ jobId: state, jobState: state })),
       ).toBe(true);
     }
   });
@@ -82,7 +79,6 @@ describe("run-progress stage counting (M46/D-117)", () => {
       jobs,
       plannedCalls: 4,
       matrixKind: "audit",
-      skipsExtraction: false,
       runState: "running",
     });
     expect(mid.generation).toMatchObject({ completed: 3, total: 4, label: "Generating AI responses" });
@@ -90,7 +86,6 @@ describe("run-progress stage counting (M46/D-117)", () => {
       completed: 1,
       total: 2,
       label: "Extracting evidence",
-      applicable: true,
     });
     expect(mid.overall).toEqual({ completed: 2, total: 4 }); // valid + dead_lettered
     expect(mid.extractionGap).toBe(false);
@@ -99,27 +94,9 @@ describe("run-progress stage counting (M46/D-117)", () => {
       jobs,
       plannedCalls: 4,
       matrixKind: "audit",
-      skipsExtraction: false,
       runState: "completed",
     });
     expect(gap.extractionGap).toBe(true);
-  });
-
-  it("hides secondary lane for crypto no-extraction path", () => {
-    const jobs = [
-      job({ jobId: "1", jobState: "succeeded", hasResponse: true }),
-      job({ jobId: "2", jobState: "queued" }),
-    ];
-    const progress = computeStageProgress({
-      jobs,
-      plannedCalls: 2,
-      matrixKind: "audit",
-      skipsExtraction: true,
-      runState: "running",
-    });
-    expect(progress.secondary.applicable).toBe(false);
-    expect(progress.overall.completed).toBe(1);
-    expect(progress.extractionGap).toBe(false);
   });
 });
 
@@ -152,7 +129,6 @@ describe("terminal pipeline completion timestamps (M46/D-117, M50/D-120)", () =>
           jobUpdatedAt: new Date("2026-07-19T10:03:30.000Z"),
         }),
       ],
-      { skipsExtraction: false },
     );
     // Job 3 is generation-success without terminal extraction — excluded.
     expect(stamps).toHaveLength(2);

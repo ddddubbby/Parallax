@@ -10,7 +10,7 @@
 | **Milestone state** | Code complete and locally verified; NOT deployed. Headline is provisional pending operator choice; brand logos pending (monogram chips in place) |
 | **Production** | https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test |
 | **Next action** | Operator picks the SK headline from `headlineCandidates` and supplies or approves logo files; then `pnpm site:research verify` + `build`, review, deploy |
-| **Parked product** | GEO agent remains parked (D-116); operator product unchanged |
+| **Parked product** | None — the GEO agent was retired and removed in M62 (D-141) |
 | **Build plan** | [M59_BUILD_PLAN.md](M59_BUILD_PLAN.md) |
 
 M58 is merged (30dbe36, PR #18). M59 is published through the existing standalone
@@ -45,3 +45,11 @@ pipeline and commitments moved to `/methodology`. Gates green: `site:research ch
 `test:research` 6/6, `test:site` 24 passed. Not deployed; awaiting operator preview.
 Open operator items: contact address still `resonance.research@pm.me`; headline choices
 and logos are in; deploy covers M60 + M61 together.
+
+## M62 GEO agent retirement (2026-09-24)
+
+Branch `m62` from `m60`, per D-141. Agent code, route, dependency and tables removed;
+migration 0024 drops the `agent_*` tables. Gates green: `pnpm typecheck`, `pnpm lint
+--max-warnings 0`, `pnpm test` (684 passed, including the upgrade-path check that the
+agent tables are gone and `service_heartbeats` survives), `pnpm docs:check`. Not yet
+applied to the dev or production database. Merge order: `m60` PR first, then `m62`.

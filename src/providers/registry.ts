@@ -5,7 +5,6 @@ import { mockProvider } from "./mock";
 import { createOpenAIProvider } from "./openai";
 import { createPerplexityProvider } from "./perplexity";
 import { ProviderCallError } from "./shared";
-import { createXaiProvider } from "./xai";
 import type { LLMProvider, ProviderId } from "./types";
 
 // Plain registry map (A2: no provider strategy factory until a real second
@@ -35,9 +34,6 @@ const registry: Partial<Record<ProviderId, LLMProvider>> = {
   anthropic: metadataOnly(createAnthropicProvider({ apiKey: "" })),
   google: metadataOnly(createGoogleProvider({ apiKey: "" })),
   perplexity: metadataOnly(createPerplexityProvider({ apiKey: "" })),
-  // M36: metadata-only so the worker schedules xai jobs for mock-first agent
-  // runs. Live adapter (and LIVE_FACTORIES entry) lands in M38.
-  xai: metadataOnly(createXaiProvider({ apiKey: "" })),
 };
 
 export function getProvider(id: ProviderId): LLMProvider | undefined {

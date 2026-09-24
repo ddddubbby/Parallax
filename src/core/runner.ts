@@ -23,7 +23,7 @@ export const PROVIDER_IDS = [
   "anthropic",
   "google",
   "perplexity",
-  // M36 (AGENT_PRD §5): Grok. Mirror of src/providers/types.ts ProviderId.
+  // Retired with the GEO agent (D-141): mirrors the DB enum, no adapter.
   "xai",
 ] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -83,9 +83,6 @@ export function resolvePauseReason(runState: string, events: readonly PauseReaso
  * A mock run may name ANY registered provider (M36): every one is served from
  * fixtures at runtime (mockProvider), so it costs nothing, and run_mode=mock is
  * the aggregate gate — a mock job labeled `openai` never enters a live metric.
- * This lets the GEO agent's mock-first run exercise its real three-engine
- * topology (OpenAI/Gemini/Grok) with D-016 per-engine fixture keying, before
- * any live credential exists.
  */
 export function isProviderAllowedForRunMode(runMode: RunMode, providerId: string): boolean {
   return runMode === "mock" ? isProviderId(providerId) : providerId !== "mock";

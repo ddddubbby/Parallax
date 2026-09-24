@@ -169,6 +169,13 @@
       "when": 1785279600000,
       "tag": "0023_m49_message_lift_tests",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790208000000,
+      "tag": "0024_m62_retire_geo_agent",
+      "breakpoints": true
     }
   ]
 }

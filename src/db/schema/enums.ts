@@ -27,9 +27,8 @@ export const categoryArchetype = pgEnum("category_archetype", [
   "b2b",
   "consumer_product",
   "consumer_venue",
-  // M36 (AGENT_PRD §2/§12): the GEO agent's sole archetype. Agent projects
-  // always use `crypto_token`; NEVER conflated with the order-row
-  // `discovery_category` (different concept, different table).
+  // Retired with the GEO agent (D-141). Postgres cannot drop an enum value in
+  // place, so the label stays in the DB type; no code path produces it.
   "crypto_token",
 ]);
 
@@ -79,8 +78,8 @@ export const providerId = pgEnum("provider_id", [
   "anthropic",
   "google",
   "perplexity",
-  // M36 (AGENT_PRD §5/§12): Grok. Live adapter lands in M38; the enum value
-  // is added now so mock-first agent runs can reference the third engine.
+  // Retired with the GEO agent (D-141); kept in the DB type only, like
+  // `crypto_token` above. No provider adapter is registered for it.
   "xai",
 ]);
 

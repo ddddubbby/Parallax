@@ -50,10 +50,8 @@ export type CategoryArchetype =
   | "b2b"
   | "consumer_product"
   | "consumer_venue"
-  // M36 (AGENT_PRD §2): the GEO agent's sole archetype. Agent projects are
-  // created programmatically (never via the operator intake/setup UI), so this
-  // value is deliberately EXCLUDED from AUDIT_ARCHETYPES below and never offered
-  // as a selectable option — it exists only so the type matches the DB enum.
+  // Retired with the GEO agent (D-141). Kept only so the type matches the DB
+  // enum and any historical row still renders; never offered for selection.
   | "crypto_token";
 
 export const CATEGORY_ARCHETYPES: Record<
@@ -73,16 +71,12 @@ export const CATEGORY_ARCHETYPES: Record<
     description: "Places a person visits, books, eats at, or experiences.",
   },
   crypto_token: {
-    label: "Crypto token",
-    description: "Autonomous GEO-agent audits of on-chain tokens (programmatic only).",
+    label: "Crypto token (retired)",
+    description: "Retired GEO-agent archetype; historical projects only.",
   },
 };
 
-/**
- * The archetypes an operator may select in the intake/setup UI. The GEO
- * agent's `crypto_token` is intentionally absent: agent projects are built
- * programmatically (AGENT_PRD §2), never chosen from a dropdown.
- */
+/** The archetypes an operator may select in the intake/setup UI. */
 export const AUDIT_ARCHETYPES: readonly CategoryArchetype[] = [
   "b2b",
   "consumer_product",

@@ -83,7 +83,7 @@ Routes:
 - `/projects/[id]/framing`, `/projects/[id]/framing/[studyId]`, and its report/export routes (historical read-only surfaces, retired by D-114)
 - `/settings`
 - `/debug`
-- `/login`, `/health`, and `/api/agent-report/[token]` (parked agent deliverable route, D-116)
+- `/login` and `/health`
 
 ## 8. Feature requirements
 
