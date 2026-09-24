@@ -43,7 +43,8 @@ charts, message test, five proven benefits, generated latest-research list, FAQ)
 theme below the hero and on method pages; 107 unused stylesheet rules removed; scoring
 pipeline and commitments moved to `/methodology`. Gates green: `site:research check`,
 `test:research` 6/6, `test:site` 24 passed. Not deployed; awaiting operator preview.
-Open operator items: contact address still `resonance.research@pm.me`; headline choices
+Open operator items: contact address changed to `research@windtunnel.tech` (site files
+updated; needs deploy + mailbox/forwarding provisioning); headline choices
 and logos are in; deploy covers M60 + M61 together.
 
 ## M62 GEO agent retirement (2026-09-24)
