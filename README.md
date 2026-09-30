@@ -18,7 +18,7 @@ Legacy lowercase `parallax` package, database, cookie, service, and module ident
 ## Features
 
 - **End-to-end audit pipeline** — intake wizard, budget-aware prompt matrix with versioned approval, a mock run pipeline, structured extraction with claim verification, deterministic metrics with Wilson intervals, a dashboard with ≤2-click drill-down to raw answers, a findings engine, and an editable report builder with Markdown/print/JSON/CSV export.
-- **Six registered provider ids, one interface** — mock (provider #0, permanent), DeepSeek (ungrounded validation), OpenAI, Anthropic, Gemini, and Perplexity (grounded, with normalized citations); a provider that dies mid-run degrades gracefully instead of failing the whole run.
+- **Eight registered provider ids, one interface** — mock (provider #0, permanent), DeepSeek (ungrounded validation), OpenAI, Anthropic, Gemini, Perplexity, Grok and Muse Spark (grounded, with normalized citations); a provider that dies mid-run degrades gracefully instead of failing the whole run.
 - **The Four P's** — every prompt, metric, and report chapter answers one client question: Presence, Position, Perception, Proof. The prompt-frame rule keeps metrics from counting a signal the prompt itself planted (D-054).
 - **Per-competitor spectrum** — the dashboard ranks the client against each tracked competitor, not "rest of the field."
 - **Trust and provenance** — report claims carry n, provider, mode, and date; every dashboard figure drills to the eligible raw responses behind it.
@@ -75,7 +75,7 @@ The canonical per-milestone acceptance command list lives in `DEVELOPMENT_GUIDEL
 
 ## Secrets
 
-Do not put DeepSeek, OpenAI, Anthropic, Gemini, or Perplexity API keys in source files, `.env.example`, or `render.yaml`.
+Do not put DeepSeek, OpenAI, Anthropic, Gemini, Perplexity, xAI, or Meta API keys in source files, `.env.example`, or `render.yaml`.
 
 Provider API keys are entered after login in the Settings UI. The server encrypts them in Postgres using `CREDENTIALS_ENCRYPTION_KEY`; only server-side provider code and the worker may decrypt them.
 

@@ -176,6 +176,13 @@
       "when": 1790208000000,
       "tag": "0024_m62_retire_geo_agent",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790640000000,
+      "tag": "0025_m63_add_meta_provider",
+      "breakpoints": true
     }
   ]
 }

@@ -36,6 +36,15 @@ envVarGroups:
         value: https://api.perplexity.ai
       - key: PERPLEXITY_DEFAULT_MODEL
         value: sonar
+      # Shopping-agent model engines (M63/D-143), verified 2026-09-29.
+      - key: XAI_BASE_URL
+        value: https://api.x.ai
+      - key: XAI_DEFAULT_MODEL
+        value: grok-4.7
+      - key: META_BASE_URL
+        value: https://api.meta.ai
+      - key: META_DEFAULT_MODEL
+        value: muse-spark-1.3
       # D-041: the one extraction engine for all live runs; its credential
       # must be active in Settings for any live run to extract.
       - key: EXTRACTION_PROVIDER

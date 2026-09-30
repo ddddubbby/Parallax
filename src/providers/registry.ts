@@ -1,10 +1,12 @@
 import { createAnthropicProvider } from "./anthropic";
 import { createDeepSeekProvider } from "./deepseek";
 import { createGoogleProvider } from "./google";
+import { createMetaProvider } from "./meta";
 import { mockProvider } from "./mock";
 import { createOpenAIProvider } from "./openai";
 import { createPerplexityProvider } from "./perplexity";
 import { ProviderCallError } from "./shared";
+import { createXaiProvider } from "./xai";
 import type { LLMProvider, ProviderId } from "./types";
 
 // Plain registry map (A2: no provider strategy factory until a real second
@@ -34,6 +36,8 @@ const registry: Partial<Record<ProviderId, LLMProvider>> = {
   anthropic: metadataOnly(createAnthropicProvider({ apiKey: "" })),
   google: metadataOnly(createGoogleProvider({ apiKey: "" })),
   perplexity: metadataOnly(createPerplexityProvider({ apiKey: "" })),
+  xai: metadataOnly(createXaiProvider({ apiKey: "" })),
+  meta: metadataOnly(createMetaProvider({ apiKey: "" })),
 };
 
 export function getProvider(id: ProviderId): LLMProvider | undefined {

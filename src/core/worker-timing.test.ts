@@ -23,8 +23,9 @@ describe("isWorkerLikelyOffline (RN-9)", () => {
 describe("worker timing config (D-039)", () => {
   it("keeps the default provider timeout below the stale-lock window and the sweep above the call deadline", () => {
     const timing = resolveWorkerTiming({});
-    expect(timing.staleLockMs).toBe(125_000);
-    expect(timing.providerCallTimeoutMs).toBe(120_000);
+    expect(timing.staleLockMs).toBe(245_000);
+    expect(timing.providerCallTimeoutMs).toBe(240_000);
+    expect(timing.extractionSweepAgeMs).toBe(255_000);
     expect(timing.providerCallTimeoutMs).toBeLessThan(timing.staleLockMs);
     expect(timing.extractionSweepAgeMs).toBeGreaterThan(timing.providerCallTimeoutMs);
   });
@@ -60,11 +61,11 @@ describe("worker timing config (D-039)", () => {
     });
 
     expect(timing).toMatchObject({
-      staleLockMs: 125_000,
+      staleLockMs: 245_000,
       staleReclaimIntervalMs: 15_000,
-      extractionSweepAgeMs: 135_000,
+      extractionSweepAgeMs: 255_000,
       extractionSweepBatch: 25,
-      providerCallTimeoutMs: 120_000,
+      providerCallTimeoutMs: 240_000,
     });
   });
 });

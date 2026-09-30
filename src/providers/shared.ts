@@ -84,6 +84,8 @@ const OFFICIAL_PROVIDER_HOSTS: Record<string, string> = {
   anthropic: "api.anthropic.com",
   google: "generativelanguage.googleapis.com",
   perplexity: "api.perplexity.ai",
+  xai: "api.x.ai",
+  meta: "api.meta.ai",
 };
 
 /**
@@ -168,6 +170,19 @@ export async function postProviderJson(
   } catch {
     throw new ProviderCallError("malformed_output", `${providerName} response was not valid JSON`);
   }
+}
+
+/**
+ * D-144: every live call runs at LOW reasoning effort, sent in each vendor's
+ * own parameter (Responses `reasoning.effort`, Anthropic `output_config.effort`,
+ * DeepSeek `reasoning_effort`, Gemini 2.5 `thinkingBudget`). The effort is
+ * stamped onto the stored model version so low-effort responses never pool
+ * with earlier default-effort ones in any provider/model scope.
+ */
+export const REASONING_EFFORT = "low";
+
+export function withReasoningEffort(model: string): string {
+  return `${model} (effort: ${REASONING_EFFORT})`;
 }
 
 /** Citation normalization: providers give URLs; our Citation shape wants a domain. */

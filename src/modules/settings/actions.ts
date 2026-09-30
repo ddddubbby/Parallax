@@ -20,8 +20,10 @@ import { resolveWorkerTiming } from "@/core/worker-timing";
 import { createAnthropicProvider } from "@/providers/anthropic";
 import { createDeepSeekProvider } from "@/providers/deepseek";
 import { createGoogleProvider } from "@/providers/google";
+import { createMetaProvider } from "@/providers/meta";
 import { createOpenAIProvider } from "@/providers/openai";
 import { createPerplexityProvider } from "@/providers/perplexity";
+import { createXaiProvider } from "@/providers/xai";
 import { type LiveCredentials, ProviderCallError, validateProviderBaseUrlOverride } from "@/providers/shared";
 import type { LLMProvider, ProviderId } from "@/providers/types";
 import { embeddingProviderId, extractionProviderId } from "@/modules/runner/provider-ids";
@@ -44,6 +46,8 @@ const LIVE_PROVIDER_IDS: readonly ProviderId[] = [
   "anthropic",
   "google",
   "perplexity",
+  "xai",
+  "meta",
 ];
 const MIN_API_KEY_LENGTH = 8;
 
@@ -56,6 +60,8 @@ const VERIFY_FACTORIES: Partial<Record<ProviderId, (c: LiveCredentials) => LLMPr
   anthropic: createAnthropicProvider,
   google: createGoogleProvider,
   perplexity: createPerplexityProvider,
+  xai: createXaiProvider,
+  meta: createMetaProvider,
 };
 
 async function destructiveCredentialLifecycleError(credentialId: string): Promise<string | null> {

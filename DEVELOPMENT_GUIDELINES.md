@@ -95,7 +95,8 @@ type ProviderId =
   | "anthropic"
   | "google"
   | "perplexity"
-  | "xai"; // retired DB enum label only (GEO agent removed, D-141); no adapter registered
+  | "xai" // Grok via the xAI API (retired in D-141, live again in M63/D-143)
+  | "meta"; // Muse Spark via the Meta Model API (M63/D-143)
 // MiniMax (PV-3) was a candidate second validation provider and was never built.
 
 type GenerationMode = "grounded" | "ungrounded";
@@ -142,9 +143,12 @@ Provider rules:
 - DeepSeek is the first live validation provider. Initial capability: ungrounded generation.
 - MiniMax is a candidate second live provider. Do not implement until API-key mode and selected API format are confirmed.
 - OpenAI, Anthropic, Gemini, and Perplexity are later adapters.
+- Grok (`xai`) and Muse Spark (`meta`) are the M63 shopping-agent model engines (D-143). OpenAI, xAI and Meta share the Responses-API output parser in `src/providers/responses-api.ts`; request building and pricing stay per adapter.
 - Adding a provider means one adapter file, one registry entry, Settings credential metadata, typed errors, cost estimate, test fixture coverage, and a passing mini-audit.
 - If `supportsGrounded` is false, run creation must block grounded jobs for that provider.
 - Citation normalization happens inside provider adapters.
+- Every live call runs at low reasoning effort via the shared `REASONING_EFFORT` constant, mapped to each vendor's own parameter and stamped onto the model version (D-144).
+- Live calls get a 240s deadline under a 245s job lock, one window for every engine (D-145).
 - Provider adapters receive decrypted credentials from a server-only credential service. They never read provider API keys directly from environment variables.
 
 Embedding abstraction (M18+, D-064) — a SEPARATE interface, never a widening of `LLMProvider` (the static display registry must not carry a paid capability):

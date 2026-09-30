@@ -243,7 +243,7 @@ describe.skipIf(!dbUp)("live extraction pipeline against the dev database (D-022
 
     const ext = await getExtractionForResponse(responseId);
     expect(ext?.state).toBe("valid");
-    expect(ext?.extractionModel).toBe("deepseek-v4-flash");
+    expect(ext?.extractionModel).toBe("deepseek-v4-flash (effort: low)"); // D-144
     expect(Number(ext?.costUsd)).toBeGreaterThan(0);
 
     const afterRun = await getRun(run.id);

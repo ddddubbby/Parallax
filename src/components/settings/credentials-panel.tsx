@@ -33,6 +33,8 @@ const LIVE_PROVIDERS: { id: ProviderId; displayName: string }[] = [
   { id: "anthropic", displayName: "Anthropic" },
   { id: "google", displayName: "Gemini" },
   { id: "perplexity", displayName: "Perplexity" },
+  { id: "xai", displayName: "Grok (xAI)" },
+  { id: "meta", displayName: "Muse Spark (Meta)" },
 ];
 
 function formatDate(d: string | Date | null): string {

@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAnthropicProvider } from "./anthropic";
 import { createGoogleProvider } from "./google";
+import { createMetaProvider } from "./meta";
 import { createOpenAIProvider } from "./openai";
 import { createOpenAIEmbeddingProvider } from "./openai/embeddings";
 import { createPerplexityProvider } from "./perplexity";
 import { ProviderCallError } from "./shared";
+import { createXaiProvider } from "./xai";
 
 // M9 adapters, network fully stubbed. Response shapes verified against
 // official docs 2026-07-03 (PV-7) — these fixtures mirror the documented
@@ -67,6 +69,9 @@ describe("OpenAI adapter (Responses API)", () => {
 
     const requestBody = JSON.parse((spy.mock.calls[0][1] as RequestInit).body as string);
     expect(requestBody.tools).toEqual([{ type: "web_search" }]);
+    // D-144: low reasoning effort, stamped onto the stored model version.
+    expect(requestBody.reasoning).toEqual({ effort: "low" });
+    expect(result.modelVersion).toBe("gpt-5.5 (effort: low)");
   });
 
   it("omits the web_search tool for ungrounded mode", async () => {
@@ -174,6 +179,7 @@ describe("Anthropic adapter (Messages API)", () => {
     const requestBody = JSON.parse((spy.mock.calls[0][1] as RequestInit).body as string);
     expect(requestBody.tools[0].type).toBe("web_search_20250305");
     expect(requestBody.max_tokens).toBeGreaterThan(0); // required by the API
+    expect(requestBody.output_config).toEqual({ effort: "low" }); // D-144
     const headers = (spy.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
     expect(headers["x-api-key"]).toBe("sk-test");
     expect(headers["anthropic-version"]).toBe("2023-06-01");
@@ -220,6 +226,8 @@ describe("Gemini adapter (generateContent)", () => {
     expect(url).toContain("/v1beta/models/gemini-2.5-flash:generateContent");
     const requestBody = JSON.parse((spy.mock.calls[0][1] as RequestInit).body as string);
     expect(requestBody.tools).toEqual([{ google_search: {} }]);
+    // D-144: Gemini 2.5 has no effort levels; 1,024 thinking tokens is "low".
+    expect(requestBody.generationConfig.thinkingConfig).toEqual({ thinkingBudget: 1024 });
     const headers = (spy.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
     expect(headers["x-goog-api-key"]).toBe("sk-test");
   });
@@ -270,6 +278,183 @@ describe("Perplexity adapter (sonar)", () => {
     await expect(createPerplexityProvider(CREDS).generate({ promptText: "x", mode: "grounded" })).rejects.toMatchObject({
       errorType: "malformed_output",
     });
+  });
+});
+
+// M63/D-143 adapters. Shapes verified against docs.x.ai and dev.meta.ai
+// 2026-09-29: both are OpenAI-style Responses APIs.
+describe("xAI adapter (Grok, Responses API)", () => {
+  const groundedResponse = {
+    output: [
+      { type: "web_search_call", id: "ws_1", status: "completed" },
+      { type: "web_search_call", id: "ws_2", status: "completed" },
+      {
+        type: "message",
+        content: [
+          {
+            type: "output_text",
+            text: "LedgerFox is a popular bookkeeping tool [[1]](https://reviews.example/ledgerfox).",
+            // xAI labels inline citations with their visible number, not a page title.
+            annotations: [
+              { type: "url_citation", url: "https://reviews.example/ledgerfox", title: "1", start_index: 40, end_index: 80 },
+              { type: "url_citation", url: "https://reviews.example/ledgerfox", title: "1", start_index: 90, end_index: 99 },
+            ],
+          },
+        ],
+      },
+    ],
+    usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
+    model: "grok-4.7",
+  };
+
+  it("posts to /v1/responses with the web_search tool and parses deduped citations without numeric titles", async () => {
+    const spy = stubFetch(groundedResponse);
+    const result = await createXaiProvider(CREDS).generate({ promptText: "best bookkeeping tools?", mode: "grounded" });
+
+    const [url, init] = spy.mock.calls[0];
+    expect(String(url)).toBe("https://api.x.ai/v1/responses");
+    const body = JSON.parse(String(init?.body));
+    expect(body).toMatchObject({
+      model: "grok-4.7",
+      input: "best bookkeeping tools?",
+      reasoning: { effort: "low" },
+      tools: [{ type: "web_search" }],
+    });
+    expect(result.citations).toEqual([
+      { url: "https://reviews.example/ledgerfox", domain: "reviews.example", title: undefined },
+    ]);
+    expect(result.modelVersion).toBe("grok-4.7 (effort: low)");
+    // $2 in + $6 out per 1M tokens, plus two searches at $5 / 1k.
+    expect(result.costUsd).toBeCloseTo(2 + 6 + 2 * 0.005, 6);
+  });
+
+  it("bills at least one search for a cited answer even when no web_search_call item is returned", async () => {
+    stubFetch({ ...groundedResponse, output: groundedResponse.output.slice(2), usage: { input_tokens: 0, output_tokens: 0 } });
+    const result = await createXaiProvider(CREDS).generate({ promptText: "x", mode: "grounded" });
+    expect(result.costUsd).toBeCloseTo(0.005, 6);
+  });
+
+  it("omits tools for ungrounded mode and raises a tiny output cap to the reasoning floor", async () => {
+    const spy = stubFetch(groundedResponse);
+    await createXaiProvider(CREDS).generate({ promptText: "Reply OK", mode: "ungrounded", maxOutputTokens: 16 });
+    const body = JSON.parse(String(spy.mock.calls[0][1]?.body));
+    expect(body.tools).toBeUndefined();
+    expect(body.max_output_tokens).toBe(1024);
+  });
+
+  it("merges xAI's top-level citations list after inline citations, deduplicated (D-145)", async () => {
+    stubFetch({ ...groundedResponse, citations: ["https://reviews.example/ledgerfox", "https://x.example/post"] });
+    const result = await createXaiProvider(CREDS).generate({ promptText: "x", mode: "grounded" });
+    expect(result.citations.map((c) => c.url)).toEqual(["https://reviews.example/ledgerfox", "https://x.example/post"]);
+  });
+
+  it("maps a 401 through the shared HTTP classifier", async () => {
+    stubFetch({ error: "bad key" }, 401);
+    await expect(createXaiProvider(CREDS).generate({ promptText: "x", mode: "ungrounded" })).rejects.toMatchObject({
+      errorType: "auth_error",
+    });
+  });
+});
+
+describe("Meta Model API adapter (Muse Spark, Responses API)", () => {
+  const groundedResponse = {
+    output: [
+      { id: "ws_789", type: "web_search_call", status: "completed" },
+      {
+        type: "message",
+        content: [
+          {
+            type: "output_text",
+            text: "LedgerFox and Tallyo are both well reviewed.",
+            annotations: [
+              { type: "url_citation", url: "https://reviews.example/ledgerfox", title: "LedgerFox review", start_index: 0, end_index: 9 },
+              { type: "url_citation", url: "https://shop.example/tallyo", title: "Tallyo", start_index: 14, end_index: 20 },
+            ],
+          },
+        ],
+      },
+    ],
+    usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
+    model: "muse-spark-1.3",
+  };
+
+  it("posts to api.meta.ai/v1/responses with web_search and parses titled citations", async () => {
+    const spy = stubFetch(groundedResponse);
+    const result = await createMetaProvider(CREDS).generate({ promptText: "best bookkeeping tools?", mode: "grounded" });
+
+    const [url, init] = spy.mock.calls[0];
+    expect(String(url)).toBe("https://api.meta.ai/v1/responses");
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      model: "muse-spark-1.3",
+      reasoning: { effort: "low" },
+      tools: [{ type: "web_search" }],
+    });
+    expect(result.modelVersion).toBe("muse-spark-1.3 (effort: low)");
+    expect(result.citations).toEqual([
+      { url: "https://reviews.example/ledgerfox", domain: "reviews.example", title: "LedgerFox review" },
+      { url: "https://shop.example/tallyo", domain: "shop.example", title: "Tallyo" },
+    ]);
+    // $1.25 in + $4.25 out per 1M tokens, plus one search at $2.50 / 1k.
+    expect(result.costUsd).toBeCloseTo(1.25 + 4.25 + 0.0025, 6);
+  });
+
+  it("throws malformed_output when no output_text exists", async () => {
+    stubFetch({ output: [{ type: "web_search_call" }], usage: {} });
+    await expect(createMetaProvider(CREDS).generate({ promptText: "x", mode: "grounded" })).rejects.toMatchObject({
+      errorType: "malformed_output",
+    });
+  });
+
+  it("requests search results, merges them after inline citations, and separates progress notes from the answer (D-145)", async () => {
+    const spy = stubFetch({
+      output: [
+        { type: "message", content: [{ type: "output_text", text: "I'll search for jewellers." }] },
+        {
+          type: "web_search_call",
+          status: "completed",
+          results: [
+            { type: "web_search_result", url: "https://reviews.example/ledgerfox", title: "dup of inline", snippet: "…" },
+            { type: "web_search_result", url: "https://guide.example/best", title: "Best picks", snippet: "…" },
+          ],
+        },
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "LedgerFox is a good pick.",
+              annotations: [{ type: "url_citation", url: "https://reviews.example/ledgerfox", title: "LedgerFox review" }],
+            },
+          ],
+        },
+      ],
+      usage: { input_tokens: 0, output_tokens: 0 },
+    });
+    const result = await createMetaProvider(CREDS).generate({ promptText: "x", mode: "grounded" });
+
+    expect(JSON.parse(String(spy.mock.calls[0][1]?.body)).include).toEqual(["web_search_call.results"]);
+    expect(result.text).toBe("I'll search for jewellers.\n\nLedgerFox is a good pick.");
+    expect(result.citations).toEqual([
+      { url: "https://reviews.example/ledgerfox", domain: "reviews.example", title: "LedgerFox review" },
+      { url: "https://guide.example/best", domain: "guide.example", title: "Best picks" },
+    ]);
+  });
+
+  it("does not request search results for ungrounded calls", async () => {
+    const spy = stubFetch(groundedResponse);
+    await createMetaProvider(CREDS).generate({ promptText: "x", mode: "ungrounded" });
+    expect(JSON.parse(String(spy.mock.calls[0][1]?.body)).include).toBeUndefined();
+  });
+
+  it("estimates grounded calls from live evidence: 40k input, 3k output, 8 searches (D-145)", () => {
+    const estimate = createMetaProvider(CREDS).estimateCostUsd({ promptText: "short prompt", mode: "grounded" });
+    expect(estimate).toBeCloseTo((40_000 / 1e6) * 1.25 + (3_000 / 1e6) * 4.25 + 8 * 0.0025, 6);
+  });
+
+  it("raises a tiny output cap to the reasoning floor so Settings Verify can succeed", async () => {
+    const spy = stubFetch(groundedResponse);
+    await createMetaProvider(CREDS).generate({ promptText: "Reply OK", mode: "ungrounded", maxOutputTokens: 16 });
+    expect(JSON.parse(String(spy.mock.calls[0][1]?.body)).max_output_tokens).toBe(1024);
   });
 });
 

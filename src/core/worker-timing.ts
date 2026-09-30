@@ -30,14 +30,15 @@ function positiveInteger(raw: string | undefined, fallback: number): number {
 }
 
 export function resolveWorkerTiming(env: Record<string, string | undefined> = process.env): WorkerTimingConfig {
-  const staleLockMs = positiveInteger(env.WORKER_STALE_LOCK_MS, 125_000);
-  const requestedProviderTimeout = positiveInteger(env.WORKER_PROVIDER_TIMEOUT_MS, 120_000);
+  const staleLockMs = positiveInteger(env.WORKER_STALE_LOCK_MS, 245_000);
+  const requestedProviderTimeout = positiveInteger(env.WORKER_PROVIDER_TIMEOUT_MS, 240_000);
   const staleMarginMs = Math.min(5_000, Math.max(1, Math.floor(staleLockMs / 2)));
   const maxProviderTimeoutMs = Math.max(1, staleLockMs - staleMarginMs);
   // D-039: a provider call must not outlive the stale-lock window, or a
   // still-running paid request can be reclaimed and billed twice.
-  // 120s default: real DeepSeek audit calls routinely exceed 45s and the
-  // old deadline dead-lettered jobs that would have succeeded.
+  // 240s default (D-145, was 120s under D-142): grounded Muse Spark calls
+  // took 101–172s in live probes, and the lock is one global window, so a
+  // longer deadline for any engine raises it for all of them anyway.
   const providerCallTimeoutMs = Math.min(requestedProviderTimeout, maxProviderTimeoutMs);
   // The extraction sweep re-enqueues pending/retrying extraction rows older
   // than the sweep age, and an in-flight extraction row is not touched until

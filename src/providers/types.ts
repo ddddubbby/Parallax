@@ -10,8 +10,9 @@ export type ProviderId =
   | "anthropic"
   | "google"
   | "perplexity"
-  // Retired with the GEO agent (D-141): mirrors the DB enum, no adapter.
-  | "xai";
+  // Retired with the GEO agent (D-141), revived in M63 (D-143).
+  | "xai"
+  | "meta";
 
 export type GenerationMode = "grounded" | "ungrounded";
 

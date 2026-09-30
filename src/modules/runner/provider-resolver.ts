@@ -3,10 +3,12 @@ import { decryptApiKey } from "@/modules/settings/crypto";
 import { createAnthropicProvider } from "@/providers/anthropic";
 import { createDeepSeekProvider } from "@/providers/deepseek";
 import { createGoogleProvider } from "@/providers/google";
+import { createMetaProvider } from "@/providers/meta";
 import { createMockProviderFor } from "@/providers/mock";
 import { createOpenAIProvider } from "@/providers/openai";
 import { createOpenAIEmbeddingProvider } from "@/providers/openai/embeddings";
 import { createPerplexityProvider } from "@/providers/perplexity";
+import { createXaiProvider } from "@/providers/xai";
 import type { RunMode } from "@/core/runner";
 import { type LiveCredentials, ProviderCallError, validateProviderBaseUrlOverride } from "@/providers/shared";
 import type { EmbeddingProvider, LLMProvider, ProviderId } from "@/providers/types";
@@ -23,6 +25,8 @@ const LIVE_FACTORIES: Partial<Record<ProviderId, (credentials: LiveCredentials) 
   anthropic: createAnthropicProvider,
   google: createGoogleProvider,
   perplexity: createPerplexityProvider,
+  xai: createXaiProvider,
+  meta: createMetaProvider,
 };
 
 /**

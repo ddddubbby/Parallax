@@ -78,9 +78,11 @@ export const providerId = pgEnum("provider_id", [
   "anthropic",
   "google",
   "perplexity",
-  // Retired with the GEO agent (D-141); kept in the DB type only, like
-  // `crypto_token` above. No provider adapter is registered for it.
+  // Retired with the GEO agent (D-141), revived as a live audit engine in
+  // M63 (D-143): Grok via the xAI API.
   "xai",
+  // M63 (D-143): Muse Spark via the Meta Model API.
+  "meta",
 ]);
 
 export const jobState = pgEnum("job_state", [
