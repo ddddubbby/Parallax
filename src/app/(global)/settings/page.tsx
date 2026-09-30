@@ -12,6 +12,8 @@ const PROVIDER_ROWS: Array<{ id: string; label: string; fallbackModel: string }>
   { id: "ANTHROPIC", label: "Anthropic", fallbackModel: "claude-sonnet-5" },
   { id: "GOOGLE", label: "Gemini", fallbackModel: "gemini-2.5-flash" },
   { id: "PERPLEXITY", label: "Perplexity", fallbackModel: "sonar" },
+  { id: "XAI", label: "Grok (xAI)", fallbackModel: "grok-4.7" },
+  { id: "META", label: "Muse Spark (Meta)", fallbackModel: "muse-spark-1.3" },
 ];
 
 function readDefaults() {

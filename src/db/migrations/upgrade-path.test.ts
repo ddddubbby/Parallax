@@ -119,10 +119,11 @@ describe.skipIf(!dbAvailable)("forward migration upgrade path", () => {
            from pg_enum e
            join pg_type t on t.oid = e.enumtypid
           where (t.typname = 'category_archetype' and e.enumlabel = 'crypto_token')
-             or (t.typname = 'provider_id' and e.enumlabel = 'xai')
+             or (t.typname = 'provider_id' and e.enumlabel in ('xai', 'meta'))
           order by e.enumlabel`,
       );
-      expect(enumValues.rows.map((row) => row.enumlabel)).toEqual(["crypto_token", "xai"]);
+      // M63 (0025_m63_add_meta_provider) adds `meta` for Muse Spark (D-143).
+      expect(enumValues.rows.map((row) => row.enumlabel)).toEqual(["crypto_token", "meta", "xai"]);
       // M62 (0024_m62_retire_geo_agent): the agent commerce tables are gone
       // after upgrade, while service_heartbeats (also from 0017) survives for
       // the operator worker.

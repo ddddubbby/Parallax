@@ -78,6 +78,20 @@ describe("DeepSeek adapter error mapping (RN-6)", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("sends low reasoning effort and stamps it on the returned model (D-144)", async () => {
+    const spy = vi.fn(async (...args: [RequestInfo | URL, RequestInit?]) => {
+      void args;
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "ok" } }], usage: {}, model: "deepseek-v4-flash" }),
+        { status: 200 },
+      );
+    });
+    vi.stubGlobal("fetch", spy);
+    const result = await callDeepSeekChat(CREDS, BODY);
+    expect(JSON.parse(String(spy.mock.calls[0][1]?.body)).reasoning_effort).toBe("low");
+    expect(result.model).toBe("deepseek-v4-flash (effort: low)");
+  });
+
   it("extraction cost estimate is nonzero (D-022: run planning includes extraction calls)", () => {
     expect(estimateExtractionCostUsd()).toBeGreaterThan(0);
   });

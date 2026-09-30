@@ -23,8 +23,9 @@ export const PROVIDER_IDS = [
   "anthropic",
   "google",
   "perplexity",
-  // Retired with the GEO agent (D-141): mirrors the DB enum, no adapter.
+  // Retired with the GEO agent (D-141), revived in M63 (D-143).
   "xai",
+  "meta",
 ] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 

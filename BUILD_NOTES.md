@@ -264,3 +264,37 @@ UNVERIFIED: nothing outstanding on this branch; Settings Verify can now hold a r
 REJECTED: env-only tuning at 45s (failure reproduces at defaults); raising call timeout without the lock (breaks D-039); leaving sweep age fixed (double paid calls).
 NEXT: Merge `fix/provider-timeout-120s` via PR; no further code action.
 GOTCHAS: Mock e2e sets `WORKER_STALE_LOCK_MS=3000`, which clamps the provider timeout to 1.5s — fine at 15ms mock latency, but any harness adding real latency must also raise the lock.
+
+## S-137 / 2026-09-24 / M60–M61 Vercel publication
+GOAL: Publish the merged research-site and homepage changes to the existing Vercel project.
+DONE: Preview reviewed at desktop/mobile widths; Vercel production deployment
+`dpl_26zGcktwCHrDhkGRXNPauyiAdepp` is READY and aliased to `windtunnel.tech` and
+`www.windtunnel.tech`. Only `site/` was uploaded. Production homepage, research hub,
+SK article and consolidated Insta360 article returned 200; both retired Insta360 paths
+returned 301 to the consolidated article; www returned 301 to apex; security headers
+and evidence JSON `X-Robots-Tag: noindex` verified.
+GATES: `site:research check`; `pnpm test:research` 6/6; `pnpm test:site` 24 passed,
+2 optional capture tests skipped; `pnpm lint --max-warnings 0`; `pnpm typecheck`;
+`pnpm docs:check`; `git diff --check` — all pass.
+EVIDENCE: Existing SK (216 sources) and Insta360 (71 sources) receipts match current
+article hashes. Fresh DB verification was attempted but local Postgres at localhost:5432
+was unavailable (`ECONNREFUSED`); no database was started or modified. Publisher check
+confirmed generated HTML, cards, and chart hashes match committed content.
+UNVERIFIED: `research@windtunnel.tech` mailbox/forwarding delivery; user selected to
+publish the address as-is. Search Console submission remains deferred.
+NEXT: Confirm mailbox routing when provisioned; review search performance on 2026-10-18.
+GOTCHAS: Vercel preview is deployment-protected and redirects unauthenticated requests
+to SSO. Authenticated Vercel CLI checks succeeded; preview body includes Vercel's
+feedback script injection, which is not present in the production deployment.
+
+## S-138 / 2026-09-29 / M63 (branch `m63` off `main@5e68884`)
+GOAL: Add Grok (xAI API) and Muse Spark (Meta Model API) as live audit engines so the operator can enter keys and start a run (D-143).
+DONE: `src/providers/xai`, `src/providers/meta`, shared `src/providers/responses-api.ts` (OpenAI refactored onto it); registry, runtime resolver, Settings actions/panel/defaults, base-URL allowlist, run labels, `.env.example`, `render.yaml`; migration 0025 + snapshot + journal written by hand (drizzle-kit generate fails on the pre-existing 0021/0022 shared-parent collision). Proof: `pnpm typecheck`, `pnpm lint --max-warnings 0`, `pnpm test` 105 files / 694 passed (upgrade-path applies 0025 and sees `meta`), `pnpm docs:check`. `pnpm db:migrate` on the dev DB; `provider_id` now ends `xai,meta`. Browser: Settings → Add provider lists "Grok (xAI)" and "Muse Spark (Meta)"; Configure run → Live validation lists GROK and MUSE SPARK as (MISSING) until keys exist; no console errors.
+UNVERIFIED: No real xAI or Meta call made (no keys). Open until the first validation run: grounded answers carry `url_citation` annotations; xAI emits `web_search_call` items (else search billing falls back to one per cited answer); billed output tokens match each console (reasoning tokens); Muse Spark accepts `temperature` if a caller ever sends one (audits do not).
+REJECTED: `drizzle-kit generate` (snapshot collision, see above); a generic OpenAI-compatible factory (A2); `x_search` (per-result billing the estimate cannot bound).
+NEXT: Settings → add xAI key → Verify; add Meta key → Verify; then Configure run → Live validation, providers Grok + Muse Spark, Grounded, k=2 on a small matrix; compare run cost with the xAI and Meta consoles; then open the `m63` PR.
+GOTCHAS: `pnpm db:migrate` applied BOTH pending migrations to the dev DB, 0024 (drops the retired `agent_*` tables, D-141) and 0025; the dev DB had not been migrated since M62. The dev DB only runs while `pnpm db:dev` is up (embedded Postgres, `.pgdata`).
+DONE (later, same session, D-144): Operator saved a Muse Spark key; Settings Verify succeeded but took 50s at default effort. All adapters now send low reasoning effort (shared `REASONING_EFFORT` in `src/providers/shared.ts`) and stamp `(effort: low)` on model versions; gates re-run: typecheck, lint, `pnpm test` 695 passed. Worker restarted on the new code.
+UNVERIFIED (D-144): no live call yet at low effort on OpenAI, Anthropic, Gemini or DeepSeek; Anthropic `output_config` on claude-sonnet-5 and DeepSeek `reasoning_effort` with `response_format: json_object` are documented but unexercised. A 400 on the first live call of any engine means that vendor rejected the parameter.
+DONE (later, same session, D-145): Muse Spark probes (7 calls, ~$0.20): grounded 101–172s, one 120s timeout, three transient 503s (retry succeeded), cost 4–9x estimate, 0–2 inline citations. Fixed: 240s/245s default deadline/lock for all engines, grounded estimate 40k in / 3k out / 8 searches (Meta; xAI mirrors), Meta `include: ["web_search_call.results"]` merged after inline citations (xAI top-level `citations` too), message items joined with a blank line. `.env.local` pinned `WORKER_PROVIDER_TIMEOUT_MS=120000` / `WORKER_STALE_LOCK_MS=150000`, overriding the defaults; both lines commented out with a D-145 note. Proof: worker-like scratch run (concurrency 3, resolved deadline 240s, 3 attempts) 6/6 twice, 29–46s, $0.023–$0.079 each vs $0.083 estimate, 21–78 sources each; `pnpm test` green. Worker restarted.
+UNVERIFIED (D-145): the latency tail — the slow 100–172s period may recur; if more than 1 in 20 grounded Muse Spark jobs in a real run still time out at 240s, raise the default to 300s. xAI's grounded estimate and top-level `citations` are unexercised.

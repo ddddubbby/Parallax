@@ -1,4 +1,4 @@
-import { classifyHttpStatus, type LiveCredentials, ProviderCallError } from "../shared";
+import { classifyHttpStatus, type LiveCredentials, ProviderCallError, REASONING_EFFORT, withReasoningEffort } from "../shared";
 import type { GenerationRequest, GenerationResult, LLMProvider } from "../types";
 
 // DeepSeek: first live validation provider (D-007, PV-2). Verified against
@@ -44,7 +44,7 @@ export async function callDeepSeekChat(
         "Content-Type": "application/json",
         Authorization: `Bearer ${credentials.apiKey}`,
       },
-      body: JSON.stringify({ model, ...body }),
+      body: JSON.stringify({ model, reasoning_effort: REASONING_EFFORT, ...body }),
       signal,
     });
   } catch (err) {
@@ -86,7 +86,7 @@ export async function callDeepSeekChat(
   const tokensOut = parsed.usage?.completion_tokens ?? 0;
   const costUsd = (tokensIn / 1_000_000) * PRICE_PER_1M_INPUT_USD + (tokensOut / 1_000_000) * PRICE_PER_1M_OUTPUT_USD;
 
-  return { text, tokensIn, tokensOut, costUsd, latencyMs, model: parsed.model ?? model };
+  return { text, tokensIn, tokensOut, costUsd, latencyMs, model: withReasoningEffort(parsed.model ?? model) };
 }
 
 /**

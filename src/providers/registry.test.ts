@@ -26,4 +26,14 @@ describe("provider registry", () => {
     });
     expect(deepseek?.estimateCostUsd({ promptText: "short prompt", mode: "ungrounded" })).toBeGreaterThan(0);
   });
+
+  it("registers the M63 shopping-agent model engines as grounded-capable (D-143)", () => {
+    for (const [id, displayName] of [
+      ["xai", "Grok"],
+      ["meta", "Muse Spark"],
+    ] as const) {
+      expect(getProvider(id)).toMatchObject({ displayName, supportsGrounded: true, supportsUngrounded: true });
+      expect(getProvider(id)?.estimateCostUsd({ promptText: "short prompt", mode: "grounded" })).toBeGreaterThan(0);
+    }
+  });
 });

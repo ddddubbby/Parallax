@@ -50,6 +50,7 @@ const ENGINE_LABELS: Record<string, string> = {
   google: "Gemini",
   perplexity: "Perplexity",
   xai: "Grok",
+  meta: "Muse Spark",
   minimax: "MiniMax",
 };
 

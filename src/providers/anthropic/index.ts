@@ -3,6 +3,8 @@ import {
   type LiveCredentials,
   postProviderJson,
   ProviderCallError,
+  REASONING_EFFORT,
+  withReasoningEffort,
 } from "../shared";
 import type { Citation, GenerationRequest, GenerationResult, LLMProvider } from "../types";
 
@@ -63,6 +65,7 @@ export function createAnthropicProvider(credentials: LiveCredentials): LLMProvid
           model,
           max_tokens: req.maxOutputTokens ?? DEFAULT_MAX_TOKENS,
           messages: [{ role: "user", content: req.promptText }],
+          output_config: { effort: REASONING_EFFORT },
           ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
           ...(req.mode === "grounded"
             ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: GROUNDED_MAX_SEARCHES }] }
@@ -102,7 +105,7 @@ export function createAnthropicProvider(credentials: LiveCredentials): LLMProvid
       return {
         text,
         citations,
-        modelVersion: parsed.model ?? model,
+        modelVersion: withReasoningEffort(parsed.model ?? model),
         tokensIn,
         tokensOut,
         costUsd,

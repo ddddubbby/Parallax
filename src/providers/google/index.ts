@@ -3,6 +3,7 @@ import {
   type LiveCredentials,
   postProviderJson,
   ProviderCallError,
+  withReasoningEffort,
 } from "../shared";
 import type { Citation, GenerationRequest, GenerationResult, LLMProvider } from "../types";
 
@@ -28,6 +29,7 @@ const DEFAULT_MODEL = "gemini-2.5-flash";
 // Verified 2026-07-03 (ai.google.dev pricing, gemini-2.5-flash). Config only (PV-6).
 const PRICE_PER_1M_INPUT_USD = 0.3;
 const PRICE_PER_1M_OUTPUT_USD = 2.5;
+const LOW_EFFORT_THINKING_BUDGET = 1024;
 const GROUNDED_PROMPT_COST_USD = 0.035; // $35 / 1k grounded prompts (2.5 models)
 
 interface GenerateContentOutput {
@@ -64,6 +66,9 @@ export function createGoogleProvider(credentials: LiveCredentials): LLMProvider 
           contents: [{ parts: [{ text: req.promptText }] }],
           ...(req.mode === "grounded" ? { tools: [{ google_search: {} }] } : {}),
           generationConfig: {
+            // Gemini 2.5 has no effort levels, only a thinking-token budget;
+            // 1,024 is Google's own mapping for "low" (D-144).
+            thinkingConfig: { thinkingBudget: LOW_EFFORT_THINKING_BUDGET },
             ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
             ...(req.maxOutputTokens !== undefined ? { maxOutputTokens: req.maxOutputTokens } : {}),
           },
@@ -99,7 +104,7 @@ export function createGoogleProvider(credentials: LiveCredentials): LLMProvider 
       return {
         text,
         citations,
-        modelVersion: parsed.modelVersion ?? model,
+        modelVersion: withReasoningEffort(parsed.modelVersion ?? model),
         tokensIn,
         tokensOut,
         costUsd,
