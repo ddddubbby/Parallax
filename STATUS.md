@@ -5,11 +5,11 @@
 | Field | Value |
 |---|---|
 | **Active product** | Windtunnel operator app (M63); public research website unchanged |
-| **Branch** | `m63` from `main` at `5e68884` |
-| **Current milestone** | M63 — Shopping-agent model engines: Grok and Muse Spark (D-143) |
-| **Milestone state** | M63 concluded (D-143–D-145): Muse Spark verified live, Grok code complete but unverified (no key); PR open from `m63`; migration 0025 applied to the dev DB only. M60/M61 published 2026-09-24 |
+| **Branch** | `main` at `c779d60` (M63 merged via PR #22) |
+| **Current milestone** | M63 — Shopping-agent model engines: Grok and Muse Spark (D-143–D-145) |
+| **Milestone state** | M63 concluded (D-143–D-145): Muse Spark verified live, Grok code complete but unverified (no key); merged to `main` via PR #22 on 2026-09-30; migrations 0024 and 0025 applied to the dev DB only. M60/M61 published 2026-09-24 |
 | **Production** | https://windtunnel.tech/research/sk-jewellery-ai-visibility-message-test |
-| **Next action** | Review and merge the `m63` PR; run `pnpm db:migrate` on production (0024 and 0025 pending there). Then a real Muse Spark live validation run (grounded, k=2, cap ~$10); add an xAI key and Verify Grok. Site: confirm `research@windtunnel.tech` routing; review search performance on 2026-10-18 |
+| **Next action** | Run `pnpm db:migrate` on production (0024 and 0025 pending there) and confirm no Render `WORKER_PROVIDER_TIMEOUT_MS`/`WORKER_STALE_LOCK_MS` override pins the old 120s deadline. Then a real Muse Spark live validation run (grounded, k=2, cap ~$10); add an xAI key and Verify Grok. Site: confirm `research@windtunnel.tech` routing; review search performance on 2026-10-18 |
 | **Parked product** | None — the GEO agent was retired in M62 (D-141) |
 | **Build plan** | [M59_BUILD_PLAN.md](M59_BUILD_PLAN.md) |
 
@@ -56,7 +56,7 @@ is still unapplied.
 
 ## M63 shopping-agent model engines (2026-09-29)
 
-Branch `m63` from `main`, per D-143. Grok 4.7 (`xai`) and Muse Spark 1.3 (`meta`)
+Merged to `main` via PR #22 (2026-09-30), per D-143. Grok 4.7 (`xai`) and Muse Spark 1.3 (`meta`)
 adapters on the Responses API with `web_search` grounding; migration 0025 adds `meta`
 to `provider_id`. Wired into Settings (keys, Verify, defaults) and run creation, where
 both appear as providers marked "missing" until a key is saved. Gates green: typecheck,

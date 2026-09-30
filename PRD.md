@@ -665,7 +665,7 @@ Detailed schema semantics live in `ENGINEERING_SPEC.md`. Schema changes require 
 | M57 | Pivot to Windtunnel, site compliance, SEO page architecture (D-128) | External name Windtunnel on every visible surface; live site to D-127 lexicon; study/method/methodology pages; JSON-LD, robots AI-bot groups, llms.txt, www→apex 301, contact form | P0–P2b done on `m57`; P3 contact form blocked on operator endpoint |
 | M58 | Brand website redesign (D-129) | Unified dark site, clear offer, preserved evidence, site-only verification | Merged via PR #18 |
 | M59 | Research publishing and SK decision guide (D-133–D-135) | Verified audit + two distinct message tests; persona/scenario actions; static research system | Published; hosted checks pass; Search Console follow-up deferred |
-| M63 | Shopping-agent model engines: Grok and Muse Spark (D-143) | Both adapters behind the frozen `LLMProvider` interface; keys enterable and verifiable in Settings; engines selectable at run creation; a live validation run confirms citations and cost | Done for Muse Spark (Settings/run UI verified in browser; 12/12 grounded live calls at 240s). Grok: code complete — unverified live (no key) |
+| M63 | Shopping-agent model engines: Grok and Muse Spark (D-143–D-145) | Both adapters behind the frozen `LLMProvider` interface; keys enterable and verifiable in Settings; engines selectable at run creation; a live validation run confirms citations and cost | Done for Muse Spark (Settings/run UI verified in browser; 12/12 grounded live calls at 240s). Grok: code complete — unverified live (no key) |
 
 Progress notes:
 
